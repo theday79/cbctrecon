@@ -69,7 +69,7 @@ void DlgExternalCommand::SetRTKBinPath(QString& strDirPath)
 	{
 		QString strCommandFilter = m_listRTKCommandFilter.at(i);
 		tmpStrPath = m_strDirRTKBin;
-		tmpStrPath = tmpStrPath.append("\\").append(strCommandFilter).append(".exe");
+		tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
 
 		cout << m_strDirRTKBin.toLocal8Bit().constData() << endl;
 		cout << tmpStrPath.toLocal8Bit().constData() << endl;
@@ -91,7 +91,7 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 
 	if (crntCommand.length() > 0 && crntPath.length() > 0)
 	{
-		strFinalCommandText = crntPath.append("\\").append(crntCommand);
+		strFinalCommandText = crntPath.append("/").append(crntCommand);
 	}
 	else
 		return;
@@ -155,7 +155,7 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 		return;
 	}
 
-	strOutput = tmpPlmDir.absolutePath() + "\\" + "ExternalRtk_" + crntCommand + "_" + strTimeStamp + ".mha";
+	strOutput = tmpPlmDir.absolutePath() + "/" + "ExternalRtk_" + crntCommand + "_" + strTimeStamp + ".mha";
 
 	
 

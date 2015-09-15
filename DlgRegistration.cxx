@@ -966,10 +966,10 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   cout << "1: writing temporary files" << endl;
 
   //Both image type: Unsigned Short
-  QString filePathFixed = m_strPathPlastimatch + "\\" + "fixed_rigid.mha";
-  QString filePathMoving = m_strPathPlastimatch + "\\" + "moving_rigid.mha";
-  QString filePathOutput = m_strPathPlastimatch + "\\" + "output_rigid.mha";
-  QString filePathXform = m_strPathPlastimatch + "\\" + "xform_rigid.txt";
+  QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_rigid.mha";
+  QString filePathMoving = m_strPathPlastimatch + "/" + "moving_rigid.mha";
+  QString filePathOutput = m_strPathPlastimatch + "/" + "output_rigid.mha";
+  QString filePathXform = m_strPathPlastimatch + "/" + "xform_rigid.txt";
 
   typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
 
@@ -1000,7 +1000,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   QString strPathOriginalCTSkinMask;
 
-  QString filePathFixed_proc = m_strPathPlastimatch + "\\" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi  
+  QString filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi  
   
   QString strPath_mskSkinCT_manRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";//proof of preproceesing for CBCT
 
@@ -1024,7 +1024,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       fShift[2] = (double)(originBefore[2] - originAfter[2]);
 
       QFileInfo finfoSkinFile1 = QFileInfo(m_strPathCTSkin);
-      QString strPathAlternateSkin = m_strPathPlastimatch + "\\" + "msk_skin_CT.mha";
+      QString strPathAlternateSkin = m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
       QFileInfo finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
 
       if (finfoSkinFile1.exists())
@@ -1036,7 +1036,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       {
           cout << "alternative skin file will be used" << endl;
           strPathOriginalCTSkinMask = strPathAlternateSkin;
-          //filePathFixed_proc = m_strPathPlastimatch + "\\" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi	
+          //filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi	
           ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift);
       }
       else
@@ -1061,7 +1061,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   QString fnCmdRegisterRigid = "cmd_register_rigid.txt";
   //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
-  QString pathCmdRegister = m_strPathPlastimatch + "\\" + fnCmdRegisterRigid;
+  QString pathCmdRegister = m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
 
   GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving, 
 							filePathOutput, filePathXform, PLAST_RIGID, "","","");
@@ -1696,15 +1696,15 @@ void DlgRegistration::SLT_DoRegistrationDeform()
  cout << "1: DoRegistrationDeform: writing temporary files" << endl;
 
   //Both image type: Unsigned Short
-  QString filePathFixed = m_strPathPlastimatch + "\\" + "fixed_deform.mha";
-  QString filePathMoving = m_strPathPlastimatch + "\\" + "moving_deform.mha";
-  QString filePathOutput = m_strPathPlastimatch + "\\" + "output_deform.mha";
-  QString filePathXform = m_strPathPlastimatch + "\\" + "xform_deform.txt";
+  QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_deform.mha";
+  QString filePathMoving = m_strPathPlastimatch + "/" + "moving_deform.mha";
+  QString filePathOutput = m_strPathPlastimatch + "/" + "output_deform.mha";
+  QString filePathXform = m_strPathPlastimatch + "/" + "xform_deform.txt";
 
 
-  QString filePathOutputStage1 = m_strPathPlastimatch + "\\" + "output_deform_stage1.mha";
-  QString filePathOutputStage2 = m_strPathPlastimatch + "\\" + "output_deform_stage2.mha";
-  QString filePathOutputStage3 = m_strPathPlastimatch + "\\" + "output_deform_stage3.mha";
+  QString filePathOutputStage1 = m_strPathPlastimatch + "/" + "output_deform_stage1.mha";
+  QString filePathOutputStage2 = m_strPathPlastimatch + "/" + "output_deform_stage2.mha";
+  QString filePathOutputStage3 = m_strPathPlastimatch + "/" + "output_deform_stage3.mha";
 
   typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
 
@@ -1738,7 +1738,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	}
 	else
 	{
-	  filePathFixed_proc = m_strPathPlastimatch + "\\" + "fixed_deform_proc.mha";	  
+	  filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_deform_proc.mha";	  
 	  //skin removal and bubble filling : output file = filePathFixed_proc
 	  bool bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
 	  ProcessCBCT_beforeDeformRegi(filePathFixed, m_strPathCTSkin_manRegi,filePathFixed_proc, m_strPathXFAutoRigid, bBubbleRemoval); //bubble filling yes
@@ -1749,7 +1749,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   QString fnCmdRegisterRigid = "cmd_register_deform.txt";
   //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
-  QString pathCmdRegister = m_strPathPlastimatch + "\\" + fnCmdRegisterRigid;
+  QString pathCmdRegister = m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
 
   QString strDeformableStage1 = ui.lineEditArgument1->text(); //original param: 7, add output path
   QString strDeformableStage2 = ui.lineEditArgument2->text();
@@ -2578,7 +2578,7 @@ void DlgRegistration::SetPlmOutputDir(QString& endFix)
 {
   QDir crntDir = QDir::current(); //folder where current exe file exists.
   QString crntPathStr = crntDir.absolutePath();
-  QString dirName = crntPathStr.append("\\").append("plm_").append(endFix);
+  QString dirName = crntPathStr.append("/").append("plm_").append(endFix);
   
   QDir tmpDir = QDir(dirName);
   if (!tmpDir.exists())
@@ -2671,8 +2671,8 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
 	  return;   
   }
   //1) Export current CBCT file
-  QString filePathCBCT = m_strPathPlastimatch + "\\" + "CorrCBCT.mha"; //usually corrected one
-  QString filePathCBCT_noSkin = m_strPathPlastimatch + "\\" + "CorrCBCT_final.mha"; //usually corrected one
+  QString filePathCBCT = m_strPathPlastimatch + "/" + "CorrCBCT.mha"; //usually corrected one
+  QString filePathCBCT_noSkin = m_strPathPlastimatch + "/" + "CorrCBCT_final.mha"; //usually corrected one
   	  
   typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
   writerType::Pointer writer = writerType::New();
@@ -2738,7 +2738,7 @@ void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, Q
   Rt_study rtds;
 
   //Export cur image first
-  QString filePathCurImg = m_strPathPlastimatch + "\\" + "SkinCropRS_curImg.mha"; //usually corrected one
+  QString filePathCurImg = m_strPathPlastimatch + "/" + "SkinCropRS_curImg.mha"; //usually corrected one
 
   typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
 
@@ -3001,10 +3001,10 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     cout << "1: writing temporary files" << endl;
 
     //Both image type: Unsigned Short
-    QString filePathFixed = m_strPathPlastimatch + "\\" + "fixed_gradient.mha";
-    QString filePathMoving = m_strPathPlastimatch + "\\" + "moving_gradient.mha";
-    QString filePathOutput = m_strPathPlastimatch + "\\" + "output_gradient.mha";
-    QString filePathXform = m_strPathPlastimatch + "\\" + "xform_gradient.txt";
+    QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_gradient.mha";
+    QString filePathMoving = m_strPathPlastimatch + "/" + "moving_gradient.mha";
+    QString filePathOutput = m_strPathPlastimatch + "/" + "output_gradient.mha";
+    QString filePathXform = m_strPathPlastimatch + "/" + "xform_gradient.txt";
 
     typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
 
@@ -3029,7 +3029,7 @@ void DlgRegistration::SLT_DoRegistrationGradient()
 
     QString fnCmdRegisterGradient = "cmd_register_gradient.txt";
     //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
-    QString pathCmdRegister = m_strPathPlastimatch + "\\" + fnCmdRegisterGradient;
+    QString pathCmdRegister = m_strPathPlastimatch + "/" + fnCmdRegisterGradient;
 
     /*GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed, filePathMoving,
         filePathOutput, filePathXform, PLAST_GRADIENT, "", "", "");    */
@@ -3152,8 +3152,8 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     cout << "1: writing temporary files" << endl;
 
     //Both image type: Unsigned Short
-    QString filePathFixed = m_strPathPlastimatch + "\\" + "fixed_rigid.mha"; //CBCT image //redundant
-    QString filePathFixed_proc = m_strPathPlastimatch + "\\" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi  
+    QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_rigid.mha"; //CBCT image //redundant
+    QString filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi  
 
     //writing
     typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
@@ -3165,7 +3165,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
 
     QFileInfo finfoSkinFile1 = QFileInfo(m_strPathCTSkin);
-    QString strPathAlternateSkin = m_strPathPlastimatch + "\\" + "msk_skin_CT.mha";
+    QString strPathAlternateSkin = m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
     QFileInfo finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
 
     QString strPathOriginalCTSkinMask;

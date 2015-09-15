@@ -341,7 +341,7 @@ void CbctRecon::RenameFromHexToDecimal(QStringList& filenameList)
 		QString extStr = fileInfo.completeSuffix();
 
 		QString newFileName = newBaseName.append(".").append(extStr);
-		QString newPath = dir.absolutePath() + "\\" + newFileName;	
+		QString newPath = dir.absolutePath() + "/" + newFileName;	
 		
 		//extract former part
 		QFile::rename(crntFilePath, newPath);
@@ -590,7 +590,7 @@ void CbctRecon::SLT_LoadNKIImage()
 	QString extName = "mha";
 
 	QString newFileName = baseName.append(endFix).append(".").append(extName);
-	QString newPath = dir.absolutePath() + "\\" + newFileName;
+	QString newPath = dir.absolutePath() + "/" + newFileName;
 
 	write_mha(newPath.toLocal8Bit().constData(), v);
 	cout << "File conversion is done. Trying to read mha file.." << endl;	
@@ -879,7 +879,7 @@ QString CbctRecon::MakeElektaXML(QString filePath_ImageDBF, QString filePath_Fra
 
   QString fileName = "ElektaGeom_" + DICOM_UID + ".xml";
 
-  QString strOutput = dirPath + "\\" + fileName;
+  QString strOutput = dirPath + "/" + fileName;
 
   reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
   reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
@@ -920,7 +920,7 @@ void CbctRecon::SLT_ExportHis()
 	for (int i = 0 ;i<m_iImgCnt ; i++)
 	{
 		QFileInfo tmpInfo = QFileInfo(m_arrYKImage[i].m_strFilePath);
-		QString newPath = dir + "\\" + tmpInfo.fileName();
+		QString newPath = dir + "/" + tmpInfo.fileName();
 		m_arrYKImage[i].SaveDataAsHis(newPath.toLocal8Bit().constData(), false);
 	}
 
@@ -1155,7 +1155,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 	QString extName = srcFileInfo.completeSuffix();
 
 	QString newFileName = baseName.append(endFix).append(".").append(extName);
-	QString newPath = dir.absolutePath() + "\\" + newFileName;	
+	QString newPath = dir.absolutePath() + "/" + newFileName;	
 
 	corrImg.SaveDataAsRaw(newPath.toLocal8Bit().constData());
 
@@ -1358,7 +1358,7 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 	//QString extName = srcFileInfo.completeSuffix();
 
 	//QString newFileName = baseName.append(endFix).append(".").append(extName);
-	//QString newPath = dir.absolutePath() + "\\" + newFileName;	
+	//QString newPath = dir.absolutePath() + "/" + newFileName;	
 
 	//corrImg.SaveDataAsRaw(newPath.toLocal8Bit().constData());
 
@@ -4630,7 +4630,7 @@ void CbctRecon::ExportDICOM_SHORT( SHORT_ImageType::Pointer& sp3DshortImage ) //
 		sp3DshortImage->TransformIndexToPhysicalPoint(index, position);
 
 		value.str("");
-		value << position[0] << "\\" << position[1] << "\\" << position[2];
+		value << position[0] << "/" << position[1] << "/" << position[2];
 		itk::EncapsulateMetaData<std::string>(*dict,"0020|0032", value.str());      
 		// Slice Location: For now, we store the z component of the Image
 		// Position Patient.
@@ -5853,7 +5853,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	}
 
 	//Get current folder
-	QString strCrntDir = m_strPathPatientDir + "\\" + "IMAGES"; //current Proj folder
+	QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder
 
 	
 	//Make a sub directory
@@ -5874,7 +5874,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	  cout << "FwdProj directory seems to exist already. Files will be overwritten." << endl;
 	}
 
-	QString strSavingFolder = strCrntDir + "\\" + fwdDirName;
+	QString strSavingFolder = strCrntDir + "/" + fwdDirName;
 	SaveProjImageAsHIS(spProjCT3D, m_arrYKBufProj,strSavingFolder, m_iCntSelectedProj, m_fResampleF);
   }
 }
@@ -5908,7 +5908,7 @@ void CbctRecon::SaveProjImageAsHIS( USHORT_ImageType::Pointer& spProj3D, YK16Gra
 	QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
 
 	QString crntFileName = crntFileInfo.fileName();
-	QString crntPath = strSavingFolder + "\\" + crntFileName;
+	QString crntPath = strSavingFolder + "/" + crntFileName;
 
 	fd = fopen(crntPath.toLocal8Bit().constData(), "wb");
 	fwrite(arrYKImage[i].m_pElektaHisHeader, 100, 1, fd); //this buffer only include header info
@@ -6146,7 +6146,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	}
 
 	//Get current folder
-	QString strCrntDir = m_strPathPatientDir + "\\" + "IMAGES"; //current Proj folder
+	QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder
 
 
 	//Make a sub directory
@@ -6167,7 +6167,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	  cout << "Scatter map directory seems to exist already. Files will be overwritten." << endl;
 	}
 
-	QString strSavingFolder = strCrntDir + "\\" + scatDirName;
+	QString strSavingFolder = strCrntDir + "/" + scatDirName;
 	SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj,strSavingFolder, m_iCntSelectedProj, m_fResampleF);
   } 
 }
@@ -6319,7 +6319,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 	}
 
 	//Get current folder
-	QString strCrntDir = m_strPathPatientDir + "\\" + "IMAGES"; //current Proj folder
+	QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder
 
 
 	//Make a sub directory
@@ -6340,7 +6340,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 	  cout << "Corrected projection directory seems to exist already. Files will be overwritten." << endl;
 	}
 
-	QString strSavingFolder = strCrntDir + "\\" + scatDirName;
+	QString strSavingFolder = strCrntDir + "/" + scatDirName;
 
         if (!bHighResolMacro)
             SaveProjImageAsHIS(m_spProjCorr3D, m_arrYKBufProj,strSavingFolder, m_iCntSelectedProj, m_fResampleF);
@@ -6453,7 +6453,7 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
   {
 	/*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
 	QString crntFileName = crntFileInfo.fileName();
-	QString crntPath = strSavingFolder + "\\" + crntFileName;*/
+	QString crntPath = strSavingFolder + "/" + crntFileName;*/
 	//Search matching slice using slice iterator for m_spProjCTImg	
 	//cout << "Get2DFrom3D: Slide= " << i  << " ";
 
@@ -6550,7 +6550,7 @@ void CbctRecon::Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageT
   {
 	/*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
 	QString crntFileName = crntFileInfo.fileName();
-	QString crntPath = strSavingFolder + "\\" + crntFileName;*/
+	QString crntPath = strSavingFolder + "/" + crntFileName;*/
 	//Search matching slice using slice iterator for m_spProjCTImg  
 	if (i == idx)
 	{
@@ -6963,7 +6963,7 @@ void CbctRecon::AfterScatCorrectionMacro()
   //Save Image as DICOM
 
   //Get current folder
-  QString strCrntDir = m_strPathPatientDir + "\\" + "IMAGES" + "\\" + "cor_" + m_strDCMUID; //current Proj folder  
+  QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES" + "/" + "cor_" + m_strDCMUID; //current Proj folder  
   QDir crntDir(strCrntDir);  
   QString SubDirName = "Reconstruction";
   bool tmpResult = crntDir.mkdir(SubDirName); //what if the directory exists?	
@@ -6972,7 +6972,7 @@ void CbctRecon::AfterScatCorrectionMacro()
 	cout << "DICOM dir seems to exist already. Files will be overwritten." << endl;
   }
 
-  QString strSavingFolder = strCrntDir + "\\" + SubDirName;
+  QString strSavingFolder = strCrntDir + "/" + SubDirName;
   SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, QString("PriorCT_ScatterCorr"), strSavingFolder);  
   //Export as DICOM (using plastimatch) folder?
 }
@@ -7028,7 +7028,7 @@ void CbctRecon::SaveUSHORTAsSHORT_DICOM( USHORT_ImageType::Pointer& spImg, QStri
 
   QString endFix = "_DCM";
   
-  QString newDirPath = strPathTargetDir + "\\" + strPatientID + "_DCM";
+  QString newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
   
 
   QDir dirNew(newDirPath);
@@ -7230,7 +7230,7 @@ void CbctRecon::SLT_FileExportShortDICOM_CurrentImg()
 	cout << "DICOM dir seems to exist already. Files will be overwritten." << endl;
   }
 
-  QString strSavingFolder = dirPath + "\\" + strPatientID;
+  QString strSavingFolder = dirPath + "/" + strPatientID;
   SaveUSHORTAsSHORT_DICOM(m_spCrntReconImg, strPatientID, strEndFix, strSavingFolder);
 }
 
