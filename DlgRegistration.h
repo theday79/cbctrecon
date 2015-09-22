@@ -91,7 +91,6 @@ public slots:
         void SLT_DoRegistrationGradient();
         void SLT_ManualMoveByDCMPlan();
 
-
 	void SLT_BringFocusToEnableArrow(bool bChecked);
 
 	void SLT_KeyMoving(bool bChecked);
@@ -150,7 +149,7 @@ public:
 	 void SelectComboExternal(int idx, enREGI_IMAGES iImage);
 
 	 void UpdateListOfComboBox(int idx);
-	 void PreprocessCT();
+	 bool PreprocessCT();
          void LoadRTPlan(QString& strDCMPath);
 
 	 //void plm_dmap_main (Dmap_parms* parms);
@@ -217,6 +216,8 @@ public:
 
 
         Dcmtk_rt_study* m_pDcmStudyPlan;
+
+      
 
 
 private:

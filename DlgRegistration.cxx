@@ -1891,19 +1891,19 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   cout << "FINISHED!: Deformable image registration. Proceed to scatter correction" << endl;
 }
 
-void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, then show the registration DLG
+bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, then show the registration DLG
 {
 
   if (!ui.checkBoxCropBkgroundCT->isChecked())
   {
 	cout << "Preprocessing is not selected." << endl;
-	return;
+	return true;
   }
 
   if (m_pParent->m_strPathPlanCTDir.length() < 3)
   {
 	cout << "Reference CT DIR should be specified" << endl;
-	return;
+        return false;
   }
 
 
@@ -1938,7 +1938,7 @@ void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   sb.img_out->save_image (strPathMskBubbleCT.toLocal8Bit().constData());
 
   if (m_pParent->m_strPathRS.isEmpty())
-	return;
+	return false;
   /* End of [1]Segment air region*/
 
   //plastimatch convert --input E:\PlastimatchData\DicomEg\OLD\RS.dcm --output-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all2.mha --output-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_all.txt --referenced-ct E:\PlastimatchData\DicomEg\OLD\CT
@@ -1984,13 +1984,17 @@ void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   ifstream fin;
   fin.open(sslist_path_all.toLocal8Bit().constData(), ios::in);
   if (fin.fail())
-	return;
+	return false;
 
   char str[MAX_LINE_LENGTH];
 
   QString strLineSkin;
   QString strLineLungLt;
   QString strLineLungRt;
+
+
+  QString strRSName = ui.lineEditCropContourName->text();
+  strRSName = strRSName.trimmed();
 
   while(!fin.eof())
   {
@@ -2008,19 +2012,19 @@ void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 	}
 	QString organName = strList.at(2);
 
-	organName.trimmed();
-	if (organName == "Skin" || organName == "skin" || organName == "SKIN")
-	{
-	  strLineSkin = strLine;
-	}
-	/*if (organName == "LeftLung")
-	{
-	strLineLungLt = strLine;
-	}
-	if (organName == "RightLung")
-	{
-	strLineLungRt = strLine;
-	}*/
+        organName = organName.trimmed();
+        //YKTEMP20150922
+	//if (organName == "Skin" || organName == "skin" || organName == "SKIN")
+	//{
+	//  strLineSkin = strLine;
+	//}        
+
+        //if (organName == strRSName)
+        if (organName.compare(strRSName,Qt::CaseInsensitive) == 0)
+        {
+            strLineSkin = strLine;
+            cout << "Structure for cropping was found: " << strLineSkin.toLocal8Bit().constData() << endl;
+        }
   }
   fin.close();
 
@@ -2038,8 +2042,8 @@ void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   }
   else
   {
-	cout << "Error: no skin contour is found in DICOM RS file. " << endl;
-	return;
+      cout << "Error: no " << strRSName.toLocal8Bit().constData() <<" RS structure is found in DICOM RS file. " << endl;
+      return false;
   }
   /* End of [3]Read outputss-list.txt and leave skin only*/
 
@@ -2155,7 +2159,7 @@ void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   if (m_pParent->m_strPathPlan.isEmpty())
   {
       cout << "No DCM plan file was found. Skipping dcm plan." << endl;
-      return;
+      return true;
   }
   QString dcmplanPath = m_pParent->m_strPathPlan;
 
@@ -2172,7 +2176,8 @@ void DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 
 
   //}     
-
+  
+  return true;
 }
 
 
@@ -2192,10 +2197,13 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
 
     m_pDcmStudyPlan = new Dcmtk_rt_study();
 
+    cout << "Before plm_file_format_deduce" << endl;
     Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strDCMPath.toLocal8Bit().constData());
+    cout << "After plm_file_format_deduce" << endl;
 
     if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
     {
+        cout << "PLM_FILE_FMT_DICOM_RTPLAN " << "is found" << endl;
         m_pDcmStudyPlan->load(strDCMPath.toLocal8Bit().constData());
     }
     else
@@ -2203,7 +2211,6 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
         cout << "Found file is not RTPLAN. Skipping dcm plan." << endl;
         return;
     }
-
 
     //Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
 }
@@ -2571,7 +2578,20 @@ void DlgRegistration::plm_synth_trans_xf( QString& strPath_fixed, QString& strPa
 
 void DlgRegistration::SLT_PreProcessCT()
 {
-  PreprocessCT();
+    if (!PreprocessCT())
+    {
+        /*QMessageBox msgBox;
+        msgBox.setText("Error in PreprocessCT!!! scatter correction would not work out. Exit?");
+        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+
+        int res = msgBox.exec();
+
+        if (res == QMessageBox::Yes)
+        {*/
+        cout << "Error in PreprocessCT!!!scatter correction would not work out." << endl;
+            m_pParent->m_bMacroContinue = false;
+        //}
+    }  
 }
 
 void DlgRegistration::SetPlmOutputDir(QString& endFix)

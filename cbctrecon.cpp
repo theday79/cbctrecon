@@ -227,7 +227,7 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WFlags flags)
 
 
 
-        
+        m_bMacroContinue = true;
 
 }
 
@@ -2308,6 +2308,8 @@ void CbctRecon::SLT_SetHisDir() //Initialize all image buffer
 
         SetProjDir(dirPath);
 
+        m_vSelectedFileNames.clear();
+
         cout << "Push Load button to load projection images" << endl;
 	return;
 
@@ -2546,22 +2548,46 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		  curProjOffsetX,curProjOffsetY, //Flexmap 
 		  curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
 		  curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
+  }   
+
+  //Regenerate fileNames and geometry object based on the selected indices. 
+
+  if (!m_vSelectedFileNames.empty())
+      m_vSelectedFileNames.clear();
+
+  for (itIdx = vSelectedIdx.begin(); itIdx != vSelectedIdx.end(); itIdx++)
+  {
+      string curStr = names.at(*itIdx);
+      m_vSelectedFileNames.push_back(curStr);      
   }
 
-  //Regenerate fileNames and geometry object based on the selected indices.
-	vector<string> vSelectedFileNames;	
 
-	for (itIdx = vSelectedIdx.begin() ; itIdx != vSelectedIdx.end() ; itIdx++ )
-	{
-		string curStr = names.at(*itIdx);
-		vSelectedFileNames.push_back(curStr);
-		//cout << curStr << endl;
-	}	
+  //YKTEMP
+  //cout << vSelectedIdx.size() << " is the number of selected index" << endl;
+  //cout << m_spCustomGeometry->GetGantryAngles().size() << " is the number of m_spCustomGeometry" << endl;
+  rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
+      rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
+  xmlWriter->SetFilename("D:/FewProjGeom.xml");
+  xmlWriter->SetObject(m_spCustomGeometry);
+  TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());  
+  //Copy selected his files to a different folder
+
+  int countFiles = m_vSelectedFileNames.size();
+  for (int i = 0; i < countFiles; i++)
+  {
+      QFileInfo fInfo(m_vSelectedFileNames.at(i).c_str());
+      QString strDir = "D:/FewProjDir";
+      QString strNewFilePath = strDir + "/" + fInfo.fileName();
+      QFile::copy(fInfo.absoluteFilePath(), strNewFilePath);
+  }
+  cout << countFiles << " files were copied." << endl;
+  //YKTEMP
+
 
   // Reads the cone beam projections
   typedef rtk::ProjectionsReader< OutputImageType > ReaderType;
   ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileNames(vSelectedFileNames);
+  reader->SetFileNames(m_vSelectedFileNames);
   TRY_AND_EXIT_ON_ITK_EXCEPTION( reader->GenerateOutputInformation() )
   TRY_AND_EXIT_ON_ITK_EXCEPTION( reader->Update() )
 
@@ -2570,13 +2596,13 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
   cout << "Copying the HIS info to buffer." << endl;
 
-  m_iCntSelectedProj = vSelectedFileNames.size();
+  m_iCntSelectedProj = m_vSelectedFileNames.size();
   m_arrYKBufProj = new YK16GrayImage [m_iCntSelectedProj];  
 
   for (int i = 0 ; i< m_iCntSelectedProj; i++)
   {
-	m_arrYKBufProj[i].m_strFilePath = vSelectedFileNames.at(i).c_str();
-	m_arrYKBufProj[i].CopyHisHeader(vSelectedFileNames.at(i).c_str());
+      m_arrYKBufProj[i].m_strFilePath = m_vSelectedFileNames.at(i).c_str();
+      m_arrYKBufProj[i].CopyHisHeader(m_vSelectedFileNames.at(i).c_str());
   }
 
   //QString strMsg = "Do you want to save the projection files as meta file(*.mha)";
@@ -2658,7 +2684,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
  //Error occurss. tmpe inactivated  
 
   //std::cout << vSelectedFileNames.size() << std::endl;
-  std::cout << "Projection reading succeeded." << vSelectedFileNames.size() << " files were read" << std::endl;   
+  std::cout << "Projection reading succeeded." << m_vSelectedFileNames.size() << " files were read" << std::endl;
 
   //Following macro
   //set default 3D median filter
@@ -2671,7 +2697,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
   //cout << "before setMinMax" << endl;
   ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(vSelectedFileNames.size()-1);
+  ui.spinBoxImgIdx->setMaximum(m_vSelectedFileNames.size() - 1);
   ui.spinBoxImgIdx->setValue(0); //it doesn't call Draw Event .. don't know why.
 
 
@@ -7528,103 +7554,51 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
   float ap_center[2] = {1,1};
 
   float ray_step = 1.0;            //mm  
-
-  /* Corresponding */
-//# James Shackleford
-//# 2012.08.22
-//#   Example water equiv.depth configuration file <EXPERIMENTAL>
-//
-//  [INPUT SETTINGS]
-//  patient = D:\Program_data\01_20140827_CBCT_All\04_patient_phan_pelvis_M\FINAL\PelvisHigh_M_CTref.mha
-//
-//	  [OUTPUT SETTINGS]
-//  proj_wed = D:\output_ang_wed.mha
-//
-//# pos: beam position in real world coordinates
-//# isocenter : defines beam direction
-//# res : step length when computing wed
-//	  [BEAM]
-//  pos = 0 - 2200 0
-//	  isocenter = 0 0 0
-//	  res = 1
-//
-//# center: center of aperture(mm)
-//# offset : distance from beam nozzle(mm)
-//# resolution : size of aperture in mm(# of pencil beams)
-//#               so there is 1 pencil beam per mm
-//	  [APERTURE]
-//  offset = 1600.0
-//	  center = 1 1
-//	  resolution = 1 1
-//
-//	  [PROJECTION VOLUME]
-//  sinogram = 1
-//	  resolution = 360
-
+ 
   WEPLData* stArrWEPL = new WEPLData [sizeAngles];
 
   double curAngle = 0.0;
-  //Rt_plan scene;
-  //scene.beam = new Rt_beam;
 
-  //scene.set_patient(ct_vol);		
-  //scene.beam->get_aperture()->set_distance(ap_distance);
-  //scene.beam->get_aperture()->set_spacing(ap_spacing);
-  //scene.beam->get_aperture()->set_dim(ap_dim);
-  //scene.beam->get_aperture()->set_center(ap_center);
-  //
-  ///*scene.get_aperture()->set_distance (ap_distance);
-  //scene.get_aperture()->set_spacing (ap_spacing);
-  //scene.get_aperture()->set_dim(ap_dim);
-  //scene.get_aperture()->set_center (ap_center);*/
-
-  //scene.beam->set_step_length(ray_step);
-  //scene.beam->set_isocenter_position (isoTarget);
- 
 
   for (int i = 0 ; i < sizeAngles ; i++)
-  {
-	//float* arrWEPL = new float [sizeAngles];  
+  {	
+      //YKTEMP Should be updated according to recent update of plastimatch
 	curAngle = i * fAngleGap;
-	//src = ComputeSrcPos (iso, srcDistance, curAngle);
-
 
 	srcProton[0] = isoTarget[0] + (srcDistance * sin(curAngle * M_PI / 180.0));
 	srcProton[1] = isoTarget[1] - (srcDistance*cos(curAngle * M_PI / 180.0));
 	srcProton[2] = isoTarget[2];
 		
 	Rt_plan scene;	
-	scene.beam = new Rt_beam;
 
-	scene.set_patient(ct_vol);		
-	scene.beam->get_aperture()->set_distance(ap_distance);
-	scene.beam->get_aperture()->set_spacing(ap_spacing);
-	scene.beam->get_aperture()->set_dim(ap_dim);
-	scene.beam->get_aperture()->set_center(ap_center);
+	//scene.beam = new Rt_beam;        
+        Rt_beam* newBeam = scene.append_beam();
+	scene.set_patient(ct_vol);	
+        newBeam->get_aperture()->set_distance(ap_distance);
+        newBeam->get_aperture()->set_distance(ap_distance);
+        newBeam->get_aperture()->set_spacing(ap_spacing);
+        newBeam->get_aperture()->set_dim(ap_dim);
+        newBeam->get_aperture()->set_center(ap_center);
 	
-	/*scene.get_aperture()->set_distance (ap_distance);
-	scene.get_aperture()->set_spacing (ap_spacing);
-	scene.get_aperture()->set_dim(ap_dim);
-	scene.get_aperture()->set_center (ap_center);*/
 
-	scene.beam->set_step_length(ray_step);
-	scene.beam->set_isocenter_position (isoTarget);
+        newBeam->set_step_length(ray_step);
+        newBeam->set_isocenter_position(isoTarget);
+        newBeam->set_source_position(srcProton);
 	
-	scene.beam->set_source_position(srcProton);	
 
-	//if (!scene.init()) //for conventional RPL based
-	//if (!scene.init()) //updated by YKP
-	//  cout << "Error in scene initRSP" << endl;
-
-	if (!scene.init()) {
+	//if (!scene.init()) {
+        /*if (!scene.compute_plan()) {
 		cout << "Error in scene initRSP" << endl;
 		return;
-	}
+	}*/
+        scene.prepare_beam_for_calc(newBeam);        
 
 	//wed_ct_compute in wed_main
 
-	//Rpl_volume* rpl_vol = scene.rpl_vol;
-	Rpl_volume* rpl_vol = scene.beam->rpl_vol;
+	
+        Rpl_volume* rpl_vol = newBeam->rpl_vol;        
+
+        //rpl_vol->compute_proj_wed_volume()
 
 	Proj_volume *proj_vol = rpl_vol->get_proj_volume();
 	//float *proj_wed_vol_img = (float*) rpl_vol->proj_wed_vol->img;	
@@ -7653,18 +7627,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 
 	ray_data = rpl_vol->get_Ray_data();
 
-	Ray_data *ray_data_single = &ray_data[ap_idx];
-
-	//for (ap_ij[1] = 0; ap_ij[1] < ires[1]; ap_ij[1]++) {
-	//for (ap_ij[0] = 0; ap_ij[0] < ires[0]; ap_ij[0]++) {
-
-	/* Ray number */
-	//ap_idx = ap_ij[1] * ires[0] + ap_ij[0];
-	//ray_data = &d_ptr->ray_data[ap_idx];
-
-	/* Set each ray to "background", defined in wed_main (default 0) */
-	//proj_wed_vol_img[ap_idx] = background;
-	//arrWEPL[i] = background;
+	Ray_data *ray_data_single = &ray_data[ap_idx];        	
 
 	/* Coordinate of ray intersection with aperture plane */
 	double *ap_xyz = ray_data_single->p2;
@@ -7677,7 +7640,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 	stArrWEPL[i].fGanAngle = curAngle;
 	stArrWEPL[i].ptIndex = curPtIdx;
 		
-	delete scene.beam;
+        delete newBeam;
   }
 
   if (!bAppend)  
@@ -8717,14 +8680,14 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
     int cntHisDir = 0;
     for (int i = 2; i < iCntProjDir; i++)// start from 2
     {
-        curProjDirPath = listDir.at(i).absoluteFilePath();
+        curProjDirPath = listDir.at(i).absoluteFilePath();    
 
         if (curProjDirPath.contains("img_"))
         {            
             cout << "Found projection dir number: " << cntHisDir << ", Current Proj Path: " << curProjDirPath.toLocal8Bit().constData() << endl;
             SetProjDir(curProjDirPath);
             FullScatterCorrectionMacroSingle(strOutDirPath, enRegImg, bFullResolForFinalRecon, bExportShortImages);
-            cntHisDir++;
+            cntHisDir++;            
         }
     }
 
@@ -8738,15 +8701,13 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     if (m_strDCMUID.length() < 1)
         return false;
 
+    m_bMacroContinue = true;
+
     bool bFOVCropping = ui.checkBox_PostDispObjOn->isChecked(); //this button is for display, but use it for cropping option in macro mode
     float physPosX = ui.lineEdit_PostFOV_X->text().toFloat();
     float physPosY = ui.lineEdit_PostFOV_Y->text().toFloat();
     float physRadius = ui.lineEdit_PostFOV_R->text().toFloat();
     float physTablePosY = ui.lineEdit_PostTablePosY->text().toFloat();
-
-
-
-
    
     //Load Pushbutton
     SLT_LoadSelectedProjFiles();
@@ -8768,7 +8729,13 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
 
     SLT_ViewRegistration();
 
-    m_pDlgRegistration->SLT_PreProcessCT();    
+    m_pDlgRegistration->SLT_PreProcessCT();
+    if (!m_bMacroContinue)
+    {
+        cout << "Stopped during MacroSingle due to error in PreProcessCT" << endl;
+        return false;
+    }
+     
 
     QString strSuffix;
     switch (enFwdRefImg)
@@ -8792,7 +8759,6 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     case REGISTER_DEFORM_FINAL:
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
         m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
-
 
         if (bFOVCropping)
             CropFOV3D(m_spManualRigidCT, physPosX, physPosY, physRadius, physTablePosY);

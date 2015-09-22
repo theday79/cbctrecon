@@ -476,6 +476,11 @@ public:
 
 	QTimer* m_Timer;
 	bool m_busyTimer;
+
+
+        vector<string> m_vSelectedFileNames;
+
+        bool m_bMacroContinue;
 	
 
 //private:

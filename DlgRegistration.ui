@@ -1191,9 +1191,9 @@
    <widget class="QPushButton" name="pushButtonProcessCT">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>140</x>
       <y>80</y>
-      <width>91</width>
+      <width>71</width>
       <height>23</height>
      </rect>
     </property>
@@ -1277,6 +1277,32 @@
     </property>
     <property name="text">
      <string>skin</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditCropContourName">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>80</y>
+      <width>51</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Skin</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_43">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>80</y>
+      <width>61</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>RS name</string>
     </property>
    </widget>
   </widget>
