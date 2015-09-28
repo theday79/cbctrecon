@@ -648,7 +648,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>0.0</string>
+       <string>1.0</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_Ramp_Hamming">

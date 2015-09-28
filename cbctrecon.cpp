@@ -4011,7 +4011,7 @@ void CbctRecon::CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, flo
                 {
                     it.Set(0);
                 }
-                it++;
+                ++it;
                 iPosX++;
             }
             it.NextLine();
@@ -4101,7 +4101,7 @@ void CbctRecon::SLT_PostProcCropInv()
                 //{
                 //    it.Set(0);
                 //}
-                it++;
+                ++it;
                 iPosX++;
             }
             it.NextLine();
@@ -4757,7 +4757,7 @@ void CbctRecon::DoBeamHardeningCorrection()
 				poly3_d;
 		}
 		it.Set((float)(crntVal*corrF));		
-		it++;
+		++it;
 	}
 }
 
@@ -4930,7 +4930,7 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
     int cnt = 0;    
 
 	//this simple code will cause flip of the image in frontal and sagittal image
-    for (itMoving.GoToBegin() ; !itMoving.IsAtEnd() ; itMoving++)
+    for (itMoving.GoToBegin() ; !itMoving.IsAtEnd() ; ++itMoving)
     {        
         YKMoving.m_pData[cnt] = itMoving.Get();
         cnt++;
@@ -4969,7 +4969,7 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
                 {
                     //double tmpVal = it.Get()*multiplyFactor;
                     SHORT_ImageType::PixelType fixedImgVal = it.Get();
-                    USHORT_ImageType::IndexType pixelIdxFixed, pixelIdxMoving;
+                    USHORT_ImageType::IndexType pixelIdxFixed;
                     USHORT_ImageType::PointType pixelPhysPt;
                     pixelIdxFixed = it.GetIndex();
 
@@ -5891,7 +5891,7 @@ void CbctRecon::SaveProjImageAsHIS( USHORT_ImageType::Pointer& spProj3D, YK16Gra
 		tmpVal = 65535 - tmpVal; //inverse is done here
 
 		fwrite(&tmpVal, 2, 1, fd);
-		it_FwdProj++;				
+		++it_FwdProj;				
 	  }
 	  it_FwdProj.NextLine();			
 	}
@@ -6045,7 +6045,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	itk::ImageRegionIteratorWithIndex<OutputImageType2D> it_Tar(spImg2DScat, spImg2DScat->GetRequestedRegion());
 
 	int cnt1=0; int cnt2 = 0;
-	for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd() ; it_Src1++, it_Src2++, it_Tar++)
+	for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd() ; ++it_Src1, ++it_Src2, ++it_Tar)
 	{	  	  
 	  float intensityValScat = it_Src1.Get()*mAs_correctionFactor - it_Src2.Get(); //raw intensity * mAs_CF - primary intensity (	
 	  it_Tar.Set(intensityValScat);//float 	  //allow minus value
@@ -6220,7 +6220,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 
 	float rawVal, scatVal, corrVal;
 
-	for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd() ; it_Src1++, it_Src2++, it_Tar++)
+	for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd() ; ++it_Src1, ++it_Src2, ++it_Tar)
 	{
 	  rawVal = it_Src1.Get()*mAs_correctionFactor;
 	  scatVal = it_Src2.Get() - nonNegativeScatOffset;
@@ -6432,8 +6432,8 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
 		{
 		  float tmpVal = (float)(it_3D.Get()); //in proj image case, this is intensity
 		  it_2D.Set(tmpVal);
-		  it_2D++;	  
-		  it_3D++;
+		  ++it_2D;	  
+		  ++it_3D;
 		}//while2
 		it_3D.NextLine();
 	  }//while1
@@ -6537,8 +6537,8 @@ void CbctRecon::Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageT
 		  it_3D.Set(outputVal);
 		  //float tmpVal = (float)(it_3D.Get()); //in proj image case, this is intensity
 		  //it_2D.Set(tmpVal);		  
-		  it_2D++;
-		  it_3D++;
+		  ++it_2D;
+		  ++it_3D;
 		}//while2
 		it_3D.NextLine();
 	  }//while1
@@ -6569,7 +6569,7 @@ void CbctRecon::ConvertLineInt2Intensity( OutputImageType::Pointer& spProjLineIn
   itk::ImageRegionConstIteratorWithIndex<OutputImageType> it_Src(spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());
   itk::ImageRegionIteratorWithIndex<USHORT_ImageType> it_Tar(spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());    
   
-  for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd() ; it_Src++, it_Tar++)
+  for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd() ; ++it_Src, ++it_Tar)
   {
 	float intensityVal = exp((double)it_Src.Get() * (-1.0)) * (double)bkIntensity;
 
@@ -6596,7 +6596,7 @@ void CbctRecon::ConvertIntensity2LineInt( USHORT_ImageType::Pointer& spProjInten
 
 
 
-  for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd() ; it_Src++, it_Tar++)
+  for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd() ; ++it_Src, ++it_Tar)
   {
 	//mu = ln(I_0/I) OR mu = ln(I/I0)
 	float mu_t_val = log((double)bkIntensity/(double)it_Src.Get());
@@ -7387,7 +7387,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
     ofstream fout;
     fout.open(strPathOutput.toLocal8Bit().constData());
 
-    double curAngle2;
+//    double curAngle2;
 
     //fout << "POI_Index" << "," << "Gantry_Angle" << "," << "WEPL(mm)" << endl;
 
@@ -7690,7 +7690,7 @@ void CbctRecon::SLT_StopSyncFromSharedMem()
   //Option SYNCHRONIZE doesn't work! you cannot release Semaphore due to the access is denied (GetLastError 5) 
   HANDLE hSemaphore = OpenSemaphore(SEMAPHORE_ALL_ACCESS ,FALSE, "YKSemaphore");
   //increase counter
-  LONG prev_counter;
+//  LONG prev_counter;
  // ReleaseSemaphore(hSemaphore, 1, &prev_counter);
   //decrease counter
   //ReleaseSemaphore(hSemaphore, 1, &prev_counter);
@@ -8156,7 +8156,7 @@ void CbctRecon::SLTM_Export2DDoseMapAsMHA()
 	
 	float pixel_val = 0.0f;
 	int i = 0;
-	for (it.GoToBegin(); !it.IsAtEnd(); it++)		
+	for (it.GoToBegin(); !it.IsAtEnd(); ++it)		
 	{
 		pixel_val = (double)m_dspYKReconImage->m_pData[i] * factor_ushort2float;
 		it.Set(pixel_val);	
@@ -8523,7 +8523,8 @@ void CbctRecon::SLTM_FullScatterCorrectionMacroAP() //single. should be called a
 
 void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
 {
-    //Scatter parameters
+    //Scatter parameters    
+    QTime batchmodeTime = QTime::currentTime();
 
     //1) Get img_ file lists
     QString dirPath = QFileDialog::getExistingDirectory(this, tr("Open IMAGES Directory"),
@@ -8654,9 +8655,13 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
         }
     }
 
-    QMessageBox msgBoxFinal;
+    /*QMessageBox msgBoxFinal;
     msgBoxFinal.setText("All Done!");
-    msgBoxFinal.exec();
+    msgBoxFinal.exec();*/
+
+    float elapsedSec = batchmodeTime.elapsed() / 1000.0;    
+
+    cout << "Batch mode calculation is done! " << QString::number(elapsedSec, 'f', 2).toLocal8Bit().constData() << " seconds was spent for " << cntHisDir << " cases" << endl;
 }
 
 bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages, bool bCBCT_IntensityShift)
@@ -8918,7 +8923,7 @@ void CbctRecon::GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, flo
                     it.Set(1);
                 }
                 
-                it++;
+                ++it;
                 iPosX++;
             }
             it.NextLine();
@@ -8985,7 +8990,7 @@ float CbctRecon::GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphere
                     pixSum = pixSum + (double)(it.Get());
                     iCnt++;
                 }                
-                it++;
+                ++it;
                 iPosX++;
             }
             it.NextLine();
@@ -9037,7 +9042,7 @@ float CbctRecon::GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphere
                 {
                     devSum = devSum + pow(((double)(it.Get()) - meanIntensity), 2.0);                    
                 }
-                it++;
+                ++it;
                 iPosX++;
             }
             it.NextLine();
@@ -9081,7 +9086,7 @@ void CbctRecon::AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval)
             newVal = 4095;
 
         it.Set((unsigned short)newVal);
-        it++;
+        ++it;
     }   
 }
 

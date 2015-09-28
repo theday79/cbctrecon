@@ -753,7 +753,7 @@ void YK16GrayImage::CopyYKImage2ItkImage(YK16GrayImage* pYKImage, UnsignedShortI
 	itk::ImageRegionIterator<UnsignedShortImageType> it(spTarImage, region);
 
 	int i = 0;
-	for (it.GoToBegin() ; !it.IsAtEnd(); it++)
+	for (it.GoToBegin() ; !it.IsAtEnd(); ++it)
 	{
 		it.Set(pYKImage->m_pData[i]);
 		i++;
@@ -783,7 +783,7 @@ void YK16GrayImage::CopyItkImage2YKImage(UnsignedShortImageType::Pointer& spSrcI
 	itk::ImageRegionIterator<UnsignedShortImageType> it(spSrcImage, region);
 
 	int i = 0;
-	for (it.GoToBegin() ; !it.IsAtEnd() ; it++)
+	for (it.GoToBegin() ; !it.IsAtEnd() ; ++it)
 	{
 		pYKImage->m_pData[i] = it.Get();
 		i++;
@@ -1730,7 +1730,7 @@ UnsignedShortImageType::Pointer YK16GrayImage::CloneItkImage()
   itk::ImageRegionIterator<UnsignedShortImageType> it(spTmpItkImg, spTmpItkImg->GetRequestedRegion());
 
   int i = 0;
-  for (it.GoToBegin() ; !it.IsAtEnd(); it++)
+  for (it.GoToBegin() ; !it.IsAtEnd(); ++it)
   {
 	it.Set(m_pData[i]);
 	i++;
@@ -1826,7 +1826,7 @@ void YK16GrayImage::UpdateFromItkImage( UnsignedShortImageType::Pointer& spRefIt
   itk::ImageRegionIterator<UnsignedShortImageType> it(spRefItkImg, spRefItkImg->GetRequestedRegion());
 
   int i = 0;
-  for (it.GoToBegin() ; !it.IsAtEnd() ; it++)
+  for (it.GoToBegin() ; !it.IsAtEnd() ; ++it)
   {
 	m_pData[i] = it.Get();
 	i++;
@@ -1860,7 +1860,7 @@ void YK16GrayImage::UpdateFromItkImageFloat( FloatImageType2D::Pointer& spRefItk
   itk::ImageRegionIterator<FloatImageType2D> it(spRefItkImg, spRefItkImg->GetRequestedRegion());
 
   int i = 0;
-  for (it.GoToBegin() ; !it.IsAtEnd() ; it++)
+  for (it.GoToBegin() ; !it.IsAtEnd() ; ++it)
   {
 	float curVal =it.Get();
 	unsigned short outVal;
