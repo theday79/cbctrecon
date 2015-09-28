@@ -111,7 +111,7 @@ public slots:
 
         /* After manual move: this will trigger skin cropping and uncheck the key moving*/
         void SLT_ConfirmManualRegistration();
-
+        void SLT_IntensityNormCBCT();
         
 
 
@@ -135,9 +135,13 @@ public:
          void ImageManualMoveOneShot(float shiftX, float shiftY, float shiftZ);//DICOM coordinate
 
 	// void GenPlastiRegisterCommandFile(QString strPathCommandFile, enRegisterOption regiOption);
-	 void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
+	 /*void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
 	   QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
-	   QString strStageOption1, QString strStageOption2, QString strStageOption3);
+	   QString strStageOption1, QString strStageOption2, QString strStageOption3);*/
+
+         void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
+             QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
+             QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask = QString(""));
 
          //VEC3D GetShiftValueFromGradientXForm(QString& filePath); //get val mm
          VEC3D GetShiftValueFromGradientXForm(QString& filePath, bool bInverse = false);
@@ -165,10 +169,10 @@ public:
 	 void plm_expansion_contract_msk(QString& strPath_msk, QString& strPath_msk_exp_cont, double fExpVal);
 
 	 void plm_synth_trans_xf( QString& strPath_fixed, QString& strPath_out_xf, double transX, double transY, double transZ);
-	  void ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT, QString& strPathOutputCBCT, double* manualTrans3d);
+	  void ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT, QString& strPathOutputCBCT, double* manualTrans3d, bool bPrepareMaskOnly = false);
 
 	 //void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_, QString& strPathOutputCBCT, double* manualTrans3d); 
-	 void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling);//8 mm skin cut + fill air bubbles inside CBCT
+          void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly = false);//8 mm skin cut + fill air bubbles inside CBCT
 
 	 void SetPlmOutputDir(QString& endFix);
 	 void init(QString& strDCMUID);

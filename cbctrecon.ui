@@ -1532,42 +1532,10 @@
        <string>10,10</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_65">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>90</y>
-        <width>81</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>CT2CBCT coeff</string>
-      </property>
-     </widget>
      <widget class="QCheckBox" name="checkBox_ExportFwd">
       <property name="geometry">
        <rect>
-        <x>0</x>
-        <y>70</y>
-        <width>81</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="layoutDirection">
-       <enum>Qt::RightToLeft</enum>
-      </property>
-      <property name="text">
-       <string>Export fwd</string>
-      </property>
-      <property name="checked">
-       <bool>false</bool>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="checkBox_ExportScat">
-      <property name="geometry">
-       <rect>
-        <x>100</x>
+        <x>60</x>
         <y>70</y>
         <width>51</width>
         <height>20</height>
@@ -1577,7 +1545,26 @@
        <enum>Qt::RightToLeft</enum>
       </property>
       <property name="text">
-       <string>Scat</string>
+       <string>Fwd</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBox_ExportScat">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>70</y>
+        <width>51</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::RightToLeft</enum>
+      </property>
+      <property name="text">
+       <string>Sca</string>
       </property>
       <property name="checked">
        <bool>false</bool>
@@ -1586,7 +1573,7 @@
      <widget class="QCheckBox" name="checkBox_ExportCor">
       <property name="geometry">
        <rect>
-        <x>160</x>
+        <x>110</x>
         <y>70</y>
         <width>51</width>
         <height>20</height>
@@ -1602,30 +1589,36 @@
        <bool>false</bool>
       </property>
      </widget>
-     <widget class="QLineEdit" name="lineEdit_CalibCoeff_a">
+     <widget class="QLabel" name="label_65">
       <property name="geometry">
        <rect>
-        <x>100</x>
-        <y>90</y>
-        <width>41</width>
-        <height>20</height>
+        <x>10</x>
+        <y>70</y>
+        <width>51</width>
+        <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>1.0</string>
+       <string>Export</string>
       </property>
      </widget>
-     <widget class="QLineEdit" name="lineEdit_CalibCoeff_b">
+     <widget class="QCheckBox" name="checkBox_ExportVolDICOM">
       <property name="geometry">
        <rect>
-        <x>160</x>
+        <x>60</x>
         <y>90</y>
-        <width>41</width>
+        <width>101</width>
         <height>20</height>
        </rect>
       </property>
+      <property name="layoutDirection">
+       <enum>Qt::RightToLeft</enum>
+      </property>
       <property name="text">
-       <string>0.0</string>
+       <string>CBCTap DICOM</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </widget>
@@ -3095,8 +3088,6 @@
   <tabstop>checkBox_ExportFwd</tabstop>
   <tabstop>checkBox_ExportScat</tabstop>
   <tabstop>checkBox_ExportCor</tabstop>
-  <tabstop>lineEdit_CalibCoeff_a</tabstop>
-  <tabstop>lineEdit_CalibCoeff_b</tabstop>
   <tabstop>lineEdit_uniAirThre</tabstop>
   <tabstop>lineEdit_uniSPR</tabstop>
   <tabstop>lineEdit_uniNegativity</tabstop>

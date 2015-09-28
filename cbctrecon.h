@@ -275,7 +275,7 @@ public:
 
         void SetProjDir(QString& strProjPath);
 
-        bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false);
+        bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false, bool bCBCT_IntensityShift = false);
 
         void ExportAngularWEPL_byFile(QString& strPathOutput);
 
@@ -291,6 +291,13 @@ public:
 	//void AuditMemory();
 
         void CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
+
+
+        void GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
+
+        float GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
+
+        void AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval);
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			

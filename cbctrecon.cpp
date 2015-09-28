@@ -1797,7 +1797,15 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
 	double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
 	double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
+        
+        if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
+        {            
+            cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << endl;
+            fTruncCorFactor = 0.0;
+        }
 
+        //YKTEMP
+        cout << "fTruncCorFactor =" << fTruncCorFactor << endl;
 	// This macro sets options for fdk filter which I can not see how to do better
 	// because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
 #define SET_FELDKAMP_OPTIONS(f) \
@@ -3953,13 +3961,6 @@ void CbctRecon::CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, flo
     if (!sp_Img)
         return;
     //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
-
-    //double physPosX = ui.lineEdit_PostFOV_X->text().toDouble();
-    //double physPosY = ui.lineEdit_PostFOV_Y->text().toDouble();
-
-   // double physRadius = ui.lineEdit_PostFOV_R->text().toDouble();
-    //double physTablePosY = ui.lineEdit_PostTablePosY->text().toDouble();
-
     USHORT_ImageType::PointType origin = sp_Img->GetOrigin();
     USHORT_ImageType::SpacingType spacing = sp_Img->GetSpacing();
     USHORT_ImageType::SizeType size = sp_Img->GetBufferedRegion().GetSize();
@@ -4036,66 +4037,6 @@ void CbctRecon::SLT_DoPostProcessing()
 
         CropFOV3D(m_spCrntReconImg, physPosX, physPosY, physRadius, physTablePosY);
 
-	//USHORT_ImageType::PointType origin = m_spCrntReconImg->GetOrigin();
-	//USHORT_ImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
-	//USHORT_ImageType::SizeType size = m_spCrntReconImg->GetBufferedRegion().GetSize();
-
-	////itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
-	//itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it (m_spCrntReconImg, m_spCrntReconImg->GetRequestedRegion());
-
-	////ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
-	//USHORT_ImageType::SizeType imgSize = m_spCrntReconImg->GetRequestedRegion().GetSize(); //1016x1016 x z	
-
-	//int width = imgSize[0];
-	//int height = imgSize[1];	
-
-	//it.SetFirstDirection(0); //x?
-	//it.SetSecondDirection(1); //y?
-	//it.GoToBegin();
-
-	//int iNumSlice = 0;
-	//int iPosX = 0;
-	//int iPosY = 0;		
-
-	//int i = 0;//height
-	//int j =0; // width
-
-	//double crntPhysX = 0.0;
-	//double crntPhysY = 0.0;
-
-	//while( !it.IsAtEnd() )
-	//{		
-	//	iPosY = 0;
-	//	while( !it.IsAtEndOfSlice() )
-	//	{			
-	//		iPosX = 0;
-	//		while( !it.IsAtEndOfLine() )
-	//		{
-	//			//Calculate physical position
-
-	//			crntPhysX = iPosX*(double)spacing[0] + (double)origin[0];
-	//			crntPhysY = iPosY*(double)spacing[1] + (double)origin[1];
-
-	//			if (pow(crntPhysX-physPosX, 2.0)+ pow(crntPhysY-physPosY, 2.0) >= pow(physRadius, 2.0))
-	//			{
-	//				//(*it) = (unsigned short)0; //air value
-	//				it.Set(0);
-	//			}
-
-	//			if (crntPhysY >= physTablePosY)
-	//			{
-	//				it.Set(0);
-	//			}
-	//			it++;
-	//			iPosX++;
-	//		}
-	//		it.NextLine();
-	//		iPosY++;
-	//	}			
-	//	it.NextSlice();
-	//	iNumSlice++;
-	//}	
-	//
 	SLT_DrawReconImage();
 }
 
@@ -5696,11 +5637,11 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	double calibF_A = 1.0;
 	double calibF_B = 0.0;
 
-	if (ui.lineEdit_CalibCoeff_a->text().length() > 0 && ui.lineEdit_CalibCoeff_b->text().length() > 0)
+	/*if (ui.lineEdit_CalibCoeff_a->text().length() > 0 && ui.lineEdit_CalibCoeff_b->text().length() > 0)
 	{
 	  calibF_A = ui.lineEdit_CalibCoeff_a->text().toDouble();
 	  calibF_B = ui.lineEdit_CalibCoeff_b->text().toDouble();
-	}
+	}*/        
 
 	//For CBCT autoRef:
 	//SOft tissue: 0 HU--> -400 HU 
@@ -6970,12 +6911,18 @@ void CbctRecon::AfterScatCorrectionMacro()
   //return;
 
   //Do reconstruction + //Update GUI
+
+  
+  //Regardeless of previous setting, The Truncation should not be applied!  
+
+  //Truncation is invalidated inside the function
   DoReconstructionFDK(REGISTER_COR_CBCT);
   //Skin removal (using CT contour w/ big margin)
 
   cout << "Post  FDK reconstruction is done. Moving on to post skin removal" << endl;
 
 
+  m_pDlgRegistration->PostSkinRemovingCBCT(m_spRawReconImg);
   m_pDlgRegistration->PostSkinRemovingCBCT(m_spScatCorrReconImg);
   //cout << "skin removal is done" << endl;
 
@@ -6984,23 +6931,25 @@ void CbctRecon::AfterScatCorrectionMacro()
   m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
   m_pDlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT );
 
-  UpdateReconImage(m_spScatCorrReconImg, QString("Skin removed CBCT")); //main GUI update
+  UpdateReconImage(m_spScatCorrReconImg, QString("Scatter corrected CBCT")); //main GUI update
 
-  //Save Image as DICOM
+  //Save Image as DICOM  
 
-  //Get current folder
-  QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES" + "/" + "cor_" + m_strDCMUID; //current Proj folder  
-  QDir crntDir(strCrntDir);  
-  QString SubDirName = "Reconstruction";
-  bool tmpResult = crntDir.mkdir(SubDirName); //what if the directory exists?	
-  if (!tmpResult)
+  if (ui.checkBox_ExportVolDICOM->isChecked())
   {
-	cout << "DICOM dir seems to exist already. Files will be overwritten." << endl;
+      //Get current folder
+      QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES" + "/" + "cor_" + m_strDCMUID; //current Proj folder  
+      QDir crntDir(strCrntDir);
+      QString SubDirName = "Reconstruction";
+      bool tmpResult = crntDir.mkdir(SubDirName); //what if the directory exists?	
+      if (!tmpResult)
+      {
+          cout << "DICOM dir seems to exist already. Files will be overwritten." << endl;
+      }
+      QString strSavingFolder = strCrntDir + "/" + SubDirName;
+      SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, QString("PriorCT_ScatterCorr"), strSavingFolder);
+      //Export as DICOM (using plastimatch) folder?
   }
-
-  QString strSavingFolder = strCrntDir + "/" + SubDirName;
-  SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, QString("PriorCT_ScatterCorr"), strSavingFolder);  
-  //Export as DICOM (using plastimatch) folder?
 }
 
 //called whenver recon 3D image for display changes.
@@ -7264,32 +7213,9 @@ void CbctRecon::SLT_AddConstHUToCurImg()
 {
   if (!m_spCrntReconImg)
 	return;
-
   int addingVal = ui.lineEdit_AddConstHU->text().toInt();  
 
-  typedef itk::ImageRegionIteratorWithIndex<USHORT_ImageType> iteratorType;
-  iteratorType it(m_spCrntReconImg, m_spCrntReconImg->GetRequestedRegion());
-
-  it.GoToBegin();
-
-  int crntVal = 0;
-  int newVal = 0;
-
-  while (!it.IsAtEnd())
-  {
-      crntVal = (int)(it.Get());
-
-      newVal = addingVal + crntVal;
-
-      if (newVal <= 0)
-          newVal = 0;
-      
-      if (newVal >= 4095)
-          newVal = 4095;
-      
-      it.Set((unsigned short)newVal);
-      it++;
-  }
+  AddConstHU(m_spCrntReconImg, addingVal);
 
   UpdateReconImage(m_spCrntReconImg, QString("Added%1").arg(addingVal));
 
@@ -8589,7 +8515,9 @@ void CbctRecon::SLTM_FullScatterCorrectionMacroAP() //single. should be called a
     enREGI_IMAGES enRegImg = REGISTER_DEFORM_FINAL;
     bool bFullResolForFinalRecon = false;
 
-    FullScatterCorrectionMacroSingle(m_strPathPatientDir, enRegImg, bFullResolForFinalRecon);
+    bool bIntensityShift = true;
+
+    FullScatterCorrectionMacroSingle(m_strPathPatientDir, enRegImg, bFullResolForFinalRecon, false, bIntensityShift);
 }
 
 
@@ -8653,10 +8581,12 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
 
         
     }
+
+    int res;
     //3) Fine resol option
     bool bFullResolForFinalRecon = false;
-
-    QMessageBox msgBox;
+    bool bIntensityShift = false;
+    /*QMessageBox msgBox;
     QString strMsg = "Full-resolution reconstruction after scatter generation?";
     msgBox.setText(strMsg);
     msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
@@ -8664,7 +8594,40 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
     if (res == QMessageBox::Yes)
     {
         bFullResolForFinalRecon = true;
+    }*/    
+
+    /* QMessageBox msgBox;
+     QString strMsg = "Apply truncation for raw CBCT?";
+     msgBox.setText(strMsg);
+     msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+     res = msgBox.exec();
+
+     if (res == QMessageBox::Yes)
+     {
+     bTrancOnlyRaw = true;
+     }*/
+
+    QMessageBox msgBox;
+    QString strMsg = "Intensity shift for raw CBCT?";
+    msgBox.setText(strMsg);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    res = msgBox.exec();
+
+    if (res == QMessageBox::Yes)
+    {
+        bIntensityShift = true;
     }
+
+    /*QMessageBox msgBox;
+    QString strMsg = "Full-resolution reconstruction after scatter generation?";
+    msgBox.setText(strMsg);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    int res = msgBox.exec();
+    if (res == QMessageBox::Yes)
+    {
+    bFullResolForFinalRecon = true;
+    }*/
+
 
     bool bExportShortImages = false;
     QMessageBox msgBox2;
@@ -8686,7 +8649,7 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
         {            
             cout << "Found projection dir number: " << cntHisDir << ", Current Proj Path: " << curProjDirPath.toLocal8Bit().constData() << endl;
             SetProjDir(curProjDirPath);
-            FullScatterCorrectionMacroSingle(strOutDirPath, enRegImg, bFullResolForFinalRecon, bExportShortImages);
+            FullScatterCorrectionMacroSingle(strOutDirPath, enRegImg, bFullResolForFinalRecon, bExportShortImages, bIntensityShift);
             cntHisDir++;            
         }
     }
@@ -8696,7 +8659,7 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP()
     msgBoxFinal.exec();
 }
 
-bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages)
+bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages, bool bCBCT_IntensityShift)
 {
     if (m_strDCMUID.length() < 1)
         return false;
@@ -8711,7 +8674,13 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
    
     //Load Pushbutton
     SLT_LoadSelectedProjFiles();
+
+    float fOldValTruncation = ui.lineEdit_Ramp_TruncationCorrection->text().toFloat();;
+
+    
     SLT_DoReconstruction();
+    //ui.lineEdit_Ramp_TruncationCorrection->setText(QString("0.0"));    
+
 
     int addingVal = ui.lineEdit_AddConstHU->text().toInt();
 
@@ -8725,7 +8694,7 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     {
         //Crop CBCT with predetermined FOV/ Table
         CropFOV3D(m_spRawReconImg, physPosX, physPosY, physRadius, physTablePosY);
-    }
+    }   
 
     SLT_ViewRegistration();
 
@@ -8742,12 +8711,19 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     {    
     case REGISTER_MANUAL_RIGID:        
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
-        m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
+        m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping for CBCT. only works when CBCT_skin crop is on
         strSuffix = strSuffix + "_man";
+
+        if (bCBCT_IntensityShift)
+            m_pDlgRegistration->SLT_IntensityNormCBCT();
+
         break;
     case REGISTER_AUTO_RIGID:
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
         m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
+
+        if (bCBCT_IntensityShift)
+            m_pDlgRegistration->SLT_IntensityNormCBCT();
 
         //OPtional
         if (bFOVCropping)                    
@@ -8759,6 +8735,9 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     case REGISTER_DEFORM_FINAL:
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
         m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
+
+        if (bCBCT_IntensityShift)
+            m_pDlgRegistration->SLT_IntensityNormCBCT();
 
         if (bFOVCropping)
             CropFOV3D(m_spManualRigidCT, physPosX, physPosY, physRadius, physTablePosY);
@@ -8772,6 +8751,10 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
         m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
         //m_pDlgRegistration->SLT_DoRegistrationRigid();
+
+        if (bCBCT_IntensityShift)
+            m_pDlgRegistration->SLT_IntensityNormCBCT();
+
         if (bFOVCropping)
             CropFOV3D(m_spManualRigidCT, physPosX, physPosY, physRadius, physTablePosY);
 
@@ -8814,7 +8797,6 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
         ExportReconSHORT_HU(m_spDeformedCT_Final, outputPath_deformCT);
     }
     
-
     //2) Calculate batched WEPL points
     if (!m_vPOI_DCM.empty())
     {
@@ -8879,6 +8861,228 @@ bool CbctRecon::GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, 
         return false;
 
     return true;
+}
+
+void CbctRecon::GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius)
+{
+    if (!spImgCanvas)
+        return;
+    //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
+    USHORT_ImageType::PointType origin = spImgCanvas->GetOrigin();
+    USHORT_ImageType::SpacingType spacing = spImgCanvas->GetSpacing();
+    USHORT_ImageType::SizeType size = spImgCanvas->GetBufferedRegion().GetSize();
+
+    //itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
+    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(spImgCanvas, spImgCanvas->GetRequestedRegion());
+
+    //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
+    USHORT_ImageType::SizeType imgSize = spImgCanvas->GetRequestedRegion().GetSize(); //1016x1016 x z	
+
+    int width = imgSize[0];
+    int height = imgSize[1];
+
+    it.SetFirstDirection(0); //x?
+    it.SetSecondDirection(1); //y?
+    it.GoToBegin();
+
+    int iNumSlice = 0;
+    int iPosX = 0;
+    int iPosY = 0;
+
+    int i = 0;//height
+    int j = 0; // width
+
+    double crntPhysX = 0.0;
+    double crntPhysY = 0.0;
+
+    while (!it.IsAtEnd())
+    {
+        iPosY = 0;
+        while (!it.IsAtEndOfSlice())
+        {
+            iPosX = 0;
+            while (!it.IsAtEndOfLine())
+            {
+                //Calculate physical position
+
+                crntPhysX = iPosX*(double)spacing[0] + (double)origin[0];
+                crntPhysY = iPosY*(double)spacing[1] + (double)origin[1];
+
+                if (pow(crntPhysX - fDcmPosX, 2.0) + pow(crntPhysY - fDcmPosY, 2.0) >= pow(fRadius, 2.0))
+                {
+                    //(*it) = (unsigned short)0; //air value
+                    it.Set(0);
+                }
+                else
+                {
+                    it.Set(1);
+                }
+                
+                it++;
+                iPosX++;
+            }
+            it.NextLine();
+            iPosY++;
+        }
+        it.NextSlice();
+        iNumSlice++;
+    }
+}
+
+
+float CbctRecon::GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity)
+{
+    if (!spImg)
+        return -1.0;
+
+    float meanIntensity = 0.0;
+
+    //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
+    USHORT_ImageType::PointType origin = spImg->GetOrigin();
+    USHORT_ImageType::SpacingType spacing = spImg->GetSpacing();
+    USHORT_ImageType::SizeType size = spImg->GetBufferedRegion().GetSize();
+
+    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(spImg, spImg->GetRequestedRegion());
+    USHORT_ImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize(); //1016x1016 x z	
+
+    int width = imgSize[0];
+    int height = imgSize[1];
+
+    it.SetFirstDirection(0); //x?
+    it.SetSecondDirection(1); //y?
+    it.GoToBegin();
+
+    int iNumSlice = 0;
+    int iPosX = 0;
+    int iPosY = 0;
+
+    int i = 0;//height
+    int j = 0; // width
+
+    double crntPhysX = 0.0;
+    double crntPhysY = 0.0;
+    double crntPhysZ = 0.0;
+
+    double pixSum = 0.0;
+    int iCnt = 0;
+
+    while (!it.IsAtEnd())
+    {
+        iPosY = 0;
+        while (!it.IsAtEndOfSlice())
+        {
+            iPosX = 0;
+            while (!it.IsAtEndOfLine())
+            {
+                //Calculate physical position
+
+                crntPhysX = iPosX*(double)spacing[0] + (double)origin[0];
+                crntPhysY = iPosY*(double)spacing[1] + (double)origin[1];
+                crntPhysZ = iNumSlice*(double)spacing[2] + (double)origin[2];
+
+                if (pow(crntPhysX, 2.0) + pow(crntPhysY, 2.0) + pow(crntPhysZ, 2.0) < pow(sphereR, 2.0))
+                {
+                    pixSum = pixSum + (double)(it.Get());
+                    iCnt++;
+                }                
+                it++;
+                iPosX++;
+            }
+            it.NextLine();
+            iPosY++;
+        }
+        it.NextSlice();
+        iNumSlice++;
+    }
+
+    if (iCnt > 0)
+        meanIntensity = pixSum / (double)iCnt;
+    else
+        meanIntensity = -1.0;
+
+
+    if (sdIntensity == NULL)
+        return meanIntensity;
+
+
+    double devSum = 0.0;
+    it.GoToBegin();
+
+    iNumSlice = 0;
+    iPosX = 0;
+    iPosY = 0;
+
+    i = 0;//height
+    j = 0; // width
+
+    crntPhysX = 0.0;
+    crntPhysY = 0.0;
+    crntPhysZ = 0.0;
+
+    while (!it.IsAtEnd())
+    {
+        iPosY = 0;
+        while (!it.IsAtEndOfSlice())
+        {
+            iPosX = 0;
+            while (!it.IsAtEndOfLine())
+            {
+                //Calculate physical position
+
+                crntPhysX = iPosX*(double)spacing[0] + (double)origin[0];
+                crntPhysY = iPosY*(double)spacing[1] + (double)origin[1];
+                crntPhysZ = iNumSlice*(double)spacing[2] + (double)origin[2];
+                
+                if (pow(crntPhysX, 2.0) + pow(crntPhysY, 2.0) + pow(crntPhysZ, 2.0) < pow(sphereR, 2.0))
+                {
+                    devSum = devSum + pow(((double)(it.Get()) - meanIntensity), 2.0);                    
+                }
+                it++;
+                iPosX++;
+            }
+            it.NextLine();
+            iPosY++;
+        }
+        it.NextSlice();
+        iNumSlice++;
+    }
+
+    if (iCnt > 0)
+    {
+        *sdIntensity = sqrt(devSum / (double)iCnt);
+    }
+    else
+        *sdIntensity = -1.0;
+
+    return meanIntensity;
+}
+
+void CbctRecon::AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval)
+{
+
+    typedef itk::ImageRegionIteratorWithIndex<USHORT_ImageType> iteratorType;
+    iteratorType it(spImg, spImg->GetRequestedRegion());
+
+    it.GoToBegin();
+
+    int crntVal = 0;
+    int newVal = 0;
+
+    while (!it.IsAtEnd())
+    {
+        crntVal = (int)(it.Get());
+
+        newVal = HUval + crntVal;
+
+        if (newVal <= 0)
+            newVal = 0;
+
+        if (newVal >= 4095)
+            newVal = 4095;
+
+        it.Set((unsigned short)newVal);
+        it++;
+    }   
 }
 
 
@@ -9329,4 +9533,5 @@ double vectorSum(const vector<double>& vDouble)
 }
 
 //Projection image Median filtering using CUDA
+
 

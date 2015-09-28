@@ -963,6 +963,14 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 	plastimatch warp --input [msk_skin.mha] --output-img [msk_skin_manRegi.mha] --xf [xf_manual_trans.mha]
   plastimatch warp --input E:\PlastimatchData\DicomEg\OLD\msk_skin.mha --output-img E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
+  bool bPrepareMaskOnly; //prepare mask but not apply
+
+  if (ui.checkBoxCropBkgroundCBCT->isChecked())
+      bPrepareMaskOnly = false;
+  else
+      bPrepareMaskOnly = true;
+
+
   cout << "1: writing temporary files" << endl;
 
   //Both image type: Unsigned Short
@@ -970,6 +978,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   QString filePathMoving = m_strPathPlastimatch + "/" + "moving_rigid.mha";
   QString filePathOutput = m_strPathPlastimatch + "/" + "output_rigid.mha";
   QString filePathXform = m_strPathPlastimatch + "/" + "xform_rigid.txt";
+  QString filePathROI = m_strPathPlastimatch + "/" + "fixed_roi_rigid.mha"; //optional
 
   typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
 
@@ -985,6 +994,37 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   writer1->Update();
   writer2->Update();
+
+  float FOV_DcmPosX = 0.0; //mm
+  float FOV_DcmPosY = 0.0;//mm
+  float FOV_Radius = 0.0;
+
+  if (ui.checkBoxUseROIForRigid->isChecked())
+  {
+      cout << "Creating a ROI mask for Rigid registration " << endl;
+      QString strFOVGeom = ui.lineEditFOVPos->text();
+
+      QStringList strListFOV = strFOVGeom.split(",");
+      if (strListFOV.count() == 3)
+      {
+          FOV_DcmPosX = strListFOV.at(0).toFloat();
+          FOV_DcmPosY = strListFOV.at(1).toFloat();
+          FOV_Radius = strListFOV.at(2).toFloat();
+
+          //Create Image using FixedImage sp
+
+          //Image Pointer here
+          USHORT_ImageType::Pointer spRoiMask;
+          m_pParent->AllocateByRef(m_spFixed, spRoiMask);
+          m_pParent->GenerateCylinderMask(spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
+
+          writerType::Pointer writer3 = writerType::New();
+          writer3->SetFileName(filePathROI.toLocal8Bit().constData());
+          writer3->SetUseCompression(true);
+          writer3->SetInput(spRoiMask);
+          writer3->Update();
+      }
+  }
 
   //Preprocessing
   //2) move CT-based skin mask on CBCT based on manual shift
@@ -1010,8 +1050,12 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //if this file already exists, no need of proprocess for CBCT (skin cropping) is needed.
 //if skin cropping is not done for this case (supposed to be done during confirm manual regi)
 
+  cout << "finfoFixedProc " << finfoFixedProc.absoluteFilePath().toStdString().c_str() << endl;
+  cout << "finfoManMask " << finfoManMask.absoluteFilePath().toStdString().c_str() << endl;
 
-  if (!finfoFixedProc.exists() && !finfoManMask.exists() && ui.checkBoxCropBkgroundCBCT->isChecked())
+
+  //if (!finfoFixedProc.exists() && !finfoManMask.exists() && ui.checkBoxCropBkgroundCBCT->isChecked())
+  if (!finfoFixedProc.exists() && !finfoManMask.exists())
   {
       cout << "Preprocessing for CBCT is not done. It is being done here before rigid body registration" << endl;
 
@@ -1027,17 +1071,19 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       QString strPathAlternateSkin = m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
       QFileInfo finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
 
+
+      //&& ui.checkBoxCropBkgroundCBCT->isChecked()
+
       if (finfoSkinFile1.exists())
       {
           strPathOriginalCTSkinMask = m_strPathCTSkin;          
-          ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift);
+          ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
       }
       else if (finfoSkinFile2.exists())
       {
           cout << "alternative skin file will be used" << endl;
-          strPathOriginalCTSkinMask = strPathAlternateSkin;
-          //filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi	
-          ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift);
+          strPathOriginalCTSkinMask = strPathAlternateSkin;          
+          ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
       }
       else
       {
@@ -1065,6 +1111,22 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving, 
 							filePathOutput, filePathXform, PLAST_RIGID, "","","");
+  
+
+  //For Cropped patients, FOV mask is applied.
+  if (ui.checkBoxUseROIForRigid->isChecked())
+  {
+      cout << "2.A:  ROI-based Rigid body registration will be done" << endl;
+      GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
+          filePathOutput, filePathXform, PLAST_RIGID, "", "", "", filePathROI);
+  }
+  else
+  {
+      GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
+          filePathOutput, filePathXform, PLAST_RIGID, "", "", "");
+
+
+  }
 
 	/*void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
 	QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
@@ -1078,7 +1140,8 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   if (reg.set_command_file (command_filepath) < 0) {
 	printf ("Error.  could not load %s as command file.\n", 
 	  command_filepath);
-  }
+  }  
+
   reg.do_registration ();
 
   cout << "4: Registration is done" << endl;
@@ -1268,7 +1331,7 @@ void DlgRegistration::SLT_KeyMoving( bool bChecked )//Key Moving check box
 
 void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
 												   QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
-												   QString strStageOption1, QString strStageOption2, QString strStageOption3)
+												   QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask)
 {
   ofstream fout;
   fout.open(strPathCommandFile.toLocal8Bit().constData());
@@ -1277,6 +1340,12 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
   fout << "[GLOBAL]" << endl;
   fout << "fixed=" << strPathFixedImg.toLocal8Bit().constData() << endl;
   fout << "moving=" << strPathMovingImg.toLocal8Bit().constData() << endl;
+
+  if (strPathFixedMask.length() > 1)
+  {
+      fout << "fixed_roi=" << strPathFixedMask.toLocal8Bit().constData() << endl;
+  }
+
   fout << "img_out=" << strPathOutImg.toLocal8Bit().constData() << endl;
   fout << "xform_out=" << strPathXformOut.toLocal8Bit().constData() << endl;
   fout << endl;
@@ -1687,17 +1756,28 @@ void DlgRegistration::SLT_RestoreMovingImg()
   SelectComboExternal(1, REGISTER_MANUAL_RIGID);
 }
 
-
 void DlgRegistration::SLT_DoRegistrationDeform()
 {  
  if (!m_spFixed || !m_spMoving)
 	return;
+
+ bool bPrepareMaskOnly = false;
+
+ if (checkBoxCropBkgroundCBCT->isChecked())
+     bPrepareMaskOnly = false;
+ else
+     bPrepareMaskOnly = true;
+
+
+
 
  cout << "1: DoRegistrationDeform: writing temporary files" << endl;
 
   //Both image type: Unsigned Short
   QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_deform.mha";
   QString filePathMoving = m_strPathPlastimatch + "/" + "moving_deform.mha";
+  QString filePathROI = m_strPathPlastimatch + "/" + "fixed_roi_DIR.mha"; //optional
+
   QString filePathOutput = m_strPathPlastimatch + "/" + "output_deform.mha";
   QString filePathXform = m_strPathPlastimatch + "/" + "xform_deform.txt";
 
@@ -1717,33 +1797,62 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   writer2->SetFileName(filePathMoving.toLocal8Bit().constData());
   writer2->SetUseCompression(true);
   writer2->SetInput(m_spMoving);
-
   writer1->Update();
   writer2->Update();
 
+  //Create a mask image based on the fixed sp image
+  
+  float FOV_DcmPosX = 0.0; //mm
+  float FOV_DcmPosY = 0.0;//mm
+  float FOV_Radius = 0.0;  
+
+  if (ui.checkBoxUseROIForDIR->isChecked())
+  {
+      cout << "Creating a ROI mask for DIR.. " << endl;
+      QString strFOVGeom = ui.lineEditFOVPos->text();
+
+      QStringList strListFOV = strFOVGeom.split(",");
+      if (strListFOV.count() == 3)
+      {
+          FOV_DcmPosX = strListFOV.at(0).toFloat();
+          FOV_DcmPosY = strListFOV.at(1).toFloat();
+          FOV_Radius = strListFOV.at(2).toFloat();
+
+          //Create Image using FixedImage sp
+
+          //Image Pointer here
+          USHORT_ImageType::Pointer spRoiMask;
+          m_pParent->AllocateByRef(m_spFixed, spRoiMask);
+          m_pParent->GenerateCylinderMask(spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
+
+          writerType::Pointer writer3 = writerType::New();
+          writer3->SetFileName(filePathROI.toLocal8Bit().constData());
+          writer3->SetUseCompression(true);
+          writer3->SetInput(spRoiMask);
+          writer3->Update();
+      }     
+  }
+
   QString filePathFixed_proc = filePathFixed;  
 
-  if (ui.checkBoxCropBkgroundCBCT->isChecked())
+  cout << "2: DoRegistrationDeform: CBCT pre-processing before deformable registration" << endl;
+  //cout << "Air region and bubble will be removed" << endl;	
+
+  QFileInfo info1(m_strPathCTSkin_manRegi);
+  QFileInfo info2(m_strPathXFAutoRigid);
+
+  if (!info1.exists() || !info2.exists())
   {
-	cout << "2: DoRegistrationDeform: CBCT pre-processing before deformable registration" << endl;
-	//cout << "Air region and bubble will be removed" << endl;	
+      cout << "Fatal error! no CT skin is found or no XF auto file found. Preprocessing will not be done. Proceeding." << endl;
+  }
+  else
+  {
+      filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_deform_proc.mha";
+      //skin removal and bubble filling : output file = filePathFixed_proc
+      bool bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
+      ProcessCBCT_beforeDeformRegi(filePathFixed, m_strPathCTSkin_manRegi, filePathFixed_proc, m_strPathXFAutoRigid, bBubbleRemoval, bPrepareMaskOnly); //bubble filling yes
+  }
 
-	QFileInfo info1(m_strPathCTSkin_manRegi);
-	QFileInfo info2(m_strPathXFAutoRigid);
-
-	if (!info1.exists() || !info2.exists())
-	{
-	  
-	  cout << "Fatal error! no CT skin is found or no XF auto file found. Preprocessing will not be done. Proceeding." << endl;	
-	}
-	else
-	{
-	  filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_deform_proc.mha";	  
-	  //skin removal and bubble filling : output file = filePathFixed_proc
-	  bool bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
-	  ProcessCBCT_beforeDeformRegi(filePathFixed, m_strPathCTSkin_manRegi,filePathFixed_proc, m_strPathXFAutoRigid, bBubbleRemoval); //bubble filling yes
-	}
-  }  
 
   cout << "3: DoRegistrationDeform: Creating a plastimatch command file" << endl;
 
@@ -1759,10 +1868,20 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   strDeformableStage2.append(", ").append(filePathOutputStage2);
   strDeformableStage3.append(", ").append(filePathOutputStage3);
 
-  GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving, 
-							filePathOutput, filePathXform, PLAST_BSPLINE, strDeformableStage1,strDeformableStage2,strDeformableStage3);
 
-	/*void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
+  //For Cropped patients, FOV mask is applied.
+  if (ui.checkBoxUseROIForDIR->isChecked())
+  {
+      GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
+          filePathOutput, filePathXform, PLAST_BSPLINE, strDeformableStage1, strDeformableStage2, strDeformableStage3, filePathROI);
+  }
+  else
+  {
+      GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
+          filePathOutput, filePathXform, PLAST_BSPLINE, strDeformableStage1, strDeformableStage2, strDeformableStage3);
+
+  }
+  	/*void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
 	QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
 	QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
@@ -2355,7 +2474,7 @@ void DlgRegistration::plm_expansion_contract_msk( QString& strPath_msk, QString&
 
 
 //NoBubble filling is included. bubble is only needed to be filled during deformable regi
-void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT, QString& strPathOutputCBCT, double* manualTrans3d)
+void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT, QString& strPathOutputCBCT, double* manualTrans3d, bool bPrepareMaskOnly)
 { 
   //Calc. Origin difference
 
@@ -2422,8 +2541,9 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   plm_expansion_contract_msk(strPath_mskSkinCT_manRegi, strPath_mskSkinCT_manRegi_exp, skinExp);//10 mm expansion for a mask image
 
   //4) eliminate the air region (temporarily)
-  //plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha  --mask-value 0 --mask E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_exp.mha --output E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
+  //plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha  --mask-value 0 --mask E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_exp.mha --output E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha  
  
+  //cout << "bPrepareMaskOnly=" << bPrepareMaskOnly << endl;
 
   int bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); //0
 
@@ -2436,14 +2556,19 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   QString output_fn = strPathOutputCBCT;
   //parms_msk.mask_value = 0.0; //unsigned short
   float mask_value = bkGroundValUshort; //unsigned short
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+
+  if (!bPrepareMaskOnly) //actual cropping is controled by checkBoxCropBkgroundCBCT. But mask files are always prepared.
+  {
+      //cout << "Masking is being done" << endl;
+      plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+  }  
 
   m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; //for further use  
 
 }
 
 //called after the auto rigid regi. 1) accurate skin clipping 2) air bubble filling inside of the CBCT
-void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling)
+void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly)
 {
   if (!m_pParent->m_spAutoRigidCT)
 	return;  
@@ -2487,7 +2612,11 @@ void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QStr
   QString mask_fn = strPath_mskSkinCT_autoRegi_exp;
   QString output_fn = strPathOutputCBCT;
   float mask_value = 0.0; //unsigned short
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+
+  if (!bPrepareMaskOnly)
+      plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+  else
+      strPathOutputCBCT = strPathRawCBCT;
 
   m_strPathCTSkin_autoRegi = strPath_mskSkinCT_autoRegi; //for further use. this is not expanded one!
 
@@ -3161,6 +3290,13 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     //Apply post processing for raw CBCT image and generate
     cout << "Preprocessing for CBCT" << endl;
 
+    bool bPrepareMaskOnly = false;
+
+    if (checkBoxCropBkgroundCBCT->isChecked())
+        bPrepareMaskOnly = false;
+    else
+        bPrepareMaskOnly = true;
+
     USHORT_ImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
     USHORT_ImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
 
@@ -3193,13 +3329,13 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     if (finfoSkinFile1.exists())
     {
         strPathOriginalCTSkinMask = m_strPathCTSkin;
-        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift);    
+        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
     }
     else if (finfoSkinFile2.exists())
     {
         cout << "alternative skin file will be used" << endl;
         strPathOriginalCTSkinMask = strPathAlternateSkin;        
-        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift);
+        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
     }
 
     QFileInfo fInfo = QFileInfo(filePathFixed_proc);
@@ -3224,4 +3360,29 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
         SelectComboExternal(1, REGISTER_MANUAL_RIGID);
     }
+}
+
+void DlgRegistration::SLT_IntensityNormCBCT()
+{
+    float fROI_Radius = ui.lineEditNormRoiRadius->text().toFloat();
+
+    float intensitySDFix =0.0;
+    float intensitySDMov = 0.0;
+    float meanIntensityFix = m_pParent->GetMeanIntensity(m_spFixed, fROI_Radius, &intensitySDFix);
+    float meanIntensityMov = m_pParent->GetMeanIntensity(m_spMoving, fROI_Radius, &intensitySDMov);
+
+    cout << "Mean/SD for Fixed = " << meanIntensityFix << "/" << intensitySDFix << endl;
+    cout << "Mean/SD for Moving = " << meanIntensityMov << "/" << intensitySDMov << endl;
+
+    //always change fixed image for intensity. (CBCT)
+
+
+    //m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));   
+
+    m_pParent->AddConstHU(m_spFixed, (int)(meanIntensityMov - meanIntensityFix));
+    //SLT_PassMovingImgForAnalysis();
+
+    
+    m_pParent->UpdateReconImage(m_spFixed, QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix)));    
+    SelectComboExternal(0, REGISTER_RAW_CBCT);
 }

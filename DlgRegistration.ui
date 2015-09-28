@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1120</width>
+    <width>1112</width>
     <height>823</height>
    </rect>
   </property>
@@ -282,7 +282,7 @@
   <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
     <rect>
-     <x>430</x>
+     <x>420</x>
      <y>650</y>
      <width>381</width>
      <height>131</height>
@@ -919,7 +919,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Confirm</string>
+     <string>Crop Skin</string>
     </property>
    </widget>
   </widget>
@@ -927,9 +927,9 @@
    <property name="geometry">
     <rect>
      <x>810</x>
-     <y>390</y>
-     <width>221</width>
-     <height>91</height>
+     <y>450</y>
+     <width>261</width>
+     <height>121</height>
     </rect>
    </property>
    <property name="title">
@@ -938,8 +938,8 @@
    <widget class="QPushButton" name="pushButtonDoRigid">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>20</y>
+      <x>10</x>
+      <y>80</y>
       <width>91</width>
       <height>31</height>
      </rect>
@@ -951,8 +951,8 @@
    <widget class="QLabel" name="label_41">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>60</y>
+      <x>10</x>
+      <y>20</y>
       <width>101</width>
       <height>16</height>
      </rect>
@@ -965,7 +965,7 @@
     <property name="geometry">
      <rect>
       <x>130</x>
-      <y>60</y>
+      <y>20</y>
       <width>41</width>
       <height>20</height>
      </rect>
@@ -978,7 +978,7 @@
     <property name="geometry">
      <rect>
       <x>180</x>
-      <y>60</y>
+      <y>20</y>
       <width>21</width>
       <height>16</height>
      </rect>
@@ -987,14 +987,30 @@
      <string>mm</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="checkBoxUseROIForRigid">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>101</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Use FOV mask</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_6">
    <property name="geometry">
     <rect>
      <x>810</x>
-     <y>490</y>
-     <width>221</width>
-     <height>261</height>
+     <y>580</y>
+     <width>261</width>
+     <height>201</height>
     </rect>
    </property>
    <property name="title">
@@ -1029,10 +1045,10 @@
    <widget class="QPushButton" name="pushButtonDoDeformable">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>200</y>
+      <x>10</x>
+      <y>160</y>
       <width>91</width>
-      <height>23</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
@@ -1044,19 +1060,19 @@
      <rect>
       <x>10</x>
       <y>50</y>
-      <width>101</width>
+      <width>51</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Arguments Step1</string>
+     <string>Step1</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="lineEditArgument1">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>70</y>
+      <x>80</x>
+      <y>50</y>
       <width>171</width>
       <height>20</height>
      </rect>
@@ -1065,24 +1081,11 @@
      <string>2,2,1,30,0.00001,0.005,30</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_27">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>100</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Arguments Step2</string>
-    </property>
-   </widget>
    <widget class="QLineEdit" name="lineEditArgument2">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>120</y>
+      <x>80</x>
+      <y>80</y>
       <width>171</width>
       <height>20</height>
      </rect>
@@ -1091,24 +1094,11 @@
      <string/>
     </property>
    </widget>
-   <widget class="QLabel" name="label_28">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>150</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Arguments Step3</string>
-    </property>
-   </widget>
    <widget class="QLineEdit" name="lineEditArgument3">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>170</y>
+      <x>80</x>
+      <y>110</y>
       <width>171</width>
       <height>20</height>
      </rect>
@@ -1120,14 +1110,56 @@
    <widget class="QPushButton" name="pushButtonMacro">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>230</y>
+      <x>110</x>
+      <y>160</y>
       <width>91</width>
-      <height>23</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
      <string>Macro</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="checkBoxUseROIForDIR">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>140</y>
+      <width>101</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Use FOV mask</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_27">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>80</y>
+      <width>51</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Step2</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_28">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>110</y>
+      <width>51</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Step3</string>
     </property>
    </widget>
   </widget>
@@ -1311,8 +1343,8 @@
     <rect>
      <x>810</x>
      <y>260</y>
-     <width>221</width>
-     <height>111</height>
+     <width>261</width>
+     <height>191</height>
     </rect>
    </property>
    <property name="title">
@@ -1331,7 +1363,7 @@
      <string>Crop bkground</string>
     </property>
     <property name="checked">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QCheckBox" name="checkBoxFillBubbleCBCT">
@@ -1465,6 +1497,84 @@
     </property>
     <property name="text">
      <string>mm</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_47">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>110</y>
+      <width>171</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>FOV Center X,Y, Radius (mm)</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditFOVPos">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>110</y>
+      <width>91</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0.0,0.0,130.0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_48">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>130</y>
+      <width>121</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>CBCT intensity shift</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_49">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>150</y>
+      <width>91</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ref. Radius(mm)</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditNormRoiRadius">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>150</y>
+      <width>51</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>30</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonIntensityNormCBCT">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>150</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Norm. CBCT</string>
     </property>
    </widget>
   </widget>
@@ -1821,8 +1931,8 @@
    <slot>SLT_DoRegistrationRigid()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>935</x>
-     <y>268</y>
+     <x>910</x>
+     <y>530</y>
     </hint>
     <hint type="destinationlabel">
      <x>828</x>
@@ -1917,8 +2027,8 @@
    <slot>SLT_DoRegistrationDeform()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>948</x>
-     <y>690</y>
+     <x>868</x>
+     <y>740</y>
     </hint>
     <hint type="destinationlabel">
      <x>951</x>
@@ -1981,8 +2091,8 @@
    <slot>SLT_Macro()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>946</x>
-     <y>734</y>
+     <x>996</x>
+     <y>770</y>
     </hint>
     <hint type="destinationlabel">
      <x>948</x>
@@ -2038,6 +2148,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButtonIntensityNormCBCT</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_IntensityNormCBCT()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1061</x>
+     <y>422</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1081</x>
+     <y>425</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_CrntPosGo()</slot>
@@ -2062,5 +2188,6 @@
   <slot>SLT_DoRegistrationGradient()</slot>
   <slot>SLT_ManualMoveByDCMPlan()</slot>
   <slot>SLT_ConfirmManualRegistration()</slot>
+  <slot>SLT_IntensityNormCBCT()</slot>
  </slots>
 </ui>
