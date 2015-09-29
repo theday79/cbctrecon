@@ -61,6 +61,7 @@
 #include <QDir>
 #include <QStringList>
 #include <QMessageBox>
+#include <fstream>
 
 #define FIXME_BACKGROUND_MAX (-1200)
 
@@ -1050,9 +1051,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //if this file already exists, no need of proprocess for CBCT (skin cropping) is needed.
 //if skin cropping is not done for this case (supposed to be done during confirm manual regi)
 
-  cout << "finfoFixedProc " << finfoFixedProc.absoluteFilePath().toStdString().c_str() << endl;
-  cout << "finfoManMask " << finfoManMask.absoluteFilePath().toStdString().c_str() << endl;
-
+ 
 
   //if (!finfoFixedProc.exists() && !finfoManMask.exists() && ui.checkBoxCropBkgroundCBCT->isChecked())
   if (!finfoFixedProc.exists() && !finfoManMask.exists())
@@ -1077,18 +1076,32 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       if (finfoSkinFile1.exists())
       {
           strPathOriginalCTSkinMask = m_strPathCTSkin;          
-          ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
+          //This was OK.
+          ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);          
+
+          if (bPrepareMaskOnly) // currently, filePathFixed_proc == "";
+              filePathFixed_proc = filePathFixed;
       }
       else if (finfoSkinFile2.exists())
       {
           cout << "alternative skin file will be used" << endl;
           strPathOriginalCTSkinMask = strPathAlternateSkin;          
           ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
+
+          if (bPrepareMaskOnly)
+              filePathFixed_proc = filePathFixed;
       }
       else
       {
           cout << "CT skin file(msk_skin_CT.mha) is not found. preprocessing will be skipped" << endl;          
           filePathFixed_proc = filePathFixed;
+      }
+
+      QFileInfo fixedProcInfo(filePathFixed_proc);
+      if (!fixedProcInfo.exists())
+      {
+          cout << "Error! proc file doesn't exist!" << endl;
+          return;
       }
 
       readerType::Pointer reader2 = readerType::New();
@@ -1109,40 +1122,112 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   QString pathCmdRegister = m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
 
-  GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving, 
-							filePathOutput, filePathXform, PLAST_RIGID, "","","");
-  
+  //GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving, 
+	//						filePathOutput, filePathXform, PLAST_RIGID, "","","");  
 
+  QString strDummy = "";
   //For Cropped patients, FOV mask is applied.
   if (ui.checkBoxUseROIForRigid->isChecked())
   {
       cout << "2.A:  ROI-based Rigid body registration will be done" << endl;
       GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
-          filePathOutput, filePathXform, PLAST_RIGID, "", "", "", filePathROI);
+          filePathOutput, filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy, filePathROI);
   }
   else
   {
       GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
-          filePathOutput, filePathXform, PLAST_RIGID, "", "", "");
-
-
+          filePathOutput, filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy);
   }
+
+  //Sleep(1000);
 
 	/*void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
 	QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
 	QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
+ 
 
   const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
   cout << "3: calling a plastimatch command" << endl;
 
+ 
   Registration reg;
   if (reg.set_command_file (command_filepath) < 0) {
 	printf ("Error.  could not load %s as command file.\n", 
 	  command_filepath);
   }  
+  cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;
 
-  reg.do_registration ();
+  if (pathCmdRegister.length() < 3)
+  {
+      cout << "ERROR! pathCmdRegister is too short!" << endl;
+      return;
+  }
+
+  std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
+  std::string strMoving = reg.get_registration_parms()->get_moving_fn();  
+
+  if (strFixed.length() < 1)
+  {
+      cout << endl;
+      cout << endl;
+      cout << endl;
+      cout << "ERROR! no fixed image" << endl;
+      //return;
+  }
+  if (strMoving.length() < 1)
+  {
+      cout << endl;
+      cout << endl;
+      cout << endl;
+      cout << "ERROR!no moving image" << endl;
+      //return;
+  }
+
+  //Check that the command file is readable
+  ifstream fin;
+  fin.open(command_filepath);
+  if (fin.fail())
+  {
+
+      cout << endl;
+      cout << endl;
+      cout << endl;
+
+      fin.close();
+      cout << "fail first.. wait 5 s" << endl;
+      Sleep(5000);
+
+      fin.open(command_filepath);
+      if (fin.fail())
+      {
+          cout << endl;
+          cout << endl;
+          cout << endl;
+
+          cout << "Second failure! Error! " << endl;
+          fin.close();
+      }
+      else
+      {
+          cout << "Resolved after a single failure!" << endl;
+          fin.close();
+      }
+  }
+  else
+  {
+      cout << "File is readable!" << endl;
+      fin.close();
+  }
+
+  if (reg.set_command_file(command_filepath) < 0) {
+      printf("Error.  could not load %s as command file.\n",
+          command_filepath);
+  }
+  cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;
+
+
+  reg.do_registration ();//error occurs here
 
   cout << "4: Registration is done" << endl;
   cout << "5: Reading output image-CT" << endl;
@@ -1336,6 +1421,12 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
   ofstream fout;
   fout.open(strPathCommandFile.toLocal8Bit().constData());
 
+  if (fout.fail())
+  {
+      cout << "File writing error! " << endl;
+      return;
+  }
+
   fout << "# command_file.txt" << endl;
   fout << "[GLOBAL]" << endl;
   fout << "fixed=" << strPathFixedImg.toLocal8Bit().constData() << endl;
@@ -1479,6 +1570,7 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
   }
 
   fout.close();
+  Sleep(1000); //Just in case.. it seems it helped to avoid random crash!
 }
 
 void DlgRegistration::AddImageToCombo(int comboIdx, enREGI_IMAGES option) //comboIdx 0: fixed, 1: moving
@@ -1763,7 +1855,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
  bool bPrepareMaskOnly = false;
 
- if (checkBoxCropBkgroundCBCT->isChecked())
+ if (ui.checkBoxCropBkgroundCBCT->isChecked())
      bPrepareMaskOnly = false;
  else
      bPrepareMaskOnly = true;
@@ -1851,6 +1943,9 @@ void DlgRegistration::SLT_DoRegistrationDeform()
       //skin removal and bubble filling : output file = filePathFixed_proc
       bool bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
       ProcessCBCT_beforeDeformRegi(filePathFixed, m_strPathCTSkin_manRegi, filePathFixed_proc, m_strPathXFAutoRigid, bBubbleRemoval, bPrepareMaskOnly); //bubble filling yes
+
+      if (bPrepareMaskOnly)
+          filePathFixed_proc = filePathFixed;
   }
 
 
@@ -1885,6 +1980,43 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
 	QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
+  ifstream fin;
+  fin.open(pathCmdRegister.toLocal8Bit().constData());
+  if (fin.fail())
+  {
+
+      cout << endl;
+      cout << endl;
+      cout << endl;
+
+      fin.close();
+      cout << "fail first.. wait 5 s" << endl;
+      Sleep(5000);
+
+      fin.open(pathCmdRegister.toLocal8Bit().constData());
+      if (fin.fail())
+      {
+          cout << endl;
+          cout << endl;
+          cout << endl;
+
+          cout << "Second failure! Error! " << endl;
+          fin.close();
+      }
+      else
+      {
+          cout << "Resolved after a single failure!" << endl;
+          fin.close();
+      }
+  }
+  else
+  {
+      cout << "File is readable!" << endl;
+      fin.close();
+  }
+
+
+
   const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
   cout << "4: DoRegistrationDeform: calling a plastimatch command" << endl;
 
@@ -1894,6 +2026,30 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	printf ("Error.  could not load %s as command file.\n", 
 	  command_filepath);
   }
+
+  std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
+  std::string strMoving = reg.get_registration_parms()->get_moving_fn();
+
+  if (strFixed.length() < 1)
+  {
+      cout << endl;
+      cout << endl;
+      cout << endl;
+      cout << "ERROR! no fixed image" << endl;
+      return;
+  }
+  if (strMoving.length() < 1)
+  {
+      cout << endl;
+      cout << endl;
+      cout << endl;
+      cout << "ERROR!no moving image" << endl;
+      return;
+  }
+
+
+
+
   reg.do_registration ();
 
  // Registration_parms *regp = new Registration_parms();
@@ -2525,6 +2681,8 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   //file_type = plm_file_format_deduce ((const char*) parms.input_fn);
   file_type = PLM_FILE_FMT_IMG;
 
+  cout << "Entering plm rt_study_warp..." << endl;
+
   rt_study_warp(&rtds, file_type, &parms);
   printf ("Warping_rigid_trans Finished!\n");
   
@@ -2557,11 +2715,17 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   //parms_msk.mask_value = 0.0; //unsigned short
   float mask_value = bkGroundValUshort; //unsigned short
 
+
   if (!bPrepareMaskOnly) //actual cropping is controled by checkBoxCropBkgroundCBCT. But mask files are always prepared.
-  {
-      //cout << "Masking is being done" << endl;
+  {      
+      cout << "Entering plm_mask_main..." << endl;
       plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-  }  
+  }
+  else
+  {
+      cout << "Skipping plm_mask_main..." << endl;
+      strPathOutputCBCT = "";
+  }
 
   m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; //for further use  
 
@@ -3292,7 +3456,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
     bool bPrepareMaskOnly = false;
 
-    if (checkBoxCropBkgroundCBCT->isChecked())
+    if (ui.checkBoxCropBkgroundCBCT->isChecked())
         bPrepareMaskOnly = false;
     else
         bPrepareMaskOnly = true;
@@ -3320,6 +3484,8 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     writer->Update();
 
 
+    cout << "1.A: Writing temporary files is done" << endl;
+
     QFileInfo finfoSkinFile1 = QFileInfo(m_strPathCTSkin);
     QString strPathAlternateSkin = m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
     QFileInfo finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
@@ -3330,18 +3496,27 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     {
         strPathOriginalCTSkinMask = m_strPathCTSkin;
         ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
+
+        if (bPrepareMaskOnly) // currently, filePathFixed_proc == "";
+            filePathFixed_proc = filePathFixed;
+
     }
     else if (finfoSkinFile2.exists())
     {
         cout << "alternative skin file will be used" << endl;
         strPathOriginalCTSkinMask = strPathAlternateSkin;        
         ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
+
+        if (bPrepareMaskOnly) // currently, filePathFixed_proc == "";
+            filePathFixed_proc = filePathFixed;
     }
 
     QFileInfo fInfo = QFileInfo(filePathFixed_proc);
 
-    if (fInfo.exists()) //if fixed_rigid_proc.mha is generated successfully.
+    if (fInfo.exists() && !bPrepareMaskOnly) //if fixed_rigid_proc.mha is generated successfully.
     {
+
+        cout << "Trying to read file: filePathFixed_proc" << endl;
         //Update RawReconImg
         typedef itk::ImageFileReader<USHORT_ImageType> readerType;
         readerType::Pointer reader = readerType::New();

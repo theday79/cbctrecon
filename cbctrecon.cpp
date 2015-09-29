@@ -7214,46 +7214,8 @@ void CbctRecon::SLT_AddConstHUToCurImg()
   if (!m_spCrntReconImg)
 	return;
   int addingVal = ui.lineEdit_AddConstHU->text().toInt();  
-
   AddConstHU(m_spCrntReconImg, addingVal);
-
-  UpdateReconImage(m_spCrntReconImg, QString("Added%1").arg(addingVal));
-
- /* typedef itk::AddImageFilter <USHORT_ImageType, USHORT_ImageType, USHORT_ImageType> AddImageFilterType;
-  AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
-  addImageFilter->SetInput1(m_spCrntReconImg);
-
-  int addingVal = ui.lineEdit_AddConstHU->text().toInt();
-  addImageFilter->SetConstant2(addingVal);
-  addImageFilter->Update();
-*/
-  //typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
-  //ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
-  //thresholdFilter->SetInput(addImageFilter->GetOutput());
-  //thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
-  ////	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-  //thresholdFilter->SetOutsideValue(0);
-  //thresholdFilter->Update();
-
-  //typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType> ImageCalculatorFilterType;
-  //ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
-  //imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
-  //imageCalculatorFilter->Compute();
-  //double minVal = (double)(imageCalculatorFilter->GetMinimum());
-  //double maxVal = (double)(imageCalculatorFilter->GetMaximum());
-  //cout << "Min and Max Values are	" << minVal << "	" << maxVal << endl; //should be 0 and 4096
-  ////cout <<"Min and Max Values are	" << minVal << "	" << maxVal << endl;
-
- // if (m_spRawReconImg == m_spCrntReconImg)
- // {
-	//m_spRawReconImg = addImageFilter->GetOutput();	
-	//m_spCrntReconImg = m_spRawReconImg;	
- // } 
- // else //m_spRawReconImg will be preserved.
- // {
-	//m_spCrntReconImg = addImageFilter->GetOutput();
- // }
-  
+  UpdateReconImage(m_spCrntReconImg, QString("Added%1").arg(addingVal)); 
 }
 
 double CbctRecon::GetRawIntensityScaleFactor()
