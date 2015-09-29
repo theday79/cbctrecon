@@ -1146,17 +1146,18 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 	QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
  
 
-  const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
   cout << "3: calling a plastimatch command" << endl;
 
  
   Registration reg;
-  if (reg.set_command_file (command_filepath) < 0) {
+  if (reg.set_command_file(str_command_filepath) < 0) {
 	printf ("Error.  could not load %s as command file.\n", 
-	  command_filepath);
+            str_command_filepath.c_str());
   }  
-  cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;
+  //cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;
 
   if (pathCmdRegister.length() < 3)
   {
@@ -1172,7 +1173,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       cout << endl;
       cout << endl;
       cout << endl;
-      cout << "ERROR! no fixed image" << endl;
+      cout << "ERROR! no fixed image" << endl;      
       //return;
   }
   if (strMoving.length() < 1)
@@ -1184,47 +1185,47 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       //return;
   }
 
-  //Check that the command file is readable
-  ifstream fin;
-  fin.open(command_filepath);
-  if (fin.fail())
-  {
+  ////Check that the command file is readable
+  //ifstream fin;
+  //fin.open(command_filepath);
+  //if (fin.fail())
+  //{
 
-      cout << endl;
-      cout << endl;
-      cout << endl;
+  //    cout << endl;
+  //    cout << endl;
+  //    cout << endl;
 
-      fin.close();
-      cout << "fail first.. wait 5 s" << endl;
-      Sleep(5000);
+  //    fin.close();
+  //    cout << "fail first.. wait 5 s" << endl;
+  //    Sleep(5000);
 
-      fin.open(command_filepath);
-      if (fin.fail())
-      {
-          cout << endl;
-          cout << endl;
-          cout << endl;
+  //    fin.open(command_filepath);
+  //    if (fin.fail())
+  //    {
+  //        cout << endl;
+  //        cout << endl;
+  //        cout << endl;
 
-          cout << "Second failure! Error! " << endl;
-          fin.close();
-      }
-      else
-      {
-          cout << "Resolved after a single failure!" << endl;
-          fin.close();
-      }
-  }
-  else
-  {
-      cout << "File is readable!" << endl;
-      fin.close();
-  }
+  //        cout << "Second failure! Error! " << endl;
+  //        fin.close();
+  //    }
+  //    else
+  //    {
+  //        cout << "Resolved after a single failure!" << endl;
+  //        fin.close();
+  //    }
+  //}
+  //else
+  //{
+  //    cout << "File is readable!" << endl;
+  //    fin.close();
+  //}
 
-  if (reg.set_command_file(command_filepath) < 0) {
+ /* if (reg.set_command_file(command_filepath) < 0) {
       printf("Error.  could not load %s as command file.\n",
           command_filepath);
   }
-  cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;
+  cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;*/
 
 
   reg.do_registration ();//error occurs here
@@ -1570,7 +1571,7 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
   }
 
   fout.close();
-  Sleep(1000); //Just in case.. it seems it helped to avoid random crash!
+  //Sleep(1000); //Just in case.. it seems it helped to avoid random crash!
 }
 
 void DlgRegistration::AddImageToCombo(int comboIdx, enREGI_IMAGES option) //comboIdx 0: fixed, 1: moving
@@ -1980,51 +1981,52 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
 	QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
-  ifstream fin;
-  fin.open(pathCmdRegister.toLocal8Bit().constData());
-  if (fin.fail())
-  {
+  //ifstream fin;
+  //fin.open(pathCmdRegister.toLocal8Bit().constData());
+  //if (fin.fail())
+  //{
 
-      cout << endl;
-      cout << endl;
-      cout << endl;
+  //    cout << endl;
+  //    cout << endl;
+  //    cout << endl;
 
-      fin.close();
-      cout << "fail first.. wait 5 s" << endl;
-      Sleep(5000);
+  //    fin.close();
+  //    cout << "fail first.. wait 5 s" << endl;
+  //    Sleep(5000);
 
-      fin.open(pathCmdRegister.toLocal8Bit().constData());
-      if (fin.fail())
-      {
-          cout << endl;
-          cout << endl;
-          cout << endl;
+  //    fin.open(pathCmdRegister.toLocal8Bit().constData());
+  //    if (fin.fail())
+  //    {
+  //        cout << endl;
+  //        cout << endl;
+  //        cout << endl;
 
-          cout << "Second failure! Error! " << endl;
-          fin.close();
-      }
-      else
-      {
-          cout << "Resolved after a single failure!" << endl;
-          fin.close();
-      }
-  }
-  else
-  {
-      cout << "File is readable!" << endl;
-      fin.close();
-  }
+  //        cout << "Second failure! Error! " << endl;
+  //        fin.close();
+  //    }
+  //    else
+  //    {
+  //        cout << "Resolved after a single failure!" << endl;
+  //        fin.close();
+  //    }
+  //}
+  //else
+  //{
+  //    cout << "File is readable!" << endl;
+  //    fin.close();
+  //}
 
 
 
-  const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
   cout << "4: DoRegistrationDeform: calling a plastimatch command" << endl;
 
 
   Registration reg;
-  if (reg.set_command_file (command_filepath) < 0) {
+  if (reg.set_command_file(str_command_filepath) < 0) {
 	printf ("Error.  could not load %s as command file.\n", 
-	  command_filepath);
+            str_command_filepath.c_str());
   }
 
   std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
@@ -2035,16 +2037,14 @@ void DlgRegistration::SLT_DoRegistrationDeform()
       cout << endl;
       cout << endl;
       cout << endl;
-      cout << "ERROR! no fixed image" << endl;
-      return;
+      cout << "ERROR! no fixed image" << endl;   
   }
   if (strMoving.length() < 1)
   {
       cout << endl;
       cout << endl;
       cout << endl;
-      cout << "ERROR!no moving image" << endl;
-      return;
+      cout << "ERROR!no moving image" << endl;      
   }
 
 
@@ -2429,19 +2429,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 
   cout << "FINISHED!: Pre-processing of CT image" << endl;
 
-  ////Load DICOM plan
-
-  if (m_pParent->m_strPathPlan.isEmpty())
-  {
-      cout << "No DCM plan file was found. Skipping dcm plan." << endl;
-      return true;
-  }
-  QString dcmplanPath = m_pParent->m_strPathPlan;
-
-  //Plm_file_format file_type_dcm_plan;
-  //Rt_study rt_study_plan;
-
-  LoadRTPlan(dcmplanPath);//fill RT_studyplan  
+ 
 
   //if (m_pDcmStudyPlan != NULL)
   //{
@@ -2472,9 +2460,9 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
 
     m_pDcmStudyPlan = new Dcmtk_rt_study();
 
-    cout << "Before plm_file_format_deduce" << endl;
+    //cout << "Before plm_file_format_deduce" << endl;
     Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strDCMPath.toLocal8Bit().constData());
-    cout << "After plm_file_format_deduce" << endl;
+    //cout << "After plm_file_format_deduce" << endl;
 
     if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
     {
@@ -2718,16 +2706,18 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
 
   if (!bPrepareMaskOnly) //actual cropping is controled by checkBoxCropBkgroundCBCT. But mask files are always prepared.
   {      
-      cout << "Entering plm_mask_main..." << endl;
+      cout << "Entering plm_mask_main to crop the skin image." << endl;
       plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
   }
   else
   {
-      cout << "Skipping plm_mask_main..." << endl;
+      cout << "bPrepareMaskOnly flag is on. Skipping plm_mask_main.. " << endl;
       strPathOutputCBCT = "";
   }
 
   m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; //for further use  
+
+  cout << "CBCT preprocessing is done! " << endl;
 
 }
 
@@ -2870,21 +2860,20 @@ void DlgRegistration::plm_synth_trans_xf( QString& strPath_fixed, QString& strPa
 }
 
 void DlgRegistration::SLT_PreProcessCT()
-{
-    if (!PreprocessCT())
+{    
+     if (!PreprocessCT())
+     {
+     cout << "Error in PreprocessCT!!!scatter correction would not work out." << endl;
+     m_pParent->m_bMacroContinue = false;
+     }  
+    ////Load DICOM plan
+    if (m_pParent->m_strPathPlan.isEmpty())
     {
-        /*QMessageBox msgBox;
-        msgBox.setText("Error in PreprocessCT!!! scatter correction would not work out. Exit?");
-        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-        int res = msgBox.exec();
-
-        if (res == QMessageBox::Yes)
-        {*/
-        cout << "Error in PreprocessCT!!!scatter correction would not work out." << endl;
-            m_pParent->m_bMacroContinue = false;
-        //}
-    }  
+        cout << "No DCM plan file was found. Skipping dcm plan." << endl;
+        return;
+    }    
+    //QString dcmplanPath = m_pParent->m_strPathPlan;
+    LoadRTPlan(m_pParent->m_strPathPlan);//fill RT_studyplan  
 }
 
 void DlgRegistration::SetPlmOutputDir(QString& endFix)
@@ -3355,14 +3344,15 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
     QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
-    const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
+    //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
+    std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
     cout << "3: calling a plastimatch command" << endl;
 
     Registration reg;
-    if (reg.set_command_file(command_filepath) < 0) {
+    if (reg.set_command_file(str_command_filepath) < 0) {
         printf("Error.  could not load %s as command file.\n",
-            command_filepath);
+            str_command_filepath.c_str());
     }
     reg.do_registration();
     cout << "4: Registration is done" << endl; 
@@ -3541,22 +3531,23 @@ void DlgRegistration::SLT_IntensityNormCBCT()
 {
     float fROI_Radius = ui.lineEditNormRoiRadius->text().toFloat();
 
+
+    cout << "Intensity is being analyzed...Please wait." << endl;
+
     float intensitySDFix =0.0;
     float intensitySDMov = 0.0;
     float meanIntensityFix = m_pParent->GetMeanIntensity(m_spFixed, fROI_Radius, &intensitySDFix);
     float meanIntensityMov = m_pParent->GetMeanIntensity(m_spMoving, fROI_Radius, &intensitySDMov);
-
+    
     cout << "Mean/SD for Fixed = " << meanIntensityFix << "/" << intensitySDFix << endl;
     cout << "Mean/SD for Moving = " << meanIntensityMov << "/" << intensitySDMov << endl;
-
-    //always change fixed image for intensity. (CBCT)
-
 
     //m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));   
 
     m_pParent->AddConstHU(m_spFixed, (int)(meanIntensityMov - meanIntensityFix));
     //SLT_PassMovingImgForAnalysis();
 
+    cout << "Intensity shifting is done! Added value = " << (int)(meanIntensityMov - meanIntensityFix) << endl;
     
     m_pParent->UpdateReconImage(m_spFixed, QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix)));    
     SelectComboExternal(0, REGISTER_RAW_CBCT);
