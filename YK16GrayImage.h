@@ -10,7 +10,7 @@ class QPainter;
 #define DEFAULT_WINLEVEL_MID 10000
 #define DEFAULT_WINLEVEL_WIDTH 20000
 
-#define DEFAULT_ELEKTA_HIS_HEADER_SIZE 100
+#define DEFAULT_ELEKTA_HIS_HEADER_SIZE 100 // ELEKTA VS VARIAN
 
 #include "itkImage.h"
 #include <QImage>
@@ -113,7 +113,7 @@ public:
 
 
 	//Elekta CBCT recon
-	char* m_pElektaHisHeader;
+	char* m_pElektaHisHeader; // ELEKTA VS VARIAN
 	void CopyHisHeader(const char *hisFilePath);
 	//bool SaveDataAsHis (const char *filePath);
 	bool SaveDataAsHis( const char *filePath, bool bInverse );

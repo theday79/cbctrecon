@@ -40,7 +40,7 @@
 
 // RTK includes
 #include <rtkHisImageIO.h>
-#include <rtkElektaSynergyGeometryReader.h>
+#include <rtkElektaSynergyGeometryReader.h> // ELEKTA VS VARIAN
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
 
@@ -83,8 +83,8 @@ typedef signed short SHORT_PixelType;
 typedef itk::Image< SHORT_PixelType, 3 > SHORT_ImageType;
 typedef itk::Image< SHORT_PixelType, 2 > SHORT_ImageType2D;
 
-#define DEFAULT_ELEKTA_PROJ_WIDTH 1024
-#define DEFAULT_ELEKTA_PROJ_HEIGHT 1024
+#define DEFAULT_ELEKTA_PROJ_WIDTH 1024 // ELEKTA VS VARIAN
+#define DEFAULT_ELEKTA_PROJ_HEIGHT 1024 // ELEKTA VS VARIAN
 #define MAX_LINE_LENGTH 1024
 
 //lineEdit_scaMedian, when downsampling =1.0
@@ -115,7 +115,7 @@ enum enREGI_IMAGES{
 };
 
 enum enMachineType{
-  MACHINE_ELEKTA = 0,
+  MACHINE_ELEKTA = 0, // ELEKTA VS VARIAN ?
   MACHINE_VARIAN,
 };
 
@@ -206,7 +206,7 @@ public:
 	//Skin will be removed, bubble will be filled	
 
 	void FindAllRelevantPaths(QString pathProjHisDir);
-	QString MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID);
+	QString MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID); // ELEKTA VS VARIAN
 
 	bool LoadShortImageToUshort(QString& strPath, USHORT_ImageType::Pointer& pUshortImage);
 	void init_DlgRegistration(QString& strDCM_UID);
@@ -319,7 +319,7 @@ public:
 
 		//tools
 		void SLT_FileNameHex2Dec();	
-		void SLT_MakeElektaXML();		
+		void SLT_MakeElektaXML();		// ELEKTA VS VARIAN
 		
 		//Gain/ Offset correction
 		void SLT_OpenOffsetFile();
@@ -329,7 +329,7 @@ public:
 
 		//Gain/ Offset correction
 		void SLT_SetHisDir();
-		void SLT_OpenElektaGeomFile();
+		void SLT_OpenElektaGeomFile(); // ELEKTA VS VARIAN
 
 		void SLT_SetOutputPath();
 		void SLT_DoReconstruction();
@@ -457,7 +457,7 @@ public:
 
 	//Automatically detected relavant file/Dir path when load the projection files (SLT_SetHisDir)
 
-	//Belows are ELEKTA specific
+	//Belows are ELEKTA specific // ELEKTA VS VARIAN !!!
 	//1) Find DICOM UID by subtracting "img_" from whole proj path name
 
 	//Below paths will be decided after the Find... Func.

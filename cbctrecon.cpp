@@ -146,8 +146,8 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WFlags flags)
 	m_pImgOffset = NULL;
 	m_pImgGain = NULL;
 	//Badpixmap;
-	m_pImgOffset = new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
-	m_pImgGain = new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+	m_pImgOffset = new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT); // ELEKTA VS VARIAN
+	m_pImgGain = new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT); // ELEKTA VS VARIAN
 	//Prepare Raw image
 
 	//ConvertImg_4030eToElektaProjRaw("C:\\4030eGain_2048_3200.raw", "C:\\TestGain_1024_1024.raw");
@@ -833,15 +833,15 @@ void CbctRecon::SLT_FileNameHex2Dec()
 		RenameFromHexToDecimal(files);
 }
 
-void CbctRecon::SLT_MakeElektaXML()
+void CbctRecon::SLT_MakeElektaXML() // ELEKTA VS VARIAN
 {
 	//Define IMAGE.DBF path
-	QString filePath_ImageDBF = QFileDialog::getOpenFileName(this, "SelectIMAGE.DBF file", m_strPathDirDefault, "Elekta DB file (*.dbf)", 0,0);
+	QString filePath_ImageDBF = QFileDialog::getOpenFileName(this, "SelectIMAGE.DBF file", m_strPathDirDefault, "Elekta DB file (*.dbf)", 0,0); // ELEKTA VS VARIAN
 	
 	if (filePath_ImageDBF.length() < 2)
 		return;
 
-	QString filePath_FrameDBF = QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", m_strPathDirDefault, "Elekta DB file (*.dbf)", 0,0);
+	QString filePath_FrameDBF = QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", m_strPathDirDefault, "Elekta DB file (*.dbf)", 0,0); // ELEKTA VS VARIAN
 
 	if (filePath_FrameDBF.length() < 2)
 		return;
@@ -858,17 +858,17 @@ void CbctRecon::SLT_MakeElektaXML()
 	if (DICOM_UID.length() < 2)
 		return;
 
-	QString genFilePath = MakeElektaXML (filePath_ImageDBF, filePath_FrameDBF, DICOM_UID);
-	cout << "Generated ElektaXML path: " << genFilePath.toLocal8Bit().constData() << endl;
+	QString genFilePath = MakeElektaXML (filePath_ImageDBF, filePath_FrameDBF, DICOM_UID); // ELEKTA VS VARIAN
+	cout << "Generated ElektaXML path: " << genFilePath.toLocal8Bit().constData() << endl; // ELEKTA VS VARIAN
 	
 	return;
 }
 
-QString CbctRecon::MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID)
+QString CbctRecon::MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID) // ELEKTA VS VARIAN
 {
-  cout << "Elekta geometry XML file is being generated." << endl;
+  cout << "Elekta geometry XML file is being generated." << endl; // ELEKTA VS VARIAN
   //Define FRAME.DBF path
-  rtk::ElektaSynergyGeometryReader::Pointer reader = rtk::ElektaSynergyGeometryReader::New();
+  rtk::ElektaSynergyGeometryReader::Pointer reader = rtk::ElektaSynergyGeometryReader::New(); // ELEKTA VS VARIAN
   //string strDicomUID = DICOM_UID.toLocal8Bit().constData(); //DICOM_UID.toStdString()
   //string strDicomUID = DICOM_UID.toStdString();
   //string strDbfImg = filePath_ImageDBF.toStdString();
@@ -877,7 +877,7 @@ QString CbctRecon::MakeElektaXML(QString filePath_ImageDBF, QString filePath_Fra
   QFileInfo info = QFileInfo(filePath_ImageDBF);
   QString dirPath = info.absolutePath();
 
-  QString fileName = "ElektaGeom_" + DICOM_UID + ".xml";
+  QString fileName = "ElektaGeom_" + DICOM_UID + ".xml"; // ELEKTA VS VARIAN
 
   QString strOutput = dirPath + "/" + fileName;
 
