@@ -146,8 +146,8 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WFlags flags)
 	m_pImgOffset = NULL;
 	m_pImgGain = NULL;
 	//Badpixmap;
-	m_pImgOffset = new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT); // ELEKTA VS VARIAN
-	m_pImgGain = new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT); // ELEKTA VS VARIAN
+	m_pImgOffset = new YK16GrayImage(DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT); // ELEKTA VS VARIAN
+	m_pImgGain = new YK16GrayImage(DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT); // ELEKTA VS VARIAN
 	//Prepare Raw image
 
 	//ConvertImg_4030eToElektaProjRaw("C:\\4030eGain_2048_3200.raw", "C:\\TestGain_1024_1024.raw");
@@ -833,57 +833,59 @@ void CbctRecon::SLT_FileNameHex2Dec()
 		RenameFromHexToDecimal(files);
 }
 
-void CbctRecon::SLT_MakeElektaXML() // ELEKTA VS VARIAN
+void CbctRecon::SLT_MakeVarianXML() // ELEKTA VS VARIAN
 {
 	//Define IMAGE.DBF path
-	QString filePath_ImageDBF = QFileDialog::getOpenFileName(this, "SelectIMAGE.DBF file", m_strPathDirDefault, "Elekta DB file (*.dbf)", 0,0); // ELEKTA VS VARIAN
+	QString filePath_ImageXML = QFileDialog::getOpenFileName(this, "Select IMAGE.XML file", m_strPathDirDefault, "Varian Obi file (*.xml)", 0,0); // ELEKTA VS VARIAN
 	
-	if (filePath_ImageDBF.length() < 2)
+	if (filePath_ImageXML.length() < 2)
 		return;
 
-	QString filePath_FrameDBF = QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", m_strPathDirDefault, "Elekta DB file (*.dbf)", 0,0); // ELEKTA VS VARIAN
+//	QString filePath_FrameDBF = QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", m_strPathDirDefault, "Varian DB file (*.dbf)", 0,0); // ELEKTA VS VARIAN
 
-	if (filePath_FrameDBF.length() < 2)
-		return;
+//	if (filePath_FrameDBF.length() < 2)
+//		return;
 
 	QString DICOM_UID;
+	QString XMLFileName;
 	QInputDialog inputDlg;
 
 	bool ok;
-	QString text = QInputDialog::getText(this, "Input Dialog","DICOM_UID:", QLineEdit::Normal, "DICOM_UID", &ok);
-
+	QString text = QInputDialog::getText(this, "Input Dialog","DICOM_UID:", QLineEdit::Normal, "DICOM_UID", &ok); //Needed?
+	/*However   void SetProjectionsFileNames (const FileNamesContainer &name) might be needed instead*/
 	if (ok && !text.isEmpty())
 		DICOM_UID = text;	
 
 	if (DICOM_UID.length() < 2)
 		return;
 
-	QString genFilePath = MakeElektaXML (filePath_ImageDBF, filePath_FrameDBF, DICOM_UID); // ELEKTA VS VARIAN
-	cout << "Generated ElektaXML path: " << genFilePath.toLocal8Bit().constData() << endl; // ELEKTA VS VARIAN
+	QString genFilePath = MakeVarianXML (filePath_ImageXML, DICOM_UID); // ELEKTA VS VARIAN
+	cout << "Generated VarianXML path: " << genFilePath.toLocal8Bit().constData() << endl; // ELEKTA VS VARIAN
 	
 	return;
 }
 
-QString CbctRecon::MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID) // ELEKTA VS VARIAN
+QString CbctRecon::MakeVarianXML(QString filePath_ImageXML, QString DICOM_UID) // ELEKTA VS VARIAN
 {
-  cout << "Elekta geometry XML file is being generated." << endl; // ELEKTA VS VARIAN
+  cout << "Varian geometry XML file is being generated." << endl; // ELEKTA VS VARIAN
   //Define FRAME.DBF path
-  rtk::ElektaSynergyGeometryReader::Pointer reader = rtk::ElektaSynergyGeometryReader::New(); // ELEKTA VS VARIAN
+  rtk::VarianObiGeometryReader::Pointer reader = rtk::VarianObiGeometryReader::New(); // ELEKTA VS VARIAN
   //string strDicomUID = DICOM_UID.toLocal8Bit().constData(); //DICOM_UID.toStdString()
   //string strDicomUID = DICOM_UID.toStdString();
   //string strDbfImg = filePath_ImageDBF.toStdString();
   //string strDbfFrame = filePath_FrameDBF.toStdString();
 
-  QFileInfo info = QFileInfo(filePath_ImageDBF);
+  QFileInfo info = QFileInfo(filePath_ImageXML);
   QString dirPath = info.absolutePath();
 
-  QString fileName = "ElektaGeom_" + DICOM_UID + ".xml"; // ELEKTA VS VARIAN
+  QString fileName = "VarianGeom_" + DICOM_UID + ".xml"; // ELEKTA VS VARIAN
 
   QString strOutput = dirPath + "/" + fileName;
 
-  reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
-  reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
-  reader->SetFrameDbfFileName(filePath_FrameDBF.toLocal8Bit().constData());
+//  reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
+//  reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
+//  reader->SetFrameDbfFileName(filePath_FrameDBF.toLocal8Bit().constData());
+  reader->SetXMLFileName(filePath_ImageXML.toLocal8Bit().constData());
 
   TRY_AND_EXIT_ON_ITK_EXCEPTION( reader->UpdateOutputData() );
 
@@ -938,7 +940,7 @@ void CbctRecon::SLT_OpenOffsetFile()
 		return;
 
 	ui.lineEdit_offsetPath->setText(strPath);
-	m_pImgOffset->LoadRawImage(strPath.toLocal8Bit().constData(),DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+	m_pImgOffset->LoadRawImage(strPath.toLocal8Bit().constData(),DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT);
 
 }
 
@@ -950,7 +952,7 @@ void CbctRecon::SLT_OpenGainFile()
 		return;
 
 	ui.lineEdit_gainPath->setText(strPath);
-	m_pImgGain->LoadRawImage(strPath.toLocal8Bit().constData(),DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+	m_pImgGain->LoadRawImage(strPath.toLocal8Bit().constData(),DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT);
 }
 
 void CbctRecon::SLT_OpenBadpixelFile()
@@ -968,10 +970,10 @@ void CbctRecon::SLT_OpenBadpixelFile()
 QString CbctRecon::CorrectSingleFile(const char* filePath)
 {
 	//Load raw file
-	YK16GrayImage rawImg(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
-	rawImg.LoadRawImage(filePath, DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+	YK16GrayImage rawImg(DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT);
+	rawImg.LoadRawImage(filePath, DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT);
 
-	YK16GrayImage corrImg(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+	YK16GrayImage corrImg(DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT);
 	
 	bool bDarkCorrApply = ui.checkBox_offsetOn->isChecked();
 	bool bGainCorrApply = ui.checkBox_gainOn->isChecked();
@@ -981,7 +983,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 
 	if (!bDarkCorrApply && !bGainCorrApply)
 	{		
-		for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++)
+		for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++)
 		{
 			corrImg.m_pData[i] = rawImg.m_pData[i]; //raw image
 		}
@@ -990,14 +992,14 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 	{		
 		if (m_pImgOffset->IsEmpty())
 		{			
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++)
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++)
 			{
 				corrImg.m_pData[i] = rawImg.m_pData[i]; //raw image
 			}
 		}
 		else
 		{
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {	    
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {	    
 				if (rawImg.m_pData[i] > m_pImgOffset->m_pData[i])
 					corrImg.m_pData[i] = rawImg.m_pData[i] - m_pImgOffset->m_pData[i];
 				else
@@ -1009,7 +1011,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 	{		
 		if (m_pImgGain->IsEmpty())
 		{			
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {
 				corrImg.m_pData[i] = rawImg.m_pData[i]; //raw image
 			}
 		}
@@ -1018,12 +1020,12 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 			//get a mean value for m_pGainImage
 			double sum = 0.0;
 			double MeanVal = 0.0; 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {	    		
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {	    		
 				sum = sum + m_pImgGain->m_pData[i];		
 			}
-			MeanVal = sum/(double)(DEFAULT_ELEKTA_PROJ_WIDTH*DEFAULT_ELEKTA_PROJ_HEIGHT);
+			MeanVal = sum/(double)(DEFAULT_VARIAN_PROJ_WIDTH*DEFAULT_VARIAN_PROJ_HEIGHT);
 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {	    
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {	    
 				if (m_pImgGain->m_pData[i] == 0)
 					corrImg.m_pData[i] = rawImg.m_pData[i];
 				else
@@ -1052,7 +1054,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 
 		if (bRawImage)
 		{
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH* DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH* DEFAULT_VARIAN_PROJ_HEIGHT; i++) {
 				corrImg.m_pData[i] = rawImg.m_pData[i] ; //raw image
 			}
 		}
@@ -1061,10 +1063,10 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 			//get a mean value for m_pGainImage
 			double sum = 0.0;
 			double MeanVal = 0.0; 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH *DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH *DEFAULT_VARIAN_PROJ_HEIGHT; i++) {
 				sum = sum + (m_pImgGain->m_pData[i] - m_pImgOffset->m_pData[i]);		
 			}
-			MeanVal = sum/(double)(DEFAULT_ELEKTA_PROJ_WIDTH*DEFAULT_ELEKTA_PROJ_HEIGHT);
+			MeanVal = sum/(double)(DEFAULT_VARIAN_PROJ_WIDTH*DEFAULT_VARIAN_PROJ_HEIGHT);
 
 			double denom = 0.0;
 			int iDenomLessZero = 0;
@@ -1073,7 +1075,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
 			int iDenomOK_RawValueMinus = 0;
 			int iValOutOfRange = 0;		
 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++)
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++)
 			{
 				denom = (double)(m_pImgGain->m_pData[i] - m_pImgOffset->m_pData[i]);
 
@@ -1171,7 +1173,7 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 	//YK16GrayImage rawImg(IMG_WIDTH, IMG_HEIGHT);
 	//rawImg.LoadRawImage(filePath, IMG_WIDTH, IMG_HEIGHT);
 
-	YK16GrayImage corrImg(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+	YK16GrayImage corrImg(DEFAULT_VARIAN_PROJ_WIDTH, DEFAULT_VARIAN_PROJ_HEIGHT);
 	
 	bool bDarkCorrApply = ui.checkBox_offsetOn->isChecked();
 	bool bGainCorrApply = ui.checkBox_gainOn->isChecked();
@@ -1181,7 +1183,7 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 
 	if (!bDarkCorrApply && !bGainCorrApply)
 	{		
-		for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++)
+		for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++)
 		{
 			corrImg.m_pData[i] = pYKRawImg->m_pData[i]; //raw image
 		}
@@ -1190,14 +1192,14 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 	{		
 		if (m_pImgOffset->IsEmpty())
 		{			
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++)
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++)
 			{
 				corrImg.m_pData[i] = pYKRawImg->m_pData[i]; //raw image
 			}
 		}
 		else
 		{
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {	    
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {	    
 				if (pYKRawImg->m_pData[i] > m_pImgOffset->m_pData[i])
 					corrImg.m_pData[i] = pYKRawImg->m_pData[i] - m_pImgOffset->m_pData[i];
 				else
@@ -1209,7 +1211,7 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 	{		
 		if (m_pImgGain->IsEmpty())
 		{			
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {
 				corrImg.m_pData[i] = pYKRawImg->m_pData[i]; //raw image
 			}
 		}
@@ -1218,12 +1220,12 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 			//get a mean value for m_pGainImage
 			double sum = 0.0;
 			double MeanVal = 0.0; 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {	    		
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {	    		
 				sum = sum + m_pImgGain->m_pData[i];		
 			}
-			MeanVal = sum/(double)(DEFAULT_ELEKTA_PROJ_WIDTH*DEFAULT_ELEKTA_PROJ_HEIGHT);
+			MeanVal = sum/(double)(DEFAULT_VARIAN_PROJ_WIDTH*DEFAULT_VARIAN_PROJ_HEIGHT);
 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {	    
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++) {	    
 				if (m_pImgGain->m_pData[i] == 0)
 					corrImg.m_pData[i] = pYKRawImg->m_pData[i];
 				else
@@ -1253,7 +1255,7 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 
 		if (bRawImage)
 		{
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH* DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH* DEFAULT_VARIAN_PROJ_HEIGHT; i++) {
 				corrImg.m_pData[i] = pYKRawImg->m_pData[i] ; //raw image
 			}
 		}
@@ -1262,10 +1264,10 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 			//get a mean value for m_pGainImage
 			double sum = 0.0;
 			double MeanVal = 0.0; 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH *DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH *DEFAULT_VARIAN_PROJ_HEIGHT; i++) {
 				sum = sum + (m_pImgGain->m_pData[i] - m_pImgOffset->m_pData[i]);		
 			}
-			MeanVal = sum/(double)(DEFAULT_ELEKTA_PROJ_WIDTH*DEFAULT_ELEKTA_PROJ_HEIGHT);
+			MeanVal = sum/(double)(DEFAULT_VARIAN_PROJ_WIDTH*DEFAULT_VARIAN_PROJ_HEIGHT);
 
 			double denom = 0.0;
 			int iDenomLessZero = 0;
@@ -1274,7 +1276,7 @@ void CbctRecon::CorrectSingleFile( YK16GrayImage* pYKRawImg )
 			int iDenomOK_RawValueMinus = 0;
 			int iValOutOfRange = 0;		
 
-			for (int i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++)
+			for (int i = 0; i < DEFAULT_VARIAN_PROJ_WIDTH * DEFAULT_VARIAN_PROJ_HEIGHT; i++)
 			{
 				denom = (double)(m_pImgGain->m_pData[i] - m_pImgOffset->m_pData[i]);
 
@@ -1422,8 +1424,8 @@ void CbctRecon::BadPixReplacement(YK16GrayImage* targetImg)
 	for (it = m_vPixelReplMap.begin() ; it != m_vPixelReplMap.end(); it++)
 	{
 		BADPIXELMAP tmpData= (*it);
-		oriIdx = tmpData.BadPixY * DEFAULT_ELEKTA_PROJ_WIDTH + tmpData.BadPixX;
-		replIdx = tmpData.ReplPixY * DEFAULT_ELEKTA_PROJ_WIDTH + tmpData.ReplPixX;
+		oriIdx = tmpData.BadPixY * DEFAULT_VARIAN_PROJ_WIDTH + tmpData.BadPixX;
+		replIdx = tmpData.ReplPixY * DEFAULT_VARIAN_PROJ_WIDTH + tmpData.ReplPixX;
 		targetImg->m_pData[oriIdx] = targetImg->m_pData[replIdx];
 	}	
 }
@@ -1664,16 +1666,16 @@ void CbctRecon::LoadRTKGeometryFile( const char* filePath )
 	//cout << "AngularGaps Sum (deg): " << angleSum  << endl; 
 
 }
-void CbctRecon::SLT_OpenElektaGeomFile()
+void CbctRecon::SLT_OpenVarianGeomFile()
 {
-	QString strPath = QFileDialog::getOpenFileName(this,"Select a single file to open",m_strPathDirDefault,"Elekta geometry file (*.xml)");
+	QString strPath = QFileDialog::getOpenFileName(this,"Select a single file to open",m_strPathDirDefault,"Varian geometry file (*.xml)");
 
-	//	QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", "", "Elekta DB file (*.dbf)", 0,0);
+	//	QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", "", "Varian DB file (*.dbf)", 0,0);
 
 	if (strPath.length()<=1)
 		return;
 
-	ui.lineEdit_ElektaGeomPath->setText(strPath);
+	ui.lineEdit_VarianGeomPath->setText(strPath);
 	//m_pImgOffset->LoadRawImage(strPath.toLocal8Bit().constData(),IMG_WIDTH, IMG_HEIGHT);
 	//LoadElektaGeometryFile(strPath.toLocal8Bit().constData());
 	//SLT_DoReconstruction();
@@ -2383,7 +2385,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		cout << fullCnt << "  projection files were found." << endl;
 
 	//2) Elekta Geometry file
-	QString geomPath = ui.lineEdit_ElektaGeomPath->text();
+	QString geomPath = ui.lineEdit_VarianGeomPath->text();
 	QFileInfo geomFileInfo(geomPath);
 	//!QFile::exists(geomPath)
 	
@@ -5162,12 +5164,12 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   m_strPathPatientDir = "";
   m_strPatientDirName = "";
   m_strPathFRAME_DBF = "";
-  m_strPathIMAGE_DBF = "";
+  m_strPathIMAGE_XML = "";
   m_strPathGeomXML = "";
   m_strPathPlanCTDir = "";
   m_strPathRS = "";
   m_strPathRS_CBCT = "";
-  m_strPathElektaINI = "";
+  m_strPathVarianINI = "";
 
   m_strPathPlan = "";
 
@@ -5226,7 +5228,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 	m_strPathDirDefault = tmpDir_RootFolder.absolutePath();
 
   //option 1: already made rtk xml file
-  QString tmpPathRTKGeometry = tmpDir_RootFolder.absolutePath() +"/" + "ElektaGeom_" + m_strDCMUID + ".xml";
+  QString tmpPathRTKGeometry = tmpDir_RootFolder.absolutePath() +"/" + "VarianGeom_" + m_strDCMUID + ".xml";
   QFileInfo rtkGeomInfo(tmpPathRTKGeometry);
 
   //option 2
@@ -5257,23 +5259,24 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   }
   else
   {
-	QString tmpStrPath1 = m_strPathPatientDir;
+	  /*I have altered the code below, pray I do not alter it further*/
+//	QString tmpStrPath1 = m_strPathPatientDir;
 	QString tmpStrPath2 = m_strPathPatientDir;
 
 	//1st priority: DBF files saved in each "patient" folder --> just in case data are collected separately
-	QFileInfo fInfo_FrameDBF = QFileInfo(tmpStrPath1.append("/FRAME.DBF"));
-	QFileInfo fInfo_ImageDBF = QFileInfo(tmpStrPath2.append("/IMAGE.DBF"));
+//	QFileInfo fInfo_FrameDBF = QFileInfo(tmpStrPath1.append("/FRAME.DBF"));
+	QFileInfo fInfo_ImageXML = QFileInfo(tmpStrPath2.append("/IMAGE.XML"));
 
-	if (!fInfo_FrameDBF.exists() || !fInfo_ImageDBF.exists())
+	if (!fInfo_ImageXML.exists())
 	{
 	  cout << "No found in the patient folder. DBF files can be saved in each individual patient as well. Continues to search them again in root folder(standard)" << endl;
 
-	  fInfo_FrameDBF = QFileInfo(tmpDir_RootFolder.absolutePath().append("/FRAME.DBF"));
-	  fInfo_ImageDBF = QFileInfo(tmpDir_RootFolder.absolutePath().append("/IMAGE.DBF"));
+//	  fInfo_FrameDBF = QFileInfo(tmpDir_RootFolder.absolutePath().append("/FRAME.DBF"));
+	  fInfo_ImageXML = QFileInfo(tmpDir_RootFolder.absolutePath().append("/IMAGE.XML"));
 
-	  if (!fInfo_FrameDBF.exists() || !fInfo_ImageDBF.exists())
+	  if (!fInfo_ImageXML.exists())
 	  {
-		cout << "DBF files were not found" << endl;
+		cout << "XML files were not found" << endl;
 		cout << "XML file cannot be made" << endl;
 		return;
 	  }
@@ -5282,12 +5285,13 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 	{
 	  cout << "DBF files are found in the individual patient directory." << endl;
 	}
-	m_strPathFRAME_DBF = fInfo_FrameDBF.absoluteFilePath();
-	m_strPathIMAGE_DBF = fInfo_ImageDBF.absoluteFilePath();
+//	m_strPathFRAME_DBF = fInfo_FrameDBF.absoluteFilePath();
+	m_strPathIMAGE_XML = fInfo_ImageXML.absoluteFilePath();
 
 	m_strPathGeomXML = "";
-	m_strPathGeomXML = MakeElektaXML(m_strPathIMAGE_DBF, m_strPathFRAME_DBF, m_strDCMUID);//if DBF files exist but UID is not found, it will crash
+	m_strPathGeomXML = MakeVarianXML(m_strPathIMAGE_XML, m_strDCMUID);//if DBF files exist but UID is not found, it will crash
 
+	/*I have altered the code above, pray I do not alter it further*/
 	if (m_strPathGeomXML.length() < 1)
 	{
 	  cout << "No releated data in DBF file" << endl;
@@ -5474,7 +5478,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
               if (tmpPath.length() < iMinNameLength)
               {
                   iMinNameLength = tmpPath.length();
-                  m_strPathElektaINI = tmpPath;
+                  m_strPathVarianINI = tmpPath;
               }
           }
       }
@@ -5485,18 +5489,18 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   cout << "m_strPathPatientDir: " << m_strPathPatientDir.toLocal8Bit().constData() << endl;
   cout << "m_strPatientDirName: " << m_strPatientDirName.toLocal8Bit().constData() << endl;
   cout << "m_strPathFRAME_DBF: " << m_strPathFRAME_DBF.toLocal8Bit().constData() << endl;
-  cout << "m_strPathIMAGE_DBF: " << m_strPathIMAGE_DBF.toLocal8Bit().constData() << endl;
+  cout << "m_strPathIMAGE_XML: " << m_strPathIMAGE_XML.toLocal8Bit().constData() << endl;
   cout << "m_strPathGeomXML: " << m_strPathGeomXML.toLocal8Bit().constData() << endl;
   cout << "m_strPathPlanCTDir: " << m_strPathPlanCTDir.toLocal8Bit().constData() << endl;
   cout << "m_strPathRS: " << m_strPathRS.toLocal8Bit().constData() << endl; 
   cout << "m_strPathRS_CBCT: " << m_strPathRS_CBCT.toLocal8Bit().constData() << endl; 
   cout << "m_strPathPlan: " << m_strPathPlan.toLocal8Bit().constData() << endl;
-  cout << "m_strPathElektaINI: " << m_strPathElektaINI.toLocal8Bit().constData() << endl;
+  cout << "m_strPathVarianINI: " << m_strPathVarianINI.toLocal8Bit().constData() << endl;
   
   float kVp = 0.0;
   float mA = 0.0;
   float ms = 0.0;
-  GetXrayParamFromINI(m_strPathElektaINI, kVp, mA, ms);
+  GetXrayParamFromINI(m_strPathVarianINI, kVp, mA, ms);
 
   if (kVp*mA*ms != 0)
   {
@@ -5506,7 +5510,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   } 
 
   //YKTEMP: delete if the UI is changed
-  ui.lineEdit_ElektaGeomPath->setText(m_strPathGeomXML);
+  ui.lineEdit_VarianGeomPath->setText(m_strPathGeomXML);
 }
 
 void CbctRecon::init_DlgRegistration(QString& strDCM_UID) //init dlgRegistrations
@@ -5687,8 +5691,8 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 
 	//a) size	
 	  //cout << "chk1" << endl;
-	size[0] = qRound((double)DEFAULT_ELEKTA_PROJ_WIDTH * m_fResampleF);
-	size[1] = qRound((double)DEFAULT_ELEKTA_PROJ_HEIGHT* m_fResampleF);
+	size[0] = qRound((double)DEFAULT_VARIAN_PROJ_WIDTH * m_fResampleF);
+	size[1] = qRound((double)DEFAULT_VARIAN_PROJ_HEIGHT* m_fResampleF);
 	size[2] = spGeometry->GetGantryAngles().size();
 	iNumOfProjections = size[2];	  
 
@@ -5878,7 +5882,7 @@ void CbctRecon::SaveProjImageAsHIS( USHORT_ImageType::Pointer& spProj3D, YK16Gra
 	QString crntPath = strSavingFolder + "/" + crntFileName;
 
 	fd = fopen(crntPath.toLocal8Bit().constData(), "wb");
-	fwrite(arrYKImage[i].m_pElektaHisHeader, 100, 1, fd); //this buffer only include header info
+	fwrite(arrYKImage[i].m_pVarianHisHeader, 100, 1, fd); //this buffer only include header info
 
 	//int imgSize = m_arrYKBufProj[i].m_iWidth * m_arrYKImage[i].m_iHeight;
 

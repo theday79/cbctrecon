@@ -1930,10 +1930,10 @@
       </rect>
      </property>
      <property name="text">
-      <string>Elekta Geometry File (*.xml)</string>
+      <string>Varian Geometry File (*.xml)</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_openElektaXML">
+    <widget class="QPushButton" name="pushButton_openVarianXML">
      <property name="geometry">
       <rect>
        <x>160</x>
@@ -1946,7 +1946,7 @@
       <string>open</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit_ElektaGeomPath">
+    <widget class="QLineEdit" name="lineEdit_VarianGeomPath">
      <property name="geometry">
       <rect>
        <x>210</x>
@@ -2826,7 +2826,7 @@
     </property>
     <addaction name="actionFileName_Hex2Dec"/>
     <addaction name="actionExport_Projection_Geometry_txt"/>
-    <addaction name="actionElekta_Geometry"/>
+    <addaction name="actionVarian_Geometry"/>
     <addaction name="actionForward_projection"/>
     <addaction name="actionFine_resolution_scatter_correction_macro"/>
     <addaction name="actionFull_apriori_scatter_correction_macro"/>
@@ -2875,9 +2875,9 @@
     <string>FileName Hex2Dec</string>
    </property>
   </action>
-  <action name="actionElekta_Geometry">
+  <action name="actionVarian_Geometry">
    <property name="text">
-    <string>Make Elekta Geometry</string>
+    <string>Make Varian Geometry</string>
    </property>
   </action>
   <action name="actionExport_as_HIS_files">
@@ -3101,8 +3101,8 @@
   <tabstop>pushButton_openHisDir</tabstop>
   <tabstop>lineEdit_HisDirPath</tabstop>
   <tabstop>lineEdit_DownResolFactor</tabstop>
-  <tabstop>pushButton_openElektaXML</tabstop>
-  <tabstop>lineEdit_ElektaGeomPath</tabstop>
+  <tabstop>pushButton_openVarianXML</tabstop>
+  <tabstop>lineEdit_VarianGeomPath</tabstop>
   <tabstop>Radio_KeepOriginalAngles</tabstop>
   <tabstop>Radio_ManualProjAngleGap</tabstop>
   <tabstop>lineEdit_ManualProjAngleGap</tabstop>
@@ -3188,10 +3188,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>actionElekta_Geometry</sender>
+   <sender>actionVarian_Geometry</sender>
    <signal>triggered()</signal>
    <receiver>CbctReconClass</receiver>
-   <slot>SLT_MakeElektaXML()</slot>
+   <slot>SLT_MakeVarianXML()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -3380,10 +3380,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>pushButton_openElektaXML</sender>
+   <sender>pushButton_openVarianXML</sender>
    <signal>released()</signal>
    <receiver>CbctReconClass</receiver>
-   <slot>SLT_OpenElektaGeomFile()</slot>
+   <slot>SLT_OpenVarianGeomFile()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>187</x>
@@ -4312,13 +4312,13 @@
   <slot>SLT_LoadRawImages()</slot>
   <slot>SLT_DrawRawImages()</slot>
   <slot>SLT_FileNameHex2Dec()</slot>
-  <slot>SLT_MakeElektaXML()</slot>
+  <slot>SLT_MakeVarianXML()</slot>
   <slot>SLT_ExportHis()</slot>
   <slot>SLT_OpenOffsetFile()</slot>
   <slot>SLT_OpenGainFile()</slot>
   <slot>SLT_OpenBadpixelFile()</slot>
   <slot>SLT_ApplyCalibration()</slot>
-  <slot>SLT_OpenElektaGeomFile()</slot>
+  <slot>SLT_OpenVarianGeomFile()</slot>
   <slot>SLT_SetOutputPath()</slot>
   <slot>SLT_DoReconstruction()</slot>
   <slot>SLT_DrawReconImage()</slot>
