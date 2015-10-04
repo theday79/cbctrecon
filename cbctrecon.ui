@@ -2044,6 +2044,9 @@
      </property>
     </widget>
     <widget class="QLineEdit" name="lineEdit_PhaseTxtPath">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>130</x>
@@ -2066,7 +2069,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string>90,0,10;20,30;40,50,60;70,80 </string>
      </property>
     </widget>
     <widget class="QLabel" name="label_51">
@@ -2079,7 +2082,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>4D phase export</string>
+      <string>4DCBCT phase</string>
      </property>
     </widget>
     <widget class="QPushButton" name="pushButton_PhaseResorting">
@@ -2087,12 +2090,12 @@
       <rect>
        <x>420</x>
        <y>160</y>
-       <width>61</width>
+       <width>91</width>
        <height>21</height>
       </rect>
      </property>
      <property name="text">
-      <string>Export</string>
+      <string>Do Export</string>
      </property>
     </widget>
    </widget>
@@ -3227,7 +3230,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>180</x>
-     <y>726</y>
+     <y>783</y>
     </hint>
     <hint type="destinationlabel">
      <x>198</x>
@@ -3242,8 +3245,8 @@
    <slot>SLT_OpenGainFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>753</y>
+     <x>170</x>
+     <y>803</y>
     </hint>
     <hint type="destinationlabel">
      <x>148</x>
@@ -3259,7 +3262,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>180</x>
-     <y>773</y>
+     <y>823</y>
     </hint>
     <hint type="destinationlabel">
      <x>193</x>
@@ -3274,8 +3277,8 @@
    <slot>SLT_ApplyCalibration()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>460</x>
-     <y>743</y>
+     <x>500</x>
+     <y>793</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -3295,7 +3298,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>488</x>
-     <y>653</y>
+     <y>693</y>
     </hint>
    </hints>
   </connection>
@@ -3311,7 +3314,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>545</x>
-     <y>653</y>
+     <y>693</y>
     </hint>
    </hints>
   </connection>
@@ -3531,7 +3534,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>523</x>
-     <y>195</y>
+     <y>243</y>
     </hint>
     <hint type="destinationlabel">
      <x>561</x>
@@ -3579,7 +3582,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>461</x>
-     <y>640</y>
+     <y>693</y>
     </hint>
     <hint type="destinationlabel">
      <x>490</x>
@@ -3595,7 +3598,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>530</x>
-     <y>640</y>
+     <y>693</y>
     </hint>
     <hint type="destinationlabel">
      <x>540</x>
@@ -3850,8 +3853,8 @@
    <slot>SLT_DoBHC()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>350</x>
-     <y>683</y>
+     <x>360</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>223</x>
@@ -4307,6 +4310,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButton_openPhaseFile</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_OpenPhaseData()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>117</x>
+     <y>188</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>5</x>
+     <y>218</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_PhaseResorting</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_Export4DCBCT()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>470</x>
+     <y>215</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>563</x>
+     <y>245</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_LoadRawImages()</slot>
@@ -4365,5 +4400,7 @@
   <slot>SLTM_FineResolScatterCorrectrionMacro()</slot>
   <slot>SLTM_FullScatterCorrectionMacroAP()</slot>
   <slot>SLTM_BatchScatterCorrectionMacroAP()</slot>
+  <slot>SLT_OpenPhaseData()</slot>
+  <slot>SLT_Export4DCBCT()</slot>
  </slots>
 </ui>

@@ -187,7 +187,7 @@ public:
 
 	void PostApplyFOVDispParam();
 
-	void ExportDICOM_SHORT(SHORT_ImageType::Pointer& sp3DshortImage);//NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
+	//void ExportDICOM_SHORT(SHORT_ImageType::Pointer& sp3DshortImage);//NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
 	void CopyDictionary (itk::MetaDataDictionary &fromDict, itk::MetaDataDictionary &toDict);//NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
 
 	void DoBeamHardeningCorrection();
@@ -195,9 +195,7 @@ public:
 	void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& pOutput2D);
 	void Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT_ImageType::Pointer& spMovingImg, enPLANE direction, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving);
 
-	void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);
-
-	void TestFunc();
+	void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);	
 
 	//plastimatch skin / bubble-remover
 	//QString getPathCTDir(enMachineType enType);//DICOM Dir
@@ -298,6 +296,11 @@ public:
         float GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
 
         void AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval);
+
+
+        bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
+
+        void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin=5);
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
@@ -400,6 +403,9 @@ public:
                 void SLTM_FullScatterCorrectionMacroAP();
 
                 void SLTM_BatchScatterCorrectionMacroAP();
+
+                void SLT_OpenPhaseData(); //fill lineEdit_PhaseTxtPath
+                void SLT_Export4DCBCT(); //phase resorting
                 
 
 public:
@@ -473,6 +479,7 @@ public:
 	QString m_strPathDirDefault; //QFileDialog default starting point
 	QString m_strPathRS_CBCT; //QFileDialog default starting point
         QString m_strPathElektaINI; //for mAs values
+        QString m_strPathIMAGES;//upper folder of projection files (His)
 
 	int m_iFixedOffset_ScatterMap;//fixed! allows negative value of scatter
 	double m_fResampleF; //typically 0.5. this is updated during LoadSelectedProj image and ui.lineEdit_DownResolFactor.//also affects all other scatter correction method
@@ -488,6 +495,8 @@ public:
         vector<string> m_vSelectedFileNames;
 
         bool m_bMacroContinue;
+
+        vector<float> m_vPhaseFloat;
 	
 
 //private:

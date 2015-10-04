@@ -3279,6 +3279,8 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
         cout << "Error!  No isocenter position was found. " << endl;
         return;
     }
+
+   
      
 
     //ImageManualMoveOneShot(-iso_pos[0], -iso_pos[1], -iso_pos[2]);    
@@ -3525,6 +3527,20 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
         SelectComboExternal(1, REGISTER_MANUAL_RIGID);
     }
+
+    //Export final xform file
+    QString filePathXform = m_strPathPlastimatch + "/" + "xform_manual.txt";
+    
+    ofstream fout;
+    fout.open(filePathXform.toLocal8Bit().constData());
+    fout << "#Custom Transform" << endl;
+    fout << "#Transform: Translation_only" << endl;
+    fout << "Parameters: " << fShift[0] << " " << fShift[1] << " " << fShift[2] << endl;
+    //fout << "FixedParameters: 0 0 0" << endl;
+
+    fout.close();
+
+    cout << "Writing manual registration transform info is done." << endl;
 }
 
 void DlgRegistration::SLT_IntensityNormCBCT()
