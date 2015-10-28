@@ -4171,16 +4171,27 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
     int crntTissueVal = 0;           
 
     typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
-    ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
-    thresholdFilter->SetInput(clonedReconImage);
-    thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
-    //	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-    thresholdFilter->SetOutsideValue(0);
-    thresholdFilter->Update();
+    ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+    thresholdFilterAbove->SetInput(clonedReconImage);
+    thresholdFilterAbove->ThresholdAbove(4095);
+    thresholdFilterAbove->SetOutsideValue(4095);
+
+    ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+    thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+    thresholdFilterBelow->ThresholdBelow(0);
+    thresholdFilterBelow->SetOutsideValue(0);
+    thresholdFilterBelow->Update();
+
+    ////thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
+    //
+    //thresholdFilter->Set
+    ////	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
+    //thresholdFilter->SetOutsideValue(0);
+    //thresholdFilter->Update();
 
     typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType> ImageCalculatorFilterType;
     ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
-    imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+    imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
     imageCalculatorFilter->Compute();
     double minVal = (double)(imageCalculatorFilter->GetMinimum());
     double maxVal = (double)(imageCalculatorFilter->GetMaximum());
@@ -4196,7 +4207,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
 
     typedef itk::RescaleIntensityImageFilter<USHORT_ImageType, SHORT_ImageType> RescaleFilterType;
     RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
-    spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+    spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
     spRescaleFilter->SetOutputMinimum(outputMinVal);
     spRescaleFilter->SetOutputMaximum(outputMaxVal);
 
@@ -5917,7 +5928,7 @@ void CbctRecon::SLT_DoScatterCorrection_APRIORI()
   }
   else
   {
-	cout << "Error!: No ref image for foward projection is found." << endl;
+	cout << "Error!: No ref image for forward projection is found." << endl;
 	return;
   }  
 
@@ -5927,7 +5938,8 @@ void CbctRecon::SLT_DoScatterCorrection_APRIORI()
 
   cout << "Generating scatter map is ongoing..." << endl;
 
-  cout << "To account for the mAs values, the intensity scale factor of "<< GetRawIntensityScaleFactor() << "will be multiplied during scatter correction to avoid negative scatter" << endl;
+  cout << "To account for the mAs values, the intensity scale factor of "<< GetRawIntensityScaleFactor() << "will be multiplied during scatter correction to avoid negative scatter" << endl;  
+
   GenScatterMap_PriorCT(m_spProjImgRaw3D, m_spProjImgCT3D, m_spProjImgScat3D, scaMedian,scaGaussian,m_iFixedOffset_ScatterMap, bExportProj_Scat );	//void GenScatterMap2D_PriorCT()  
   m_spProjImgCT3D->Initialize(); //memory saving
 
@@ -5986,14 +5998,13 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 
   if (bHighResolMacro)
   {
+      cout << "bHighResolMacro is unexpectedly on" << endl;
       ResampleItkImage(spProjRaw3D, spTmpProjRaw3D, 0.5);
   }
   else
   {
       spTmpProjRaw3D = spProjRaw3D;
   }
-
-
 
   AllocateByRef(spTmpProjRaw3D, spProjScat3D);
   //AllocateByRef(spProjCT3D, spProjScat3D);  
@@ -6144,7 +6155,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
   }
 
   if (!spProjRaw3D || !spProjScat3D)
-  {
+  { 
 	cout << "Error: proj image 3D is not ready" << endl;
 	return;
   } 
@@ -8655,6 +8666,7 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     if (bFOVCropping)
     {
         //Crop CBCT with predetermined FOV/ Table
+        cout << "FOV cropping is under way..." << endl;
         CropFOV3D(m_spRawReconImg, physPosX, physPosY, physRadius, physTablePosY);
     }   
 
@@ -8665,8 +8677,7 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     {
         cout << "Stopped during MacroSingle due to error in PreProcessCT" << endl;
         return false;
-    }
-     
+    }     
 
     QString strSuffix;
     switch (enFwdRefImg)
@@ -8695,11 +8706,15 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
         strSuffix = strSuffix + "_rigid";
         break;
     case REGISTER_DEFORM_FINAL:
+        cout << "REGISTER_DEFORM_FINAL was chosen." << endl;
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
         m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
 
         if (bCBCT_IntensityShift)
+        {
+            cout << "IntensityShift is underway" << endl;
             m_pDlgRegistration->SLT_IntensityNormCBCT();
+        }         
 
         if (bFOVCropping)
             CropFOV3D(m_spManualRigidCT, physPosX, physPosY, physRadius, physTablePosY);
