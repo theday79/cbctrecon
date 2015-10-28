@@ -84,7 +84,7 @@ typedef itk::Image< SHORT_PixelType, 3 > SHORT_ImageType;
 typedef itk::Image< SHORT_PixelType, 2 > SHORT_ImageType2D;
 
 #define DEFAULT_VARIAN_PROJ_WIDTH 1024 // ELEKTA VS VARIAN
-#define DEFAULT_VARIAN_PROJ_HEIGHT 1024 // ELEKTA VS VARIAN
+#define DEFAULT_VARIAN_PROJ_HEIGHT 768 //1024 // ELEKTA VS VARIAN because why not use a random value, varian!?
 #define MAX_LINE_LENGTH 1024
 
 //lineEdit_scaMedian, when downsampling =1.0
@@ -268,6 +268,7 @@ public:
 
 	/*Temporary implementation for XVI5 xml*/
 	void LoadXVIGeometryFile(const char* filePath); //temporary implenetation using QT XML. This is for XVI v >5.0.2. _Frames.xml is in every projection folder 
+	
 	FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader& xml);
 	QString XML_GetSingleItemString(QXmlStreamReader& xml);
 
