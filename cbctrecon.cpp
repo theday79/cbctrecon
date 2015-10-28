@@ -1991,7 +1991,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	//absImgFilter->SetInput(resampler->GetOutput());
 
 
-
 	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
@@ -2044,9 +2043,23 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	  cout << "No post median filtering is used" << endl;
 	  castFilter->Update();
 	  tmpReconImg= castFilter->GetOutput();
-	}
+        }	
 
-	cout << "After Filtering" << endl;
+        typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+        ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+        thresholdFilterAbove->SetInput(tmpReconImg);
+        thresholdFilterAbove->ThresholdAbove(4095);
+        thresholdFilterAbove->SetOutsideValue(4095);
+
+        ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+        thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+        thresholdFilterBelow->ThresholdBelow(0);
+        thresholdFilterBelow->SetOutsideValue(0);
+        thresholdFilterBelow->Update();
+
+        tmpReconImg = thresholdFilterBelow->GetOutput();
+
+
 
 	reconTimeProbe.Stop();
 	std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
