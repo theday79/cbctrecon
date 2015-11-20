@@ -2308,7 +2308,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   {
 	ofstream fout;
 	sslist_path_skin = sslist_path_all;
-	sslist_path_skin.replace("all", "skin");
+	sslist_path_skin.replace("all", "BODY");
 	fout.open(sslist_path_skin.toLocal8Bit().constData());
 
 	fout << strLineSkin.toLocal8Bit().constData() << endl; 
@@ -3103,7 +3103,7 @@ void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, Q
 	QString organName = strList.at(2);
 
 	organName.trimmed();
-	if (organName == "Skin" || organName == "skin" || organName == "SKIN")
+	if (organName == "Body" || organName == "body" || organName == "BODY")
 	{
 	  strLineSkin = strLine;
 	}
@@ -3123,7 +3123,7 @@ void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, Q
   {
 	ofstream fout;
 	sslist_path_skin = sslist_path_all;
-	sslist_path_skin.replace("all", "skin");
+	sslist_path_skin.replace("all", "BODY");
 	fout.open(sslist_path_skin.toLocal8Bit().constData());
 
 	fout << strLineSkin.toLocal8Bit().constData() << endl; 
@@ -3524,7 +3524,20 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
         SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
         SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+
     }
+	//Export final xform file
+	QString filePathXform = m_strPathPlastimatch + "/" + "xform_manual.txt";
+	
+	ofstream fout;
+	fout.open(filePathXform.toLocal8Bit().constData());
+	fout << "#Custom Transform" << endl;
+	fout << "#Transform: Translation_only" << endl;
+	fout << "Parameters: " << fShift[0] << " " << fShift[1] << " " << fShift[2] << endl;
+	//fout << "FixedParameters: 0 0 0" << endl;
+	
+	fout.close();
+	cout << "Writing manual registration transform info is done." << endl;
 }
 
 void DlgRegistration::SLT_IntensityNormCBCT()

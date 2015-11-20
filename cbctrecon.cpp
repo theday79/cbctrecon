@@ -1800,10 +1800,12 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
 	double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
 
-        if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
+	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
         {
             cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << endl;
-            fTruncCorFactor = 0.0;
+			fTruncCorFactor = 0.0;
+			if (ui.checkBox_UseTrunc->isChecked())
+				fTruncCorFactor = 1.0;
         }
 
         //YKTEMP
@@ -1936,12 +1938,12 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	TransformType::ParametersType param;
 	param.SetSize(6);
 	//MAXIMUM PARAM NUMBER: 6!!!
-	if (target == REGISTER_COR_CBCT){
-		param.put(0, 0.0);
-	}
-	else{
-		param.put(0,  itk::Math::pi / -2.0); //.0); //rot X // 0.5 = PI/2 //Actuly is  rot Z ELEKTA VS VARIAN <-- THIS MIGHT BE THE SOLUTION
-	}
+	//if (target == REGISTER_COR_CBCT){
+	//	param.put(0, 0.0);
+	//}
+	//else{
+	param.put(0, 0.0); //rot X // 0.5 = PI/2 //Actuly is  rot Z ELEKTA VS VARIAN <-- THIS MIGHT BE THE SOLUTION
+	//}
 	param.put(1,  itk::Math::pi / 2.0);//rot Y //Actuly is rot Y
 	param.put(2,  itk::Math::pi / -2.0);//rot Z //Actuly is rot X
 	param.put(3, 0.0); // Trans X mm
@@ -2041,7 +2043,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	  medFilter->SetRadius( indexRadius );
 	  medFilter->SetInput(castFilter->GetOutput());
-	  medFilter->Update(); //Error here!
+	  medFilter->Update(); //Error here!g
 
 	  tmpReconImg = medFilter->GetOutput();
 	  cout << "median filtering has been done" << endl;
@@ -2052,6 +2054,19 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	  castFilter->Update();
 	  tmpReconImg= castFilter->GetOutput();
 	}
+	
+	typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+	ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+	thresholdFilterAbove->SetInput(tmpReconImg);
+	thresholdFilterAbove->ThresholdAbove(4095);
+	thresholdFilterAbove->SetOutsideValue(4095);
+	
+	ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+	thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+	thresholdFilterBelow->ThresholdBelow(0);
+	thresholdFilterBelow->SetOutsideValue(0);
+	thresholdFilterBelow->Update();
+	tmpReconImg = thresholdFilterBelow->GetOutput();
 
 	cout << "After Filtering" << endl;
 
@@ -2569,6 +2584,11 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	  double curSID = m_spFullGeometry->GetSourceToIsocenterDistances().at(*itIdx);
 	  double curSDD = m_spFullGeometry->GetSourceToDetectorDistances().at(*itIdx);
 	  double curGantryAngle = m_spFullGeometry->GetGantryAngles().at(*itIdx);
+	  double kVAng = curGantryAngle;
+	  double MVAng = kVAng - 90.0;
+	  if (MVAng < 0.0)
+		  MVAng = MVAng + 360;
+	  curGantryAngle = MVAng;
 
 	  double curProjOffsetX = m_spFullGeometry->GetProjectionOffsetsX().at(*itIdx);
 	  double curProjOffsetY = m_spFullGeometry->GetProjectionOffsetsY().at(*itIdx);
@@ -2597,26 +2617,26 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
   }
 
 
-  //YKTEMP
-  //cout << vSelectedIdx.size() << " is the number of selected index" << endl;
-  //cout << m_spCustomGeometry->GetGantryAngles().size() << " is the number of m_spCustomGeometry" << endl;
-  rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
-      rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-  xmlWriter->SetFilename("X:/Documents/FewProjGeom.xml");
-  xmlWriter->SetObject(m_spCustomGeometry);
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
-  //Copy selected his files to a different folder
+  ////YKTEMP
+  ////cout << vSelectedIdx.size() << " is the number of selected index" << endl;
+  ////cout << m_spCustomGeometry->GetGantryAngles().size() << " is the number of m_spCustomGeometry" << endl;
+  //rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
+  //    rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
+  //xmlWriter->SetFilename("X:/Documents/FewProjGeom.xml");
+  //xmlWriter->SetObject(m_spCustomGeometry);
+  //TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
+  ////Copy selected his files to a different folder
 
-  int countFiles = m_vSelectedFileNames.size();
-  for (int i = 0; i < countFiles; i++)
-  {
-      QFileInfo fInfo(m_vSelectedFileNames.at(i).c_str());
-      QString strDir = "X:/Documents/FewProjDir";
-      QString strNewFilePath = strDir + "/" + fInfo.fileName();
-      QFile::copy(fInfo.absoluteFilePath(), strNewFilePath);
-  }
-  cout << countFiles << " files were copied." << endl;
-  //YKTEMP
+  //int countFiles = m_vSelectedFileNames.size();
+  //for (int i = 0; i < countFiles; i++)
+  //{
+  //    QFileInfo fInfo(m_vSelectedFileNames.at(i).c_str());
+  //    QString strDir = "X:/Documents/FewProjDir";
+  //    QString strNewFilePath = strDir + "/" + fInfo.fileName();
+  //    QFile::copy(fInfo.absoluteFilePath(), strNewFilePath);
+  //}
+  //cout << countFiles << " files were copied." << endl;
+  ////YKTEMP
 
 
   // Reads the cone beam projections
@@ -4198,16 +4218,27 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
     int crntTissueVal = 0;
 
     typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
-    ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
-    thresholdFilter->SetInput(clonedReconImage);
-    thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
-    //	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-    thresholdFilter->SetOutsideValue(0);
-    thresholdFilter->Update();
+    ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+	thresholdFilterAbove->SetInput(clonedReconImage);
+	thresholdFilterAbove->ThresholdAbove(4095);
+	thresholdFilterAbove->SetOutsideValue(4095);
+	
+	ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+	thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+	thresholdFilterBelow->ThresholdBelow(0);
+	thresholdFilterBelow->SetOutsideValue(0);
+	thresholdFilterBelow->Update();
+	
+	////thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
+	//
+	//thresholdFilter->Set
+	////	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
+	//thresholdFilter->SetOutsideValue(0);
+	//thresholdFilter->Update();
 
     typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType> ImageCalculatorFilterType;
     ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
-    imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+    imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
     imageCalculatorFilter->Compute();
     double minVal = (double)(imageCalculatorFilter->GetMinimum());
     double maxVal = (double)(imageCalculatorFilter->GetMaximum());
@@ -4223,7 +4254,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
 
     typedef itk::RescaleIntensityImageFilter<USHORT_ImageType, SHORT_ImageType> RescaleFilterType;
     RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
-    spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+    spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
     spRescaleFilter->SetOutputMinimum(outputMinVal);
     spRescaleFilter->SetOutputMaximum(outputMaxVal);
 
@@ -4490,218 +4521,218 @@ void CbctRecon::SLT_ExportReconSHORT_HU()
 
 }
 
-void CbctRecon::ExportDICOM_SHORT( SHORT_ImageType::Pointer& sp3DshortImage ) //NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
-{
-	typedef itk::ImageSeriesReader< SHORT_ImageType >ReaderType;
-	typedef itk::GDCMImageIO ImageIOType;
-	typedef itk::GDCMSeriesFileNames InputNamesGeneratorType;
-	typedef itk::NumericSeriesFileNames OutputNamesGeneratorType;
-
-	typedef itk::ImageSeriesWriter< SHORT_ImageType, SHORT_ImageType2D > SeriesWriterType;
-
-	/*typedef itk::IdentityTransform< double, InputDimension > 		TransformType;
-	typedef itk::LinearInterpolateImageFunction< InputImageType, double > InterpolatorType;
-	typedef itk::ResampleImageFilter< InputImageType, InputImageType > ResampleFilterType;
-	typedef itk::ShiftScaleImageFilter< InputImageType, InputImageType > ShiftScaleType;*/
-
-	typedef itk::ShiftScaleImageFilter< SHORT_ImageType, SHORT_ImageType > ShiftScaleType;
-
-	// 1) Read the input series
-	ImageIOType::Pointer gdcmIO = ImageIOType::New();
-	InputNamesGeneratorType::Pointer inputNames = InputNamesGeneratorType::New();
-	inputNames->SetInputDirectory( "D:\\DICOMINPUT" );
-	const ReaderType::FileNamesContainer & filenames = inputNames->GetInputFileNames();
-
-	ReaderType::Pointer reader = ReaderType::New();
-
-	reader->SetImageIO( gdcmIO );
-	reader->SetFileNames( filenames );
-
-	reader->Update();
-
-	ReaderType::DictionaryRawPointer inputDict = (*(reader->GetMetaDataDictionaryArray()))[0];
-	ReaderType::DictionaryArrayType outputArray;
-
-	// To keep the new series in the same study as the original we need
-	// to keep the same study UID. But we need new series and frame of
-	// reference UID's.
-#if ITK_VERSION_MAJOR >= 4
-	gdcm::UIDGenerator suid;
-	std::string seriesUID = suid.Generate();
-	gdcm::UIDGenerator fuid;
-	std::string frameOfReferenceUID = fuid.Generate();
-#else
-	std::string seriesUID = gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix());
-	std::string frameOfReferenceUID = gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix());
-#endif
-	std::string studyUID;
-	std::string sopClassUID;
-	itk::ExposeMetaData<std::string>(*inputDict, "0020|000d", studyUID);
-	itk::ExposeMetaData<std::string>(*inputDict, "0008|0016", sopClassUID);
-
-	gdcmIO->KeepOriginalUIDOn();
-
-	SHORT_ImageType::SizeType outputSize = sp3DshortImage->GetBufferedRegion().GetSize();
-	for (unsigned int f = 0; f < outputSize[2]; f++)
-	{
-		// Create a new dictionary for this slice
-		ReaderType::DictionaryRawPointer dict = new ReaderType::DictionaryType;
-
-		// Copy the dictionary from the first slice
-		CopyDictionary (*inputDict, *dict);
-
-		// Set the UID's for the study, series, SOP  and frame of reference
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|000d", studyUID);
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|000e", seriesUID);
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|0052", frameOfReferenceUID);
-
-#if ITK_VERSION_MAJOR >= 4
-		gdcm::UIDGenerator sopuid;
-		std::string sopInstanceUID = sopuid.Generate();
-#else
-		std::string sopInstanceUID = gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix());
-#endif
-		itk::EncapsulateMetaData<std::string>(*dict,"0008|0018", sopInstanceUID);
-		itk::EncapsulateMetaData<std::string>(*dict,"0002|0003", sopInstanceUID);
-
-		// Change fields that are slice specific
-		itksys_ios::ostringstream value;
-		value.str("");
-		value << f + 1;
-
-		// Image Number
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|0013", value.str());
-
-		// Series Description - Append new description to current series
-		// description
-		std::string oldSeriesDesc;
-		itk::ExposeMetaData<std::string>(*inputDict, "0008|103e", oldSeriesDesc);
-
-		value.str("");
-		value << "Test";
-		/*value << oldSeriesDesc
-			<< ": Resampled with pixel spacing "
-			<< outputSpacing[0] << ", "
-			<< outputSpacing[1] << ", "
-			<< outputSpacing[2];*/
-		// This is an long string and there is a 64 character limit in the
-		// standard
-		unsigned lengthDesc = value.str().length();
-
-		std::string seriesDesc( value.str(), 0,
-			lengthDesc > 64 ? 64
-			: lengthDesc);
-		itk::EncapsulateMetaData<std::string>(*dict,"0008|103e", seriesDesc);
-
-		// Series Number
-		value.str("");
-		value << 1001;
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|0011", value.str());
-
-		// Derivation Description - How this image was derived
-		value.str("");
-		value << "Derivation Description" << endl;
-
-		/*for (int i = 0; i < argc; i++)
-		{
-			value << argv[i] << " ";
-		}*/
-		value << ": " << ITK_SOURCE_VERSION;
-
-		lengthDesc = value.str().length();
-		std::string derivationDesc( value.str(), 0,
-			lengthDesc > 1024 ? 1024
-			: lengthDesc);
-		itk::EncapsulateMetaData<std::string>(*dict,"0008|2111", derivationDesc);
-
-		// Image Position Patient: This is calculated by computing the
-		// physical coordinate of the first pixel in each slice.
-		SHORT_ImageType::PointType position;
-		SHORT_ImageType::IndexType index;
-		index[0] = 0;
-		index[1] = 0;
-		index[2] = f;
-		sp3DshortImage->TransformIndexToPhysicalPoint(index, position);
-
-		value.str("");
-		value << position[0] << "/" << position[1] << "/" << position[2];
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|0032", value.str());
-		// Slice Location: For now, we store the z component of the Image
-		// Position Patient.
-		value.str("");
-		value << position[2];
-		itk::EncapsulateMetaData<std::string>(*dict,"0020|1041", value.str());
-
-
-		SHORT_ImageType::SpacingType outputSpacing = sp3DshortImage->GetSpacing();
-
-		// Slice Thickness: For now, we store the z spacing
-		value.str("");
-		value << outputSpacing[2];
-		itk::EncapsulateMetaData<std::string>(*dict,"0018|0050",value.str());
-		// Spacing Between Slices
-		itk::EncapsulateMetaData<std::string>(*dict,"0018|0088",value.str());
-
-		// Save the dictionary
-		outputArray.push_back(dict);
-	}
-
-	////////////////////////////////////////////////
-	// 4) Shift data to undo the effect of a rescale intercept by the
-	//    DICOM reader
-	std::string interceptTag("0028|1052");
-	typedef itk::MetaDataObject< std::string > MetaDataStringType;
-	itk::MetaDataObjectBase::Pointer entry = (*inputDict)[interceptTag];
-
-	MetaDataStringType::ConstPointer interceptValue =
-		dynamic_cast<const MetaDataStringType *>( entry.GetPointer() ) ;
-
-	int interceptShift = 0;
-	if( interceptValue )
-	{
-		std::string tagValue = interceptValue->GetMetaDataObjectValue();
-		interceptShift = -atoi ( tagValue.c_str() );
-	}
-
-	ShiftScaleType::Pointer shiftScale = ShiftScaleType::New();
-	shiftScale->SetInput( sp3DshortImage);
-	shiftScale->SetShift( interceptShift );
-
-	////////////////////////////////////////////////
-	// 5) Write the new DICOM series
-
-	// Make the output directory and generate the file names.
-	itksys::SystemTools::MakeDirectory("D:\\testITKDICOM" );
-
-	// Generate the file names
-	OutputNamesGeneratorType::Pointer outputNames = OutputNamesGeneratorType::New();
-	std::string seriesFormat("test");
-	seriesFormat = seriesFormat + "/" + "IM%d.dcm";
-	outputNames->SetSeriesFormat (seriesFormat.c_str());
-	outputNames->SetStartIndex (1);
-	outputNames->SetEndIndex (outputSize[2]);
-
-	SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
-	seriesWriter->SetInput( shiftScale->GetOutput() );
-	seriesWriter->SetImageIO( gdcmIO );
-	seriesWriter->SetFileNames( outputNames->GetFileNames() );
-	seriesWriter->SetMetaDataDictionaryArray( &outputArray );
-	try
-	{
-		seriesWriter->Update();
-	}
-	catch( itk::ExceptionObject & excp )
-	{
-		std::cerr << "Exception thrown while writing the series " << std::endl;
-		std::cerr << excp << std::endl;
-		return;
-	}
-	/*std::cout << "The output series in directory " << argv[2]
-	<< " has " << outputSize[2] << " files with spacing "
-		<< outputSpacing
-		<< std::endl;*/
-
-}
+//void CbctRecon::ExportDICOM_SHORT( SHORT_ImageType::Pointer& sp3DshortImage ) //NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
+//{
+//	typedef itk::ImageSeriesReader< SHORT_ImageType >ReaderType;
+//	typedef itk::GDCMImageIO ImageIOType;
+//	typedef itk::GDCMSeriesFileNames InputNamesGeneratorType;
+//	typedef itk::NumericSeriesFileNames OutputNamesGeneratorType;
+//
+//	typedef itk::ImageSeriesWriter< SHORT_ImageType, SHORT_ImageType2D > SeriesWriterType;
+//
+//	/*typedef itk::IdentityTransform< double, InputDimension > 		TransformType;
+//	typedef itk::LinearInterpolateImageFunction< InputImageType, double > InterpolatorType;
+//	typedef itk::ResampleImageFilter< InputImageType, InputImageType > ResampleFilterType;
+//	typedef itk::ShiftScaleImageFilter< InputImageType, InputImageType > ShiftScaleType;*/
+//
+//	typedef itk::ShiftScaleImageFilter< SHORT_ImageType, SHORT_ImageType > ShiftScaleType;
+//
+//	// 1) Read the input series
+//	ImageIOType::Pointer gdcmIO = ImageIOType::New();
+//	InputNamesGeneratorType::Pointer inputNames = InputNamesGeneratorType::New();
+//	inputNames->SetInputDirectory( "D:\\DICOMINPUT" );
+//	const ReaderType::FileNamesContainer & filenames = inputNames->GetInputFileNames();
+//
+//	ReaderType::Pointer reader = ReaderType::New();
+//
+//	reader->SetImageIO( gdcmIO );
+//	reader->SetFileNames( filenames );
+//
+//	reader->Update();
+//
+//	ReaderType::DictionaryRawPointer inputDict = (*(reader->GetMetaDataDictionaryArray()))[0];
+//	ReaderType::DictionaryArrayType outputArray;
+//
+//	// To keep the new series in the same study as the original we need
+//	// to keep the same study UID. But we need new series and frame of
+//	// reference UID's.
+//#if ITK_VERSION_MAJOR >= 4
+//	gdcm::UIDGenerator suid;
+//	std::string seriesUID = suid.Generate();
+//	gdcm::UIDGenerator fuid;
+//	std::string frameOfReferenceUID = fuid.Generate();
+//#else
+//	std::string seriesUID = gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix());
+//	std::string frameOfReferenceUID = gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix());
+//#endif
+//	std::string studyUID;
+//	std::string sopClassUID;
+//	itk::ExposeMetaData<std::string>(*inputDict, "0020|000d", studyUID);
+//	itk::ExposeMetaData<std::string>(*inputDict, "0008|0016", sopClassUID);
+//
+//	gdcmIO->KeepOriginalUIDOn();
+//
+//	SHORT_ImageType::SizeType outputSize = sp3DshortImage->GetBufferedRegion().GetSize();
+//	for (unsigned int f = 0; f < outputSize[2]; f++)
+//	{
+//		// Create a new dictionary for this slice
+//		ReaderType::DictionaryRawPointer dict = new ReaderType::DictionaryType;
+//
+//		// Copy the dictionary from the first slice
+//		CopyDictionary (*inputDict, *dict);
+//
+//		// Set the UID's for the study, series, SOP  and frame of reference
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|000d", studyUID);
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|000e", seriesUID);
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|0052", frameOfReferenceUID);
+//
+//#if ITK_VERSION_MAJOR >= 4
+//		gdcm::UIDGenerator sopuid;
+//		std::string sopInstanceUID = sopuid.Generate();
+//#else
+//		std::string sopInstanceUID = gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix());
+//#endif
+//		itk::EncapsulateMetaData<std::string>(*dict,"0008|0018", sopInstanceUID);
+//		itk::EncapsulateMetaData<std::string>(*dict,"0002|0003", sopInstanceUID);
+//
+//		// Change fields that are slice specific
+//		itksys_ios::ostringstream value;
+//		value.str("");
+//		value << f + 1;
+//
+//		// Image Number
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|0013", value.str());
+//
+//		// Series Description - Append new description to current series
+//		// description
+//		std::string oldSeriesDesc;
+//		itk::ExposeMetaData<std::string>(*inputDict, "0008|103e", oldSeriesDesc);
+//
+//		value.str("");
+//		value << "Test";
+//		/*value << oldSeriesDesc
+//			<< ": Resampled with pixel spacing "
+//			<< outputSpacing[0] << ", "
+//			<< outputSpacing[1] << ", "
+//			<< outputSpacing[2];*/
+//		// This is an long string and there is a 64 character limit in the
+//		// standard
+//		unsigned lengthDesc = value.str().length();
+//
+//		std::string seriesDesc( value.str(), 0,
+//			lengthDesc > 64 ? 64
+//			: lengthDesc);
+//		itk::EncapsulateMetaData<std::string>(*dict,"0008|103e", seriesDesc);
+//
+//		// Series Number
+//		value.str("");
+//		value << 1001;
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|0011", value.str());
+//
+//		// Derivation Description - How this image was derived
+//		value.str("");
+//		value << "Derivation Description" << endl;
+//
+//		/*for (int i = 0; i < argc; i++)
+//		{
+//			value << argv[i] << " ";
+//		}*/
+//		value << ": " << ITK_SOURCE_VERSION;
+//
+//		lengthDesc = value.str().length();
+//		std::string derivationDesc( value.str(), 0,
+//			lengthDesc > 1024 ? 1024
+//			: lengthDesc);
+//		itk::EncapsulateMetaData<std::string>(*dict,"0008|2111", derivationDesc);
+//
+//		// Image Position Patient: This is calculated by computing the
+//		// physical coordinate of the first pixel in each slice.
+//		SHORT_ImageType::PointType position;
+//		SHORT_ImageType::IndexType index;
+//		index[0] = 0;
+//		index[1] = 0;
+//		index[2] = f;
+//		sp3DshortImage->TransformIndexToPhysicalPoint(index, position);
+//
+//		value.str("");
+//		value << position[0] << "/" << position[1] << "/" << position[2];
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|0032", value.str());
+//		// Slice Location: For now, we store the z component of the Image
+//		// Position Patient.
+//		value.str("");
+//		value << position[2];
+//		itk::EncapsulateMetaData<std::string>(*dict,"0020|1041", value.str());
+//
+//
+//		SHORT_ImageType::SpacingType outputSpacing = sp3DshortImage->GetSpacing();
+//
+//		// Slice Thickness: For now, we store the z spacing
+//		value.str("");
+//		value << outputSpacing[2];
+//		itk::EncapsulateMetaData<std::string>(*dict,"0018|0050",value.str());
+//		// Spacing Between Slices
+//		itk::EncapsulateMetaData<std::string>(*dict,"0018|0088",value.str());
+//
+//		// Save the dictionary
+//		outputArray.push_back(dict);
+//	}
+//
+//	////////////////////////////////////////////////
+//	// 4) Shift data to undo the effect of a rescale intercept by the
+//	//    DICOM reader
+//	std::string interceptTag("0028|1052");
+//	typedef itk::MetaDataObject< std::string > MetaDataStringType;
+//	itk::MetaDataObjectBase::Pointer entry = (*inputDict)[interceptTag];
+//
+//	MetaDataStringType::ConstPointer interceptValue =
+//		dynamic_cast<const MetaDataStringType *>( entry.GetPointer() ) ;
+//
+//	int interceptShift = 0;
+//	if( interceptValue )
+//	{
+//		std::string tagValue = interceptValue->GetMetaDataObjectValue();
+//		interceptShift = -atoi ( tagValue.c_str() );
+//	}
+//
+//	ShiftScaleType::Pointer shiftScale = ShiftScaleType::New();
+//	shiftScale->SetInput( sp3DshortImage);
+//	shiftScale->SetShift( interceptShift );
+//
+//	////////////////////////////////////////////////
+//	// 5) Write the new DICOM series
+//
+//	// Make the output directory and generate the file names.
+//	itksys::SystemTools::MakeDirectory("D:\\testITKDICOM" );
+//
+//	// Generate the file names
+//	OutputNamesGeneratorType::Pointer outputNames = OutputNamesGeneratorType::New();
+//	std::string seriesFormat("test");
+//	seriesFormat = seriesFormat + "/" + "IM%d.dcm";
+//	outputNames->SetSeriesFormat (seriesFormat.c_str());
+//	outputNames->SetStartIndex (1);
+//	outputNames->SetEndIndex (outputSize[2]);
+//
+//	SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+//	seriesWriter->SetInput( shiftScale->GetOutput() );
+//	seriesWriter->SetImageIO( gdcmIO );
+//	seriesWriter->SetFileNames( outputNames->GetFileNames() );
+//	seriesWriter->SetMetaDataDictionaryArray( &outputArray );
+//	try
+//	{
+//		seriesWriter->Update();
+//	}
+//	catch( itk::ExceptionObject & excp )
+//	{
+//		std::cerr << "Exception thrown while writing the series " << std::endl;
+//		std::cerr << excp << std::endl;
+//		return;
+//	}
+//	/*std::cout << "The output series in directory " << argv[2]
+//	<< " has " << outputSize[2] << " files with spacing "
+//		<< outputSpacing
+//		<< std::endl;*/
+//
+//}
 
 
 
@@ -5139,12 +5170,7 @@ void CbctRecon::Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction,
     }
 }
 
-void CbctRecon::TestFunc()
-{
-    /*double aaa = this->GetValueFrom3DImageUshort(5,5,5, m_spCrntReconImg);
-    cout << aaa << endl;*/
 
-}
 
 void CbctRecon::RegisterImgDuplication( enREGI_IMAGES src, enREGI_IMAGES target )
 {
@@ -5197,6 +5223,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   m_strPathVarianINI = "";
 
   m_strPathPlan = "";
+  m_strPathIMAGES = "";
 
   QDir curHisDir(pathProjHisDir);
   QDir movingDir(pathProjHisDir);
@@ -5207,9 +5234,21 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 	 !curHisDir.dirName().contains("sca_", Qt::CaseSensitive) &&
 	 !curHisDir.dirName().contains("cor_", Qt::CaseSensitive))
   {
-	cout << "Projection folder should have format [img_UID]" << endl;
-	cout << "XML file cannot be made" << endl;
-	return;
+	if (curHisDir.dirName().contains("Scan0", Qt::CaseSensitive))
+	{
+		cout << "XML set by guessing: Scan0/../ProjectionInfo.xml" << endl;
+		m_strPathGeomXML = curHisDir.absolutePath() + "/../" + "ProjectionInfo.xml";
+		ui.lineEdit_VarianGeomPath->setText(m_strPathGeomXML);
+		cout << "Patient DIR set to: Scan0/../../" << endl;
+		m_strPathGeomXML = curHisDir.absolutePath() + "/../"; // <- Might break shit, dunno..
+		return;
+	}
+	else 
+	{
+		cout << "Projection folder should have format [img_UID]" << endl;
+		cout << "XML file cannot be made" << endl;
+		return;
+	}
   }
 
   QString tmpStr = curHisDir.dirName();
@@ -5227,7 +5266,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 	return;
   }
   QDir tmpDir_IMAGES(movingDir.absolutePath());
-  QString tmpStrPathIMAGES = tmpDir_IMAGES.absolutePath();
+  m_strPathIMAGES = tmpDir_IMAGES.absolutePath();
 
 
 
@@ -5257,7 +5296,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   QFileInfo rtkGeomInfo(tmpPathRTKGeometry);
 
   //option 2
-  QString pathXVIGeometryXML = curHisDir.absolutePath() + "/" + "_Frames.xml";
+  QString pathXVIGeometryXML = curHisDir.absolutePath() + "/../" + "ProjectionInfo.xml";
   QFileInfo xviGeomInfo(pathXVIGeometryXML);
 
   if (rtkGeomInfo.exists()) //The best option: rtk geometry file is already existing
@@ -5346,7 +5385,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 	enDirStructure_Type = 0;
   else
   {
-	QString tmpStrPathCTSET = tmpStrPathIMAGES;
+	QString tmpStrPathCTSET = m_strPathIMAGES;
 	tmpDIR_CTSET = QDir(tmpStrPathCTSET.append("/CT_SET"));
 
 	if (tmpDIR_CTSET.exists())
@@ -5355,7 +5394,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 	  enDirStructure_Type = 2;
   }
 
-  //QString strPathCTSet = tmpStrPathIMAGES.append("/CT_SET");
+  //QString strPathCTSet = m_strPathIMAGES.append("/CT_SET");
 
  // switch (enDirStructure_Type)
  // {
@@ -5414,7 +5453,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
       enDirStructure_Type = 0;
   else
   {
-      QString tmpStrPathCTSET = tmpStrPathIMAGES;
+      QString tmpStrPathCTSET = m_strPathIMAGES;
       tmpDIR_DCM_Plan = QDir(tmpStrPathCTSET.append("/DICOM_PLAN"));
 
       if (tmpDIR_DCM_Plan.exists())
@@ -5623,7 +5662,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 
 	TransformType::ParametersType param;
 	param.SetSize(6);
-	param.put(0, itk::Math::pi/-2.0); //rot X // 0.5 = PI/2
+	param.put(0, itk::Math::pi / -2.0); //rot X // 0.5 = PI/2
 	param.put(1, 0);//rot Y
 	param.put(2, itk::Math::pi/2.0);//rot Z
 	param.put(3, 0.0); // Trans X mm
@@ -5951,7 +5990,7 @@ void CbctRecon::SLT_DoScatterCorrection_APRIORI()
   }
   else
   {
-	cout << "Error!: No ref image for foward projection is found." << endl;
+	cout << "Error!: No ref image for forward projection is found." << endl;
 	return;
   }
 
@@ -6020,7 +6059,8 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 
   if (bHighResolMacro)
   {
-      ResampleItkImage(spProjRaw3D, spTmpProjRaw3D, 0.5);
+	  cout << "bHighResolMacro is unexpectedly on" << endl;
+	  ResampleItkImage(spProjRaw3D, spTmpProjRaw3D, 0.5);
   }
   else
   {
@@ -7357,6 +7397,8 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
     vector<WEPLData> vOutputWEPL_rawCBCT;
     vector<WEPLData> vOutputWEPL_corCBCT;
 
+	cout << "Everything is OK!? Let's calculate WEPL..." << endl;
+
     for (int i = 0; i < sizePOI; i++)
     {
         VEC3D curPOI = m_vPOI_DCM.at(i);
@@ -7373,7 +7415,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
             GetAngularWEPL_SinglePoint(m_spDeformedCT_Final, fAngleGap, curPOI, i, vOutputWEPL_deform, true);
     }
     //cout << "Computed WEPL points: " << vOutputWEPL.size() << endl;
-
+	cout << "OK calculation is done, time to save the results..." << endl;
 
     ofstream fout;
     fout.open(strPathOutput.toLocal8Bit().constData());
@@ -7476,6 +7518,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 
   double curAngle = 0.0;
 
+  cout << "Definition in place, calculation for all given angles startng..." << endl;
 
   for (int i = 0 ; i < sizeAngles ; i++)
   {
@@ -7559,6 +7602,8 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 
         delete newBeam;
   }
+
+  cout << "Phew, we got through this angle too.. now we clean up and get ready for the next.." << endl;
 
   if (!bAppend)
 	vOutputWEPLData.clear();
@@ -8415,7 +8460,13 @@ void CbctRecon::SLTM_ForwardProjection()
     {
         double curSID = m_spCustomGeometry->GetSourceToIsocenterDistances().at(i);
         double curSDD = m_spCustomGeometry->GetSourceToDetectorDistances().at(i);
+
         double curGantryAngle = m_spCustomGeometry->GetGantryAngles().at(i);
+		double kVAng = curGantryAngle;
+		double MVAng = kVAng - 90.0;
+		if (MVAng < 0.0)
+			MVAng = MVAng + 360;
+		curGantryAngle = MVAng;
 
         double curProjOffsetX = m_spCustomGeometry->GetProjectionOffsetsX().at(i);
         double curProjOffsetY = m_spCustomGeometry->GetProjectionOffsetsY().at(i);
@@ -8691,6 +8742,7 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     if (bFOVCropping)
     {
         //Crop CBCT with predetermined FOV/ Table
+		cout << "FOV cropping is under way..." << endl;
         CropFOV3D(m_spRawReconImg, physPosX, physPosY, physRadius, physTablePosY);
     }
 
@@ -8731,11 +8783,15 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
         strSuffix = strSuffix + "_rigid";
         break;
     case REGISTER_DEFORM_FINAL:
+		cout << "REGISTER_DEFORM_FINAL was chosen." << endl;
         m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
         m_pDlgRegistration->SLT_ConfirmManualRegistration();//skin cropping
 
-        if (bCBCT_IntensityShift)
-            m_pDlgRegistration->SLT_IntensityNormCBCT();
+		if (bCBCT_IntensityShift)
+		{
+			cout << "IntensityShift is underway" << endl;
+			m_pDlgRegistration->SLT_IntensityNormCBCT();
+		}
 
         if (bFOVCropping)
             CropFOV3D(m_spManualRigidCT, physPosX, physPosY, physRadius, physTablePosY);
@@ -9084,6 +9140,333 @@ void CbctRecon::AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval)
 }
 
 
+
+void CbctRecon::SLT_OpenPhaseData()
+{
+	if (!m_vPhaseFloat.empty())
+		m_vPhaseFloat.clear();
+	
+		//Open file
+	QString filePath = QFileDialog::getOpenFileName(this, "Open phase text", m_strPathDirDefault, "Phase text file (*.txt)", 0, 0);
+	
+	if (filePath.length() < 1)
+		return;
+	
+	
+	
+	ifstream fin;
+	fin.open(filePath.toLocal8Bit().constData(), ios::in);
+	if (fin.fail())
+		return;
+	
+	ui.lineEdit_PhaseTxtPath->setText(filePath);
+	
+	char str[MAX_LINE_LENGTH];
+	
+	
+	float tmpPhase = 0.0;
+	
+	float phaseSum = 0.0;
+	int phaseCnt = 0;
+	while (!fin.eof())
+	{
+		memset(str, 0, MAX_LINE_LENGTH);
+		fin.getline(str, MAX_LINE_LENGTH);
+		QString strLine(str);
+		
+		if (strLine.length() < 1)
+			break;
+		
+		tmpPhase = strLine.toFloat();
+		m_vPhaseFloat.push_back(tmpPhase);
+		phaseCnt++;
+		phaseSum = phaseSum + tmpPhase;
+	}
+	fin.close();
+	cout << "NumOfPhaseData[Float]= " << phaseCnt << "  Mean Phase value= " << phaseSum / (double)phaseCnt << endl;
+}
+
+void CbctRecon::SLT_Export4DCBCT()
+{ 
+	if (!m_spCustomGeometry)
+	{
+		cout << "Error! no Geometry information loaded yet" << endl;
+		return;
+	
+	}
+	
+	int NumOfGanAngle = m_spCustomGeometry->GetGantryAngles().size();
+	int NumOfPhase = m_vPhaseFloat.size();
+	
+	if (NumOfGanAngle != NumOfPhase)
+	{
+		cout << "Size not matched. NumOfProjection= " << NumOfGanAngle << " NumOfProjection= " << NumOfPhase << endl;
+		return;
+	}
+	    //build phase bins
+	QString strPhaseTextFull = ui.lineEdit_PhaseExportString->text();
+	QStringList strlistPhaseFull = strPhaseTextFull.split(";");
+	
+	int cntGroup = strlistPhaseFull.count();
+	
+	vector<int> vPhaseBinsSelected;
+	    //m_strPatientDirName = tmpDir_PatientFolder.dirName();
+		    //m_strPathPatientDir = tmpDir_PatientFolder.absolutePath();
+		
+		    //QDir tmpDir_RootFolder(movingDir.absolutePath()); //root folder
+		
+		    //if (tmpDir_RootFolder.absolutePath().length() > 1)
+		    //    m_strPathDirDefault = tmpDir_RootFolder.absolutePath();
+		
+		    ////option 1: already made rtk xml file
+		    //QString tmpPathRTKGeometry = tmpDir_RootFolder.absolutePath() + "/" + "ElektaGeom_" + m_strDCMUID + ".xml";
+		    //QFileInfo rtkGeomInfo(tmpPathRTKGeometry);
+	
+	QString strDirForXML = m_strPathDirDefault; //where xml file is located
+	//QString strUID ;//P00102030P + m_strDCMUID
+	QString strDirForProj = m_strPathIMAGES;
+	
+	for (int i = 0; i < cntGroup; i++)
+	{
+		        //for a single group
+		QStringList strListGroup = strlistPhaseFull.at(i).split(",");
+		int iPhaseCnt = strListGroup.count();
+		vPhaseBinsSelected.clear();
+		
+		for (int j = 0; j < iPhaseCnt; j++)
+		{
+			vPhaseBinsSelected.push_back(strListGroup.at(j).toInt());
+		}
+		        //m_vSelectedFileNames: full file paths of projections
+		        //m_spCustomGeometry: full information
+		        //m_vPhaseFloat: full data of phase
+		
+		        //Create Dir, xml, etc
+		if (!ResortCBCTProjection(vPhaseBinsSelected, strDirForXML, strDirForProj, m_strDCMUID, m_vPhaseFloat, m_spCustomGeometry, m_vSelectedFileNames))
+		{
+			cout << "Error in ResortCBCTProjection " << strlistPhaseFull.at(i).toLocal8Bit().constData() << endl;
+			return;
+		}
+	}
+			
+		    //mkdir
+		    //QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder    
+		    //QString strCrntDir = ui.lineEdit_HisDirPath->text();
+		
+		    ////Make a sub directory
+		    //QDir crntDir(strCrntDir);
+		
+		    //if (!crntDir.exists())
+		    //{
+		    //    cout << "File save error: The specified folder does not exist." << endl;
+		    //    return;
+		    //}
+		
+		    ////QString fwdDirName = "fwd_" + m_strDCMUID;
+		
+		    //QString str4D = "4DCBCT";
+		    //bool tmpResult = crntDir.mkdir(str4D);
+		
+		    //QString strSubDir = strCrntDir + "/" + str4D;
+		    //QDir crntSubDir(strSubDir);
+		    //if (!crntSubDir.exists())
+		    //{
+		    //    cout << "File save error" << endl;
+		    //    return;
+		    //}
+		
+		    //crntSubDir.mkdir();
+}
+
+bool CbctRecon::ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull)
+{
+	if (vIntPhaseBinSelected.empty())
+		return false;
+	
+	int NumOfPhaseFull = vFloatPhaseFull.size();
+	int NumOfGeomFull = spGeomFull->GetGantryAngles().size();
+	int NumOfProjFileFull = vProjPathsFull.size();
+	
+	if (NumOfPhaseFull != NumOfGeomFull || NumOfGeomFull != NumOfProjFileFull)
+	{
+		cout << "Num of data is not matching:" << " NumOfPhaseFull= " << NumOfPhaseFull << " NumOfGeomFull= " << NumOfGeomFull << " NumOfProjFileFull= " << NumOfProjFileFull << endl;
+		return false;
+	}
+	
+	    //Check Root dir is set
+	
+	if (strUID.length() < 1)
+		return false;
+	
+	QDir dirSaveXML(strPathForXML);
+	QDir dirSaveProj(strPathProjRoot);
+	
+	if (!dirSaveXML.exists() || !dirSaveProj.exists())
+	{
+		cout << "Error! Directories don't exist" << endl;
+		return false;
+	}
+	    //Generate a new UID
+	QString strUID_Endfix;
+	int iNumOfSelPhase = vIntPhaseBinSelected.size();
+	
+	strUID_Endfix = "P";
+	for (int i = 0; i < iNumOfSelPhase; i++)
+	{
+		QString strNum;
+		strNum = strNum.sprintf("%02d", vIntPhaseBinSelected.at(i));
+		strUID_Endfix = strUID_Endfix + strNum;
+	}
+	strUID_Endfix = strUID_Endfix + "P"; //UID...P00102030405060P
+	QString strNewUID = strUID + strUID_Endfix;
+	
+	    //Create a subDir
+	QDir curProjRoot(strPathProjRoot);
+	QString strSubDirName = "img_" + strNewUID;
+	curProjRoot.mkdir(strSubDirName);
+	
+	QString strPathProj = strPathProjRoot + "/" + strSubDirName;
+	
+	QDir projDir(strPathProj);
+	if (!projDir.exists())
+	{
+		cout << "no Proj Dir exists" << endl;
+		return false;
+	}
+	
+		QDir xmlDir(strPathForXML);
+	if (!xmlDir.exists())
+	{
+		cout << "no XML Dir exists" << endl;
+		return false;
+	}
+	
+	    //strPathProj
+	    //strPathForXML
+	vector<int> vSelectedIdxTemp;
+	vector<int> vSelectedIdxFin;
+	
+	for (int i = 0; i < iNumOfSelPhase; i++)
+	{
+		AppendInPhaseIndex(vIntPhaseBinSelected.at(i), vFloatPhaseFull, vSelectedIdxTemp);
+	}
+	//Remove redandancy
+	
+	sort(vSelectedIdxTemp.begin(), vSelectedIdxTemp.end()); //hopefully, ascending
+	cout << "sorting check" << endl;
+	cout << "0 " << vSelectedIdxTemp.at(0) << endl;
+	cout << "1 " << vSelectedIdxTemp.at(1) << endl;
+	
+	vector<int>::iterator it;
+	
+	int prevVal = -1;
+	for (it = vSelectedIdxTemp.begin(); it != vSelectedIdxTemp.end(); ++it)
+	{
+		if ((*it) > prevVal)
+		{
+			vSelectedIdxFin.push_back(*it);
+		}
+		
+		
+		prevVal = (*it);
+	}
+	
+	GeometryType::Pointer spSubGeometry = GeometryType::New();
+	
+	vector<int>::iterator itIdx;
+
+	for (itIdx = vSelectedIdxFin.begin(); itIdx != vSelectedIdxFin.end(); itIdx++)
+	{
+		cout << "cur Idx=" << (*itIdx) << endl;
+		        //9 parameters are required
+		double curSID = spGeomFull->GetSourceToIsocenterDistances().at(*itIdx);
+		double curSDD = spGeomFull->GetSourceToDetectorDistances().at(*itIdx);
+		double curGantryAngle = spGeomFull->GetGantryAngles().at(*itIdx);
+		
+		double curProjOffsetX = spGeomFull->GetProjectionOffsetsX().at(*itIdx);
+		double curProjOffsetY = spGeomFull->GetProjectionOffsetsY().at(*itIdx);
+		
+		double curOutOfPlaneAngles = spGeomFull->GetOutOfPlaneAngles().at(*itIdx);
+		double curInPlaneAngles = spGeomFull->GetInPlaneAngles().at(*itIdx);
+		
+		double curSrcOffsetX = spGeomFull->GetSourceOffsetsX().at(*itIdx);
+		double curSrcOffsetY = spGeomFull->GetSourceOffsetsY().at(*itIdx);
+		
+		spSubGeometry->AddProjection(curSID, curSDD, curGantryAngle,
+		curProjOffsetX, curProjOffsetY, //Flexmap 
+		curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
+		curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
+	}
+	//Export spSubGeometry
+	rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
+	rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
+	
+	QString geomFileName = "ElektaGeom_" + strNewUID + ".xml";
+	QString geomFilePath = strPathForXML + "/" + geomFileName;
+	
+	xmlWriter->SetFilename(geomFilePath.toLocal8Bit().constData());
+	xmlWriter->SetObject(spSubGeometry);
+	TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
+	//Copy selected his files to a different folder
+	
+	for (itIdx = vSelectedIdxFin.begin(); itIdx != vSelectedIdxFin.end(); itIdx++)
+	{
+		QString strPathProjOriginal = vProjPathsFull.at(*itIdx).c_str();
+		//Copy this file to target dir
+		
+		QFileInfo fInfo(strPathProjOriginal);
+		QString strPathProjNew = strPathProj + "/" + fInfo.fileName();
+		QFile::copy(fInfo.absoluteFilePath(), strPathProjNew);
+	}
+	
+	//    vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull       
+	cout << vSelectedIdxFin.size() << " files were copied." << endl;
+	
+	return true;
+}
+
+void CbctRecon::AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin)
+{
+	
+	int iNumOfPhase = vFloatPhaseFull.size();
+	
+	int iCurPhase = 0;
+	
+	int startPhase1;
+	int endPhase1;
+	
+	int startPhase2;
+	int endPhase2;
+	
+	for (int i = 0; i < iNumOfPhase; i++)
+	{
+		iCurPhase = qRound(vFloatPhaseFull.at(i)*100.0);
+		//determine wether it is within the range 
+		
+		if (iPhase < margin) //if 5 --> 0 ~ 10%, IF 4--> 99 ~ 09
+		{
+			startPhase2 = iPhase + 100 - margin;
+			endPhase2 = 100;
+			
+			startPhase1 = 0;
+			endPhase1 = iPhase + margin;
+		}
+		else
+		{
+			startPhase1 = iPhase - margin;
+			endPhase1 = iPhase + margin;
+			
+			startPhase2 = 1; //reverse
+			endPhase2 = 0;
+			}
+
+			if ((iCurPhase >= startPhase1 && iCurPhase <= endPhase1) ||
+			(iCurPhase >= startPhase2 && iCurPhase <= endPhase2))
+			{
+			vOutputIndex.push_back(i);
+		}
+	}
+}
 
 //
 //void CbctRecon::cudaMedianFilter2DITK(OutputImageType2D::Pointer& spFloatImage2D, int wndSizeX, int wndSizeY)

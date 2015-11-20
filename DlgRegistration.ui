@@ -1308,7 +1308,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>skin</string>
+     <string>BODY</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="lineEditCropContourName">
@@ -1321,7 +1321,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Skin</string>
+     <string>BODY</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_43">
@@ -1457,7 +1457,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>skin</string>
+     <string>BODY</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_39">
