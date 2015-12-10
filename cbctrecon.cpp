@@ -5184,6 +5184,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   m_strPathRS = "";
   m_strPathRS_CBCT = "";
   m_strPathElektaINI = "";
+  m_strPathElektaINIXVI2 = "";
 
   m_strPathPlan = "";
 
@@ -5481,6 +5482,11 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
       QFileInfoList listFileAcqParam = tmpAcqParamDir.entryInfoList(QDir::Files, QDir::Name); //search for DICOM RS file
 
       int iMinNameLength = 9999;
+
+      int iMaxNameLength = 0;
+      int iCnt_INIXVI = 0;
+
+      QString strPathINIXVI_long;
       for (int i = 0; i < listFileAcqParam.size(); i++)
       {
           //suffix:*.tar.gz ==> gz only
@@ -5494,7 +5500,25 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
                   m_strPathElektaINI = tmpPath;
               }
           }
+
+          QString StrSuffix = listFileAcqParam.at(i).completeSuffix();
+
+          if (StrSuffix.contains("INI.XVI", Qt::CaseInsensitive))
+          {
+              iCnt_INIXVI++;
+
+              QString tmpPath2 = listFileAcqParam.at(i).absoluteFilePath();
+
+              if (tmpPath2.length() > iMaxNameLength)
+              {
+                  iMaxNameLength = tmpPath2.length();
+                  strPathINIXVI_long = tmpPath2;
+              }
+          }
       }
+
+      if (iCnt_INIXVI == 2)
+          m_strPathElektaINIXVI2 = strPathINIXVI_long;
 
   }
 
@@ -5509,6 +5533,7 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
   cout << "m_strPathRS_CBCT: " << m_strPathRS_CBCT.toLocal8Bit().constData() << endl; 
   cout << "m_strPathPlan: " << m_strPathPlan.toLocal8Bit().constData() << endl;
   cout << "m_strPathElektaINI: " << m_strPathElektaINI.toLocal8Bit().constData() << endl;
+  cout << "m_strPathElektaINIXVI2: " << m_strPathElektaINIXVI2.toLocal8Bit().constData() << endl;
   
   float kVp = 0.0;
   float mA = 0.0;
@@ -5520,7 +5545,34 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
       //update GUI
       cout << "Updating current mAs setting from INI file: " << "kVp= " << kVp << ", mA= " << mA << ", ms= " << ms << endl;
       ui.lineEdit_CurmAs->setText(QString("%1, %2").arg(mA).arg(ms));
-  } 
+  }
+
+  VEC3D couch_trans = { -999, -999, -999 };//mm. In the text file, these values are in cm.
+  VEC3D couch_rot = { -999, -999, -999 };//mm. In the text file, these values are in cm.
+  
+  bool res = GetCouchShiftFromINIXVI(m_strPathElektaINIXVI2, &couch_trans, &couch_rot);  
+
+  if (res)
+  {
+      QString strTransX = QString::number(couch_trans.x, 'f', 1);
+      QString strTransY = QString::number(couch_trans.y, 'f', 1);
+      QString strTransZ = QString::number(couch_trans.z, 'f', 1);
+      QString strTransAll = strTransX + "," + strTransY + "," + strTransZ;
+
+      QString strRotX = QString::number(couch_rot.x, 'f', 1);
+      QString strRotY = QString::number(couch_rot.y, 'f', 1);
+      QString strRotZ = QString::number(couch_rot.z, 'f', 1);
+
+      QString strRotAll = strRotX + "," + strRotY + "," + strRotZ;
+
+      ui.lineEdit_CouchTrans->setText(strTransAll);
+      ui.lineEdit_CouchRot->setText(strRotAll);
+  }
+  else
+  {
+      ui.lineEdit_CouchTrans->setText("Not available");
+      ui.lineEdit_CouchRot->setText("Not available");
+  }
 
   //YKTEMP: delete if the UI is changed
   ui.lineEdit_ElektaGeomPath->setText(m_strPathGeomXML);
@@ -7408,7 +7460,6 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
     }
     fout.close();
     cout << "Saving angular WEPL is completed" << endl;
-
 }
 
 void CbctRecon::SLT_ExportAngularWEPL_byFile()
@@ -8825,6 +8876,17 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
         //strSuffix = strSuffix + "_HD"
     }
     SLT_DoScatterCorrection_APRIORI();    
+
+
+
+    //If there is couch shift information and this cbct is a pre-treatment CBCT, couch shift can be applied
+    //to represent the final treatment position
+
+    if (ui.checkBox_CouchShiftAddToMacro->isChecked())
+    {
+        SLT_DoCouchCorrection();        
+    }
+
     //1) Save the corrCBCT image as signed short
     QString outputPath_rawCBCT = outputDirPath + "/" + m_strDCMUID + strSuffix + "_rawCBCT.mha";
     QString outputPath_corrCBCT = outputDirPath + "/" + m_strDCMUID + strSuffix + "_corrCBCT.mha";
@@ -8847,6 +8909,80 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
         QString outputTxtPath = outputDirPath + "/" + m_strDCMUID +strSuffix +  "_WEPL.txt";
         ExportAngularWEPL_byFile(outputTxtPath);
     }    
+    return true;
+}
+
+bool CbctRecon::GetCouchShiftFromINIXVI(QString& strPathINIXVI, VEC3D* pTrans, VEC3D* pRot)
+{    
+    QFileInfo fInfo(strPathINIXVI); 
+    if (!fInfo.exists())
+        return false;
+
+    ifstream fin;
+    fin.open(strPathINIXVI.toLocal8Bit().constData());
+
+    if (fin.fail())
+        return false;
+
+    char str[MAX_LINE_LENGTH];
+
+    float couch_Lat_cm = 0.0;
+    float couch_Long_cm = 0.0;
+    float couch_Vert_cm = 0.0;
+
+    float couch_Pitch = 0.0;
+    float couch_Yaw = 0.0;
+    float couch_Roll = 0.0;
+
+    bool bFound = false;
+    while (!fin.eof())
+    {
+        memset(str, 0, MAX_LINE_LENGTH);
+        fin.getline(str, MAX_LINE_LENGTH);
+        QString tmpStr = QString(str);
+        QStringList strListParam = tmpStr.split("=");
+
+        QString tagName, strVal;
+
+        if (strListParam.count() == 2)
+        {
+            tagName = strListParam.at(0);
+            strVal = strListParam.at(1);
+            tagName = tagName.trimmed();
+            strVal = strVal.trimmed();
+
+            if (tagName == "CouchShiftLat")
+            {
+                couch_Lat_cm = strVal.toFloat();
+                bFound = true;
+            }             
+            else if (tagName == "CouchShiftLong")
+                couch_Long_cm = strVal.toFloat();
+            else if (tagName == "CouchShiftHeight")
+                couch_Vert_cm = strVal.toFloat();
+            else if (tagName == "CouchPitch")
+                couch_Pitch = strVal.toFloat();
+            else if (tagName == "CouchRoll")
+                couch_Yaw = strVal.toFloat();
+            else if (tagName == "CouchYaw")
+                couch_Roll = strVal.toFloat();
+        }
+    }
+    fin.close();    
+    
+    if (!bFound)
+        return false;
+
+
+    //Warning!! dicom convention!
+    pTrans->x = couch_Lat_cm*10.0; //sign should be checked   
+    pTrans->y = couch_Vert_cm*10.0; //sign should be checked
+    pTrans->z = couch_Long_cm*10.0; //sign should be checked
+
+    pRot->x = couch_Pitch;
+    pRot->y = couch_Yaw;
+    pRot->z = couch_Roll;
+    //x,y,z: dicom
     return true;
 }
 
@@ -9485,7 +9621,6 @@ void CbctRecon::SLT_LoadCTrigidMHA()
     LoadShort3DImage(fileName, REGISTER_AUTO_RIGID);
 
     SLT_DrawReconImage();
-
 }
 
 void CbctRecon::SLT_LoadCTdeformMHA()
@@ -9575,6 +9710,220 @@ void CbctRecon::LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget)
     m_pDlgRegistration->UpdateListOfComboBox(1);
     m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
     m_pDlgRegistration->SelectComboExternal(1, enTarget);
+}
+
+
+//trans: mm, dicom order
+//COuch shift values: directlry come from the INI.XVI file only multiplied by 10.0
+void CbctRecon::ImageTransformUsingCouchCorrection(USHORT_ImageType::Pointer& spUshortInput, USHORT_ImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot)
+{
+    //couch_trans, couch_rot--> as it is from the text file. only x 10.0 was applied    
+    if (!spUshortInput)
+        return;
+
+    typedef itk::ResampleImageFilter<UShortImageType, UShortImageType> FilterType;
+    FilterType::Pointer filter = FilterType::New();
+
+    typedef itk::AffineTransform< double, 3 >  TransformType;
+    TransformType::Pointer transform = TransformType::New();
+    filter->SetTransform(transform);
+    typedef itk::NearestNeighborInterpolateImageFunction<UShortImageType, double >  InterpolatorType;
+
+    InterpolatorType::Pointer interpolator = InterpolatorType::New();
+    filter->SetInterpolator(interpolator);
+
+    filter->SetDefaultPixelValue(0);
+
+    //  const double spacing[3] = { 1.0, 1.0, 1.0 };
+    UShortImageType::SpacingType spacing = spUshortInput->GetSpacing();
+
+    filter->SetOutputSpacing(spacing);
+
+    UShortImageType::PointType origin = spUshortInput->GetOrigin();
+
+    filter->SetOutputOrigin(origin);
+
+    UShortImageType::DirectionType direction;
+    direction.SetIdentity();
+    filter->SetOutputDirection(direction);
+
+    UShortImageType::SizeType   size = spUshortInput->GetLargestPossibleRegion().GetSize();
+    filter->SetSize(size);
+    filter->SetInput(spUshortInput);
+
+    TransformType::OutputVectorType translation;
+    translation[0] = -couch_trans.x;  // X translation in millimeters
+    translation[1] = +couch_trans.y; //so far so good
+    translation[2] = -couch_trans.z;//empirically found
+
+    TransformType::OutputVectorType rotation;
+    rotation[0] = -couch_rot.x;  // X translation in millimeters
+    rotation[1] = -couch_rot.y;
+    rotation[2] = -couch_rot.z;
+
+    transform->Translate(translation);
+    //transform->Rotate3D(rotation);
+    filter->Update();
+
+    spUshortOutput = filter->GetOutput();
+   // cout << "affine transform is successfully done" << endl;
+}
+
+void CbctRecon::SLT_DoCouchCorrection()
+{
+    QString strTrans = ui.lineEdit_CouchTrans->text(); 
+    QString strRot = ui.lineEdit_CouchRot->text();
+
+    QStringList strListTrans = strTrans.split(",");
+    QStringList strListRot = strRot.split(",");
+
+    if (strListTrans.count() != 3 || strListRot.count() != 3)
+    {
+        cout << "Error! No couch shift data is available!" << endl;
+        return;
+    }
+
+    VEC3D couchShiftTrans, couchShiftRot;
+
+    couchShiftTrans.x = strListTrans.at(0).toDouble(); // mm
+    couchShiftTrans.y = strListTrans.at(1).toDouble();
+    couchShiftTrans.z = strListTrans.at(2).toDouble();
+
+    couchShiftRot.x = strListRot.at(0).toDouble();
+    couchShiftRot.y = strListRot.at(1).toDouble();
+    couchShiftRot.z = strListRot.at(2).toDouble();     
+    //Images to correct:
+    /*m_spRawReconImg;
+    m_spScatCorrReconImg;
+    m_spDeformedCT_Final;
+    m_spAutoRigidCT;*/
+
+    //not manual CT!!!
+
+    ImageTransformUsingCouchCorrection(m_spRawReconImg, m_spRawReconImg, couchShiftTrans, couchShiftRot);
+    ImageTransformUsingCouchCorrection(m_spScatCorrReconImg, m_spScatCorrReconImg, couchShiftTrans, couchShiftRot);
+    ImageTransformUsingCouchCorrection(m_spDeformedCT_Final, m_spDeformedCT_Final, couchShiftTrans, couchShiftRot);
+    ImageTransformUsingCouchCorrection(m_spAutoRigidCT, m_spAutoRigidCT, couchShiftTrans, couchShiftRot);
+
+    m_pDlgRegistration->UpdateListOfComboBox(0);//combo selection signalis called
+    m_pDlgRegistration->UpdateListOfComboBox(1);
+    m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
+    m_pDlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+
+    m_spCrntReconImg = m_spScatCorrReconImg;
+    SLT_DrawReconImage();
+
+    cout << "Couch shift and rotation was successfully applied." << endl;
+}
+
+//Multiple mha files
+void CbctRecon::SLTM_WELPCalcMultipleFiles()
+{
+    //Singed short
+    QStringList listFilePath = QFileDialog::getOpenFileNames(this, "Select one or more files to open",
+        m_strPathDirDefault, "signed short 3D images (*.mha)");
+
+    int iCntFiles = listFilePath.count();
+    if (iCntFiles < 1)
+        return;
+
+    int iCntPOI = m_vPOI_DCM.size();
+
+    if (iCntPOI < 1)
+    {
+        cout << "There is no POI file loaded." << endl;
+        SLT_LoadPOIData();        
+    }
+    iCntPOI = m_vPOI_DCM.size();
+    if (iCntPOI < 1)
+    {
+        cout << "Error! still no POI" << endl;
+        return;
+    }
+
+    QString strPathOutText = QFileDialog::getSaveFileName(this, "File path to save", m_strPathDirDefault, "WEPL_value (*.txt)", 0, 0); //Filename don't need to exist	
+    if (strPathOutText.length() <= 1)
+        return;    
+
+
+    vector<WEPLData>* vArrOutputWEPL = new vector<WEPLData>[iCntFiles];
+
+    for (int i = 0; i < iCntFiles; i++)
+    {
+        GetWEPLDataFromSingleFile(listFilePath.at(i), m_vPOI_DCM, vArrOutputWEPL[i]);
+    }
+    
+
+    ofstream fout;
+    fout.open(strPathOutText.toLocal8Bit().constData());    
+
+    fout << "Point Index" << "\t" << "Gantry Angle" << "\t" << "Sample Number";
+
+    for (int i = 0; i < iCntFiles; i++)
+    {
+        QFileInfo fInfo(listFilePath.at(i));
+        QString strFileName = fInfo.fileName();
+
+        fout << "\t" << strFileName.toLocal8Bit().constData();
+    }
+    fout << endl;
+
+
+    int cntWEPL = vArrOutputWEPL[0].size();
+    int curCount = 0;
+    for (int i = 0; i < iCntFiles; i++)
+    {          
+        curCount = vArrOutputWEPL[i].size();
+        if (cntWEPL != curCount)
+        {
+            cout << "Error! some of the WEPL count doesn't match!" << endl;
+            return;
+        }
+    }
+
+    for (int i = 0; i < cntWEPL; i++)
+    {
+        fout << vArrOutputWEPL[0].at(i).ptIndex << "\t" << vArrOutputWEPL[0].at(i).fGanAngle << "\t" << i;
+
+        for (int j = 0; j < iCntFiles; j++)
+        {
+            fout << "\t" << vArrOutputWEPL[j].at(i).fWEPL;
+        }
+        fout << endl;
+    }
+
+    fout.close();
+
+    cout << "Saving angular WEPL is completed" << endl;
+
+    delete[] vArrOutputWEPL;
+}
+
+void CbctRecon::GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL)
+{
+
+    int iCntPOI = vPOI.size();
+
+    if (iCntPOI < 1)
+        return;
+
+    float fAngleGap = 1.0;
+
+    USHORT_ImageType::Pointer spImg;
+
+    QString strFilePath = filePath;
+    if (!LoadShortImageToUshort(strFilePath, spImg))
+    {
+        cout << "error! in LoadShortImageToUshort" << endl;
+        return;
+    }    
+
+    for (int i = 0; i < iCntPOI; i++)
+    {
+        VEC3D curPOI = vPOI.at(i);
+        //append mode
+        GetAngularWEPL_SinglePoint(spImg, fAngleGap, curPOI, i, vOutputWEPL, true);//mandatory      
+    }
 }
 
 

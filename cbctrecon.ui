@@ -153,7 +153,7 @@
       <x>50</x>
       <y>730</y>
       <width>491</width>
-      <height>20</height>
+      <height>16</height>
      </rect>
     </property>
     <property name="title">
@@ -475,8 +475,8 @@
    <widget class="QLabel" name="label_12">
     <property name="geometry">
      <rect>
-      <x>1000</x>
-      <y>390</y>
+      <x>980</x>
+      <y>380</y>
       <width>31</width>
       <height>16</height>
      </rect>
@@ -488,8 +488,8 @@
    <widget class="QSpinBox" name="spinBoxReconImgSliceNo">
     <property name="geometry">
      <rect>
-      <x>1040</x>
-      <y>390</y>
+      <x>1020</x>
+      <y>380</y>
       <width>51</width>
       <height>21</height>
      </rect>
@@ -1605,7 +1605,7 @@
      <widget class="QCheckBox" name="checkBox_ExportVolDICOM">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>110</x>
         <y>90</y>
         <width>101</width>
         <height>20</height>
@@ -1776,17 +1776,17 @@
     <property name="geometry">
      <rect>
       <x>1000</x>
-      <y>540</y>
+      <y>610</y>
       <width>201</width>
-      <height>181</height>
+      <height>141</height>
      </rect>
     </property>
    </widget>
    <widget class="QLabel" name="label_33">
     <property name="geometry">
      <rect>
-      <x>1110</x>
-      <y>370</y>
+      <x>1010</x>
+      <y>580</y>
       <width>91</width>
       <height>16</height>
      </rect>
@@ -1798,9 +1798,9 @@
    <widget class="QPushButton" name="pushButtonCopyTableToClipboard">
     <property name="geometry">
      <rect>
-      <x>1000</x>
-      <y>500</y>
-      <width>201</width>
+      <x>1210</x>
+      <y>610</y>
+      <width>121</width>
       <height>31</height>
      </rect>
     </property>
@@ -2279,9 +2279,9 @@
     <property name="geometry">
      <rect>
       <x>1210</x>
-      <y>550</y>
+      <y>650</y>
       <width>101</width>
-      <height>171</height>
+      <height>101</height>
      </rect>
     </property>
     <property name="title">
@@ -2303,9 +2303,9 @@
     <widget class="QLineEdit" name="lineEdit_ROI_size">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>30</y>
-       <width>31</width>
+       <x>60</x>
+       <y>10</y>
+       <width>41</width>
        <height>21</height>
       </rect>
      </property>
@@ -2317,7 +2317,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>60</y>
+       <y>40</y>
        <width>31</width>
        <height>16</height>
       </rect>
@@ -2329,9 +2329,9 @@
     <widget class="QLineEdit" name="lineEdit_ROI_mean">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>80</y>
-       <width>71</width>
+       <x>40</x>
+       <y>40</y>
+       <width>61</width>
        <height>21</height>
       </rect>
      </property>
@@ -2342,8 +2342,8 @@
     <widget class="QLabel" name="label_40">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>110</y>
+       <x>10</x>
+       <y>70</y>
        <width>21</width>
        <height>16</height>
       </rect>
@@ -2355,9 +2355,9 @@
     <widget class="QLineEdit" name="lineEdit_ROI_SD">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>130</y>
-       <width>71</width>
+       <x>40</x>
+       <y>70</y>
+       <width>61</width>
        <height>21</height>
       </rect>
      </property>
@@ -2369,10 +2369,10 @@
    <widget class="QGroupBox" name="groupBox_9">
     <property name="geometry">
      <rect>
-      <x>1100</x>
-      <y>390</y>
-      <width>211</width>
-      <height>41</height>
+      <x>1140</x>
+      <y>570</y>
+      <width>181</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="title">
@@ -2381,7 +2381,7 @@
     <widget class="QRadioButton" name="radioButton_Profile_Hor">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>10</y>
        <width>91</width>
        <height>17</height>
@@ -2397,7 +2397,7 @@
     <widget class="QRadioButton" name="radioButton_Profile_Ver">
      <property name="geometry">
       <rect>
-       <x>120</x>
+       <x>100</x>
        <y>10</y>
        <width>71</width>
        <height>17</height>
@@ -2407,71 +2407,6 @@
       <string>Vertical</string>
      </property>
     </widget>
-   </widget>
-   <widget class="QLineEdit" name="lineEdit_ForcedProbePosX">
-    <property name="geometry">
-     <rect>
-      <x>1000</x>
-      <y>470</y>
-      <width>41</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_41">
-    <property name="geometry">
-     <rect>
-      <x>1000</x>
-      <y>450</y>
-      <width>61</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>PosX(mm)</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_42">
-    <property name="geometry">
-     <rect>
-      <x>1060</x>
-      <y>450</y>
-      <width>61</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>PosY(mm)</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="lineEdit_ForcedProbePosY">
-    <property name="geometry">
-     <rect>
-      <x>1060</x>
-      <y>470</y>
-      <width>41</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButtonGoForcedProbe">
-    <property name="geometry">
-     <rect>
-      <x>1180</x>
-      <y>450</y>
-      <width>71</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Go position</string>
-    </property>
    </widget>
    <widget class="QPushButton" name="pushButton_DoBHC">
     <property name="enabled">
@@ -2489,37 +2424,11 @@
      <string>Beam Hardening Correction</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_53">
-    <property name="geometry">
-     <rect>
-      <x>1120</x>
-      <y>450</y>
-      <width>61</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>PosZ(mm)</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="lineEdit_ForcedProbePosZ">
-    <property name="geometry">
-     <rect>
-      <x>1120</x>
-      <y>470</y>
-      <width>41</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_15">
     <property name="geometry">
      <rect>
-      <x>1000</x>
-      <y>420</y>
+      <x>980</x>
+      <y>410</y>
       <width>41</width>
       <height>16</height>
      </rect>
@@ -2531,8 +2440,8 @@
    <widget class="QLineEdit" name="lineEdit_CurrentPosZ">
     <property name="geometry">
      <rect>
-      <x>1040</x>
-      <y>420</y>
+      <x>1020</x>
+      <y>410</y>
       <width>51</width>
       <height>20</height>
      </rect>
@@ -2659,9 +2568,9 @@
     <property name="geometry">
      <rect>
       <x>1010</x>
-      <y>730</y>
+      <y>760</y>
       <width>301</width>
-      <height>111</height>
+      <height>81</height>
      </rect>
     </property>
     <property name="title">
@@ -2697,9 +2606,9 @@
      <property name="geometry">
       <rect>
        <x>220</x>
-       <y>70</y>
+       <y>50</y>
        <width>71</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -2709,8 +2618,8 @@
     <widget class="QLineEdit" name="lineEdit_SkinMargin">
      <property name="geometry">
       <rect>
-       <x>250</x>
-       <y>40</y>
+       <x>160</x>
+       <y>50</y>
        <width>41</width>
        <height>20</height>
       </rect>
@@ -2722,14 +2631,215 @@
     <widget class="QLabel" name="label_43">
      <property name="geometry">
       <rect>
-       <x>90</x>
-       <y>40</y>
+       <x>10</x>
+       <y>50</y>
        <width>151</width>
        <height>20</height>
       </rect>
      </property>
      <property name="text">
       <string>Expansion/Contraction (mm)</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_16">
+    <property name="geometry">
+     <rect>
+      <x>1000</x>
+      <y>490</y>
+      <width>241</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Probe</string>
+    </property>
+    <widget class="QLabel" name="label_41">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>61</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PosX(mm)</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_42">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>20</y>
+       <width>61</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PosY(mm)</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_53">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>20</y>
+       <width>61</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PosZ(mm)</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_ForcedProbePosX">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>41</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_ForcedProbePosY">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>40</y>
+       <width>41</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_ForcedProbePosZ">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>40</y>
+       <width>41</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonGoForcedProbe">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>30</y>
+       <width>71</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Go position</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_17">
+    <property name="geometry">
+     <rect>
+      <x>1080</x>
+      <y>379</y>
+      <width>231</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Couch shift (post processing)</string>
+    </property>
+    <widget class="QLineEdit" name="lineEdit_CouchTrans">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>50</y>
+       <width>121</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.0,0.0,0.0</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_66">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>81</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Translation (mm)</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_67">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>80</y>
+       <width>81</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Rotation (deg)</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_CouchRot">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>70</y>
+       <width>121</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.0,0.0,0.0</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_CouchShiftAddToMacro">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>91</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string>Add to macro</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_DoCouchCorrection">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>20</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Correct now</string>
      </property>
     </widget>
    </widget>
@@ -2775,19 +2885,14 @@
    <zorder>lineEdit_Cur3DFileName</zorder>
    <zorder>label_37</zorder>
    <zorder>groupBox_9</zorder>
-   <zorder>lineEdit_ForcedProbePosX</zorder>
-   <zorder>label_41</zorder>
-   <zorder>label_42</zorder>
-   <zorder>lineEdit_ForcedProbePosY</zorder>
-   <zorder>pushButtonGoForcedProbe</zorder>
    <zorder>pushButton_DoBHC</zorder>
-   <zorder>label_53</zorder>
-   <zorder>lineEdit_ForcedProbePosZ</zorder>
    <zorder>label_15</zorder>
    <zorder>lineEdit_CurrentPosZ</zorder>
    <zorder>groupBox_12</zorder>
    <zorder>groupBox_14</zorder>
    <zorder>groupBox_15</zorder>
+   <zorder>groupBox_16</zorder>
+   <zorder>groupBox_17</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -2837,6 +2942,7 @@
     <addaction name="actionFine_resolution_scatter_correction_macro"/>
     <addaction name="actionFull_apriori_scatter_correction_macro"/>
     <addaction name="actionBatch_apriori_scatter_correction_macro"/>
+    <addaction name="actionWEPL_calculation_on_multiple_mha_files"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -3028,6 +3134,11 @@
   <action name="actionLoad_CTdeform_image_mha_SHORT">
    <property name="text">
     <string>Load CTdeform image(mha,SHORT)</string>
+   </property>
+  </action>
+  <action name="actionWEPL_calculation_on_multiple_mha_files">
+   <property name="text">
+    <string>WEPL calculation on multiple mha files</string>
    </property>
   </action>
  </widget>
@@ -3456,7 +3567,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1040</x>
-     <y>443</y>
+     <y>433</y>
     </hint>
     <hint type="destinationlabel">
      <x>982</x>
@@ -3471,8 +3582,8 @@
    <slot>SLT_CopyTableToClipBoard()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1032</x>
-     <y>559</y>
+     <x>1210</x>
+     <y>643</y>
     </hint>
     <hint type="destinationlabel">
      <x>977</x>
@@ -3776,7 +3887,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1221</x>
-     <y>493</y>
+     <y>553</y>
     </hint>
     <hint type="destinationlabel">
      <x>1165</x>
@@ -4048,7 +4159,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1033</x>
-     <y>796</y>
+     <y>829</y>
     </hint>
     <hint type="destinationlabel">
      <x>999</x>
@@ -4408,6 +4519,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButton_DoCouchCorrection</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_DoCouchCorrection()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1282</x>
+     <y>439</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1321</x>
+     <y>436</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionWEPL_calculation_on_multiple_mha_files</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLTM_WELPCalcMultipleFiles()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_LoadRawImages()</slot>
@@ -4471,5 +4614,7 @@
   <slot>SLT_LoadCBCTcorrMHA()</slot>
   <slot>SLT_LoadCTrigidMHA()</slot>
   <slot>SLT_LoadCTdeformMHA()</slot>
+  <slot>SLT_DoCouchCorrection()</slot>
+  <slot>SLTM_WELPCalcMultipleFiles()</slot>
  </slots>
 </ui>

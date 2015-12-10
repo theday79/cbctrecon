@@ -302,6 +302,13 @@ public:
 
         void LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget);
 
+        bool GetCouchShiftFromINIXVI(QString& strPathINI, VEC3D* pTrans, VEC3D* pRot);
+
+        //This function came from the tracking project. trans values are all in mm, DICOM x, y, z 
+        void ImageTransformUsingCouchCorrection(USHORT_ImageType::Pointer& spUshortInput, USHORT_ImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot);
+
+        void GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL);
+
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
 		void SLT_LoadRawImages(); //independent 2d projection files //not used in clinical case
@@ -411,6 +418,9 @@ public:
 
                 void SLT_OpenPhaseData(); //fill lineEdit_PhaseTxtPath
                 void SLT_Export4DCBCT(); //phase resorting
+
+                void SLT_DoCouchCorrection();
+                void SLTM_WELPCalcMultipleFiles();
                 
 
 public:
@@ -485,6 +495,7 @@ public:
 	QString m_strPathRS_CBCT; //QFileDialog default starting point
         QString m_strPathElektaINI; //for mAs values
         QString m_strPathIMAGES;//upper folder of projection files (His)
+        QString m_strPathElektaINIXVI2; //this includes couch shift values. longer INI.XVI file
 
 	int m_iFixedOffset_ScatterMap;//fixed! allows negative value of scatter
 	double m_fResampleF; //typically 0.5. this is updated during LoadSelectedProj image and ui.lineEdit_DownResolFactor.//also affects all other scatter correction method
