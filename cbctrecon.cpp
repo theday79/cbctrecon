@@ -1604,7 +1604,7 @@ void CbctRecon::LoadRTKGeometryFile( const char* filePath )
 	m_spFullGeometry = geometryReader->GetOutputObject();
 
 	//fullGeometry->GetGantryAngles();
-	int geoDataSize = m_spFullGeometry->GetGantryAngles().size();
+	int geoDataSize = m_spFullGeometry->GetGantryAngles().size(); //This is MV gantry angle!!!
 	cout << "Geometry data size(projection gantry angles): " << geoDataSize << endl;
 	if (geoDataSize < 1)
 		return;
@@ -2494,9 +2494,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 			curAngle = firstAngle - i*gantryAngleInterval;  
 			if (curAngle < 0.0)
 				curAngle  = curAngle + 360.0;
-		  }
-
-	
+		  }	
 		  //Don't add last gantry angle if their intervals are too small.
 
 		  //Last data will be added at the last part
@@ -5542,7 +5540,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	return;
   }
 
-  if (m_iCntSelectedProj < 1)
+  if (m_iCntSelectedProj < 1 && bSave)
   {
 	cout << "Error! No projection image is loaded" << endl;
 	return;
@@ -6943,12 +6941,19 @@ void CbctRecon::AfterScatCorrectionMacro()
 
   m_pDlgRegistration->PostSkinRemovingCBCT(m_spRawReconImg);
   m_pDlgRegistration->PostSkinRemovingCBCT(m_spScatCorrReconImg);
-  //cout << "skin removal is done" << endl;
 
+  //20151208 Removal of high intensity skin mask
+  //Main issue: raw CBCT projection includes mask, deformed CT doesn't include mask. In case of weight loss, mask signal is independent from skin contour, but deformed CT cannot have that signal.
+  //Therefore, after the subtraction (CBCTcor projections), there is always a big peak. DIR quality doesn't matter because it cannot 'create' mask signal anyway.  
+  //Assumption: near the skin contour, this kind of discrepancy is not expected.
+  //m_pDlgRegistration->ThermoMaskRemovingCBCT(m_spRawReconImg, m_spScatCorrReconImg, threshold_HU);
+    
   m_pDlgRegistration->UpdateListOfComboBox(0);//combo selection signalis called
   m_pDlgRegistration->UpdateListOfComboBox(1);
   m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
   m_pDlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT );
+
+  m_pDlgRegistration->SLT_DoLowerMaskIntensity(); //it will check the check button.
 
   UpdateReconImage(m_spScatCorrReconImg, QString("Scatter corrected CBCT")); //main GUI update
 
@@ -8381,57 +8386,106 @@ void CbctRecon::SLTM_ForwardProjection()
 {
     GeometryType::Pointer crntGeometry = GeometryType::New();
 
-    int cntProj = m_spCustomGeometry->GetGantryAngles().size();
-
-    if (cntProj < 1)
+    if (!m_spCustomGeometry)
     {
-        cout << "ERROR: geometry is not ready" << endl;
-        return;
-    }
+        cout << "No geometry is ready. moving on to 360 projection" << endl;
 
-    QMessageBox msgBox;
-    msgBox.setText("Do you want to override panel shifts with 0 before forward projection?");
-    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        double curSID = 1000.0;
+        double curSDD = 1536.0;        
+        double curProjOffsetX = 0.0;
+        double curProjOffsetY = 0.0;
+        double curOutOfPlaneAngles = 0.0;
+        double curInPlaneAngles = 0.0;
+        double curSrcOffsetX = 0.0;
+        double curSrcOffsetY = 0.0;
 
-    int bOverridePanelShift = msgBox.exec();
+        double curMVGantryAngle = 0.0;
 
-    //if (res == QMessageBox::Yes)
+        double startAngle = 180.0; //kV = 270.0, CW
+        int NumOfProj = 360;
 
-    //Regenerate geometry object
-  
-    for (int i = 0; i < cntProj; i++)
-    {
-        double curSID = m_spCustomGeometry->GetSourceToIsocenterDistances().at(i);
-        double curSDD = m_spCustomGeometry->GetSourceToDetectorDistances().at(i);
-        double curGantryAngle = m_spCustomGeometry->GetGantryAngles().at(i);
-
-        double curProjOffsetX = m_spCustomGeometry->GetProjectionOffsetsX().at(i);
-        double curProjOffsetY = m_spCustomGeometry->GetProjectionOffsetsY().at(i);
-
-        double curOutOfPlaneAngles = m_spCustomGeometry->GetOutOfPlaneAngles().at(i);
-        double curInPlaneAngles = m_spCustomGeometry->GetInPlaneAngles().at(i);
-
-        double curSrcOffsetX = m_spCustomGeometry->GetSourceOffsetsX().at(i);
-        double curSrcOffsetY = m_spCustomGeometry->GetSourceOffsetsY().at(i);
-
-        if (bOverridePanelShift)
+        for (int i = 0; i < NumOfProj; i++)
         {
-            /*curProjOffsetX = 0.0;
-            curProjOffsetY = 0.0;*/
-            curProjOffsetX = -100.0;//half fan, shifted toward patient right when kV source is 0
-            curProjOffsetY = -20.0;//shifted toward superior
+            curMVGantryAngle = startAngle + i;
+            if (curMVGantryAngle > 360.0)
+                curMVGantryAngle = curMVGantryAngle - 360.0;
+            //AddProjection: current CBCT software version only requires MV gantry angle!!!
+            crntGeometry->AddProjection(curSID, curSDD, curMVGantryAngle,
+                curProjOffsetX, curProjOffsetY, //Flexmap 
+                curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
+                curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
+        }    
+
+        ForwardProjection(m_spRawReconImg, crntGeometry, m_spProjImgRaw3D, false);
+        //Save proj3D;
+
+        QString outputPath = "D:/ProjTemplate.mha";
+
+        typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
+        WriterType::Pointer writer = WriterType::New();
+        writer->SetFileName(outputPath.toLocal8Bit().constData());
+        //writer->SetUseCompression(true); 
+        writer->SetUseCompression(true); //for plastimatch
+        writer->SetInput(m_spProjImgRaw3D);        
+        writer->Update();     
+
+        return;
+
+    }
+    else//if there is a geometry
+    {
+        int cntProj = m_spCustomGeometry->GetGantryAngles().size();
+
+        if (cntProj < 1)
+        {
+            cout << "ERROR: geometry is not ready" << endl;
+            return;
         }
 
-        crntGeometry->AddProjection(curSID, curSDD, curGantryAngle,
-            curProjOffsetX, curProjOffsetY, //Flexmap 
-            curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
-            curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
-    }
+        /*  QMessageBox msgBox;
+          msgBox.setText("Do you want to override panel shifts with 0 before forward projection?");
+          msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
 
-    ForwardProjection(m_spRawReconImg, crntGeometry, m_spProjImgRaw3D, true); //final moving image
+          int bOverridePanelShift = msgBox.exec();*/
+
+        //if (res == QMessageBox::Yes)
+
+        //Regenerate geometry object
+
+        for (int i = 0; i < cntProj; i++)
+        {
+            double curSID = m_spCustomGeometry->GetSourceToIsocenterDistances().at(i);
+            double curSDD = m_spCustomGeometry->GetSourceToDetectorDistances().at(i);
+            double curGantryAngle = m_spCustomGeometry->GetGantryAngles().at(i);
+
+            double curProjOffsetX = m_spCustomGeometry->GetProjectionOffsetsX().at(i);
+            double curProjOffsetY = m_spCustomGeometry->GetProjectionOffsetsY().at(i);
+
+            double curOutOfPlaneAngles = m_spCustomGeometry->GetOutOfPlaneAngles().at(i);
+            double curInPlaneAngles = m_spCustomGeometry->GetInPlaneAngles().at(i);
+
+            double curSrcOffsetX = m_spCustomGeometry->GetSourceOffsetsX().at(i);
+            double curSrcOffsetY = m_spCustomGeometry->GetSourceOffsetsY().at(i);
+
+            //if (bOverridePanelShift)
+            //{
+            //    /*curProjOffsetX = 0.0;
+            //    curProjOffsetY = 0.0;*/
+            //    curProjOffsetX = 0.0;//half fan, shifted toward patient right when kV source is 0
+            //    curProjOffsetY = 0.0;//shifted toward superior
+            //}
+
+            crntGeometry->AddProjection(curSID, curSDD, curGantryAngle,
+                curProjOffsetX, curProjOffsetY, //Flexmap 
+                curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
+                curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
+        }
+
+        ForwardProjection(m_spRawReconImg, crntGeometry, m_spProjImgRaw3D, true);
+    }    
     
     //Export geometry txt    
-    QString strPath = QFileDialog::getSaveFileName(this, "Save geometry file for forward projection", "", "text (*.txt)", 0, 0);
+   /* QString strPath = QFileDialog::getSaveFileName(this, "Save geometry file for forward projection", "", "text (*.txt)", 0, 0);
 
     if (strPath.length() <= 1)
         return;
@@ -8471,7 +8525,7 @@ void CbctRecon::SLTM_ForwardProjection()
         itShiftY++;
     }
 
-    fout.close();
+    fout.close();*/
 
 }
 
@@ -9403,6 +9457,127 @@ void CbctRecon::AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, v
         }                    
     }
 }
+
+void CbctRecon::SLT_LoadCBCTcorrMHA()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault, "Short image file (*.mha)", 0, 0);
+
+    if (fileName.length() < 1)
+        return;   
+    
+    
+
+    LoadShort3DImage(fileName, REGISTER_COR_CBCT);
+
+    //cout << m_spScatCorrReconImg->GetBufferedRegion().GetSize() << endl;
+
+    SLT_DrawReconImage();
+   
+}
+
+void CbctRecon::SLT_LoadCTrigidMHA()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault, "Short image file (*.mha)", 0, 0);
+
+    if (fileName.length() < 1)
+        return;
+
+    LoadShort3DImage(fileName, REGISTER_AUTO_RIGID);
+
+    SLT_DrawReconImage();
+
+}
+
+void CbctRecon::SLT_LoadCTdeformMHA()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault, "Short image file (*.mha)", 0, 0);
+
+    if (fileName.length() < 1)
+        return;
+
+    LoadShort3DImage(fileName, REGISTER_DEFORM_FINAL);
+
+
+    SLT_DrawReconImage();
+}
+
+
+void CbctRecon::LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget)
+{
+    QFileInfo fInfo(filePath);
+    if (!fInfo.exists())
+        return;
+
+    USHORT_ImageType::Pointer spImg;
+
+    if (!LoadShortImageToUshort(filePath, spImg))
+    {
+        cout << "error! in LoadShortImageToUshort" << endl;
+    }
+
+    switch (enTarget)
+    {
+    case REGISTER_RAW_CBCT:
+        m_spRawReconImg = spImg;
+        break;
+    case REGISTER_COR_CBCT:
+        m_spScatCorrReconImg = spImg;
+        break;
+    case REGISTER_MANUAL_RIGID:
+        m_spManualRigidCT = spImg;
+        break;
+    case REGISTER_AUTO_RIGID:
+        m_spAutoRigidCT = spImg;
+        break;
+    case REGISTER_DEFORM_FINAL:
+        m_spDeformedCT_Final = spImg;
+        break;
+    default:
+        m_spRawReconImg = spImg;
+        break;
+    }
+
+    typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType>
+        ImageCalculatorFilterType2;
+
+    ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
+        = ImageCalculatorFilterType2::New();
+    //imageCalculatorFilter2->SetImage(m_spReconImg);
+    imageCalculatorFilter2->SetImage(spImg);
+    imageCalculatorFilter2->Compute();
+
+    double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
+    double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
+
+    cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2 << endl;
+
+    //Update UI
+    USHORT_ImageType::SizeType imgDim = spImg->GetBufferedRegion().GetSize();
+    USHORT_ImageType::SpacingType spacing = spImg->GetSpacing();
+
+    cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
+    cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
+
+    m_spCrntReconImg = spImg;
+
+    ui.lineEdit_Cur3DFileName->setText(filePath);
+    m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+    ui.spinBoxReconImgSliceNo->setMinimum(0);
+    ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+    int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+    SLT_InitializeGraphLim();
+    ui.spinBoxReconImgSliceNo->setValue(initVal); //DrawRecon Imge is called
+    ui.radioButton_graph_recon->setChecked(true);
+
+    m_pDlgRegistration->UpdateListOfComboBox(0);//combo selection signalis called
+    m_pDlgRegistration->UpdateListOfComboBox(1);
+    m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
+    m_pDlgRegistration->SelectComboExternal(1, enTarget);
+}
+
+
 
 
 

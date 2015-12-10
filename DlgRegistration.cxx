@@ -83,31 +83,31 @@ DlgRegistration::DlgRegistration(QWidget *parent): QDialog (parent)
     ui.setupUi (this);
     m_pParent = (CbctRecon*)(parent);  
 
-    connect (ui.labelOverlapWnd1, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit1())); //added
-    connect (ui.labelOverlapWnd2, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit2())); //added
-    connect (ui.labelOverlapWnd3, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit3())); //added
+    connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit1())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit2())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit3())); //added
 
-	connect (ui.labelOverlapWnd1, SIGNAL(Mouse_Pressed_Left()), this, SLOT(SLT_MousePressedLeft1())); //added
-	connect (ui.labelOverlapWnd2, SIGNAL(Mouse_Pressed_Left()), this, SLOT(SLT_MousePressedLeft2())); //added
-	connect (ui.labelOverlapWnd3, SIGNAL(Mouse_Pressed_Left()), this, SLOT(SLT_MousePressedLeft3())); //added
-	connect (ui.labelOverlapWnd1, SIGNAL(Mouse_Pressed_Right()), this, SLOT(SLT_MousePressedRight1())); //added
-	connect (ui.labelOverlapWnd2, SIGNAL(Mouse_Pressed_Right()), this, SLOT(SLT_MousePressedRight2())); //added
-	connect (ui.labelOverlapWnd3, SIGNAL(Mouse_Pressed_Right()), this, SLOT(SLT_MousePressedRight3())); //added
+    connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Pressed_Left()), this, SLOT(SLT_MousePressedLeft1())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Pressed_Left()), this, SLOT(SLT_MousePressedLeft2())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(Mouse_Pressed_Left()), this, SLOT(SLT_MousePressedLeft3())); //added
+    connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Pressed_Right()), this, SLOT(SLT_MousePressedRight1())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Pressed_Right()), this, SLOT(SLT_MousePressedRight2())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(Mouse_Pressed_Right()), this, SLOT(SLT_MousePressedRight3())); //added
 
-	connect (ui.labelOverlapWnd1, SIGNAL(Mouse_Released_Left()), this, SLOT(SLT_MouseReleasedLeft1())); //added
-	connect (ui.labelOverlapWnd2, SIGNAL(Mouse_Released_Left()), this, SLOT(SLT_MouseReleasedLeft2())); //added
-	connect (ui.labelOverlapWnd3, SIGNAL(Mouse_Released_Left()), this, SLOT(SLT_MouseReleasedLeft3())); //added
-	connect (ui.labelOverlapWnd1, SIGNAL(Mouse_Released_Right()), this, SLOT(SLT_MouseReleasedRight1())); //added
-	connect (ui.labelOverlapWnd2, SIGNAL(Mouse_Released_Right()), this, SLOT(SLT_MouseReleasedRight2())); //added
-	connect (ui.labelOverlapWnd3, SIGNAL(Mouse_Released_Right()), this, SLOT(SLT_MouseReleasedRight3())); //added
+    connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Released_Left()), this, SLOT(SLT_MouseReleasedLeft1())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Released_Left()), this, SLOT(SLT_MouseReleasedLeft2())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(Mouse_Released_Left()), this, SLOT(SLT_MouseReleasedLeft3())); //added
+    connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Released_Right()), this, SLOT(SLT_MouseReleasedRight1())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Released_Right()), this, SLOT(SLT_MouseReleasedRight2())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(Mouse_Released_Right()), this, SLOT(SLT_MouseReleasedRight3())); //added
 
-	connect (ui.labelOverlapWnd1, SIGNAL(FocusOut()), this, SLOT(SLT_CancelMouseAction())); //added
-	connect (ui.labelOverlapWnd2, SIGNAL(FocusOut()), this, SLOT(SLT_CancelMouseAction())); //added
-	connect (ui.labelOverlapWnd3, SIGNAL(FocusOut()), this, SLOT(SLT_CancelMouseAction())); //added
+    connect(ui.labelOverlapWnd1, SIGNAL(FocusOut()), this, SLOT(SLT_CancelMouseAction())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(FocusOut()), this, SLOT(SLT_CancelMouseAction())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(FocusOut()), this, SLOT(SLT_CancelMouseAction())); //added
 
-	connect (ui.labelOverlapWnd1, SIGNAL(Mouse_Wheel()), this, SLOT(SLT_MouseWheelUpdate1())); //added
-	connect (ui.labelOverlapWnd2, SIGNAL(Mouse_Wheel()), this, SLOT(SLT_MouseWheelUpdate2())); //added
-	connect (ui.labelOverlapWnd3, SIGNAL(Mouse_Wheel()), this, SLOT(SLT_MouseWheelUpdate3())); //added    
+    connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Wheel()), this, SLOT(SLT_MouseWheelUpdate1())); //added
+    connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Wheel()), this, SLOT(SLT_MouseWheelUpdate2())); //added
+    connect(ui.labelOverlapWnd3, SIGNAL(Mouse_Wheel()), this, SLOT(SLT_MouseWheelUpdate3())); //added    
 
 	SLT_CancelMouseAction();
 	m_enViewArrange = AXIAL_FRONTAL_SAGITTAL;
@@ -128,9 +128,10 @@ DlgRegistration::DlgRegistration(QWidget *parent): QDialog (parent)
 	//m_strPathPlastimatch = "./plastimatch"
 
 
-	ui.comboBoxDeformOption->addItem("mi");//mutual info
-	ui.comboBoxDeformOption->addItem("mse"); //intensity	
-	ui.comboBoxDeformOption->setCurrentIndex(0);
+	//ui.comboBoxDeformOption->addItem("mi");//mutual info
+	//ui.comboBoxDeformOption->addItem("mse"); //intensity	
+	////ui.comboBoxDeformOption->setCurrentIndex(0);
+ //       ui.comboBoxDeformOption->setCurrentIndex(1); //default: mse for Head and neck
 
 	//QString strTest = "abcdefg";
 
@@ -1442,8 +1443,12 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
   fout << "xform_out=" << strPathXformOut.toLocal8Bit().constData() << endl;
   fout << endl;
 
-//  int idx = ui.comboBoxDeformOption->currentIndex();
-  QString strOptim = ui.comboBoxDeformOption->currentText();
+  //QString strOptim = ui.comboBoxDeformOption->currentText();
+  QString strOptim;
+  if (ui.radioButton_mse->isChecked())
+      strOptim = "mse";
+  else if (ui.radioButton_mi->isChecked())
+      strOptim = "mi";
 
   QStringList strListOption1,strListOption2, strListOption3;
   strListOption1 = strStageOption1.split(",");  //Subsampling rate (3), Grid size (1), Regularization(1), LandmarkPenalty(1), Max Iteration (1), StageOutput(1)
@@ -2716,8 +2721,10 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   }
 
   m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; //for further use  
-
   cout << "CBCT preprocessing is done! " << endl;
+
+  //Delete temporary file (~450 MB)
+  QFile::remove(strPath_outputXF_manualTrans);
 
 }
 
@@ -2905,10 +2912,7 @@ void DlgRegistration::init( QString& strDCMUID )
 
   ui.checkBoxKeyMoving->setChecked(false);
   ui.lineEditOriginChanged->setText("");
-  int findIndx = -1;  
-  findIndx = ui.comboBoxDeformOption->findText("mi");
-  ui.comboBoxDeformOption->setCurrentIndex(findIndx);//will call "SLT_FixedImageSelected" 
-
+ 
   //show();
 
   UpdateListOfComboBox(0);
@@ -2935,8 +2939,8 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
 {
   if (!spCBCT)
   {
-	cout << "Error! No CBCT image is available" << endl;
-  } 
+      cout << "Error! No CBCT image is available" << endl;
+  }
 
   //find the closest skin contour for CBCT: !8 mm expansion from auto rigid body
 
@@ -3024,6 +3028,142 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
 	return;
   }
 }
+
+void DlgRegistration::SLT_DoLowerMaskIntensity()
+{
+    if (!ui.checkBoxRemoveMaskAfterCor->isChecked())
+    {
+        cout << "Error. this function is not enabled" << endl;
+        return;
+    }
+
+    int iDiffThreshold = ui.lineEditRawCorThre->text().toInt();
+
+    int iNoTouchThreshold = ui.lineEditiNoTouchThreshold->text().toInt();
+
+    /*if (!m_pParent->m_spScatCorrReconImg || !m_pParent->m_spRawReconImg)
+    {
+
+        cout << "You need both raw and corr CBCT images" << endl;
+        return;
+    }*/
+    ThermoMaskRemovingCBCT(m_spFixed, m_spMoving, iDiffThreshold, iNoTouchThreshold);
+
+    UpdateListOfComboBox(0);//combo selection signalis called
+    UpdateListOfComboBox(1);
+    SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
+    SelectComboExternal(1, REGISTER_COR_CBCT);
+}
+
+void DlgRegistration::ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold)
+{
+    if (!spCBCTraw || !spCBCTcor)
+    {
+        cout << "You need both raw and corr CBCT images" << endl;
+        return;
+    }        
+
+    QString strPathInputMask;
+    QString strPathOutputMask;
+    double fInnerMargin = ui.lineEditThermoInner->text().toDouble();
+    double fOuterMargin = ui.lineEditThermoOuter->text().toDouble();    
+
+    QString strPath_mskSkinCT_manRegi = m_strPathPlastimatch + "/msk_skin_CT_manRegi.mha";
+    QString strPath_mskSkinCT_autoRegi = m_strPathPlastimatch + "/msk_skin_CT_autoRegi.mha";
+
+    QFileInfo maskInfoMan(strPath_mskSkinCT_manRegi);
+    QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi);
+
+    if (maskInfoAuto.exists())
+    {
+        strPathInputMask = strPath_mskSkinCT_autoRegi;
+    }
+    else if (maskInfoMan.exists())
+    {
+        strPathInputMask = strPath_mskSkinCT_manRegi;
+    }
+    else
+    {
+        cout << "Error! no available mask exist" << endl;
+        return;
+    }
+    strPathOutputMask = m_strPathPlastimatch + "/msk_skin_CT_shell.mha";
+    GenShellMask(strPathInputMask, strPathOutputMask, fInnerMargin, fOuterMargin);
+
+    //Load shell mask
+
+    QFileInfo fInfoOutput(strPathOutputMask);
+
+    if (!fInfoOutput.exists())
+    {
+        cout << "error! GenShellMask DIDN'T WORK WELL" << endl;
+        return;
+    }     
+
+    typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+    readerType::Pointer reader = readerType::New();
+    reader->SetFileName(strPathOutputMask.toLocal8Bit().constData());
+    reader->Update();
+
+    USHORT_ImageType::Pointer spShellMask = reader->GetOutput();
+
+    itk::ImageRegionIterator<USHORT_ImageType> itRaw(spCBCTraw, spCBCTraw->GetBufferedRegion());
+    itk::ImageRegionIterator<USHORT_ImageType> itCor(spCBCTcor, spCBCTcor->GetBufferedRegion());
+    itk::ImageRegionIterator<USHORT_ImageType> itMask(spShellMask, spShellMask->GetBufferedRegion());
+
+    USHORT_ImageType::SizeType size1 = spCBCTraw->GetBufferedRegion().GetSize();
+    USHORT_ImageType::SizeType size2 = spCBCTcor->GetBufferedRegion().GetSize();
+    USHORT_ImageType::SizeType size3 = spShellMask->GetBufferedRegion().GetSize();
+
+    if (size1[0] != size3[0] || size1[1] != size3[1] || size1[2] != size3[2])
+    {
+        cout << "Error! size is different." << "  " << size3 << endl;
+        return;
+    }
+    
+    int diffHU = 0;
+    for (itRaw.GoToBegin(), itCor.GoToBegin(), itMask.GoToBegin();
+        !itRaw.IsAtEnd() && !itCor.IsAtEnd() && !itMask.IsAtEnd();
+        ++itRaw, ++itCor, ++itMask)
+    {
+        if (itMask.Get() > 0) //in shell
+        {
+            diffHU = itCor.Get() - itRaw.Get();
+            //do not change the HU value if corrCBCT is at reasonable value
+            if (diffHU > diffThreshold && itCor.Get() > noTouchThreshold)
+            {
+                itCor.Set(itRaw.Get());
+            }
+        }
+    }
+}
+
+void DlgRegistration::GenShellMask(QString& strPathInputMask, QString& strPathOutputMask, double fInnerMargin, double fOuterMargin)
+{
+    QFileInfo fInfoInput(strPathInputMask);
+
+    if (!fInfoInput.exists())
+        return;    
+    
+    QString strPathTmpExp = fInfoInput.absolutePath() + "/" + "/msk_temp_exp.mha";
+    QString strPathTmpCont = fInfoInput.absolutePath() + "/" + "/msk_temp_cont.mha";
+    plm_expansion_contract_msk(strPathInputMask, strPathTmpExp, fOuterMargin);//8 mm expansion for a mask image
+    plm_expansion_contract_msk(strPathInputMask, strPathTmpCont, -fInnerMargin);//8 mm expansion for a mask image
+    
+    //Mask_operation mask_option = MASK_OPERATION_MASK;
+    Mask_operation mask_option = MASK_OPERATION_FILL;
+    QString input_fn = strPathTmpExp;
+    QString mask_fn = strPathTmpCont;
+    QString output_fn = strPathOutputMask;
+    float mask_value = 0.0; //unsigned short
+
+    plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+
+    QFile::remove(strPathTmpExp);
+    QFile::remove(strPathTmpCont);
+}
+
+
 
 void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin )
 {
@@ -3197,26 +3337,6 @@ void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, Q
   }
 }
 
-void DlgRegistration::SLT_Macro()
-{
-  //1) DIR
-  if (!m_pParent->m_spAutoRigidCT)
-	return;
-
-  SLT_DoRegistrationDeform();
-  m_pParent->SLT_DoScatterCorrection_APRIORI();
-  //will reconstrct automatically
-
-  //then, Crop skin
-  if (m_pParent->ui.lineEdit_PathCBCTSkinPath->text().length() > 1)
-  {
-	m_pParent->SLT_CropSkinUsingRS();
-  }
-  //Message with alarming
-  QMessageBox::information(0, "Warning", "Reconstruction is done. Export the file");
-  
-
-}
 
 void DlgRegistration::SLT_ExchangeRawRef()
 {
@@ -3568,3 +3688,4 @@ void DlgRegistration::SLT_IntensityNormCBCT()
     m_pParent->UpdateReconImage(m_spFixed, QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix)));    
     SelectComboExternal(0, REGISTER_RAW_CBCT);
 }
+

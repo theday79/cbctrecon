@@ -1260,7 +1260,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>120</string>
+       <string>130</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_PostTablePosY">
@@ -1273,7 +1273,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>120</string>
+       <string>130</string>
       </property>
      </widget>
      <widget class="QCheckBox" name="checkBox_PostDispObjOn">
@@ -1292,7 +1292,7 @@
        <string>Display</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_PostDoNow">
@@ -1503,7 +1503,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>64,40</string>
+       <string>64,30</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_64">
@@ -2807,6 +2807,9 @@
     <addaction name="actionLoad_mha_image"/>
     <addaction name="actionLoad_Plan_CT_Image_mha_signed"/>
     <addaction name="actionLoad_Plan_CT_Image_mha_USHORT"/>
+    <addaction name="actionLoad_CBCTcorr_image_mha_SHORT"/>
+    <addaction name="actionLoad_CTrigid_image_mha_SHORT"/>
+    <addaction name="actionLoad_CTdeform_image_mha_SHORT"/>
     <addaction name="actionLoad_RTK_output_mha_float"/>
     <addaction name="actionLoad_DICOM_image"/>
     <addaction name="actionLoad_float_3D_image_mha_float"/>
@@ -3010,6 +3013,21 @@
   <action name="actionBatch_apriori_scatter_correction_macro">
    <property name="text">
     <string>Batch apriori scatter correction macro</string>
+   </property>
+  </action>
+  <action name="actionLoad_CBCTcorr_image_mha_SHORT">
+   <property name="text">
+    <string>Load CBCTcorr image(mha, SHORT)</string>
+   </property>
+  </action>
+  <action name="actionLoad_CTrigid_image_mha_SHORT">
+   <property name="text">
+    <string>Load CTrigid image(mha,SHORT)</string>
+   </property>
+  </action>
+  <action name="actionLoad_CTdeform_image_mha_SHORT">
+   <property name="text">
+    <string>Load CTdeform image(mha,SHORT)</string>
    </property>
   </action>
  </widget>
@@ -4342,6 +4360,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoad_CBCTcorr_image_mha_SHORT</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_LoadCBCTcorrMHA()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoad_CTrigid_image_mha_SHORT</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_LoadCTrigidMHA()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoad_CTdeform_image_mha_SHORT</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_LoadCTdeformMHA()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_LoadRawImages()</slot>
@@ -4402,5 +4468,8 @@
   <slot>SLTM_BatchScatterCorrectionMacroAP()</slot>
   <slot>SLT_OpenPhaseData()</slot>
   <slot>SLT_Export4DCBCT()</slot>
+  <slot>SLT_LoadCBCTcorrMHA()</slot>
+  <slot>SLT_LoadCTrigidMHA()</slot>
+  <slot>SLT_LoadCTdeformMHA()</slot>
  </slots>
 </ui>

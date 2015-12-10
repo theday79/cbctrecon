@@ -104,15 +104,14 @@ public slots:
 	void SLT_PreProcessCT();
 
 	void SLT_PassFixedImgForAnalysis();
-	void SLT_PassMovingImgForAnalysis();
-	void SLT_Macro();
+	void SLT_PassMovingImgForAnalysis();	
 
 	void SLT_ExchangeRawRef();
 
         /* After manual move: this will trigger skin cropping and uncheck the key moving*/
         void SLT_ConfirmManualRegistration();
         void SLT_IntensityNormCBCT();
-        
+        void SLT_DoLowerMaskIntensity(); //button
 
 
 public:
@@ -177,12 +176,17 @@ public:
 	 void SetPlmOutputDir(QString& endFix);
 	 void init(QString& strDCMUID);
 
-	 void PostSkinRemovingCBCT(USHORT_ImageType::Pointer& spCBCT); //this function will be called from main Dlg.
+	 void PostSkinRemovingCBCT(USHORT_ImageType::Pointer& spCBCT); //this function will be called from main Dlg.         
 
 	 void CropSkinUsingRS(USHORT_ImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin );
 
-	 //void keyPressEvent ( QKeyEvent * e );
-	 
+         //void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int threshold);
+
+         void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold = 1100);
+
+         void GenShellMask(QString& strPathInputMask, QString& strPathOutputMask, double fInnerMargin, double fOuterMargin);
+
+	 //void keyPressEvent ( QKeyEvent * e );	 
      //void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage* pOutput2D);
      //void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& Output2D);
     

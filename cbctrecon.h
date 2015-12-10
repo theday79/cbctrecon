@@ -240,9 +240,7 @@ public:
 	void ResampleItkImage( USHORT_ImageType::Pointer& spSrcImg, USHORT_ImageType::Pointer& spTarImg, double resFactor );
 	void ResampleItkImage2D(OutputImageType2D::Pointer& spSrcImg2D, OutputImageType2D::Pointer& spTarImg2D, double resFactor); //using slice iterator
 
-	void DoReconstructionFDK(enREGI_IMAGES target);
-
-	
+	void DoReconstructionFDK(enREGI_IMAGES target);	
 	void UpdateReconImage(USHORT_ImageType::Pointer& spNewImg, QString& fileName);
 
 	//void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName);//ushort image --> short image --> 
@@ -302,18 +300,25 @@ public:
 
         void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin=5);
 
+        void LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget);
+
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
 		void SLT_LoadRawImages(); //independent 2d projection files //not used in clinical case
 		void SLT_Load3DImage(); //indenepndent 3D mha file. UshortFormat. Do reconstruction is an antoher way to make m_spReconImg
 		void SLT_Load3DImageShort();
+                void SLT_LoadPlanCT_mha();
+                void SLT_LoadPlanCT_USHORT();
+                void SLT_LoadCBCTcorrMHA();
+                void SLT_LoadCTrigidMHA();
+                void SLT_LoadCTdeformMHA(); 
+
 		void SLT_LoadNKIImage();
 		void SLT_LoadSelectedProjFiles(); //based on presetting values on GUI, including geometry files
 		void SLT_ExportHis();
-		void SLT_LoadPlanCT_mha();
-		void SLT_LoadPlanCT_USHORT();
+		
 		void SLT_LoadImageFloat3D();  //Dose file
-		void SLTM_LoadDICOMdir(); //independent 2d projection files //not used in clinical case
+		void SLTM_LoadDICOMdir(); 
 		void SLTM_LoadRTKoutput();
 
 		void SLT_DrawRawImages(); //external *.his images
