@@ -254,7 +254,9 @@ public:
 	double GetRawIntensityScaleFactor();
 
 	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
-	void GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend );
+	void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);
+
+	void GetAngularWEPL_MultiPoint(USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
 
 //	void UpdateUIAfterLoading(QString& imgName);
 
@@ -277,7 +279,9 @@ public:
 
         bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false, bool bCBCT_IntensityShift = false);
 
-        void ExportAngularWEPL_byFile(QString& strPathOutput);
+		void ExportAngularWEPL_byFile(QString& strPathOutput);
+
+		void OptimizedExportAngularWEPL_byFile(QString& strPathOutput);
 
         void ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QString& outputFilePath);
 	/*Temporary implementation for XVI5 xml*/
@@ -385,6 +389,7 @@ public:
 		void SLT_CropSkinUsingRS();
 
 		void SLT_ExportAngularWEPL_byFile();
+		void SLT_OptExportAngularWEPL_byFile();
 		void SLT_LoadPOIData();
 
 		void SLT_StartSyncFromSharedMem();

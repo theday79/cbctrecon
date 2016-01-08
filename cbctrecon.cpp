@@ -7154,13 +7154,16 @@ void CbctRecon::SLT_CalcAndSaveAngularWEPL()//single point
   vector<WEPLData> vOutputWEPL;
 
   double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
+  double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
+  double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
+
 
   VEC3D curPOI;
   curPOI.x = ui.lineEdit_ForcedProbePosX->text().toDouble(); //in mm
   curPOI.y = ui.lineEdit_ForcedProbePosY->text().toDouble();
   curPOI.z = ui.lineEdit_ForcedProbePosZ->text().toDouble();
 
-  GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, curPOI, 0, vOutputWEPL, true);
+  GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, fAngleStart, fAngleEnd, curPOI, 0, vOutputWEPL, true);
   cout << "Computed WEPL points: " << vOutputWEPL.size() << endl;
 
   //export arrWEPL
@@ -7359,6 +7362,8 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
         return;
 
     double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
+	double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
+	double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
 
     if (m_vPOI_DCM.empty())
     {
@@ -7397,25 +7402,26 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
     vector<WEPLData> vOutputWEPL_rawCBCT;
     vector<WEPLData> vOutputWEPL_corCBCT;
 
-	cout << "Everything is OK!? Let's calculate WEPL..." << endl;
+	cout << "Everything is OK!? Let's calculate WEPL...\n" << endl;
 
     for (int i = 0; i < sizePOI; i++)
     {
         VEC3D curPOI = m_vPOI_DCM.at(i);
         //GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, curPOI, i, vOutputWEPL, true);
         //if (m_spRawReconImg)
-        GetAngularWEPL_SinglePoint(m_spRawReconImg, fAngleGap, curPOI, i, vOutputWEPL_rawCBCT, true);//mandatory
+		GetAngularWEPL_SinglePoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_rawCBCT, true);//mandatory
         if (m_spScatCorrReconImg)
-            GetAngularWEPL_SinglePoint(m_spScatCorrReconImg, fAngleGap, curPOI, i, vOutputWEPL_corCBCT, true);
+			GetAngularWEPL_SinglePoint(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_corCBCT, true);
         if (m_spManualRigidCT)
-            GetAngularWEPL_SinglePoint(m_spManualRigidCT, fAngleGap, curPOI, i, vOutputWEPL_manual, true);
+			GetAngularWEPL_SinglePoint(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_manual, true);
         if (m_spAutoRigidCT)
-            GetAngularWEPL_SinglePoint(m_spAutoRigidCT, fAngleGap, curPOI, i, vOutputWEPL_auto_rigid, true);
+			GetAngularWEPL_SinglePoint(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_auto_rigid, true);
         if (m_spDeformedCT_Final)
-            GetAngularWEPL_SinglePoint(m_spDeformedCT_Final, fAngleGap, curPOI, i, vOutputWEPL_deform, true);
+			GetAngularWEPL_SinglePoint(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_deform, true);
+		cout << "OK, point: " << i << " succeeded. Next..\n" << endl;
     }
     //cout << "Computed WEPL points: " << vOutputWEPL.size() << endl;
-	cout << "OK calculation is done, time to save the results..." << endl;
+	cout << "OK calculation is done, time to save the results...\n" << endl;
 
     ofstream fout;
     fout.open(strPathOutput.toLocal8Bit().constData());
@@ -7454,9 +7460,132 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
         fout << endl;
     }
     fout.close();
-    cout << "Saving angular WEPL is completed" << endl;
+    cout << "Saving angular WEPL is completed\n" << endl;
 
 }
+
+
+void CbctRecon::OptimizedExportAngularWEPL_byFile(QString& strPathOutput)
+{
+	if (strPathOutput.length() < 1)
+		return;
+
+	double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
+	double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
+	double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
+
+	if (m_vPOI_DCM.empty())
+	{
+		cout << "No POI data is prepared. Load them first" << endl;
+		return;
+	}
+
+	if (!m_spRawReconImg)
+	{
+		cout << "Error: no Raw Recon image is found" << endl;
+		return;
+	}
+
+	if (!m_spScatCorrReconImg)
+	{
+		cout << "Warning: no ScatCorrReconImg is found" << endl;
+	}
+
+	if (!m_spManualRigidCT)
+	{
+		cout << "Warning: no ManualRigidCT is found" << endl;
+	}
+	if (!m_spAutoRigidCT)
+	{
+		cout << "Warning: no AutoRigidCT is found" << endl;
+	}
+	if (!m_spDeformedCT_Final)
+	{
+		cout << "Warning: no DeformedCT is found" << endl;
+	}
+	int sizePOI = m_vPOI_DCM.size();
+
+	vector<WEPLData> vOutputWEPL_manual;
+	vector<WEPLData> vOutputWEPL_auto_rigid;
+	vector<WEPLData> vOutputWEPL_deform;
+	vector<WEPLData> vOutputWEPL_rawCBCT;
+	vector<WEPLData> vOutputWEPL_corCBCT;
+
+	cout << "Everything is OK!? Let's calculate WEPL...\n" << endl;
+
+	//for (int i = 0; i < sizePOI; i++)
+	//{
+	//	VEC3D curPOI = m_vPOI_DCM.at(i);
+		//GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, curPOI, i, vOutputWEPL, true);
+		//if (m_spRawReconImg)
+	GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
+	cout << "..And I'm back BABYYY!! (RAW)" << endl;
+	if (m_spScatCorrReconImg)
+	{
+		GetAngularWEPL_MultiPoint(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
+		cout << "..And I'm back BABYYY!! (COR)" << endl;
+	}
+	if (m_spManualRigidCT)
+	{
+		GetAngularWEPL_MultiPoint(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
+		cout << "..And I'm back BABYYY!! (MAN)" << endl;
+	}
+	if (m_spAutoRigidCT)
+	{
+		GetAngularWEPL_MultiPoint(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
+		cout << "..And I'm back BABYYY!! (AUT)" << endl;
+	}
+	if (m_spDeformedCT_Final)
+	{
+		GetAngularWEPL_MultiPoint(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
+		cout << "..And I'm back BABYYY!! (DEF)" << endl;
+	}
+	//	cout << "OK, point: " << i << " succeeded. Next..\n" << endl;
+	//}
+	//cout << "Computed WEPL points: " << vOutputWEPL.size() << endl;
+	cout << "OK calculation is done, time to save the results...\n" << endl;
+
+	ofstream fout;
+	fout.open(strPathOutput.toLocal8Bit().constData());
+
+	//    double curAngle2;
+
+	//fout << "POI_Index" << "," << "Gantry_Angle" << "," << "WEPL(mm)" << endl;
+
+	int cntWEPL = vOutputWEPL_rawCBCT.size();
+
+	fout << "Point Index" << "\t" << "Gantry Angle" << "\t" << "Sample Number" << "\t" << "RawCBCT" << "\t";
+
+	if (m_spScatCorrReconImg && vOutputWEPL_corCBCT.size() == cntWEPL)
+		fout << "CorrCBCT" << "\t";
+	if (m_spManualRigidCT && vOutputWEPL_manual.size() == cntWEPL)
+		fout << "ManualRigidCT" << "\t";
+	if (m_spAutoRigidCT && vOutputWEPL_auto_rigid.size() == cntWEPL)
+		fout << "AutoRigidCT" << "\t";
+	if (m_spDeformedCT_Final && vOutputWEPL_deform.size() == cntWEPL)
+		fout << "DeformedCT" << "\t";
+	fout << endl;
+
+	for (int i = 0; i < cntWEPL; i++)
+	{
+		fout << vOutputWEPL_rawCBCT.at(i).ptIndex << "\t" << vOutputWEPL_rawCBCT.at(i).fGanAngle << "\t" << i << "\t" << vOutputWEPL_rawCBCT.at(i).fWEPL << "\t";
+
+		if (m_spScatCorrReconImg && vOutputWEPL_corCBCT.size() == cntWEPL)
+			fout << vOutputWEPL_corCBCT.at(i).fWEPL << "\t";
+		if (m_spManualRigidCT && vOutputWEPL_manual.size() == cntWEPL)
+			fout << vOutputWEPL_manual.at(i).fWEPL << "\t";
+		if (m_spAutoRigidCT && vOutputWEPL_auto_rigid.size() == cntWEPL)
+			fout << vOutputWEPL_auto_rigid.at(i).fWEPL << "\t";
+		if (m_spDeformedCT_Final && vOutputWEPL_deform.size() == cntWEPL)
+			fout << vOutputWEPL_deform.at(i).fWEPL << "\t";
+
+		fout << endl;
+	}
+	fout.close();
+	cout << "Saving angular WEPL is completed\n" << endl;
+
+}
+
 
 void CbctRecon::SLT_ExportAngularWEPL_byFile()
 {
@@ -7469,7 +7598,18 @@ void CbctRecon::SLT_ExportAngularWEPL_byFile()
     ExportAngularWEPL_byFile(filePath);
 }
 
-void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend )
+void CbctRecon::SLT_OptExportAngularWEPL_byFile()
+{
+	//export arrWEPL
+	QString filePath = QFileDialog::getSaveFileName(this, "Save data", m_strPathDirDefault, "txt image file (*.txt)", 0, 0); //Filename don't need to exist
+
+	if (filePath.length() < 1)
+		return;
+
+	OptimizedExportAngularWEPL_byFile(filePath);
+}
+
+void CbctRecon::GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend)
 {
 	if (!spUshortImage)
 		return;
@@ -7478,7 +7618,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 		return;
 
   SHORT_ImageType::Pointer spShortImg;
-  ConvertUshort2Short(spUshortImage, spShortImg);
+  ConvertUshort2Short(spUshortImage, spShortImg); 
 
   typedef itk::CastImageFilter< SHORT_ImageType, OutputImageType > CastFilterType;
   CastFilterType::Pointer castFilter = CastFilterType::New();
@@ -7486,9 +7626,9 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
   castFilter->Update();
 
   //Plm_image::Pointer ct_vol = Plm_image::New (spShortImg);
-  Plm_image::Pointer ct_vol = Plm_image::New (castFilter->GetOutput());
+  Plm_image::Pointer ct_vol = Plm_image::New (castFilter->GetOutput()); // Oh ohh.. not actually a pointer now is it?
 
-  double fullAngle = 360.0;
+  double fullAngle = fAngleEnd - fAngleStart;
   int sizeAngles = qRound(fullAngle / fAngleGap);
 
   //1) Generate parms according to the angle e.g 360 parms
@@ -7520,7 +7660,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 
   cout << "Definition in place, calculation for all given angles startng..." << endl;
 
-  for (int i = 0 ; i < sizeAngles ; i++)
+  for (int i = (fAngleStart / fAngleGap) ; i < sizeAngles ; i++)
   {
       //YKTEMP Should be updated according to recent update of plastimatch
 	curAngle = i * fAngleGap;
@@ -7529,11 +7669,12 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 	srcProton[1] = isoTarget[1] - (srcDistance*cos(curAngle * M_PI / 180.0));
 	srcProton[2] = isoTarget[2];
 
+	//Rt_plan* scene = new Rt_plan; // Oh Ohhh
 	Rt_plan scene;
 
 	//scene.beam = new Rt_beam;
-        Rt_beam* newBeam = scene.append_beam();
-	scene.set_patient(ct_vol);
+        Rt_beam* newBeam = scene.append_beam(); // . to ->
+	scene.set_patient(ct_vol); // . to ->
         newBeam->get_aperture()->set_distance(ap_distance);
         newBeam->get_aperture()->set_distance(ap_distance);
         newBeam->get_aperture()->set_spacing(ap_spacing);
@@ -7551,7 +7692,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 		cout << "Error in scene initRSP" << endl;
 		return;
 	}*/
-        scene.prepare_beam_for_calc(newBeam);
+        scene.prepare_beam_for_calc(newBeam); // . to ->
 
 	//wed_ct_compute in wed_main
 
@@ -7603,7 +7744,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
         delete newBeam;
   }
 
-  cout << "Phew, we got through this angle too.. now we clean up and get ready for the next.." << endl;
+  cout << "Phew, we got through this point too.. now we clean up and get ready for the next.." << endl;
 
   if (!bAppend)
 	vOutputWEPLData.clear();
@@ -7614,7 +7755,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
   }
 
   delete [] stArrWEPL;
-
+  ct_vol->free();
 
 
   //export arrWEPL
@@ -7640,6 +7781,163 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 
  // fout.close();
  // cout << "Saving angular WEPL is completed" << endl;
+}
+
+
+void CbctRecon::GetAngularWEPL_MultiPoint(USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend)
+{
+	if (!spUshortImage)
+		return;
+
+	if (fAngleGap <= 0)
+		return;
+
+	SHORT_ImageType::Pointer spShortImg;
+	ConvertUshort2Short(spUshortImage, spShortImg);
+
+	typedef itk::CastImageFilter< SHORT_ImageType, OutputImageType > CastFilterType;
+	CastFilterType::Pointer castFilter = CastFilterType::New();
+	castFilter->SetInput(spShortImg);
+	castFilter->Update();
+
+	//Plm_image::Pointer ct_vol = Plm_image::New (spShortImg);
+	Plm_image::Pointer ct_vol = Plm_image::New(castFilter->GetOutput()); // Oh ohh.. not actually a pointer now is it?
+
+	double fullAngle = fAngleEnd - fAngleStart;
+	int sizeAngles = qRound(fullAngle / fAngleGap);
+
+	//1) Generate parms according to the angle e.g 360 parms
+	double isoTarget[3];
+	//isoTarget[0] = ui.lineEdit_ForcedProbePosX->text().toDouble(); //in mm
+	//isoTarget[1] = ui.lineEdit_ForcedProbePosY->text().toDouble();
+	//isoTarget[2] = ui.lineEdit_ForcedProbePosZ->text().toDouble();
+
+	float srcDistance = 2200.0; //in mm, 2.2 m
+	float srcProton[3] = { 0.0, 0.0, 0.0 };
+
+	float ap_distance = 1900.0; // 300 mm from the target //offset from the source
+	//float ap_distance = 1000.0; //
+
+
+	float ap_spacing[2] = { 1.0, 1.0 };  //resolution
+	int ap_dim[2] = { 1, 1 };
+	float ap_center[2] = { 1, 1 };
+
+	float ray_step = 1.0;            //mm
+
+	double curAngle = 0.0;
+	VEC3D curPOI;
+
+	int sizePOI = m_vPOI_DCM.size();
+	WEPLData* stArrWEPL = new WEPLData[sizePOI * sizeAngles];
+
+	cout << "Everything is OK!? Let's calculate WEPL...\n" << endl;
+
+	for (int p = 0; p < sizePOI; p++)
+	{
+		curPOI = m_vPOI_DCM.at(p);
+		isoTarget[0] = curPOI.x;  // Sorry, might do better later..
+		isoTarget[1] = curPOI.y;
+		isoTarget[2] = curPOI.z;
+		//GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, curPOI, i, vOutputWEPL, true);
+		//if (m_spRawReconImg)
+		//GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_rawCBCT, true);//mandatory
+
+		cout << "POI idx: " << p << ", calculation for all given angles startng...\n" << endl;
+
+		for (int i = qRound(fAngleStart / fAngleGap); i < sizeAngles + qRound(fAngleStart / fAngleGap); i++)
+		{
+			//YKTEMP Should be updated according to recent update of plastimatch
+			curAngle = i * fAngleGap;
+
+			srcProton[0] = isoTarget[0] + (srcDistance * sin(curAngle * M_PI / 180.0));
+			srcProton[1] = isoTarget[1] - (srcDistance*cos(curAngle * M_PI / 180.0));
+			srcProton[2] = isoTarget[2];
+
+			//cout << "\nDefine scene.." << endl;
+			Rt_plan scene;
+			//cout << "New beam.." << endl;
+			Rt_beam* newBeam = scene.append_beam(); // . to ->
+			scene.set_patient(ct_vol); // . to ->
+			newBeam->get_aperture()->set_distance(ap_distance);
+			newBeam->get_aperture()->set_distance(ap_distance);
+			newBeam->get_aperture()->set_spacing(ap_spacing);
+			newBeam->get_aperture()->set_dim(ap_dim);
+			newBeam->get_aperture()->set_center(ap_center);
+
+
+			newBeam->set_step_length(ray_step);
+			newBeam->set_isocenter_position(isoTarget);
+			newBeam->set_source_position(srcProton);
+
+			//cout << "\nPrep beam.." << endl;
+			scene.prepare_beam_for_calc(newBeam);
+			//wed_ct_compute in wed_main
+
+			Rpl_volume* rpl_vol = newBeam->rpl_vol;
+
+			//rpl_vol->compute_proj_wed_volume()
+
+			Proj_volume *proj_vol = rpl_vol->get_proj_volume();
+			//float *proj_wed_vol_img = (float*) rpl_vol->proj_wed_vol->img;
+			//cout << "\nA lot of const doubles..";
+
+			const double *src = proj_vol->get_src();
+			const double *iso = proj_vol->get_iso();
+			const double sid_length = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
+			double src_iso_vec[3];
+			vec3_sub3(src_iso_vec, src, iso);
+			const double src_iso_distance = vec3_len(src_iso_vec);
+			const double ap_iso_distance = src_iso_distance - sid_length;
+			//cout << " front clipping plane..";
+			double base_rg_dist = ap_iso_distance - rpl_vol->get_front_clipping_plane();
+
+			const double base_dist = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
+
+			const int *ires = proj_vol->get_image_dim();
+
+			//int ap_ij[2]; //ray index of rvol
+			plm_long ap_idx = 0;  //ray number always 0 here
+
+			Ray_data *ray_data;
+			double ray_ap[3]; //vector from src to ray intersection with ap plane
+			double ray_ap_length; //length of vector from src to ray intersection with ap plane
+			double rglength; //length that we insert into get_rgdepth for each ray
+			//cout << " get ray data.. " << endl;
+			ray_data = rpl_vol->get_Ray_data();
+
+			Ray_data *ray_data_single = &ray_data[ap_idx];
+
+			/* Coordinate of ray intersection with aperture plane */
+			double *ap_xyz = ray_data_single->p2;
+			vec3_sub3(ray_ap, ap_xyz, src);
+			ray_ap_length = vec3_len(ray_ap);
+			rglength = base_rg_dist*(ray_ap_length / base_dist);
+
+			int ap_idx_default[2] = { 0, 0 };
+			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].fWEPL = (float)(rpl_vol->get_rgdepth(ap_idx_default, rglength));
+			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].fGanAngle = curAngle;
+			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].ptIndex = p;
+
+			delete newBeam;
+		}
+	}
+
+	cout << "Return results for saving.." << endl;
+
+	if (!bAppend)
+		vOutputWEPLData.clear();
+
+	for (int p = 0; p < sizePOI; p++)
+	{
+		for (int i = int(fAngleStart / fAngleGap); i < sizeAngles; i++)
+		{
+			vOutputWEPLData.push_back(stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles]);
+		}
+	}
+	
+	delete [] stArrWEPL; 
+	ct_vol->free(); 
 }
 
 void CbctRecon::SLT_LoadPOIData()//it fills m_vPOI_DCM

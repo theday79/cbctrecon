@@ -22,7 +22,7 @@ FIND_PACKAGE(CUDA)
 get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
 set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
 
-FIND_PACKAGE(QT4 REQUIRED)
+FIND_PACKAGE(Qt4 REQUIRED)
 
 find_package (Plastimatch)
 message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
