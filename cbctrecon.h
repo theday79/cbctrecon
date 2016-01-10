@@ -301,7 +301,7 @@ public:
         void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin=5);
 
         void LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget);
-
+        //Read long INIXVI text file and read couch shift values. apply cm -> mm conversion (multiply 10). NO sign changes.
         bool GetCouchShiftFromINIXVI(QString& strPathINI, VEC3D* pTrans, VEC3D* pRot);
 
         //This function came from the tracking project. trans values are all in mm, DICOM x, y, z 

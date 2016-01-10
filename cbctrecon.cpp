@@ -8976,7 +8976,8 @@ bool CbctRecon::GetCouchShiftFromINIXVI(QString& strPathINIXVI, VEC3D* pTrans, V
 
     //Warning!! dicom convention!
     pTrans->x = couch_Lat_cm*10.0; //sign should be checked   
-    pTrans->y = couch_Vert_cm*10.0; //sign should be checked
+    //pTrans->y = couch_Vert_cm*10.0; //sign should be checked // IEC-->DICOM is already accounted for..but sign!
+    pTrans->y = couch_Vert_cm*(-10.0); // consistent with Tracking software
     pTrans->z = couch_Long_cm*10.0; //sign should be checked
 
     pRot->x = couch_Pitch;
@@ -9751,9 +9752,19 @@ void CbctRecon::ImageTransformUsingCouchCorrection(USHORT_ImageType::Pointer& sp
     filter->SetSize(size);
     filter->SetInput(spUshortInput);
 
+
+    //NOTE: In couch shift reading
+    //pTrans->x = couch_Lat_cm*10.0; //sign should be checked   
+    //pTrans->y = couch_Vert_cm*10.0; //sign should be checked // IEC-->DICOM is already accounted for..but sign!
+    //pTrans->z = couch_Long_cm*10.0; //sign should be checked
+    //pRot->x = couch_Pitch;
+    //pRot->y = couch_Yaw;
+    //pRot->z = couch_Roll;
+
     TransformType::OutputVectorType translation;
     translation[0] = -couch_trans.x;  // X translation in millimeters
-    translation[1] = +couch_trans.y; //so far so good
+    //translation[1] = +couch_trans.y; //so far so good// This is because when IEC->DICOM, sign was not changed during reading the text file
+    translation[1] = -couch_trans.y; //Consistent with Tracking software
     translation[2] = -couch_trans.z;//empirically found
 
     TransformType::OutputVectorType rotation;
@@ -9761,7 +9772,7 @@ void CbctRecon::ImageTransformUsingCouchCorrection(USHORT_ImageType::Pointer& sp
     rotation[1] = -couch_rot.y;
     rotation[2] = -couch_rot.z;
 
-    transform->Translate(translation);
+    transform->Translate(translation);//original position - (couch shift value in DICOM)
     //transform->Rotate3D(rotation);
     filter->Update();
 
