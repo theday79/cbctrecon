@@ -12,7 +12,14 @@ class QPainter;
 
 #define DEFAULT_VARIAN_HIS_HEADER_SIZE 100 // ELEKTA VS VARIAN
 
+#include <rtkConfiguration.h>
+
+#ifdef CUDA_FOUND
+#include "itkCudaImage.h"
+#else
 #include "itkImage.h"
+#endif
+
 #include <QImage>
 #include <vector>
 #include <QVector>
@@ -38,8 +45,14 @@ enum enSplitOption{
     PRI_BOTTOM,	
 };
 
+
+#ifdef CUDA_FOUND
+typedef itk::CudaImage<unsigned short, 2> UnsignedShortImageType;
+typedef itk::CudaImage<float, 2> FloatImageType2D;
+#else
 typedef itk::Image<unsigned short, 2> UnsignedShortImageType;
 typedef itk::Image<float, 2> FloatImageType2D;
+#endif
 
 using namespace std;
 
@@ -113,8 +126,8 @@ public:
 
 
 	//Elekta CBCT recon
-	char* m_pVarianHisHeader; // ELEKTA VS VARIAN
-	void CopyHisHeader(const char *hisFilePath);
+	char* m_pVarianHndHeader; // ELEKTA VS VARIAN
+	void CopyHndHeader(const char *hisFilePath);
 	//bool SaveDataAsHis (const char *filePath);
 	bool SaveDataAsHis( const char *filePath, bool bInverse );
 	bool m_bShowInvert;

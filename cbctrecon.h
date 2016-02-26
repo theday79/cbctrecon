@@ -1,14 +1,18 @@
 #ifndef CBCTRECON_H
 #define CBCTRECON_H
 
-#include <QtGui/QMainWindow>
+#include <QtWidgets/QMainWindow>
+//  QMainWindow>
 //#include <QTimer>
+//#include <itkGPUImage.h>
+//#include <itkCudaImage.h> //unnessecary
 #include "ui_cbctrecon.h"
 #include "YK16GrayImage.h"
 
 //#include "itkImage.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
+#include "itkTileImageFilter.h"
 //#include "DlgRegistration.h"
 //#include "itkDerivativeImageFilter.h"
 //#include "itkSmoothingRecursiveGaussianImageFilter.h"
@@ -39,7 +43,7 @@
 
 
 // RTK includes
-#include <rtkHisImageIO.h>
+#include <rtkHndImageIO.h>
 #include <rtkVarianObiGeometryReader.h> // ELEKTASynergy VS VARIANObi
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
@@ -47,12 +51,25 @@
 #include <rtkConfiguration.h>
 #include <rtkFDKBackProjectionImageFilter.h>
 #include <rtkFDKConeBeamReconstructionFilter.h>
+#include <rtkADMMTotalVariationConeBeamReconstructionFilter.h> // ADDED BY AGRAVGAARD
+
+#if CUDA_FOUND
+#include <rtkCudaTotalVariationDenoisingBPDQImageFilter.h> // ADDED BY AGRAVGAARD
+#else
+#include <rtkTotalVariationDenoisingBPDQImageFilter.h> // ADDED BY AGRAVGAARD
+#endif
+
+#include <rtkTotalVariationImageFilter.h> // ADDED BY AGRAVGAARD
+#include <itkStatisticsImageFilter.h> // ADDED BY AGRAVGAARD
 #include <rtkConstantImageSource.h>
 
 
 #include <rtkDisplacedDetectorImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
+#include <rtkFieldOfViewImageFilter.h>
+
+#include <MMSystem.h>
 
 // ITK includes
 #include <itkStreamingImageFilter.h>
@@ -65,23 +82,48 @@
 #include "itkCastImageFilter.h"
 #include "itkAbsImageFilter.h"
 
+//#include "plmreconstruct_config.h" // <- Are these still necessarY?
+//#include "plm_int.h"
+//#include "threading.h"
+//#include "volume.h"
+
 typedef float FloatPixelType;
-typedef itk::Image< FloatPixelType, 3 > OutputImageType;
+typedef signed short SHORT_PixelType;
+typedef unsigned short USHORT_PixelType;
+#if CUDA_FOUND
+#include <cuda_runtime.h>
+#include <itkCudaImageToImageFilter.h>
+#include <rtkCudaFFTRampImageFilter.h>
+#include <rtkCudaDisplacedDetectorImageFilter.h>
+#include <rtkCudaParkerShortScanImageFilter.h>
+typedef itk::CudaImage< FloatPixelType, 3 > OutputImageType;
+typedef itk::CudaImage< itk::CovariantVector< FloatPixelType, 3 >, 3 > GradientOutputImageType;
+typedef itk::CudaImage< FloatPixelType, 2 > OutputImageType2D;
+typedef itk::CudaImage< USHORT_PixelType, 3 > USHORT_ImageType;
+typedef itk::CudaImage< USHORT_PixelType, 2 > USHORT_ImageType2D;
+
+typedef itk::CudaImage< SHORT_PixelType, 3 > SHORT_ImageType;
+typedef itk::CudaImage< SHORT_PixelType, 2 > SHORT_ImageType2D;
+#else
+typedef itk::Image< FloatPixelType, 3 >     OutputImageType;
+typedef itk::Image< itk::CovariantVector
+	< FloatPixelType, 3 >, 3 >                GradientOutputImageType;
 typedef itk::Image< FloatPixelType, 2 > OutputImageType2D;
+
+typedef itk::Image< USHORT_PixelType, 3 > USHORT_ImageType;
+typedef itk::Image< USHORT_PixelType, 2 > USHORT_ImageType2D;
+
+typedef itk::Image< SHORT_PixelType, 3 > SHORT_ImageType;
+typedef itk::Image< SHORT_PixelType, 2 > SHORT_ImageType2D;
+#endif
+
+// typedef itk::Image< FloatPixelType, 3 > OutputImageType; //
 typedef itk::ImageFileReader< OutputImageType > ReaderType;
 typedef itk::ImageFileWriter< OutputImageType > WriterType;
 
 typedef rtk::ThreeDCircularProjectionGeometry GeometryType;
 
 
-typedef unsigned short USHORT_PixelType;
-typedef itk::Image< USHORT_PixelType, 3 > USHORT_ImageType;
-typedef itk::Image< USHORT_PixelType, 2 > USHORT_ImageType2D;
-
-
-typedef signed short SHORT_PixelType;
-typedef itk::Image< SHORT_PixelType, 3 > SHORT_ImageType;
-typedef itk::Image< SHORT_PixelType, 2 > SHORT_ImageType2D;
 
 #define DEFAULT_VARIAN_PROJ_WIDTH 1024 // ELEKTA VS VARIAN
 #define DEFAULT_VARIAN_PROJ_HEIGHT 768 //1024 // ELEKTA VS VARIAN because why not use a random value, varian!?
@@ -158,7 +200,7 @@ class CbctRecon : public QMainWindow
 	Q_OBJECT
 
 public:
-	CbctRecon(QWidget *parent = 0, Qt::WFlags flags = 0);
+	CbctRecon(QWidget *parent = 0, Qt::WindowFlags flags = 0);
 	~CbctRecon();			
 	//void DoRecon();
 	void ReleaseMemory();
@@ -242,6 +284,7 @@ public:
 	void ResampleItkImage2D(OutputImageType2D::Pointer& spSrcImg2D, OutputImageType2D::Pointer& spTarImg2D, double resFactor); //using slice iterator
 
 	void DoReconstructionFDK(enREGI_IMAGES target);
+	void DoReconstructionTV(enREGI_IMAGES target); // ADDED BY AGRAVGAARD
 
 	
 	void UpdateReconImage(USHORT_ImageType::Pointer& spNewImg, QString& fileName);
@@ -366,6 +409,7 @@ public:
 		void SLT_ExportReconUSHORT();
 		void SLT_ExportReconSHORT_HU();
 		void SLT_DoBHC();
+		void SLT_DoBTC();
 
 		void SLT_Export2DDose_TIF();
 		void SLTM_Export2DDoseMapAsMHA();
@@ -390,6 +434,7 @@ public:
 
 		void SLT_ExportAngularWEPL_byFile();
 		void SLT_OptExportAngularWEPL_byFile();
+		void SLT_GeneratePOIData();
 		void SLT_LoadPOIData();
 
 		void SLT_StartSyncFromSharedMem();
@@ -507,5 +552,7 @@ public:
 public:
 	Ui::CbctReconClass ui;
 };
+
+
 
 #endif // BADPIXELDETECTOR_H 
