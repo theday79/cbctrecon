@@ -1,4 +1,4 @@
-﻿#include "cbctrecon.h"
+#include "cbctrecon.h"
 #include "YK16GrayImage.h"
 #include <QFileDialog>
 #include <QMessageBox>
@@ -92,7 +92,7 @@
 
 
 #if OPENCL_FOUND
-# include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
+#include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
 #endif
 
 
@@ -208,7 +208,7 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
 
 	m_iFixedOffset_ScatterMap = 10000;//fixed! allows negative value of scatter
-	//m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter
+	//m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter // HEY AGRAVGAARD TODO HERE!!
 	m_fResampleF = 1.0;
 	m_fProjSpacingX = 0.4; //DEFAULT, will be updated during Load Proj selected
 	m_fProjSpacingY = 0.4;
@@ -1702,7 +1702,7 @@ void CbctRecon::SLT_SetOutputPath()
 	ui.lineEdit_OutputFilePath->setText(strPath);
 }
 
-void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
+void CbctRecon::CudaDoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 {
 
 	if (!m_spProjImg3DFloat)
@@ -1715,26 +1715,29 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 	//cout << m_spProjImg3DFloat->GetRequestedRegion().GetSize() << endl;
 	//cout << spTmpImage->GetRequestedRegion().GetSize() << endl;
 	//return;
-
-	typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+#if CUDA_FOUND
+	typedef itk::CastImageFilter< OutputImageType, CUDAOutputImageType > castToCUDAType;
+	castToCUDAType::Pointer  castToCuda = castToCUDAType::New();
+	castToCuda->SetInput(m_spProjImg3DFloat);
+	castToCuda->Update();
+	typedef itk::ImageDuplicator< CUDAOutputImageType > DuplicatorType;
 	DuplicatorType::Pointer duplicator = DuplicatorType::New();
-	duplicator->SetInputImage(m_spProjImg3DFloat);
+	duplicator->SetInputImage(castToCuda->GetOutput());
 	duplicator->Update();
+#else
+	cout << "Not compiled with CUDA option! Required for Total Variation method!" << endl;
+	return;
+#endif
 
-	OutputImageType::Pointer spCurImg = duplicator->GetOutput(); //already down sampled
+	CUDAOutputImageType::Pointer spCurImg = duplicator->GetOutput(); //already down sampled
 	//OutputImageType::Pointer spCurImg = m_spProjImg3D;
 	//spCurImg = duplicator->GetOutput();
 
 	//ResampleItkImage(m_spProjImg3DFloat, spCurImg, resampleFactor);
 
 	//Displaced detector weighting // set pipeline //inplace filter
-#if CUDA_FOUND
 	typedef rtk::CudaDisplacedDetectorImageFilter DDFType;
 	DDFType::Pointer ddf = DDFType::New();
-#else
-	typedef rtk::DisplacedDetectorImageFilter< OutputImageType > DDFType;
-	DDFType::Pointer ddf = DDFType::New();
-#endif
 
 	if (ui.checkBox_UseDDF->isChecked())
 	{
@@ -1749,13 +1752,8 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 		spCurImg = ddf->GetOutput();
 	}
 
-#if CUDA_FOUND
 	typedef rtk::CudaParkerShortScanImageFilter PSSFType;
 	PSSFType::Pointer pssf = PSSFType::New();
-#else
-	typedef rtk::ParkerShortScanImageFilter< OutputImageType > PSSFType;
-	PSSFType::Pointer pssf = PSSFType::New();
-#endif
 
 	if (ui.checkBox_UsePSSF->isChecked())
 	{
@@ -1780,7 +1778,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
-		typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+		typedef itk::ImageDuplicator< CUDAOutputImageType > DuplicatorType;
 		DuplicatorType::Pointer duplicator = DuplicatorType::New();
 		duplicator->SetInputImage(spCurImg);
 		duplicator->Update();
@@ -1792,7 +1790,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 
 
 	// Generate image sources for cone beam CT reconstruction
-	typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType;
+	typedef rtk::ConstantImageSource< CUDAOutputImageType > ConstantImageSourceType;
 
 	ConstantImageSourceType::PointType origin;
 	ConstantImageSourceType::SpacingType spacing;
@@ -1836,7 +1834,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 	
 	// ADMMTotalVariation reconstruction filtering
 	typedef rtk::ADMMTotalVariationConeBeamReconstructionFilter
-		<OutputImageType, GradientOutputImageType>                ADMMTotalVariationType;
+		<CUDAOutputImageType, GradientCUDAOutputImageType> ADMMTotalVariationType;
 	ADMMTotalVariationType::Pointer admmtotalvariation = ADMMTotalVariationType::New();
 	admmtotalvariation->SetInput( constantImageSource->GetOutput() );
 	admmtotalvariation->SetInput(1, spCurImg);
@@ -1845,39 +1843,18 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 	admmtotalvariation->SetBeta(tvBeta);
 	admmtotalvariation->SetAL_iterations(tvAL_iter);
 	admmtotalvariation->SetCG_iterations(tvCG_iter);
-	//Hardware Type
-	const char* strHardware = "";
+	
 
-	if (ui.radioButton_UseCPU->isChecked())
-	{
-		strHardware = "cpu";
-	}
-	else if (ui.radioButton_UseCUDA->isChecked())
-	{
-		strHardware = "cuda";
-
-	}
-	else if (ui.radioButton_UseOpenCL->isChecked())
-	{
-		strHardware = "opencl";
-	}
-
-	// FDK reconstruction filtering
-	// itk::ImageToImageFilter<OutputImageType, OutputImageType>::Pointer feldkamp;
-	// typedef rtk::FDKConeBeamReconstructionFilter< OutputImageType > FDKCPUType; // Now is ADMMTotalVariationType
-#if CUDA_FOUND
-	// typedef rtk::CudaFDKConeBeamReconstructionFilter                FDKCUDAType;
 	std::cout << "\n\n****** CUDA Voxel-Based Backprojector and CUDA Forward projector ******" << std::endl;
 
 	//admmtotalvariation->SetForwardProjectionFilter(2);
 	//admmtotalvariation->SetBackProjectionFilter(2);
-	// TRY_AND_EXIT_ON_ITK_EXCEPTION(
-	admmtotalvariation->Update(); // );
+	// TRY_AND_EXIT_ON_ITK_EXCEPTION( admmtotalvariation->Update() ); //SHOULD BE DONE AT END OF STREAMING ONLY
 
-	std::cout << "\n\n PASSED! " << std::endl;
-#else
-	std::cout << "\n\n Sorry non-cuda admmTV not implemented yet..! " << std::endl;
-#endif
+	//std::cout << "\n\n PASSED! " << std::endl;
+
+	typedef itk::CudaImage< FloatPixelType, 3 >     OutputImageType;
+	typedef itk::CudaImage< USHORT_PixelType, 3 > USHORT_ImageType;
 
 	std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
 
@@ -1993,9 +1970,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
 	//absImgFilter->SetInput(resampler->GetOutput());
 
-
-
-	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, CUDAOutputImageType> MultiplyImageFilterType;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
 	multiplyImageFilter->SetConstant(65536); //calculated already
@@ -2025,6 +2000,521 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 	if (ui.checkBox_PostMedianOn->isChecked() && (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0))
 	{
 		typedef itk::MedianImageFilter<USHORT_ImageType, USHORT_ImageType >  FilterType;
+		FilterType::Pointer medFilter = FilterType::New();
+
+		//YKTEMP20141218 S
+		// typedef itk::MeanImageFilter<USHORT_ImageType, USHORT_ImageType >  FilterType;
+		// FilterType::Pointer medFilter = FilterType::New();
+		//YKTEMP20141218 E
+
+		//this is radius. 1 --> median window 3
+		cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << endl;
+
+		medFilter->SetRadius(indexRadius);
+		medFilter->SetInput(castFilter->GetOutput());
+		medFilter->Update(); //Error here!g
+
+		tmpReconImg = medFilter->GetOutput();
+		cout << "median filtering has been done" << endl;
+	}
+	else
+	{
+		cout << "No post median filtering is used" << endl;
+		castFilter->Update();
+		tmpReconImg = castFilter->GetOutput();
+	}
+
+	typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+	ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+	thresholdFilterAbove->SetInput(tmpReconImg);
+	thresholdFilterAbove->ThresholdAbove(4095);
+	thresholdFilterAbove->SetOutsideValue(4095);
+
+	ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+	thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+	thresholdFilterBelow->ThresholdBelow(0);
+	thresholdFilterBelow->SetOutsideValue(0);
+	thresholdFilterBelow->Update();
+	//tmpReconImg = thresholdFilterBelow->GetOutput();
+
+	cout << "After Filtering" << endl;
+
+	reconTimeProbe.Stop();
+	std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
+	ui.lineEdit_ReconstructionTime->setText(QString("%1").arg(reconTimeProbe.GetMean()));
+
+	//cout << "TestYK" << endl;
+	//cout << tmpReconImg->GetRequestedRegion().GetSize() << endl;
+	//cout << "Before InPlace Off: " <<  castFilter->GetInPlace() << endl;	//0
+	//castFilter->InPlaceOff();
+	//cout << "After InPlace Off: " <<  castFilter->GetInPlace() << endl; //0
+	//Because Input Output format are different, this filter cannot do InPlace function.
+
+	itk::Image<USHORT_PixelType, 3>::Pointer tmpReconImgOutCuda;
+	typedef itk::CastImageFilter <USHORT_CUDAImageType, itk::Image<USHORT_PixelType, 3> > castBackType;
+	castBackType::Pointer castBack = castBackType::New();
+	castBack->SetInput(thresholdFilterBelow->GetOutput());
+	castBack->Update();
+	tmpReconImgOutCuda = castBack->GetOutput();
+	//By default CanRunInPlace checks whether the input and output image type match.
+	switch (target)
+	{
+	case REGISTER_RAW_CBCT:
+		m_spRawReconImg = tmpReconImgOutCuda; //Checked.. successfully alive.
+		m_spCrntReconImg = m_spRawReconImg;
+		break;
+	case REGISTER_COR_CBCT:
+		m_spScatCorrReconImg = tmpReconImgOutCuda; //Checked.. successfully alive.
+		m_spCrntReconImg = m_spScatCorrReconImg;
+		break;
+	}
+	QString outputFilePath = ui.lineEdit_OutputFilePath->text();
+
+	QFileInfo outFileInfo(outputFilePath);
+	QDir outFileDir = outFileInfo.absoluteDir();
+
+	if (outputFilePath.length() < 2 || !outFileDir.exists())
+	{
+		cout << "No available output path. Should be exported later" << endl;
+		ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
+	}
+	else
+	{
+		typedef itk::ImageFileWriter<itk::Image< USHORT_PixelType, 3 >> WriterType;
+		WriterType::Pointer writer = WriterType::New();
+		writer->SetFileName(outputFilePath.toLocal8Bit().constData());
+		writer->SetUseCompression(true); //not exist in original code (rtkfdk)
+		writer->SetInput(m_spCrntReconImg);
+
+		cout << "Writing the image to: " << outputFilePath.toLocal8Bit().constData() << endl;
+
+		TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
+
+		ui.lineEdit_Cur3DFileName->setText(outputFilePath);
+		std::cout << std::endl;
+		std::cout << "Output generation was succeeded" << std::endl;
+	}
+
+
+	m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
+
+	ui.spinBoxReconImgSliceNo->setMinimum(0);
+	ui.spinBoxReconImgSliceNo->setMaximum(size_trans[2] - 1);
+	ui.spinBoxReconImgSliceNo->setValue(qRound(size_trans[2] / 2.0)); //DrawReconImage is called automatically
+
+	//For 2D image display
+	//SLT_DrawReconImage();
+	//m_spReconImg = writer->GetOutput();
+
+	/*OutputImageType::SizeType AfterReconSize = m_spProjImg3D->GetBufferedRegion().GetSize();
+	cout << "AfterReconSize  " << AfterReconSize[0] << "	"
+	<< AfterReconSize[1] << "	"
+	<< AfterReconSize[2] << endl;*/
+
+	/*ui.radioButton_graph_recon->setChecked(true);
+	SLT_InitializeGraphLim();
+	SLT_DrawReconImage();	*/
+
+	//SLT_ViewRegistration();
+	if (target == REGISTER_COR_CBCT)
+	{
+		UpdateReconImage(m_spCrntReconImg, QString("SCATTER_COR_CBCT"));
+	}
+	else if (target == REGISTER_RAW_CBCT)
+	{
+		UpdateReconImage(m_spCrntReconImg, QString("RAW_CBCT"));
+	}
+
+	cout << "FINISHED!: Total Variation CBCT reconstruction" << endl;
+	//if not found, just skip
+
+	//SLT_DrawGraph();
+	//2) Load Geometry file.
+	//3) Prepare all parameters from GUI components
+}
+
+void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
+{
+	typedef itk::CastImageFilter <OutputImageType, CUDAOutputImageType > castToCudaType;
+	castToCudaType::Pointer castToCuda = castToCudaType::New();
+	castToCuda->SetInput(m_spProjImg3DFloat);
+	castToCuda->Update();
+	CUDAOutputImageType::Pointer cuda_spProjImg3DFloat = castToCuda->GetOutput();
+
+	if (!cuda_spProjImg3DFloat)
+	{
+		cout << "processed Projection image is not ready yet" << endl;
+		return;
+	}
+
+#if CUDA_FOUND
+	cout << "CUDA method will be used..." << endl;
+#else
+	cout << "Not compiled with CUDA option..." << endl;
+	return;
+#endif
+	//Resampling first --> to save the recon time. 1024 --> 512
+
+	
+	
+	typedef itk::ImageDuplicator< CUDAOutputImageType > DuplicatorType;
+	DuplicatorType::Pointer duplicator = DuplicatorType::New();
+	duplicator->SetInputImage(cuda_spProjImg3DFloat);
+	duplicator->Update();
+
+	CUDAOutputImageType::Pointer spCurImg = duplicator->GetOutput(); //already down sampled
+
+	//OutputImageType::Pointer spCurImg = m_spProjImg3D;
+	//spCurImg = duplicator->GetOutput();
+
+	//ResampleItkImage(m_spProjImg3DFloat, spCurImg, resampleFactor);
+
+	//Displaced detector weighting // set pipeline //inplace filter
+
+	typedef rtk::CudaDisplacedDetectorImageFilter DDFType;
+	DDFType::Pointer ddf = DDFType::New();
+
+	if (ui.checkBox_UseDDF->isChecked())
+	{
+		ddf->SetInput(spCurImg);
+		//ddf->SetGeometry( geometryReader->GetOutputObject() );
+		ddf->SetGeometry(m_spCustomGeometry);
+		cout << "DDF was set in pipeline" << endl;
+
+		if (ui.checkBox_UpdateAfterFiltering->isChecked())
+			ddf->Update();//no mememory increas: InPlace Filter
+
+		spCurImg = ddf->GetOutput();
+	}
+
+	typedef rtk::CudaParkerShortScanImageFilter PSSFType;
+	PSSFType::Pointer pssf = PSSFType::New();
+
+
+	if (ui.checkBox_UsePSSF->isChecked())
+	{
+		// Short scan image filter
+		pssf->SetInput(spCurImg);
+		//pssf->SetGeometry( geometryReader->GetOutputObject() );
+		pssf->SetGeometry(m_spCustomGeometry);
+		//pssf->InPlaceOff(); //YKComments: Do not overwrite input image buffer for output
+		cout << "short scan image filter success" << endl;
+
+		if (ui.checkBox_UpdateAfterFiltering->isChecked())
+			pssf->Update(); //no mememory increas: InPlace Filter
+
+		spCurImg = pssf->GetOutput();
+	}
+
+	//Just Before going to FDK recon,
+	//Update Projection data and delete old data.
+
+	//Let's duplicate this
+	//Original m_spProjImg3D will be deleted after update
+
+	if (ui.checkBox_UpdateAfterFiltering->isChecked())
+	{
+		typedef itk::ImageDuplicator< CUDAOutputImageType > DuplicatorType;
+		DuplicatorType::Pointer duplicator = DuplicatorType::New();
+		duplicator->SetInputImage(spCurImg);
+		duplicator->Update();
+		m_spProjImg3DFloat = duplicator->GetOutput();
+
+		SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
+		SLT_DrawProjImages();
+	}
+
+
+	// Generate image sources for cone beam CT reconstruction
+	typedef rtk::ConstantImageSource< CUDAOutputImageType > ConstantImageSourceType;
+
+	ConstantImageSourceType::PointType origin;
+	ConstantImageSourceType::SpacingType spacing;
+	ConstantImageSourceType::SizeType sizeOutput;
+
+	sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); //pixel
+	sizeOutput[1] = ui.lineEdit_outImgDim_SI->text().toInt();  //Caution!: direction is different in NKI SCAN FIle
+	sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
+
+	spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
+	spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
+	spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
+
+	origin[0] = -0.5*sizeOutput[0] * spacing[0]; //Y in DCM?
+	origin[1] = -0.5*sizeOutput[1] * spacing[1];  //Z in DCM?
+	origin[2] = -0.5*sizeOutput[2] * spacing[2]; //X in DCM?
+
+	ConstantImageSourceType::Pointer constantImageSource = ConstantImageSourceType::New();
+	constantImageSource->SetOrigin(origin);
+	constantImageSource->SetSpacing(spacing);
+	constantImageSource->SetSize(sizeOutput);
+	constantImageSource->SetConstant(0.0);  //initial value
+
+	double fTruncCorFactor = ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
+	double fHannCut = ui.lineEdit_Ramp_HannCut->text().toDouble();
+	double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
+	double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
+	double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
+
+	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
+	{
+		cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << endl;
+		fTruncCorFactor = 0.0;
+		if (ui.checkBox_UseTrunc->isChecked())
+			fTruncCorFactor = ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
+	}
+
+	//YKTEMP
+	cout << "fTruncCorFactor =" << fTruncCorFactor << endl;
+	// This macro sets options for fdk filter which I can not see how to do better
+	// because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
+#define SET_FELDKAMP_OPTIONS(f) \
+	f->SetInput( 0, constantImageSource->GetOutput() ); \
+	f->SetInput( 1, spCurImg ); \
+	f->SetGeometry( m_spCustomGeometry ); \
+	f->GetRampFilter()->SetTruncationCorrection(fTruncCorFactor); \
+	f->GetRampFilter()->SetHannCutFrequency(fHannCut); \
+	f->GetRampFilter()->SetCosineCutFrequency(fCosineCut); \
+	f->GetRampFilter()->SetHammingFrequency(fHamming); \
+	f->GetRampFilter()->SetHannCutFrequencyY(fHannCutY); 
+
+
+
+	// FDK reconstruction filtering
+	itk::ImageToImageFilter<CUDAOutputImageType, CUDAOutputImageType>::Pointer CUDAfeldkamp;
+	typedef rtk::CudaFDKConeBeamReconstructionFilter FDKCUDAType;
+
+
+	cout << "CUDA will be used for FDK reconstruction" << endl;
+	CUDAfeldkamp = FDKCUDAType::New();
+	SET_FELDKAMP_OPTIONS(static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer()));
+
+	typedef rtk::FieldOfViewImageFilter <CUDAOutputImageType, CUDAOutputImageType> FOVFilterType;
+	FOVFilterType::Pointer fieldofviewFilter = FOVFilterType::New();
+	if (ui.checkBox_UpdateAfterFiltering->isChecked())
+	{
+		CUDAfeldkamp->Update();
+		std::cout << "FOV filter is being added.." << std::endl;
+		fieldofviewFilter->SetInput(0, CUDAfeldkamp->GetOutput());
+		fieldofviewFilter->SetGeometry(m_spCustomGeometry);
+		if (!ui.checkBox_UseDDF->isChecked())
+		{
+			fieldofviewFilter->SetDisplacedDetector(TRUE);
+		}
+		fieldofviewFilter->SetProjectionsStack(duplicator->GetOutput());
+		fieldofviewFilter->Update();
+	}
+
+
+
+	cout << "Cone beam reconstruction pipeline is ready" << std::endl;
+
+	// Streaming depending on streaming capability of writer --> not affect the calc. speed
+
+	typedef itk::StreamingImageFilter <CUDAOutputImageType, CUDAOutputImageType> StreamerType;
+	StreamerType::Pointer streamerBP = StreamerType::New();
+
+	if (ui.checkBox_UpdateAfterFiltering->isChecked())
+	{
+		streamerBP->SetInput(fieldofviewFilter->GetOutput());
+	}
+	else
+	{
+		streamerBP->SetInput(CUDAfeldkamp->GetOutput());
+	}
+	streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
+
+	cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << endl;
+
+	/* RTK-produced 3D Volume should be changed in coordination of itk */
+	/* Coordination transformation using Euler 3D transformation */
+
+	// 1) Prepare Canvas parameter
+	//OutputImageType::Pointer fixedImg = OutputImageType::New();
+	//start index: What is the index of Left Top Inferior corner in DICOM coordinate?
+
+
+	//Same image type from original image -3D & float
+	OutputImageType::IndexType start_trans;
+	start_trans[0] = 0;
+	start_trans[1] = 0;
+	start_trans[2] = 0;
+
+	OutputImageType::SizeType size_trans;
+	size_trans[0] = sizeOutput[0]; // X //410
+	size_trans[1] = sizeOutput[2]; //Y  // 410
+	size_trans[2] = sizeOutput[1]; //Z // 120?
+
+	OutputImageType::SpacingType spacing_trans;
+	spacing_trans[0] = spacing[0];
+	spacing_trans[1] = spacing[2];
+	spacing_trans[2] = spacing[1];
+
+	OutputImageType::PointType Origin_trans;
+	Origin_trans[0] = -0.5* size_trans[0] * spacing_trans[0];
+	Origin_trans[1] = -0.5* size_trans[1] * spacing_trans[1];
+	Origin_trans[2] = -0.5* size_trans[2] * spacing_trans[2];
+
+	OutputImageType::RegionType region_trans;
+	region_trans.SetSize(size_trans);
+	region_trans.SetIndex(start_trans);
+
+	/* 2) Prepare Target image */
+	CUDAOutputImageType::Pointer targetImg = streamerBP->GetOutput();
+
+	/* 3) Configure transform */
+	typedef itk::Euler3DTransform< double > TransformType;
+	TransformType::Pointer transform = TransformType::New();
+
+	TransformType::ParametersType param;
+	param.SetSize(6);
+	//MAXIMUM PARAM NUMBER: 6!!!
+	//if (target == REGISTER_COR_CBCT){
+	//	param.put(0, 0.0);
+	//}
+	//else{
+	param.put(0, 0.0); //rot X // 0.5 = PI/2 //Actuly is  rot Z ELEKTA VS VARIAN <-- THIS MIGHT BE THE SOLUTION
+	//}
+	param.put(1, itk::Math::pi / 2.0);//rot Y //Actuly is rot Y
+	param.put(2, itk::Math::pi / -2.0);//rot Z //Actuly is rot X
+	param.put(3, 0.0); // Trans X mm
+	param.put(4, 0.0); // Trans Y mm
+	param.put(5, 0.0); // Trans Z mm
+
+	TransformType::ParametersType fixedParam(3); //rotation center
+	fixedParam.put(0, 0);
+	fixedParam.put(1, 0);
+	fixedParam.put(2, 0);
+
+	transform->SetParameters(param);
+	transform->SetFixedParameters(fixedParam); //Center of the Transform
+
+	cout << "Transform matrix:" << "	" << endl;
+	cout << transform->GetMatrix() << std::endl;
+
+	typedef itk::ResampleImageFilter <CUDAOutputImageType, CUDAOutputImageType> ResampleFilterType;
+	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+	//OutputImageType::RegionType fixedImg_Region = fixedImg->GetLargestPossibleRegion().GetSize();
+
+	resampler->SetInput(targetImg);
+	resampler->SetSize(size_trans);
+	resampler->SetOutputOrigin(Origin_trans); //Lt Top Inf of Large Canvas
+	resampler->SetOutputSpacing(spacing_trans); // 1 1 1
+	resampler->SetOutputDirection(targetImg->GetDirection()); //image normal?
+	resampler->SetTransform(transform);
+	//resampler->Update();//yktemp Error 2
+
+	//LR flip
+
+	cout << "LR flip filter is being applied" << endl;
+
+	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
+
+	FilterType::Pointer flipFilter = FilterType::New();
+	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+
+	FlipAxesArrayType arrFlipAxes;
+	arrFlipAxes[0] = 1;
+	arrFlipAxes[1] = 0;
+	arrFlipAxes[2] = 0;
+
+	flipFilter->SetFlipAxes(arrFlipAxes);
+	flipFilter->SetInput(resampler->GetOutput());
+
+	/*OutputImageType::Pointer floatImg = flipFilter->GetOutput();*/
+	//const unsigned int Dimension = 3;
+	//FinalImageType::Pointer finalImg ;
+
+	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
+	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
+	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
+	//absImgFilter->SetInput(resampler->GetOutput());
+
+	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, CUDAOutputImageType> MultiplyImageFilterType;
+	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
+	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
+	multiplyImageFilter->SetConstant(65536); //calculated already
+
+
+	//typedef unsigned short FinalPixelType;
+	//typedef itk::Image< FinalPixelType, 3 > FinalImageType;
+	typedef itk::CastImageFilter< CUDAOutputImageType, USHORT_ImageType > CastFilterType;
+	CastFilterType::Pointer castFilter = CastFilterType::New();
+	/*Total Variation Filter*/
+	if (ui.checkBox_TV->isChecked()){
+		/*To check TV is doing its job:*/
+		typedef itk::StatisticsImageFilter < CUDAOutputImageType > MeanAlgorithmType;
+		MeanAlgorithmType::Pointer meanAlgorithm = MeanAlgorithmType::New();
+		meanAlgorithm->SetInput(multiplyImageFilter->GetOutput());
+		meanAlgorithm->Update();
+		std::cout << "Sample mean = " << meanAlgorithm->GetMean() << std::endl;
+		meanAlgorithm->ResetPipeline(); // Make sure not to get trivial output after TV filter.
+
+		typedef rtk::TotalVariationImageFilter < CUDAOutputImageType > TotalVariationFilterType;
+		TotalVariationFilterType::Pointer tv = TotalVariationFilterType::New();
+		double totalVariationBefore;
+		double totalVariationAfter;
+		tv->SetInput(multiplyImageFilter->GetOutput());
+		tv->Update();
+		totalVariationBefore = tv->GetTotalVariation();
+		std::cout << "Total variation before denoising is " << totalVariationBefore << std::endl;
+
+		/*Now GO:*/
+		typedef rtk::CudaTotalVariationDenoisingBPDQImageFilter  tvFilterType;
+		tvFilterType::Pointer tvFilter = tvFilterType::New();
+		cout << "Post total variation filtering is in the pipeline.." << endl;
+
+		tvFilter->SetGamma(ui.lineEdit_TVgamma->text().toDouble());
+		tvFilter->SetNumberOfIterations(ui.lineEdit_TV_iter->text().toInt());
+		tvFilter->SetInput(multiplyImageFilter->GetOutput());
+		tvFilter->Update();
+
+		meanAlgorithm->SetInput(tvFilter->GetOutput());
+		meanAlgorithm->Update();
+		std::cout << "Sample mean = " << meanAlgorithm->GetMean() << std::endl;
+		tv->SetInput(tvFilter->GetOutput());
+		tv->Update();
+		totalVariationAfter = tv->GetTotalVariation();
+		std::cout << "Total variation after denoising is " << totalVariationAfter << std::endl;
+		typedef itk::MultiplyImageFilter<CUDAOutputImageType, CUDAOutputImageType, CUDAOutputImageType> MultiplyImageFilterType;
+		MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
+		multiplyImageFilter->SetInput(tvFilter->GetOutput());
+		if (ui.checkBox_Magic->isChecked()){
+			multiplyImageFilter->SetConstant(1. / 0.9); // needed because m_beta, which is defined in in the TV denoising filter
+		}
+		else
+		{
+			multiplyImageFilter->SetConstant(0.9409); // needed because m_beta, which is defined in in the TV denoising filter.. the 0.0409 is a calculated guess, if it works, the factor will be investigated further..
+		}
+
+
+		castFilter->SetInput(multiplyImageFilter->GetOutput());
+
+		castFilter->Update();
+	}
+	else
+	{
+		castFilter->SetInput(multiplyImageFilter->GetOutput());
+
+		castFilter->Update(); //YK20150109
+	}
+
+
+	USHORT_ImageType::Pointer tmpReconImg;
+	//if all 0 0 0 don't do the median filtering
+
+	itk::TimeProbe reconTimeProbe;
+	reconTimeProbe.Start();
+
+	cout << "Reconstructing the image.. please wait..." << endl;
+	USHORT_ImageType::SizeType indexRadius;
+	indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+	indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+	indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
+	if (ui.checkBox_PostMedianOn->isChecked() && (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0))
+	{
+		typedef itk::MedianImageFilter<USHORT_ImageType, USHORT_ImageType >  FilterType; //TODO: CUDA THIS!!
+		
 		FilterType::Pointer medFilter = FilterType::New();
 
 		//YKTEMP20141218 S
@@ -2114,36 +2604,14 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 		std::cout << "Output generation was succeeded" << std::endl;
 	}
 
-	if (!strcmp(strHardware, "cpu"))
-		std::cout << "\n\n ADMM TV Not Implemented yet for CPU! " << std::endl;
-#if CUDA_FOUND
-	else if (!strcmp(strHardware, "cuda"))
-		static_cast<ADMMTotalVariationType*>(admmtotalvariation.GetPointer())->PrintTiming(std::cout);
-#endif
-#if OPENCL_FOUND
-	else if (!strcmp(strHardware, "opencl"))
-		std::cout << "\n\n ADMMVT Not Implemented yet for CPU! " << std::endl;
-#endif
+	static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer())->PrintTiming(std::cout);
+
 
 	m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
 
 	ui.spinBoxReconImgSliceNo->setMinimum(0);
 	ui.spinBoxReconImgSliceNo->setMaximum(size_trans[2] - 1);
 	ui.spinBoxReconImgSliceNo->setValue(qRound(size_trans[2] / 2.0)); //DrawReconImage is called automatically
-
-	//For 2D image display
-	//SLT_DrawReconImage();
-	//m_spReconImg = writer->GetOutput();
-
-	/*OutputImageType::SizeType AfterReconSize = m_spProjImg3D->GetBufferedRegion().GetSize();
-	cout << "AfterReconSize  " << AfterReconSize[0] << "	"
-	<< AfterReconSize[1] << "	"
-	<< AfterReconSize[2] << endl;*/
-
-	/*ui.radioButton_graph_recon->setChecked(true);
-	SLT_InitializeGraphLim();
-	SLT_DrawReconImage();	*/
-
 
 	//SLT_ViewRegistration();
 	if (target == REGISTER_COR_CBCT)
@@ -2155,7 +2623,13 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 		UpdateReconImage(m_spCrntReconImg, QString("RAW_CBCT"));
 	}
 
-	cout << "FINISHED!: Total Variation CBCT reconstruction" << endl;
+	typedef itk::CastImageFilter <CUDAOutputImageType, OutputImageType > castBackType;
+	castBackType::Pointer castBack = castBackType::New();
+	castBack->SetInput(cuda_spProjImg3DFloat);
+	castBack->Update();
+	OutputImageType::Pointer m_spProjImg3DFloat = castBack->GetOutput();
+
+	cout << "FINISHED!: FDK CBCT reconstruction" << endl;
 	//if not found, just skip
 
 	//SLT_DrawGraph();
@@ -2172,11 +2646,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	if (ui.radioButton_UseCPU->isChecked())
 	{
 		strHardware = "cpu";
-	}
-	else if (ui.radioButton_UseCUDA->isChecked())
-	{
-		strHardware = "cuda";
-
 	}
 	else if (ui.radioButton_UseOpenCL->isChecked())
 	{
@@ -2202,26 +2671,20 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
   //cout << m_spProjImg3DFloat->GetRequestedRegion().GetSize() << endl;
   //cout << spTmpImage->GetRequestedRegion().GetSize() << endl;
   //return;
+  typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+  DuplicatorType::Pointer duplicator = DuplicatorType::New();
+  duplicator->SetInputImage(m_spProjImg3DFloat);
+  duplicator->Update();
 
-	typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
-	DuplicatorType::Pointer duplicator = DuplicatorType::New();
-	duplicator->SetInputImage(m_spProjImg3DFloat);
-	duplicator->Update();
-
-	OutputImageType::Pointer spCurImg =  duplicator->GetOutput(); //already down sampled
+  OutputImageType::Pointer spCurImg = duplicator->GetOutput(); //already down sampled
 	//OutputImageType::Pointer spCurImg = m_spProjImg3D;
 	//spCurImg = duplicator->GetOutput();
 
 	//ResampleItkImage(m_spProjImg3DFloat, spCurImg, resampleFactor);
 
 	//Displaced detector weighting // set pipeline //inplace filter
-#if CUDA_FOUND
-	typedef rtk::CudaDisplacedDetectorImageFilter DDFType;
-	DDFType::Pointer ddf = DDFType::New();
-#else
 	typedef rtk::DisplacedDetectorImageFilter< OutputImageType > DDFType;
 	DDFType::Pointer ddf = DDFType::New();
-#endif
 
 	if (ui.checkBox_UseDDF->isChecked())
 	{
@@ -2235,13 +2698,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 		spCurImg = ddf->GetOutput();
 	}
-#if CUDA_FOUND
-	typedef rtk::CudaParkerShortScanImageFilter PSSFType;
-	PSSFType::Pointer pssf = PSSFType::New();
-#else
 	typedef rtk::ParkerShortScanImageFilter< OutputImageType > PSSFType;
 	PSSFType::Pointer pssf = PSSFType::New();
-#endif
 	
 
 	if (ui.checkBox_UsePSSF->isChecked())
@@ -2264,7 +2722,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	//Let's duplicate this
 	//Original m_spProjImg3D will be deleted after update
-
+	
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
 		typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
@@ -2336,9 +2794,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	// FDK reconstruction filtering
 	itk::ImageToImageFilter<OutputImageType, OutputImageType>::Pointer feldkamp;
 	typedef rtk::FDKConeBeamReconstructionFilter< OutputImageType > FDKCPUType;
-#if CUDA_FOUND
-	typedef rtk::CudaFDKConeBeamReconstructionFilter                FDKCUDAType;
-#endif
 
 #if OPENCL_FOUND
 	typedef rtk::OpenCLFDKConeBeamReconstructionFilter              FDKOPENCLType;
@@ -2357,17 +2812,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		// dynamic_cast<FDKCPUType*>(feldkamp.GetPointer())->SetBackProjectionFilter( bp.GetPointer() );
 		//}
 	}
-	else if(!strcmp(strHardware, "cuda") )
-	{
-#if CUDA_FOUND
-		cout << "CUDA will be used for FDK reconstruction" << endl;
-		feldkamp = FDKCUDAType::New();
-		SET_FELDKAMP_OPTIONS( static_cast<FDKCUDAType*>(feldkamp.GetPointer()) );
-#else
-		std::cerr << "The program has not been compiled with cuda option" << std::endl;
-		return;
-#endif
-	}
+	
 	else if(!strcmp(strHardware, "opencl") )
 	{
 #if OPENCL_FOUND
@@ -2378,13 +2823,14 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		return;
 #endif
 	}
-
 	typedef rtk::FieldOfViewImageFilter <OutputImageType, OutputImageType> FOVFilterType;
 	FOVFilterType::Pointer fieldofviewFilter = FOVFilterType::New();
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
 		feldkamp->Update();
-		std::cout << "FOV filter is being added.." << std::endl;
+		cout << "FOV filter is being added.." << endl;
+		feldkamp->Update();
+		cout << "FOV filter is being added.." << endl;
 		fieldofviewFilter->SetInput(0, feldkamp->GetOutput());
 		fieldofviewFilter->SetGeometry(m_spCustomGeometry);
 		if (!ui.checkBox_UseDDF->isChecked()) 
@@ -2396,10 +2842,12 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		
 	}
 	
+	
 
-	std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
+	cout << "Cone beam reconstruction pipeline is ready" << endl;
 
 	// Streaming depending on streaming capability of writer --> not affect the calc. speed
+
 	typedef itk::StreamingImageFilter<OutputImageType, OutputImageType> StreamerType;
 	StreamerType::Pointer streamerBP = StreamerType::New();
 	
@@ -2518,8 +2966,9 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
 	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
 	//absImgFilter->SetInput(resampler->GetOutput());
-	
+
 	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+	
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
 	multiplyImageFilter->SetConstant(65536); //calculated already
@@ -2549,11 +2998,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		std::cout << "Total variation before denoising is " << totalVariationBefore << std::endl;
 
 		/*Now GO:*/
-#if CUDA_FOUND
-		typedef rtk::CudaTotalVariationDenoisingBPDQImageFilter  tvFilterType;
-#else
 		typedef rtk::TotalVariationDenoisingBPDQImageFilter<OutputImageType, GradientOutputImageType>  tvFilterType;
-#endif
+		
 		tvFilterType::Pointer tvFilter = tvFilterType::New();
 		cout << "Post total variation filtering is in the pipeline.." << endl;
 
@@ -2695,10 +3141,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	if(!strcmp(strHardware, "cpu") )
 		static_cast<FDKCPUType* >(feldkamp.GetPointer())->PrintTiming(std::cout);
-#if CUDA_FOUND
-	else if(!strcmp(strHardware, "cuda") )
-		static_cast<FDKCUDAType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
-#endif
 #if OPENCL_FOUND
 	else if(!strcmp(strHardware, "opencl") )
 		static_cast<FDKOPENCLType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
@@ -2722,7 +3164,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	/*ui.radioButton_graph_recon->setChecked(true);
 	SLT_InitializeGraphLim();
 	SLT_DrawReconImage();	*/
-
+	
 
 	//SLT_ViewRegistration();
 	if (target == REGISTER_COR_CBCT)
@@ -2736,7 +3178,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	cout << "FINISHED!: FDK CBCT reconstruction" << endl;
 	//if not found, just skip
-
+	
 	//SLT_DrawGraph();
 	//2) Load Geometry file.
 	//3) Prepare all parameters from GUI components
@@ -2746,8 +3188,12 @@ void CbctRecon::SLT_DoReconstruction()
 {
 	if (ui.checkBox_FDK->isChecked())
 	{
-		DoReconstructionFDK(REGISTER_RAW_CBCT);
-
+		if (ui.radioButton_UseCUDA->isChecked())
+		{
+			CudaDoReconstructionFDK(REGISTER_RAW_CBCT);
+		} else {
+			DoReconstructionFDK(REGISTER_RAW_CBCT);
+		}
 		m_pDlgRegistration->UpdateListOfComboBox(0);//combo selection signalis called
 		m_pDlgRegistration->UpdateListOfComboBox(1);
 		//m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
@@ -2760,7 +3206,7 @@ void CbctRecon::SLT_DoReconstruction()
 	}
 	else if (ui.checkBox_TV->isChecked() && !ui.checkBox_FDK->isChecked())
 	{
-		DoReconstructionTV(REGISTER_RAW_CBCT);
+		CudaDoReconstructionTV(REGISTER_RAW_CBCT);
 
 		m_pDlgRegistration->UpdateListOfComboBox(0);//combo selection signalis called
 		m_pDlgRegistration->UpdateListOfComboBox(1);
@@ -5480,14 +5926,19 @@ void CbctRecon::SLT_DoBTC()
 		b =     0.04582  (0.0451, 0.04655)
 		c =       2.131  (2.128, 2.135)
 		d =       1.721  (1.715, 1.726)
-		FULLFAN HEAD:
-		a =       386.7  (385.6, 387.8)
-		b =     0.04919  (0.04691, 0.05146)
-		c =       2.237  (2.219, 2.254)
-		d =       2.111  (2.073, 2.148)
-		e =       121.8  (120.9, 122.7)
-		f =    0.05189  (0.05415, 0.04963)
-		g =       1.978  (1.951, 2.006)
+	*/
+	/*FULLFAN:
+	model = @(a, b, c, d, e, x) ...
+	c-sqrt(abs(a.^2-power(x.*d-b,2))).*...%heaviside(x.*d-b+a).*heaviside(-(x.*d-b-a));
+	1 ./ (1 + exp(- e .* (x.*d-b+a))).*...
+	1 ./ (1 + exp(- e .* (-(x.*d-b-a))));
+	FULLFAN HEAD:
+	a =       2.022  (2.021, 2.024)
+	b =       3.243  (3.241, 3.245)
+	c =       4.187  (4.186, 4.188)
+	d =     0.01284  (0.01283, 0.01285)
+	e =       10.55  (10.46, 10.64)
+	2.0225;3.2433;4.1869;0.0128;10.5462
 	*/
 	
 	QStringList strList = ui.lineEdit_fBTcor->text().split(';');
@@ -5524,27 +5975,37 @@ void CbctRecon::SLT_DoBTC()
 		cout << "Bow-tie correction curve:" << poly3_d << " / ( 1 + exp(-" << poly3_b << " * (x - " << poly3_a << "))) + " << poly3_c << endl;
 	}
 	
-	int iter = 0;
+	
 	double x_idx;
 	it.GoToBegin();
 	while (!it.IsAtEnd())
 	{
 		crntVal = (double)(it.Get()); // (65535 / exp(it.Get())); //raw mu_t = ln(65535/I) <-> I = 65535 / exp(mu_t)
-		if (crntVal > poly3_c)
+		x_idx = (double)(it.GetIndex()[0]) * (512.0 / imgSize[0]); // 512 from current fit -> conversion to be consistent with downResFactor
+		if (ui.checkBox_Fullfan->isChecked())
 		{
-			x_idx = (double)(it.GetIndex()[0]) * (512.0 / imgSize[0]); // 512 from current fit -> conversion to be consistent with downResFactor
-			if (ui.checkBox_Fullfan->isChecked())
+			if (crntVal > (poly3_c - poly3_a))
 			{
-				corrF = poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c + poly3_d / (1.0 + exp(poly3_b * (x_idx - poly3_e)));
+				corrF = poly3_c -
+					sqrt(abs(pow(poly3_a, 2) - pow(x_idx * poly3_d - poly3_b, 2))) /
+					(1 + exp(-poly3_e * (x_idx * poly3_d - poly3_b + poly3_a))) /
+					(1 + exp(poly3_e * (x_idx * poly3_d - poly3_b - poly3_a)));
 			}
-			else{
-				corrF = poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c; 
+			else
+			{
+				corrF = crntVal - 1e-2; //approximate precition of fit 
 			}
-			++iter;
+			//poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c + poly3_d / (1.0 + exp(poly3_b * (x_idx - poly3_e)));
 		}
-		else
-		{
-			corrF = crntVal - 1e-2; //approximate precition of fit 
+		else{
+			if (crntVal > poly3_c)
+			{
+				corrF = poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c;
+			}
+			else
+			{
+				corrF = crntVal - 1e-2; //approximate precition of fit 
+			}
 		}
 		it.Set((float)(crntVal - corrF)); // (log(65535 / (crntVal - corrF))));
 		++it;
@@ -6450,20 +6911,31 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	multiplyImageFilter->SetInput(castFilter->GetOutput());
 	multiplyImageFilter->SetConstant(calibF_A/65535.0);
 
+#if CUDA_FOUND
+	typedef itk::AddImageFilter <OutputImageType, OutputImageType, CUDAOutputImageType> AddImageFilterType;
+#else
 	typedef itk::AddImageFilter <OutputImageType, OutputImageType, OutputImageType> AddImageFilterType;
+#endif
 	AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
 	addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
 	double addingVal = calibF_B/65535.0;
 	addImageFilter->SetConstant2(addingVal);
 	addImageFilter->Update(); //will generate map of real_mu (att.coeff)
 
+#if CUDA_FOUND
+	CUDAOutputImageType::Pointer spCTImg_mu;
+#else
 	OutputImageType::Pointer spCTImg_mu;
+#endif
 	spCTImg_mu = addImageFilter->GetOutput();
-
 	//2) Prepare empty projection images //Should be corresonponding to raw projection images
 
 	// Create a stack of empty projection images
+#if CUDA_FOUND
+	typedef rtk::ConstantImageSource< CUDAOutputImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
+#else
 	typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
+#endif
 	ConstantImageSourceType::Pointer constantImageSource = ConstantImageSourceType::New();
 
 	ConstantImageSourceType::SizeType size;
@@ -6501,10 +6973,18 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	cout << "Canvas for projection image is ready to write" << endl;
 
 	//4) Prepare CT image to be projected
+#if CUDA_FOUND
+	int fwdMethod = en_CudaRayCast; // en_RayCastInterpolator; // en_CudaRayCast; //later, it will be coming from the GUI
+#else
 	int fwdMethod = en_Joseph; // en_RayCastInterpolator; // en_CudaRayCast; //later, it will be coming from the GUI
+#endif
 	cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " << fwdMethod << endl;
 
 	// Create forward projection image filter
+#if CUDA_FOUND
+	typedef rtk::CudaForwardProjectionImageFilter<CUDAOutputImageType, CUDAOutputImageType> CudaforwardProjectionType; //Float to Float
+	CudaforwardProjectionType::Pointer CudaforwardProjection = CudaforwardProjectionType::New(); 
+#else
 	rtk::ForwardProjectionImageFilter<OutputImageType, OutputImageType>::Pointer forwardProjection; //Float to Float
 
 	switch(fwdMethod)
@@ -6514,7 +6994,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	  break;
 	case (en_CudaRayCast):
 #if CUDA_FOUND
-		forwardProjection = rtk::CudaForwardProjectionImageFilter<OutputImageType, OutputImageType>::New(); // argument list added by AGRAVGAARD
+	  std::cerr << "You should not be able to end up here!" << std::endl;
 #else
 	  std::cerr << "The program has not been compiled with cuda option" << std::endl;
 	  return;
@@ -6528,19 +7008,29 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	  std::cerr << "Unhandled --method value." << std::endl;
 	  return;
 	}
-
+#endif
 	itk::TimeProbe projProbe;
 	cout << "Forward projection is now ongoing" << endl;
-
+#if CUDA_FOUND
+	CudaforwardProjection->SetInput(constantImageSource->GetOutput());
+	CudaforwardProjection->SetInput(1, spCTImg_mu); //reference plan CT image
+	CudaforwardProjection->SetGeometry(spGeometry);
+	projProbe.Start();
+	TRY_AND_EXIT_ON_ITK_EXCEPTION(CudaforwardProjection->Update());
+	projProbe.Stop();
+	spResultProjImageFloat = CudaforwardProjection->GetOutput();
+#else
 	forwardProjection->SetInput( constantImageSource->GetOutput() ); //Canvas. projection image will be saved here.
 	forwardProjection->SetInput( 1, spCTImg_mu ); //reference plan CT image
 	forwardProjection->SetGeometry(spGeometry);
 
 	projProbe.Start();
-	TRY_AND_EXIT_ON_ITK_EXCEPTION( forwardProjection->Update() );
+	TRY_AND_EXIT_ON_ITK_EXCEPTION(forwardProjection->Update());
 	projProbe.Stop();
 
 	spResultProjImageFloat = forwardProjection->GetOutput();
+#endif
+	
 	cout << "Forward projection done by in method ID = " << fwdMethod << " in:	" << projProbe.GetMean() << ' ' << projProbe.GetUnit() << '.' << std::endl;
   }//release all the memory
 
@@ -7020,7 +7510,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 	  if (corrVal < 1.0)
 		corrVal = 1.0;
 	  if (corrVal > 65534.0) //65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
-		corrVal = 65534.0;
+		corrVal = 65534.0; // HEY AGRAVGAARD TODO HERE
 
 	  it_Tar.Set(corrVal);//float // later, add customSPR
 	  		//corrVal = (float)(rawVal - customSPR*scatterVal);
@@ -7707,7 +8197,14 @@ void CbctRecon::AfterScatCorrectionMacro()
   //Regardeless of previous setting, The Truncation should not be applied!
 
   //Truncation is invalidated inside the function
-  DoReconstructionFDK(REGISTER_COR_CBCT);
+  if (ui.radioButton_UseCUDA->isChecked())
+  {
+	  CudaDoReconstructionFDK(REGISTER_COR_CBCT);
+  }
+  else{
+	  DoReconstructionFDK(REGISTER_COR_CBCT);
+  }
+  
   //Skin removal (using CT contour w/ big margin)
 
   cout << "Post  FDK reconstruction is done. Moving on to post skin removal" << endl;
@@ -8056,7 +8553,133 @@ void CbctRecon::SLT_SetCBCTSkinRSPath()
 
 }
 
-void CbctRecon::SLT_CropSkinUsingRS()
+void CbctRecon::SLT_CropSkinUsingThreshold()
+{
+	cout << "Overwriting of values below threshold to air ";
+	if (!m_spCrntReconImg) {
+		return;
+	}
+
+	USHORT_ImageType::SizeType dims; 
+	dims = m_spCrntReconImg->GetBufferedRegion().GetSize();
+	cout << "initiating.. dim" << dims << endl;
+	typedef itk::BinaryThresholdImageFilter <USHORT_ImageType, USHORT_ImageType> threshFilterType;
+	threshFilterType::Pointer threshFilter = threshFilterType::New();
+	cout << "Adding input.. ";
+	threshFilter->SetInput( m_spCrntReconImg );
+	/*
+	if (m_spCrntReconImg == m_spRawReconImg)
+	{
+		threshFilter->SetInput(m_spRawReconImg);
+	}
+	else if (m_spCrntReconImg == m_spRefCTImg)
+	{
+		threshFilter->SetInput(m_spRefCTImg);
+	}
+	else if (m_spCrntReconImg == m_spScatCorrReconImg)
+	{
+		threshFilter->SetInput(m_spScatCorrReconImg);
+	}
+	*/
+	cout << "input added.. "; //
+
+	threshFilter->SetOutsideValue( 0 );
+	threshFilter->SetInsideValue( 1 );
+	threshFilter->SetLowerThreshold( ui.lineEdit_Threshold->text().toInt() );
+	threshFilter->Update();
+	USHORT_ImageType::Pointer spCrntImgMask = threshFilter->GetOutput();
+	typedef itk::ImageRegionIteratorWithIndex<USHORT_ImageType> iteratorType;
+	iteratorType it(spCrntImgMask, spCrntImgMask->GetRequestedRegion());
+	USHORT_ImageType::SizeType imgDims = spCrntImgMask->GetBufferedRegion().GetSize();
+	double crntVal = 0.0;
+	int z_idx;
+	it.GoToBegin();
+	while (!it.IsAtEnd())
+	{
+		crntVal = (double)(it.Get()); 
+		z_idx = it.GetIndex()[2]; 
+		if (z_idx == imgDims[2] - 10 || z_idx == 10)
+		{
+			it.Set((float)(1));
+		}
+		++it;
+	}
+	
+	typedef itk::BinaryFillholeImageFilter <USHORT_ImageType> HoleFillingFilterType;
+	HoleFillingFilterType::Pointer HoleFillingFilter = HoleFillingFilterType::New();
+	HoleFillingFilter->SetForegroundValue( 1 );
+	HoleFillingFilter->SetFullyConnected( false );
+	cout << "Threshold filtering.. ";
+	HoleFillingFilter->SetInput( spCrntImgMask );
+	dims = threshFilter->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+
+
+	typedef itk::BinaryBallStructuringElement< USHORT_PixelType, 3> StructElementType;
+	typedef itk::BinaryErodeImageFilter< USHORT_ImageType, USHORT_ImageType, StructElementType > ErodeFilterType;
+	typedef itk::BinaryDilateImageFilter< USHORT_ImageType, USHORT_ImageType, StructElementType > DilateFilterType;
+	ErodeFilterType::Pointer binaryErode = ErodeFilterType::New();
+	binaryErode->SetErodeValue( 1 );
+	StructElementType erodeStructElement;
+	erodeStructElement.SetRadius( ui.lineEdit_ErodeRadius->text().toInt() );
+	erodeStructElement.CreateStructuringElement();
+	binaryErode->SetKernel( erodeStructElement );
+	cout << "filling holes.. ";
+	binaryErode->SetInput(HoleFillingFilter->GetOutput());
+	dims = HoleFillingFilter->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+
+	DilateFilterType::Pointer binaryDilate = DilateFilterType::New();
+	binaryDilate->SetDilateValue( 1 );
+	StructElementType dilateStructElement;
+	dilateStructElement.SetRadius( ui.lineEdit_DilateRadius->text().toInt() );
+	dilateStructElement.CreateStructuringElement();
+	binaryDilate->SetKernel(dilateStructElement);
+	cout << "eroding dirt.. ";
+	binaryDilate->SetInput(binaryErode->GetOutput());
+	dims = binaryErode->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+	cout << "Skin mask is being created..." << endl;
+	//binaryDilate->Update();
+
+	typedef itk::MaskImageFilter <USHORT_ImageType, USHORT_ImageType, USHORT_ImageType> MaskFilterType;
+	MaskFilterType::Pointer MaskFilter = MaskFilterType::New();
+	MaskFilter->SetMaskingValue(0);
+	cout << "Dilating.. ";
+	MaskFilter->SetMaskImage(binaryDilate->GetOutput());
+	dims = binaryDilate->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+
+	if (m_spCrntReconImg == m_spRawReconImg)
+	{
+		MaskFilter->SetInput( m_spRawReconImg );
+		MaskFilter->Update();
+		m_spRawReconImg = MaskFilter->GetOutput();
+		dims = MaskFilter->GetOutput()->GetBufferedRegion().GetSize();
+		cout << "dim" << dims << endl;
+		UpdateReconImage(m_spRawReconImg, QString("Thresh-based skin cropped image"));
+	}
+	else if (m_spCrntReconImg == m_spRefCTImg)
+	{
+		MaskFilter->SetInput(m_spRefCTImg);
+		cout << "Update mask filter.. ";
+		MaskFilter->Update();
+		cout << "And return output." << endl;
+		m_spRefCTImg = MaskFilter->GetOutput();
+		dims = MaskFilter->GetOutput()->GetBufferedRegion().GetSize();
+		cout << "dim" << dims << endl;
+		UpdateReconImage(m_spRefCTImg, QString("Thresh-based skin cropped image"));
+	}
+	else if (m_spCrntReconImg == m_spScatCorrReconImg)
+	{
+		MaskFilter->SetInput(m_spScatCorrReconImg);
+		MaskFilter->Update();
+		m_spScatCorrReconImg = MaskFilter->GetOutput();
+		UpdateReconImage(m_spScatCorrReconImg, QString("Thresh-based skin cropped image"));
+	}
+}
+
+void CbctRecon::SLT_CropSkinUsingRS() // CHANGE HERE
 {
   QString strPathRS =  ui.lineEdit_PathCBCTSkinPath->text();
   if (strPathRS.length() < 1)

@@ -47,12 +47,13 @@ enum enSplitOption{
 
 
 #ifdef CUDA_FOUND
-typedef itk::CudaImage<unsigned short, 2> UnsignedShortImageType;
-typedef itk::CudaImage<float, 2> FloatImageType2D;
-#else
+typedef itk::CudaImage<unsigned short, 2> UnsignedShortCUDAImageType;
+typedef itk::CudaImage<float, 2> FloatCUDAImageType2D;
+#endif
+
 typedef itk::Image<unsigned short, 2> UnsignedShortImageType;
 typedef itk::Image<float, 2> FloatImageType2D;
-#endif
+
 
 using namespace std;
 

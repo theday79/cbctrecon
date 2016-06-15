@@ -48,12 +48,14 @@
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
 
+#include <itkConfigure.h>
 #include <rtkConfiguration.h>
 #include <rtkFDKBackProjectionImageFilter.h>
 #include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkADMMTotalVariationConeBeamReconstructionFilter.h> // ADDED BY AGRAVGAARD
 
-#if CUDA_FOUND
+
+#ifdef CUDA_FOUND
 #include <rtkCudaTotalVariationDenoisingBPDQImageFilter.h> // ADDED BY AGRAVGAARD
 #else
 #include <rtkTotalVariationDenoisingBPDQImageFilter.h> // ADDED BY AGRAVGAARD
@@ -81,6 +83,12 @@
 #include <itkMultiplyImageFilter.h>
 #include "itkCastImageFilter.h"
 #include "itkAbsImageFilter.h"
+#include "itkBinaryThresholdImageFilter.h"
+#include "itkBinaryDilateImageFilter.h"
+#include "itkBinaryErodeImageFilter.h"
+#include "itkBinaryBallStructuringElement.h"
+#include "itkBinaryFillholeImageFilter.h"
+#include "itkMaskImageFilter.h"
 
 //#include "plmreconstruct_config.h" // <- Are these still necessarY?
 //#include "plm_int.h"
@@ -90,21 +98,21 @@
 typedef float FloatPixelType;
 typedef signed short SHORT_PixelType;
 typedef unsigned short USHORT_PixelType;
-#if CUDA_FOUND
+#ifdef CUDA_FOUND
 #include <cuda_runtime.h>
 #include <itkCudaImageToImageFilter.h>
 #include <rtkCudaFFTRampImageFilter.h>
 #include <rtkCudaDisplacedDetectorImageFilter.h>
 #include <rtkCudaParkerShortScanImageFilter.h>
-typedef itk::CudaImage< FloatPixelType, 3 > OutputImageType;
-typedef itk::CudaImage< itk::CovariantVector< FloatPixelType, 3 >, 3 > GradientOutputImageType;
-typedef itk::CudaImage< FloatPixelType, 2 > OutputImageType2D;
-typedef itk::CudaImage< USHORT_PixelType, 3 > USHORT_ImageType;
-typedef itk::CudaImage< USHORT_PixelType, 2 > USHORT_ImageType2D;
+typedef itk::CudaImage< FloatPixelType, 3 > CUDAOutputImageType;
+typedef itk::CudaImage< itk::CovariantVector< FloatPixelType, 3 >, 3 > GradientCUDAOutputImageType;
+typedef itk::CudaImage< FloatPixelType, 2 > CUDAOutputImageType2D;
+typedef itk::CudaImage< USHORT_PixelType, 3 > USHORT_CUDAImageType;
+typedef itk::CudaImage< USHORT_PixelType, 2 > USHORT_CUDAImageType2D;
+typedef itk::CudaImage< SHORT_PixelType, 3 > SHORT_CUDAImageType;
+typedef itk::CudaImage< SHORT_PixelType, 2 > SHORT_CUDAImageType2D;
+#endif
 
-typedef itk::CudaImage< SHORT_PixelType, 3 > SHORT_ImageType;
-typedef itk::CudaImage< SHORT_PixelType, 2 > SHORT_ImageType2D;
-#else
 typedef itk::Image< FloatPixelType, 3 >     OutputImageType;
 typedef itk::Image< itk::CovariantVector
 	< FloatPixelType, 3 >, 3 >                GradientOutputImageType;
@@ -115,7 +123,7 @@ typedef itk::Image< USHORT_PixelType, 2 > USHORT_ImageType2D;
 
 typedef itk::Image< SHORT_PixelType, 3 > SHORT_ImageType;
 typedef itk::Image< SHORT_PixelType, 2 > SHORT_ImageType2D;
-#endif
+
 
 // typedef itk::Image< FloatPixelType, 3 > OutputImageType; //
 typedef itk::ImageFileReader< OutputImageType > ReaderType;
@@ -284,7 +292,8 @@ public:
 	void ResampleItkImage2D(OutputImageType2D::Pointer& spSrcImg2D, OutputImageType2D::Pointer& spTarImg2D, double resFactor); //using slice iterator
 
 	void DoReconstructionFDK(enREGI_IMAGES target);
-	void DoReconstructionTV(enREGI_IMAGES target); // ADDED BY AGRAVGAARD
+	void CudaDoReconstructionFDK(enREGI_IMAGES target);
+	void CudaDoReconstructionTV(enREGI_IMAGES target); // ADDED BY AGRAVGAARD
 
 	
 	void UpdateReconImage(USHORT_ImageType::Pointer& spNewImg, QString& fileName);
@@ -431,6 +440,7 @@ public:
 
 		void SLT_SetCBCTSkinRSPath();
 		void SLT_CropSkinUsingRS();
+		void SLT_CropSkinUsingThreshold();
 
 		void SLT_ExportAngularWEPL_byFile();
 		void SLT_OptExportAngularWEPL_byFile();
