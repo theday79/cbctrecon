@@ -208,7 +208,7 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
 
 	m_iFixedOffset_ScatterMap = 10000;//fixed! allows negative value of scatter
-	//m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter
+	//m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter // HEY AGRAVGAARD TODO HERE!!
 	m_fResampleF = 1.0;
 	m_fProjSpacingX = 0.4; //DEFAULT, will be updated during Load Proj selected
 	m_fProjSpacingY = 0.4;
@@ -5480,14 +5480,19 @@ void CbctRecon::SLT_DoBTC()
 		b =     0.04582  (0.0451, 0.04655)
 		c =       2.131  (2.128, 2.135)
 		d =       1.721  (1.715, 1.726)
-		FULLFAN HEAD:
-		a =       386.7  (385.6, 387.8)
-		b =     0.04919  (0.04691, 0.05146)
-		c =       2.237  (2.219, 2.254)
-		d =       2.111  (2.073, 2.148)
-		e =       121.8  (120.9, 122.7)
-		f =    0.05189  (0.05415, 0.04963)
-		g =       1.978  (1.951, 2.006)
+	*/
+	/*FULLFAN:
+	model = @(a, b, c, d, e, x) ...
+	c-sqrt(abs(a.^2-power(x.*d-b,2))).*...%heaviside(x.*d-b+a).*heaviside(-(x.*d-b-a));
+	1 ./ (1 + exp(- e .* (x.*d-b+a))).*...
+	1 ./ (1 + exp(- e .* (-(x.*d-b-a))));
+	FULLFAN HEAD:
+	a =       2.022  (2.021, 2.024)
+	b =       3.243  (3.241, 3.245)
+	c =       4.187  (4.186, 4.188)
+	d =     0.01284  (0.01283, 0.01285)
+	e =       10.55  (10.46, 10.64)
+	2.0225;3.2433;4.1869;0.0128;10.5462
 	*/
 	
 	QStringList strList = ui.lineEdit_fBTcor->text().split(';');
@@ -5524,27 +5529,37 @@ void CbctRecon::SLT_DoBTC()
 		cout << "Bow-tie correction curve:" << poly3_d << " / ( 1 + exp(-" << poly3_b << " * (x - " << poly3_a << "))) + " << poly3_c << endl;
 	}
 	
-	int iter = 0;
+	
 	double x_idx;
 	it.GoToBegin();
 	while (!it.IsAtEnd())
 	{
 		crntVal = (double)(it.Get()); // (65535 / exp(it.Get())); //raw mu_t = ln(65535/I) <-> I = 65535 / exp(mu_t)
-		if (crntVal > poly3_c)
+		x_idx = (double)(it.GetIndex()[0]) * (512.0 / imgSize[0]); // 512 from current fit -> conversion to be consistent with downResFactor
+		if (ui.checkBox_Fullfan->isChecked())
 		{
-			x_idx = (double)(it.GetIndex()[0]) * (512.0 / imgSize[0]); // 512 from current fit -> conversion to be consistent with downResFactor
-			if (ui.checkBox_Fullfan->isChecked())
+			if (crntVal > (poly3_c - poly3_a))
 			{
-				corrF = poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c + poly3_d / (1.0 + exp(poly3_b * (x_idx - poly3_e)));
+				corrF = poly3_c -
+					sqrt(abs(pow(poly3_a, 2) - pow(x_idx * poly3_d - poly3_b, 2))) /
+					(1 + exp(-poly3_e * (x_idx * poly3_d - poly3_b + poly3_a))) /
+					(1 + exp(poly3_e * (x_idx * poly3_d - poly3_b - poly3_a)));
 			}
-			else{
-				corrF = poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c; 
+			else
+			{
+				corrF = crntVal - 1e-2; //approximate precition of fit 
 			}
-			++iter;
+			//poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c + poly3_d / (1.0 + exp(poly3_b * (x_idx - poly3_e)));
 		}
-		else
-		{
-			corrF = crntVal - 1e-2; //approximate precition of fit 
+		else{
+			if (crntVal > poly3_c)
+			{
+				corrF = poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c;
+			}
+			else
+			{
+				corrF = crntVal - 1e-2; //approximate precition of fit 
+			}
 		}
 		it.Set((float)(crntVal - corrF)); // (log(65535 / (crntVal - corrF))));
 		++it;
@@ -7020,7 +7035,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 	  if (corrVal < 1.0)
 		corrVal = 1.0;
 	  if (corrVal > 65534.0) //65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
-		corrVal = 65534.0;
+		corrVal = 65534.0; // HEY AGRAVGAARD TODO HERE
 
 	  it_Tar.Set(corrVal);//float // later, add customSPR
 	  		//corrVal = (float)(rawVal - customSPR*scatterVal);
@@ -8056,7 +8071,133 @@ void CbctRecon::SLT_SetCBCTSkinRSPath()
 
 }
 
-void CbctRecon::SLT_CropSkinUsingRS()
+void CbctRecon::SLT_CropSkinUsingThreshold()
+{
+	cout << "Overwriting of values below threshold to air ";
+	if (!m_spCrntReconImg) {
+		return;
+	}
+
+	USHORT_ImageType::SizeType dims; 
+	dims = m_spCrntReconImg->GetBufferedRegion().GetSize();
+	cout << "initiating.. dim" << dims << endl;
+	typedef itk::BinaryThresholdImageFilter <USHORT_ImageType, USHORT_ImageType> threshFilterType;
+	threshFilterType::Pointer threshFilter = threshFilterType::New();
+	cout << "Adding input.. ";
+	threshFilter->SetInput( m_spCrntReconImg );
+	/*
+	if (m_spCrntReconImg == m_spRawReconImg)
+	{
+		threshFilter->SetInput(m_spRawReconImg);
+	}
+	else if (m_spCrntReconImg == m_spRefCTImg)
+	{
+		threshFilter->SetInput(m_spRefCTImg);
+	}
+	else if (m_spCrntReconImg == m_spScatCorrReconImg)
+	{
+		threshFilter->SetInput(m_spScatCorrReconImg);
+	}
+	*/
+	cout << "input added.. "; //
+
+	threshFilter->SetOutsideValue( 0 );
+	threshFilter->SetInsideValue( 1 );
+	threshFilter->SetLowerThreshold( ui.lineEdit_Threshold->text().toInt() );
+	threshFilter->Update();
+	USHORT_ImageType::Pointer spCrntImgMask = threshFilter->GetOutput();
+	typedef itk::ImageRegionIteratorWithIndex<USHORT_ImageType> iteratorType;
+	iteratorType it(spCrntImgMask, spCrntImgMask->GetRequestedRegion());
+	USHORT_ImageType::SizeType imgDims = spCrntImgMask->GetBufferedRegion().GetSize();
+	double crntVal = 0.0;
+	int z_idx;
+	it.GoToBegin();
+	while (!it.IsAtEnd())
+	{
+		crntVal = (double)(it.Get()); 
+		z_idx = it.GetIndex()[2]; 
+		if (z_idx == imgDims[2] - 10 || z_idx == 10)
+		{
+			it.Set((float)(1));
+		}
+		++it;
+	}
+	
+	typedef itk::BinaryFillholeImageFilter <USHORT_ImageType> HoleFillingFilterType;
+	HoleFillingFilterType::Pointer HoleFillingFilter = HoleFillingFilterType::New();
+	HoleFillingFilter->SetForegroundValue( 1 );
+	HoleFillingFilter->SetFullyConnected( false );
+	cout << "Threshold filtering.. ";
+	HoleFillingFilter->SetInput( spCrntImgMask );
+	dims = threshFilter->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+
+
+	typedef itk::BinaryBallStructuringElement< USHORT_PixelType, 3> StructElementType;
+	typedef itk::BinaryErodeImageFilter< USHORT_ImageType, USHORT_ImageType, StructElementType > ErodeFilterType;
+	typedef itk::BinaryDilateImageFilter< USHORT_ImageType, USHORT_ImageType, StructElementType > DilateFilterType;
+	ErodeFilterType::Pointer binaryErode = ErodeFilterType::New();
+	binaryErode->SetErodeValue( 1 );
+	StructElementType erodeStructElement;
+	erodeStructElement.SetRadius( ui.lineEdit_ErodeRadius->text().toInt() );
+	erodeStructElement.CreateStructuringElement();
+	binaryErode->SetKernel( erodeStructElement );
+	cout << "filling holes.. ";
+	binaryErode->SetInput(HoleFillingFilter->GetOutput());
+	dims = HoleFillingFilter->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+
+	DilateFilterType::Pointer binaryDilate = DilateFilterType::New();
+	binaryDilate->SetDilateValue( 1 );
+	StructElementType dilateStructElement;
+	dilateStructElement.SetRadius( ui.lineEdit_DilateRadius->text().toInt() );
+	dilateStructElement.CreateStructuringElement();
+	binaryDilate->SetKernel(dilateStructElement);
+	cout << "eroding dirt.. ";
+	binaryDilate->SetInput(binaryErode->GetOutput());
+	dims = binaryErode->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+	cout << "Skin mask is being created..." << endl;
+	//binaryDilate->Update();
+
+	typedef itk::MaskImageFilter <USHORT_ImageType, USHORT_ImageType, USHORT_ImageType> MaskFilterType;
+	MaskFilterType::Pointer MaskFilter = MaskFilterType::New();
+	MaskFilter->SetMaskingValue(0);
+	cout << "Dilating.. ";
+	MaskFilter->SetMaskImage(binaryDilate->GetOutput());
+	dims = binaryDilate->GetOutput()->GetBufferedRegion().GetSize();
+	cout << "dim" << dims << endl;
+
+	if (m_spCrntReconImg == m_spRawReconImg)
+	{
+		MaskFilter->SetInput( m_spRawReconImg );
+		MaskFilter->Update();
+		m_spRawReconImg = MaskFilter->GetOutput();
+		dims = MaskFilter->GetOutput()->GetBufferedRegion().GetSize();
+		cout << "dim" << dims << endl;
+		UpdateReconImage(m_spRawReconImg, QString("Thresh-based skin cropped image"));
+	}
+	else if (m_spCrntReconImg == m_spRefCTImg)
+	{
+		MaskFilter->SetInput(m_spRefCTImg);
+		cout << "Update mask filter.. ";
+		MaskFilter->Update();
+		cout << "And return output." << endl;
+		m_spRefCTImg = MaskFilter->GetOutput();
+		dims = MaskFilter->GetOutput()->GetBufferedRegion().GetSize();
+		cout << "dim" << dims << endl;
+		UpdateReconImage(m_spRefCTImg, QString("Thresh-based skin cropped image"));
+	}
+	else if (m_spCrntReconImg == m_spScatCorrReconImg)
+	{
+		MaskFilter->SetInput(m_spScatCorrReconImg);
+		MaskFilter->Update();
+		m_spScatCorrReconImg = MaskFilter->GetOutput();
+		UpdateReconImage(m_spScatCorrReconImg, QString("Thresh-based skin cropped image"));
+	}
+}
+
+void CbctRecon::SLT_CropSkinUsingRS() // CHANGE HERE
 {
   QString strPathRS =  ui.lineEdit_PathCBCTSkinPath->text();
   if (strPathRS.length() < 1)

@@ -81,6 +81,12 @@
 #include <itkMultiplyImageFilter.h>
 #include "itkCastImageFilter.h"
 #include "itkAbsImageFilter.h"
+#include "itkBinaryThresholdImageFilter.h"
+#include "itkBinaryDilateImageFilter.h"
+#include "itkBinaryErodeImageFilter.h"
+#include "itkBinaryBallStructuringElement.h"
+#include "itkBinaryFillholeImageFilter.h"
+#include "itkMaskImageFilter.h"
 
 //#include "plmreconstruct_config.h" // <- Are these still necessarY?
 //#include "plm_int.h"
@@ -431,6 +437,7 @@ public:
 
 		void SLT_SetCBCTSkinRSPath();
 		void SLT_CropSkinUsingRS();
+		void SLT_CropSkinUsingThreshold();
 
 		void SLT_ExportAngularWEPL_byFile();
 		void SLT_OptExportAngularWEPL_byFile();
