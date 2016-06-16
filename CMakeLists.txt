@@ -48,7 +48,13 @@ IF(USE_CUDA)
 ENDIF()
 #=========================================================
 
-
+# Find BZIP2 (required for Varian HNC)
+FIND_PACKAGE(BZip2)
+IF(BZIP2_FOUND)
+  INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIR})
+ELSE(BZIP2_FOUND)
+  MESSAGE(FATAL_ERROR "Cannot build without bzip2.")
+ENDIF(BZIP2_FOUND)
 
 # get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
 # set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
@@ -210,6 +216,7 @@ ${CUDA_LIBRARIES}
 ${CUDA_FFT_LIB}
 ${OPENCL_LIBRARIES}
 ${PLASTIMATCH_LIBRARIES}
+${BZIP2_LIBRARIES}
 Winmm.lib
 #${DCMTK_LIBRARIES} a lot of link error.. dectection.. 
 )
