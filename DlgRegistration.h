@@ -176,13 +176,13 @@ public:
 	 void SetPlmOutputDir(QString& endFix);
 	 void init(QString& strDCMUID);
 
-	 void PostSkinRemovingCBCT(USHORT_ImageType::Pointer& spCBCT); //this function will be called from main Dlg.         
+	 void PostSkinRemovingCBCT(UShortImageType::Pointer& spCBCT); //this function will be called from main Dlg.         
 
-	 void CropSkinUsingRS(USHORT_ImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin );
+	 void CropSkinUsingRS(UShortImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin );
 
          //void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int threshold);
 
-         void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold = 1100);
+         void ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw, UShortImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold = 1100);
 
          void GenShellMask(QString& strPathInputMask, QString& strPathOutputMask, double fInnerMargin, double fOuterMargin);
 
@@ -209,8 +209,8 @@ public:
 	int m_iTmpOriginalW;
 	int m_iTmpOriginalL;
 
-	USHORT_ImageType::Pointer m_spFixed;//pointer only, for display
-	USHORT_ImageType::Pointer m_spMoving;//pointer only, for display
+	UShortImageType::Pointer m_spFixed;//pointer only, for display
+	UShortImageType::Pointer m_spMoving;//pointer only, for display
 
 
 	QString m_strPathPlastimatch;//full path

@@ -7,6 +7,7 @@
 #include "YK16GrayImage.h"
 
 //#include "itkImage.h"
+#include "itk_image_type.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 //#include "DlgRegistration.h"
@@ -73,22 +74,24 @@
 #include "itkAbsImageFilter.h"
 
 typedef float FloatPixelType;
-typedef itk::Image< FloatPixelType, 3 > OutputImageType;
-typedef itk::Image< FloatPixelType, 2 > OutputImageType2D;
-typedef itk::ImageFileReader< OutputImageType > ReaderType;
-typedef itk::ImageFileWriter< OutputImageType > WriterType;
+//typedef itk::Image< FloatPixelType, 3 > FloatImageType;
+//typedef itk::Image< FloatPixelType, 2 > FloatImage2DType;
+
+typedef itk::ImageFileReader< FloatImageType > ReaderType;
+typedef itk::ImageFileWriter< FloatImageType > WriterType;
 
 typedef rtk::ThreeDCircularProjectionGeometry GeometryType;
 
 
 typedef unsigned short USHORT_PixelType;
-typedef itk::Image< USHORT_PixelType, 3 > USHORT_ImageType;
-typedef itk::Image< USHORT_PixelType, 2 > USHORT_ImageType2D;
+//typedef itk::Image< USHORT_PixelType, 3 > UShortImageType;
+//typedef itk::Image< USHORT_PixelType, 2 > UShortImage2DType;
 
 
 typedef signed short SHORT_PixelType;
-typedef itk::Image< SHORT_PixelType, 3 > SHORT_ImageType;
-typedef itk::Image< SHORT_PixelType, 2 > SHORT_ImageType2D;
+//typedef itk::Image< SHORT_PixelType, 3 > ShortImageType;
+//typedef itk::Image< SHORT_PixelType, 2 > ShortImage2DType;
+
 
 #define DEFAULT_ELEKTA_PROJ_WIDTH 1024
 #define DEFAULT_ELEKTA_PROJ_HEIGHT 1024
@@ -185,10 +188,10 @@ public:
 	void GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW, vector<int>& vExcludingIdx);
 
 	void SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
-	void GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, OutputImageType::Pointer projImage);
+	void GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage);
 
-	double GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, OutputImageType::Pointer& sp3DFloatImage);
-	double GetValueFrom3DImageUshort(int reqX, int reqY, int reqZ, USHORT_ImageType::Pointer& sp3DUshortImage);
+	double GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, FloatImageType::Pointer& sp3DFloatImage);
+	double GetValueFrom3DImageUshort(int reqX, int reqY, int reqZ, UShortImageType::Pointer& sp3DUshortImage);
 
 	bool IsFileNameOrderCorrect(vector<string>& vFileNames);
 
@@ -199,8 +202,8 @@ public:
 
 	void DoBeamHardeningCorrection();
 
-	void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& pOutput2D);
-	void Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT_ImageType::Pointer& spMovingImg, enPLANE direction, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving);
+	void Draw2DFrom3D(UShortImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& pOutput2D);
+	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE direction, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving);
 
 	void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);	
 
@@ -213,57 +216,57 @@ public:
 	void FindAllRelevantPaths(QString pathProjHisDir);
 	QString MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID);
 
-	bool LoadShortImageToUshort(QString& strPath, USHORT_ImageType::Pointer& pUshortImage);
+	bool LoadShortImageToUshort(QString& strPath, UShortImageType::Pointer& pUshortImage);
 	void init_DlgRegistration(QString& strDCM_UID);
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
-	void ForwardProjection (USHORT_ImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, USHORT_ImageType::Pointer& spProjCT3D, bool bSave);
+	void ForwardProjection (UShortImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, UShortImageType::Pointer& spProjCT3D, bool bSave);
 	//to be implemented: Save projection3D to *.his files	
 	//void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, bool bSave);	//void GenScatterMap2D_PriorCT()
 	//void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, double resF2D, double medianRadius, double gaussianSigma, bool bSave);
-	void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave);
+	void GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D, UShortImageType::Pointer& spProjScat3D, double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave);
 	//void ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjScat3D, USHORT_ImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, bool bSave);
-	void ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjScat3D, USHORT_ImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, int postMedian, bool bSave);
+	void ScatterCorr_PrioriCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjScat3D, UShortImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, int postMedian, bool bSave);
 	void AfterScatCorrectionMacro();
 
 	//His file export from 3D proj file
-	void SaveProjImageAsHIS(USHORT_ImageType::Pointer& m_spProj3D, YK16GrayImage* arrYKImage, QString& strSavingFolder, int iCnt, double resampleF); //arrYKImage include HIS header and original file name	
+	void SaveProjImageAsHIS(UShortImageType::Pointer& m_spProj3D, YK16GrayImage* arrYKImage, QString& strSavingFolder, int iCnt, double resampleF); //arrYKImage include HIS header and original file name	
 	
-	void ConvertLineInt2Intensity( OutputImageType::Pointer& spProjLineInt3D, USHORT_ImageType::Pointer& spProjIntensity3D, int bkIntensity );
-	void ConvertIntensity2LineInt(USHORT_ImageType::Pointer& spProjIntensity3D, OutputImageType::Pointer& spProjLineInt3D, int bkIntensity);
+	void ConvertLineInt2Intensity( FloatImageType::Pointer& spProjLineInt3D, UShortImageType::Pointer& spProjIntensity3D, int bkIntensity );
+	void ConvertIntensity2LineInt(UShortImageType::Pointer& spProjIntensity3D, FloatImageType::Pointer& spProjLineInt3D, int bkIntensity);
 	
-	void Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageType2D::Pointer& spTargetImg2D, int idx, enPLANE iDirection);	
-	void Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageType::Pointer& spTargetImg3D, int idx, enPLANE iDirection);	
+	void Get2DFrom3D( UShortImageType::Pointer& spSrcImg3D, FloatImage2DType::Pointer& spTargetImg2D, int idx, enPLANE iDirection);	
+	void Set2DTo3D( FloatImage2DType::Pointer& spSrcImg2D, UShortImageType::Pointer& spTargetImg3D, int idx, enPLANE iDirection);	
 	
-	void AllocateByRef( USHORT_ImageType::Pointer& spRefImg3D, USHORT_ImageType::Pointer& spTarImg3D );
-	void AllocateByRef(OutputImageType2D::Pointer& spRefImg2D, OutputImageType2D::Pointer& spTarImg2D);
-	void AllocateByRef( OutputImageType::Pointer& spRefImg3D, OutputImageType::Pointer& spTarImg3D );
-	void AllocateByRef(USHORT_ImageType::Pointer& spRefImg3D, OutputImageType::Pointer& spTarImg3D);
-	void AllocateByRef(OutputImageType::Pointer& spRefImg3D, USHORT_ImageType::Pointer& spTarImg3D);
+	void AllocateByRef( UShortImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D );
+	void AllocateByRef(FloatImage2DType::Pointer& spRefImg2D, FloatImage2DType::Pointer& spTarImg2D);
+	void AllocateByRef( FloatImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D );
+	void AllocateByRef(UShortImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D);
+	void AllocateByRef(FloatImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D);
 
 	//void ResampleItkImage(OutputImageType::Pointer& spImgFloat, double resampleF);
 	//Resample proj images
-	void ResampleItkImage( OutputImageType::Pointer& spSrcImg, OutputImageType::Pointer& spTarImg, double resampleF );
-	void ResampleItkImage( USHORT_ImageType::Pointer& spSrcImg, USHORT_ImageType::Pointer& spTarImg, double resFactor );
-	void ResampleItkImage2D(OutputImageType2D::Pointer& spSrcImg2D, OutputImageType2D::Pointer& spTarImg2D, double resFactor); //using slice iterator
+	void ResampleItkImage( FloatImageType::Pointer& spSrcImg, FloatImageType::Pointer& spTarImg, double resampleF );
+	void ResampleItkImage( UShortImageType::Pointer& spSrcImg, UShortImageType::Pointer& spTarImg, double resFactor );
+	void ResampleItkImage2D(FloatImage2DType::Pointer& spSrcImg2D, FloatImage2DType::Pointer& spTarImg2D, double resFactor); //using slice iterator
 
 	void DoReconstructionFDK(enREGI_IMAGES target);	
-	void UpdateReconImage(USHORT_ImageType::Pointer& spNewImg, QString& fileName);
+	void UpdateReconImage(UShortImageType::Pointer& spNewImg, QString& fileName);
 
 	//void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName);//ushort image --> short image --> 
-	void SaveUSHORTAsSHORT_DICOM( USHORT_ImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir);
+	void SaveUSHORTAsSHORT_DICOM( UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir);
 
-	void ConvertUshort2Short(USHORT_ImageType::Pointer& spImgUshort, SHORT_ImageType::Pointer& spImgShort);
+	void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort);
 
 	double GetRawIntensityScaleFactor();
 
 	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
-	void GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend );
+	void GetAngularWEPL_SinglePoint( UShortImageType::Pointer& spUshortImage, float fAngleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend );
 
 //	void UpdateUIAfterLoading(QString& imgName);
 
 	void LoadExternalFloatImage(QString& strPath, bool bConversion);
-	void TransformationRTK2IEC(OutputImageType::Pointer& spSrc);
+	void TransformationRTK2IEC(FloatImageType::Pointer& spSrc);
 
 	void MedianFilterByGUI(); //params are given at the UI
 	void FileExportByGUI();//params are given at the UI
@@ -282,7 +285,7 @@ public:
 
         void ExportAngularWEPL_byFile(QString& strPathOutput);
 
-        void ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QString& outputFilePath);
+        void ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString& outputFilePath);
 	/*Temporary implementation for XVI5 xml*/
 
 
@@ -293,14 +296,14 @@ public:
 
 	//void AuditMemory();
 
-        void CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
+        void CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
 
 
-        void GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
+        void GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
 
-        float GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
+        float GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
 
-        void AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval);
+        void AddConstHU(UShortImageType::Pointer& spImg, int HUval);
 
 
         bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
@@ -312,19 +315,19 @@ public:
         bool GetCouchShiftFromINIXVI(QString& strPathINI, VEC3D* pTrans, VEC3D* pRot);
 
         //This function came from the tracking project. trans values are all in mm, DICOM x, y, z 
-        void ImageTransformUsingCouchCorrection(USHORT_ImageType::Pointer& spUshortInput, USHORT_ImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot);
+        void ImageTransformUsingCouchCorrection(UShortImageType::Pointer& spUshortInput, UShortImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot);
 
         void GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL);
 
+        
+        void SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
+            UShortImageType::Pointer& spProjImg3D, int iSliceIdx);
+        
+        bool LoadShortImageDirOrFile(QString& strPathDir, ShortImageType::Pointer& spOutputShortImg);
+        void ConvertShort2Ushort(ShortImageType::Pointer& spInputImgShort, UShortImageType::Pointer& spOutputImgUshort);
 
-        void SingleForwardProjection(OutputImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
-            USHORT_ImageType::Pointer& spProjImg3D, int iSliceIdx);
-
-        bool LoadShortImageDirOrFile(QString& strPathDir, SHORT_ImageType::Pointer& spOutputShortImg);
-        void ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, USHORT_ImageType::Pointer& spOutputImgUshort);
-
-        void RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHORT_ImageType::Pointer& spOutputImgUS);
-        void ConvertUshort2AttFloat(USHORT_ImageType::Pointer& spImgUshort, OutputImageType::Pointer& spAttImgFloat);
+        void RotateImgBeforeFwd(UShortImageType::Pointer& spInputImgUS, UShortImageType::Pointer& spOutputImgUS);
+        void ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, FloatImageType::Pointer& spAttImgFloat);
 
         bool SaveCurrentSetting(QString& strPathConfigFile);
         bool LoadCurrentSetting(QString& strPathConfigFile);
@@ -473,24 +476,24 @@ public:
 	
 	bool m_bScanDirectionCW;
 
-	OutputImageType::Pointer m_spProjImg3DFloat; //This is float image loaded by RTK. line integral (mu_t value). To convert this to Intensity, use mu t = ln(65535/I)
+	FloatImageType::Pointer m_spProjImg3DFloat; //This is float image loaded by RTK. line integral (mu_t value). To convert this to Intensity, use mu t = ln(65535/I)
 
-	USHORT_ImageType::Pointer m_spProjImgRaw3D;//raw intensity value converted from line integral (mu_t). 0-65535
-	USHORT_ImageType::Pointer m_spProjImgCT3D;//1.5G // release this after Scatter Generation
-	USHORT_ImageType::Pointer m_spProjImgScat3D; //scatter map proj file using any scatter-estimation method//1.5G //release this after Cor gen
-	USHORT_ImageType::Pointer m_spProjImgCorr3D; //proj file-scatter corrected one using either priori CT or any other method//1.5G
+	UShortImageType::Pointer m_spProjImgRaw3D;//raw intensity value converted from line integral (mu_t). 0-65535
+	UShortImageType::Pointer m_spProjImgCT3D;//1.5G // release this after Scatter Generation
+	UShortImageType::Pointer m_spProjImgScat3D; //scatter map proj file using any scatter-estimation method//1.5G //release this after Cor gen
+	UShortImageType::Pointer m_spProjImgCorr3D; //proj file-scatter corrected one using either priori CT or any other method//1.5G
 	
-	USHORT_ImageType::Pointer m_spCrntReconImg; //fixed image // ID: RawCBCT
-	USHORT_ImageType::Pointer m_spRawReconImg; //just added --> when file is loaded
-	USHORT_ImageType::Pointer m_spScatCorrReconImg;//just added --> after scatter correction
+	UShortImageType::Pointer m_spCrntReconImg; //fixed image // ID: RawCBCT
+	UShortImageType::Pointer m_spRawReconImg; //just added --> when file is loaded
+	UShortImageType::Pointer m_spScatCorrReconImg;//just added --> after scatter correction
 
-    USHORT_ImageType::Pointer m_spRefCTImg;//filled by SLT_LoadPlanCT_mha(); ID: RefCT_Original
-	USHORT_ImageType::Pointer m_spManualRigidCT;//copied from RefCTImg; ID: RefCT --> Moving Img, cloned
-	USHORT_ImageType::Pointer m_spAutoRigidCT; // ID: AutoRigidCT    
-	USHORT_ImageType::Pointer m_spDeformedCT1; //Deformmation will be carried out based on Moving IMage of GUI //AutoDeformCT1
-	USHORT_ImageType::Pointer m_spDeformedCT2; //AutoDeformCT2
-	USHORT_ImageType::Pointer m_spDeformedCT3; //AutoDeformCT3
-	USHORT_ImageType::Pointer m_spDeformedCT_Final; //AutoDeformCT3
+    UShortImageType::Pointer m_spRefCTImg;//filled by SLT_LoadPlanCT_mha(); ID: RefCT_Original
+	UShortImageType::Pointer m_spManualRigidCT;//copied from RefCTImg; ID: RefCT --> Moving Img, cloned
+	UShortImageType::Pointer m_spAutoRigidCT; // ID: AutoRigidCT    
+	UShortImageType::Pointer m_spDeformedCT1; //Deformmation will be carried out based on Moving IMage of GUI //AutoDeformCT1
+	UShortImageType::Pointer m_spDeformedCT2; //AutoDeformCT2
+	UShortImageType::Pointer m_spDeformedCT3; //AutoDeformCT3
+	UShortImageType::Pointer m_spDeformedCT_Final; //AutoDeformCT3
 
 	YK16GrayImage* m_dspYKReconImage;
 	YK16GrayImage*	m_dspYKImgProj;

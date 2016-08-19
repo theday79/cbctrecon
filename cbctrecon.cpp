@@ -348,7 +348,7 @@ void CbctRecon::RenameFromHexToDecimal(QStringList& filenameList)
 }
 void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
 {	
-	typedef itk::ImageFileReader<OutputImageType> ReaderType;
+	typedef itk::ImageFileReader<FloatImageType> ReaderType;
 	ReaderType::Pointer reader = ReaderType::New();
 
 	QString fileName = QFileDialog::getOpenFileName(this, "Open Image",m_strPathDirDefault, "3D dose float file (*.mha)",0,0);		
@@ -426,7 +426,7 @@ void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
 
 
 	//Multiply: Gy to mGy
-	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType> MultiplyImageFilterType;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(reader->GetOutput());
 	multiplyImageFilter->SetConstant(100.0); //calculated already //Gy to cGy
@@ -434,7 +434,7 @@ void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
 	//typedef unsigned short FinalPixelType;
 	//typedef itk::Image< FinalPixelType, 3 > FinalImageType;
 
-	typedef itk::CastImageFilter< OutputImageType, USHORT_ImageType > CastFilterType;
+	typedef itk::CastImageFilter< FloatImageType, UShortImageType > CastFilterType;
 	CastFilterType::Pointer castFilter = CastFilterType::New();
 	castFilter->SetInput(multiplyImageFilter->GetOutput());
 
@@ -444,8 +444,8 @@ void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
 	m_spCrntReconImg = m_spRawReconImg;
 
 	//Update UI
-	USHORT_ImageType::SizeType imgDim = m_spRawReconImg->GetBufferedRegion().GetSize();
-	USHORT_ImageType::SpacingType spacing = m_spRawReconImg->GetSpacing();
+	UShortImageType::SizeType imgDim = m_spRawReconImg->GetBufferedRegion().GetSize();
+	UShortImageType::SpacingType spacing = m_spRawReconImg->GetSpacing();
 
 	cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
 	cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
@@ -477,7 +477,7 @@ void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
 void CbctRecon::SLT_Load3DImage() // mha reconstructed file, from external source
 {
 	//typedef itk::ImageFileWriter<OutputImageType> WriterType;
-	typedef itk::ImageFileReader<USHORT_ImageType> ReaderType;
+	typedef itk::ImageFileReader<UShortImageType> ReaderType;
 	ReaderType::Pointer reader = ReaderType::New();
 
 	QString fileName = QFileDialog::getOpenFileName(this, "Open Image",m_strPathDirDefault, "Projection file (*.mha)",0,0);		
@@ -496,8 +496,8 @@ void CbctRecon::SLT_Load3DImage() // mha reconstructed file, from external sourc
 	return;*/
 	//Update UIAFter Loading
 
-	USHORT_ImageType::SizeType imgDim = m_spRawReconImg->GetBufferedRegion().GetSize();
-	USHORT_ImageType::SpacingType spacing = m_spRawReconImg->GetSpacing();
+	UShortImageType::SizeType imgDim = m_spRawReconImg->GetBufferedRegion().GetSize();
+	UShortImageType::SpacingType spacing = m_spRawReconImg->GetSpacing();
 
 	cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
 	cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
@@ -529,7 +529,7 @@ void CbctRecon::SLT_Load3DImageShort()
 	cout << "error! in LoadShortImageToUshort" << endl;
   }
 
-  typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType>
+  typedef itk::MinimumMaximumImageCalculator <UShortImageType>
 	ImageCalculatorFilterType2;
 
   ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
@@ -545,8 +545,8 @@ void CbctRecon::SLT_Load3DImageShort()
   //Update UI
   m_spCrntReconImg = m_spRawReconImg;
 
-  USHORT_ImageType::SizeType imgDim = m_spCrntReconImg->GetBufferedRegion().GetSize();
-  USHORT_ImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
+  UShortImageType::SizeType imgDim = m_spCrntReconImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
 
   cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
   cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
@@ -600,7 +600,7 @@ void CbctRecon::SLT_LoadNKIImage()
 		cout << "error! in LoadShortImageToUshort" << endl;
 	}
 
-	typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType>
+	typedef itk::MinimumMaximumImageCalculator <UShortImageType>
 		ImageCalculatorFilterType2;
 
 	ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
@@ -616,8 +616,8 @@ void CbctRecon::SLT_LoadNKIImage()
 	//Update UI
 	m_spCrntReconImg = m_spRawReconImg;
 
-	USHORT_ImageType::SizeType imgDim = m_spCrntReconImg->GetBufferedRegion().GetSize();
-	USHORT_ImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
+	UShortImageType::SizeType imgDim = m_spCrntReconImg->GetBufferedRegion().GetSize();
+	UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
 
 	cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
 	cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
@@ -686,11 +686,11 @@ void CbctRecon::SLT_DrawProjImages()
 	if (!m_spProjImg3DFloat)
 		return;
 
-	itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
+	itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
 	
-	OutputImageType::SizeType imgSize = m_spProjImg3DFloat->GetRequestedRegion().GetSize(); //1016x1016 x z
-	OutputImageType::SizeType imgSizeBuf = m_spProjImg3DFloat->GetBufferedRegion().GetSize(); //1016x1016 x z
-	OutputImageType::SizeType imgSizeLargest = m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
+	FloatImageType::SizeType imgSize = m_spProjImg3DFloat->GetRequestedRegion().GetSize(); //1016x1016 x z
+	FloatImageType::SizeType imgSizeBuf = m_spProjImg3DFloat->GetBufferedRegion().GetSize(); //1016x1016 x z
+	FloatImageType::SizeType imgSizeLargest = m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
 
 	int width = imgSize[0];
 	int height = imgSize[1];
@@ -1458,14 +1458,14 @@ void CbctRecon::SLT_DrawReconImage()
 	//  output image types. A filter object is created with the New()
 	//  method and assigned to a SmartPointer.
 	
-	typedef itk::ExtractImageFilter<USHORT_ImageType, USHORT_ImageType2D> ExtractFilterType;
+	typedef itk::ExtractImageFilter<UShortImageType, UShortImage2DType> ExtractFilterType;
 	ExtractFilterType::Pointer extractFilter = ExtractFilterType::New();
 
-	typedef itk::ImageDuplicator< USHORT_ImageType > DuplicatorType;
+	typedef itk::ImageDuplicator< UShortImageType > DuplicatorType;
 	DuplicatorType::Pointer duplicator = DuplicatorType::New();
 	duplicator->SetInputImage(m_spCrntReconImg);
 	duplicator->Update();
-	USHORT_ImageType::Pointer clonedImage = duplicator->GetOutput();
+	UShortImageType::Pointer clonedImage = duplicator->GetOutput();
 
 
 	//USHORT_ImageType::Pointer cloned3DImg = USHORT_ImageType::New();
@@ -1487,7 +1487,7 @@ void CbctRecon::SLT_DrawReconImage()
 	
 	//memory check:
 	//USHORT_ImageType::RegionType crntRegion3D = m_spReconImg->GetBufferedRegion();
-	USHORT_ImageType::RegionType crntRegion3D = clonedImage->GetBufferedRegion();
+	UShortImageType::RegionType crntRegion3D = clonedImage->GetBufferedRegion();
 
 	crntRegion3D = clonedImage->GetBufferedRegion();
 	//cout << crntRegion3D.GetSize()[2] << endl; // 01
@@ -1502,12 +1502,12 @@ void CbctRecon::SLT_DrawReconImage()
 
 
 	//Get Image Size and Extraction Index info.
-	USHORT_ImageType::SizeType size = crntRegion3D.GetSize();
+	UShortImageType::SizeType size = crntRegion3D.GetSize();
 	size[2] = 0; // z size number = 0 --> should not be 1
 
 	//cout << "size is " << size[0] << "	" << size[1] << "	" << size[2] << endl;
 
-	USHORT_ImageType::IndexType start = crntRegion3D.GetIndex();
+	UShortImageType::IndexType start = crntRegion3D.GetIndex();
 	const int iSliceNumber = ui.spinBoxReconImgSliceNo->value();
 	//const int iSliceNumber = m_iTmpIdx;
 	start[2] = iSliceNumber;//60
@@ -1524,7 +1524,7 @@ void CbctRecon::SLT_DrawReconImage()
 
 
 	//Define a region to generate
-	USHORT_ImageType::RegionType desiredRegion;
+	UShortImageType::RegionType desiredRegion;
 	desiredRegion.SetSize(  size  );//410 410 0
 	desiredRegion.SetIndex( start );	// 0 0 60
 
@@ -1556,7 +1556,7 @@ void CbctRecon::SLT_DrawReconImage()
 	//cout << crntRegion3D.GetSize()[2] << endl; // 01
 
 	//cout <<m_dspYKReconImage->m_iWidth << "	" << m_dspYKReconImage->m_iHeight << endl;	
-	USHORT_ImageType2D::Pointer pCrnt2D = extractFilter->GetOutput();
+	UShortImage2DType::Pointer pCrnt2D = extractFilter->GetOutput();
 	YK16GrayImage::CopyItkImage2YKImage(pCrnt2D, m_dspYKReconImage); //dimension should be same automatically.
 
 	//m_dspYKReconImage->SaveDataAsRaw("D:\\RawFile.raw"); //410 410 OK
@@ -1699,19 +1699,19 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
   //cout << spTmpImage->GetRequestedRegion().GetSize() << endl;
   //return;	
 
-	typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+	typedef itk::ImageDuplicator< FloatImageType > DuplicatorType;
 	DuplicatorType::Pointer duplicator = DuplicatorType::New();
 	duplicator->SetInputImage(m_spProjImg3DFloat);
 	duplicator->Update();
 
-	OutputImageType::Pointer spCurImg =  duplicator->GetOutput(); //already down sampled
+	FloatImageType::Pointer spCurImg =  duplicator->GetOutput(); //already down sampled
 	//OutputImageType::Pointer spCurImg = m_spProjImg3D;
 	//spCurImg = duplicator->GetOutput();		
 	
 	//ResampleItkImage(m_spProjImg3DFloat, spCurImg, resampleFactor);
 
 	//Displaced detector weighting // set pipeline //inplace filter
-	typedef rtk::DisplacedDetectorImageFilter< OutputImageType > DDFType;
+	typedef rtk::DisplacedDetectorImageFilter< FloatImageType > DDFType;
 	DDFType::Pointer ddf = DDFType::New();
 	
 	if (ui.checkBox_UseDDF->isChecked())
@@ -1727,7 +1727,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		spCurImg = ddf->GetOutput();
 	}
 
-	typedef rtk::ParkerShortScanImageFilter< OutputImageType > PSSFType;
+	typedef rtk::ParkerShortScanImageFilter< FloatImageType > PSSFType;
 	PSSFType::Pointer pssf = PSSFType::New();
 
 	if (ui.checkBox_UsePSSF->isChecked())
@@ -1753,7 +1753,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
-		typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+		typedef itk::ImageDuplicator< FloatImageType > DuplicatorType;
 		DuplicatorType::Pointer duplicator = DuplicatorType::New();
 		duplicator->SetInputImage(spCurImg);
 		duplicator->Update();
@@ -1765,7 +1765,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 
 	// Generate image sources for cone beam CT reconstruction
-	typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType;
+	typedef rtk::ConstantImageSource< FloatImageType > ConstantImageSourceType;
 
 	ConstantImageSourceType::PointType origin;
 	ConstantImageSourceType::SpacingType spacing;
@@ -1833,8 +1833,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	}
 
 	// FDK reconstruction filtering
-	itk::ImageToImageFilter<OutputImageType, OutputImageType>::Pointer feldkamp;
-	typedef rtk::FDKConeBeamReconstructionFilter< OutputImageType > FDKCPUType;
+	itk::ImageToImageFilter<FloatImageType, FloatImageType>::Pointer feldkamp;
+	typedef rtk::FDKConeBeamReconstructionFilter< FloatImageType > FDKCPUType;
 #if CUDA_FOUND
 	typedef rtk::CudaFDKConeBeamReconstructionFilter                FDKCUDAType;
 #endif  
@@ -1881,7 +1881,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
 
 	// Streaming depending on streaming capability of writer --> not affect the calc. speed
-	typedef itk::StreamingImageFilter<OutputImageType, OutputImageType> StreamerType;
+	typedef itk::StreamingImageFilter<FloatImageType, FloatImageType> StreamerType;
 	StreamerType::Pointer streamerBP = StreamerType::New();
 	streamerBP->SetInput( feldkamp->GetOutput() );
 	streamerBP->SetNumberOfStreamDivisions(1); // YK: 1 in example code from "rtkfdk" 
@@ -1897,32 +1897,32 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 
 	//Same image type from original image -3D & float
-	OutputImageType::IndexType start_trans;
+	FloatImageType::IndexType start_trans;
 	start_trans[0] = 0;
 	start_trans[1] = 0;
 	start_trans[2] = 0;
 
-	OutputImageType::SizeType size_trans;
+	FloatImageType::SizeType size_trans;
 	size_trans[0] = sizeOutput[0]; // X //410
 	size_trans[1] = sizeOutput[2]; //Y  // 410
 	size_trans[2] = sizeOutput[1]; //Z // 120?
 
-	OutputImageType::SpacingType spacing_trans;
+	FloatImageType::SpacingType spacing_trans;
 	spacing_trans[0] = spacing[0];
 	spacing_trans[1] = spacing[2];
 	spacing_trans[2] = spacing[1];
 
-	OutputImageType::PointType Origin_trans;
+	FloatImageType::PointType Origin_trans;
 	Origin_trans[0] = -0.5* size_trans[0]*spacing_trans[0];
 	Origin_trans[1] = -0.5* size_trans[1]*spacing_trans[1];
 	Origin_trans[2] = -0.5* size_trans[2]*spacing_trans[2];	
 
-	OutputImageType::RegionType region_trans;
+	FloatImageType::RegionType region_trans;
 	region_trans.SetSize(size_trans);
 	region_trans.SetIndex(start_trans);
 
 	/* 2) Prepare Target image */
-	OutputImageType::Pointer targetImg = streamerBP->GetOutput();
+	FloatImageType::Pointer targetImg = streamerBP->GetOutput();
 
 	/* 3) Configure transform */  
 	typedef itk::Euler3DTransform< double > TransformType;
@@ -1949,7 +1949,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	cout << "Transform matrix:" << "	" << endl;
 	cout << transform->GetMatrix() << std::endl;
 
-	typedef itk::ResampleImageFilter<OutputImageType, OutputImageType> ResampleFilterType;	
+	typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleFilterType;	
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New(); 
 	//OutputImageType::RegionType fixedImg_Region = fixedImg->GetLargestPossibleRegion().GetSize();
 
@@ -1965,7 +1965,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	cout << "LR flip filter is being applied" << endl;
 
-	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
+	typedef itk::FlipImageFilter< FloatImageType >  FilterType;
 
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
@@ -1982,13 +1982,13 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	//const unsigned int Dimension = 3;  
 	//FinalImageType::Pointer finalImg ;
 
-	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
+	typedef itk::AbsImageFilter<FloatImageType, FloatImageType> AbsImageFilterType;
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
 	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
 	//absImgFilter->SetInput(resampler->GetOutput());
 
 
-	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType> MultiplyImageFilterType;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
 	multiplyImageFilter->SetConstant(65536); //calculated already
@@ -1997,17 +1997,17 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	//typedef unsigned short FinalPixelType;
 	//typedef itk::Image< FinalPixelType, 3 > FinalImageType;
 
-	typedef itk::CastImageFilter< OutputImageType, USHORT_ImageType > CastFilterType;
+	typedef itk::CastImageFilter< FloatImageType, UShortImageType > CastFilterType;
 	CastFilterType::Pointer castFilter = CastFilterType::New();
 	castFilter->SetInput(multiplyImageFilter->GetOutput());
 	//castFilter->Update(); //YK20150109
 
-	USHORT_ImageType::SizeType indexRadius;
+	UShortImageType::SizeType indexRadius;
 	indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
 	indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
 	indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
 
-	USHORT_ImageType::Pointer tmpReconImg;
+	UShortImageType::Pointer tmpReconImg;
 	//if all 0 0 0 don't do the median filtering
 
 	itk::TimeProbe reconTimeProbe;
@@ -2017,7 +2017,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
 	if (ui.checkBox_PostMedianOn->isChecked() && (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0))
 	{ 
-	  typedef itk::MedianImageFilter<USHORT_ImageType, USHORT_ImageType >  FilterType;
+	  typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  FilterType;
 	  FilterType::Pointer medFilter = FilterType::New();	  
 
 	  //YKTEMP20141218 S
@@ -2042,7 +2042,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	  tmpReconImg= castFilter->GetOutput();
         }	
 
-        typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+        typedef itk::ThresholdImageFilter <UShortImageType> ThresholdImageFilterType;
         ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
         thresholdFilterAbove->SetInput(tmpReconImg);
         thresholdFilterAbove->ThresholdAbove(4095);
@@ -2093,7 +2093,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	}
 	else
 	{
-	  typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;	
+	  typedef itk::ImageFileWriter<UShortImageType> WriterType;	
 	  WriterType::Pointer writer = WriterType::New();
 	  writer->SetFileName(outputFilePath.toLocal8Bit().constData());
 	  writer->SetUseCompression(true); //not exist in original code (rtkfdk)	
@@ -2302,7 +2302,7 @@ void CbctRecon::SetProjDir(QString& strProjPath)
     m_strPathDirDefault = strProjPath;
     ui.lineEdit_HisDirPath->setText(strProjPath);
 
-    USHORT_ImageType::Pointer spNull;
+    UShortImageType::Pointer spNull;
 
     m_spCrntReconImg = spNull; //fixed image // ID: RawCBCT
     m_spRawReconImg = spNull; //just added --> when file is loaded
@@ -2601,7 +2601,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
 
   // Reads the cone beam projections
-  typedef rtk::ProjectionsReader< OutputImageType > ReaderType;
+  typedef rtk::ProjectionsReader< FloatImageType > ReaderType;
   ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileNames(m_vSelectedFileNames);
   TRY_AND_EXIT_ON_ITK_EXCEPTION( reader->GenerateOutputInformation() )
@@ -2680,9 +2680,9 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
   ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat, m_fResampleF);
   ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
 
-  OutputImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
-  OutputImageType::SizeType FloatImgSize = m_spProjImg3DFloat->GetBufferedRegion().GetSize();
-  OutputImageType::SpacingType FloatImgSpacing = m_spProjImg3DFloat->GetSpacing();
+  FloatImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
+  FloatImageType::SizeType FloatImgSize = m_spProjImg3DFloat->GetBufferedRegion().GetSize();
+  FloatImageType::SpacingType FloatImgSpacing = m_spProjImg3DFloat->GetSpacing();
 
   cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", " << originPt[2] << endl;
   cout << "YKDEBUG: Size" << FloatImgSize[0] << ", " << FloatImgSize[1] << ", " << FloatImgSize[2] << endl;
@@ -2945,7 +2945,7 @@ void CbctRecon::SetMaxAndMinValueOfProjectionImage()//should be called whenever 
 	if (!m_spProjImg3DFloat)
 		return;
 
-	itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
+	itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
 	
 	it.SetFirstDirection(0); //x?
 	it.SetSecondDirection(1); //y?
@@ -2976,7 +2976,7 @@ void CbctRecon::SetMaxAndMinValueOfProjectionImage()//should be called whenever 
 	}
 }
 
-void CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, OutputImageType::Pointer projImage)
+void CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage)
 {
 	/*if (m_iImgCnt > 0)
 	{
@@ -2992,7 +2992,7 @@ void CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, dou
 		return;
 	}
 
-	itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (projImage, projImage->GetRequestedRegion());
+	itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (projImage, projImage->GetRequestedRegion());
 
 	it.SetFirstDirection(0); //x?
 	it.SetSecondDirection(1); //y?
@@ -3096,12 +3096,12 @@ void CbctRecon::SLT_DataProbeRecon()
 }
 
 
-double CbctRecon::GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, OutputImageType::Pointer& sp3DFloatImage)
+double CbctRecon::GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, FloatImageType::Pointer& sp3DFloatImage)
 {
 	if (!sp3DFloatImage)
 		return -1.0;	
 
-	itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (sp3DFloatImage, sp3DFloatImage->GetBufferedRegion());
+	itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (sp3DFloatImage, sp3DFloatImage->GetBufferedRegion());
 
 	it.SetFirstDirection(0); //x?
 	it.SetSecondDirection(1); //y?
@@ -3146,12 +3146,12 @@ double CbctRecon::GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, OutputI
 	return -2.0;
 }
 
-double CbctRecon::GetValueFrom3DImageUshort( int reqX, int reqY, int reqZ, USHORT_ImageType::Pointer& sp3DUshortImage )
+double CbctRecon::GetValueFrom3DImageUshort( int reqX, int reqY, int reqZ, UShortImageType::Pointer& sp3DUshortImage )
 {
 	if (!sp3DUshortImage)
 		return 0;
 
-	itk::ImageSliceConstIteratorWithIndex<USHORT_ImageType> it (sp3DUshortImage, sp3DUshortImage->GetBufferedRegion());
+	itk::ImageSliceConstIteratorWithIndex<UShortImageType> it (sp3DUshortImage, sp3DUshortImage->GetBufferedRegion());
 
 	it.SetFirstDirection(0); //x?
 	it.SetSecondDirection(1); //y?
@@ -3366,8 +3366,8 @@ void CbctRecon::SLT_UpdateTable()
 	{
             if (m_spCrntReconImg)
             {
-                USHORT_ImageType::PointType tmpOrigin = m_spCrntReconImg->GetOrigin();
-                USHORT_ImageType::SpacingType tmpSpacing = m_spCrntReconImg->GetSpacing();
+                UShortImageType::PointType tmpOrigin = m_spCrntReconImg->GetOrigin();
+                UShortImageType::SpacingType tmpSpacing = m_spCrntReconImg->GetSpacing();
                 originX = tmpOrigin[0];
                 originY = tmpOrigin[1];
                 spacingX = tmpSpacing[0];
@@ -3629,9 +3629,9 @@ void CbctRecon::SLT_CalculateROI_Proj()
 	SLT_DrawProjImages();
 }
 
-bool CbctRecon::LoadShortImageToUshort(QString& strPath, USHORT_ImageType::Pointer& pUshortImage)
+bool CbctRecon::LoadShortImageToUshort(QString& strPath, UShortImageType::Pointer& pUshortImage)
 {
-  typedef itk::ImageFileReader<SHORT_ImageType> ReaderType;
+  typedef itk::ImageFileReader<ShortImageType> ReaderType;
   ReaderType::Pointer reader = ReaderType::New();
 
   //QString fileName = QFileDialog::getOpenFileName(this, "Open Image","", "Plan CT file (*.mha)",0,0);		
@@ -3643,7 +3643,7 @@ bool CbctRecon::LoadShortImageToUshort(QString& strPath, USHORT_ImageType::Point
   reader->Update();
 
   //Figure out whether this is NKI
-  typedef itk::MinimumMaximumImageCalculator <SHORT_ImageType> ImageCalculatorFilterType;
+  typedef itk::MinimumMaximumImageCalculator <ShortImageType> ImageCalculatorFilterType;
   ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(reader->GetOutput());
   imageCalculatorFilter->Compute();
@@ -3660,7 +3660,7 @@ bool CbctRecon::LoadShortImageToUshort(QString& strPath, USHORT_ImageType::Point
   }
 
   //Thresholding
-  typedef itk::ThresholdImageFilter <SHORT_ImageType> ThresholdImageFilterType;
+  typedef itk::ThresholdImageFilter <ShortImageType> ThresholdImageFilterType;
   ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
 
   if (!bNKI)
@@ -3706,7 +3706,7 @@ bool CbctRecon::LoadShortImageToUshort(QString& strPath, USHORT_ImageType::Point
 
   }
 
-  typedef itk::RescaleIntensityImageFilter<SHORT_ImageType, USHORT_ImageType> RescaleFilterType;
+  typedef itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType> RescaleFilterType;
   RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
   spRescaleFilter->SetInput(thresholdFilter->GetOutput());
   spRescaleFilter->SetOutputMinimum(outputMinVal);
@@ -3775,7 +3775,7 @@ void CbctRecon::SLT_LoadPlanCT_mha() //m_spRecon -->m_spRefCT
 	cout << "error! in LoadShortImageToUshort" << endl;
   }
 
-	typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType>
+	typedef itk::MinimumMaximumImageCalculator <UShortImageType>
 		ImageCalculatorFilterType2;
 
 	ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
@@ -3790,8 +3790,8 @@ void CbctRecon::SLT_LoadPlanCT_mha() //m_spRecon -->m_spRefCT
 	cout <<"Min and Max Values are	" << minVal2 << "	" << maxVal2 << endl;
 
 	//Update UI
-	USHORT_ImageType::SizeType imgDim = m_spRefCTImg->GetBufferedRegion().GetSize();
-	USHORT_ImageType::SpacingType spacing = m_spRefCTImg->GetSpacing();
+	UShortImageType::SizeType imgDim = m_spRefCTImg->GetBufferedRegion().GetSize();
+	UShortImageType::SpacingType spacing = m_spRefCTImg->GetSpacing();
 
 	cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
 	cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
@@ -3936,9 +3936,9 @@ void CbctRecon::PostApplyFOVDispParam()
         float physRadius = ui.lineEdit_PostFOV_R->text().toFloat();
         float physTablePosY = ui.lineEdit_PostTablePosY->text().toFloat();
 
-	USHORT_ImageType::PointType origin = m_spCrntReconImg->GetOrigin();
-	USHORT_ImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
-	USHORT_ImageType::SizeType size = m_spCrntReconImg->GetBufferedRegion().GetSize();	
+	UShortImageType::PointType origin = m_spCrntReconImg->GetOrigin();
+	UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
+	UShortImageType::SizeType size = m_spCrntReconImg->GetBufferedRegion().GetSize();	
 
 
 	int pixPosX = qRound((physPosX - (double)origin[0]) /(double)spacing[0]);
@@ -3973,20 +3973,20 @@ void CbctRecon::SLT_PostApplyFOVDispParam()
 
 
 // mm
-void CbctRecon::CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY)
+void CbctRecon::CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY)
 {
     if (!sp_Img)
         return;
     //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
-    USHORT_ImageType::PointType origin = sp_Img->GetOrigin();
-    USHORT_ImageType::SpacingType spacing = sp_Img->GetSpacing();
-    USHORT_ImageType::SizeType size = sp_Img->GetBufferedRegion().GetSize();
+    UShortImageType::PointType origin = sp_Img->GetOrigin();
+    UShortImageType::SpacingType spacing = sp_Img->GetSpacing();
+    UShortImageType::SizeType size = sp_Img->GetBufferedRegion().GetSize();
 
     //itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
-    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(sp_Img, sp_Img->GetBufferedRegion());
+    itk::ImageSliceIteratorWithIndex<UShortImageType> it(sp_Img, sp_Img->GetBufferedRegion());
 
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
-    USHORT_ImageType::SizeType imgSize = sp_Img->GetBufferedRegion().GetSize(); //1016x1016 x z	
+    UShortImageType::SizeType imgSize = sp_Img->GetBufferedRegion().GetSize(); //1016x1016 x z	
 
     int width = imgSize[0];
     int height = imgSize[1];
@@ -4074,15 +4074,15 @@ void CbctRecon::SLT_PostProcCropInv()
     double physRadius = ui.lineEdit_PostFOV_R->text().toDouble();
     double physTablePosY = ui.lineEdit_PostTablePosY->text().toDouble();
 
-    USHORT_ImageType::PointType origin = m_spCrntReconImg->GetOrigin();
-    USHORT_ImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
-    USHORT_ImageType::SizeType size = m_spCrntReconImg->GetBufferedRegion().GetSize();
+    UShortImageType::PointType origin = m_spCrntReconImg->GetOrigin();
+    UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
+    UShortImageType::SizeType size = m_spCrntReconImg->GetBufferedRegion().GetSize();
 
     //itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
-    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(m_spCrntReconImg, m_spCrntReconImg->GetRequestedRegion());
+    itk::ImageSliceIteratorWithIndex<UShortImageType> it(m_spCrntReconImg, m_spCrntReconImg->GetRequestedRegion());
 
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
-    USHORT_ImageType::SizeType imgSize = m_spCrntReconImg->GetRequestedRegion().GetSize(); //1016x1016 x z	
+    UShortImageType::SizeType imgSize = m_spCrntReconImg->GetRequestedRegion().GetSize(); //1016x1016 x z	
 
     int width = imgSize[0];
     int height = imgSize[1];
@@ -4150,7 +4150,7 @@ void CbctRecon::SLT_ExportReconUSHORT()
 	if (strPath.length()<=1)
 		return;
 
-	typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
+	typedef itk::ImageFileWriter<UShortImageType> WriterType;
 	WriterType::Pointer writer = WriterType::New();
 	writer->SetFileName(strPath.toLocal8Bit().constData());
 	writer->SetUseCompression(true); //not exist in original code (rtkfdk)	
@@ -4164,7 +4164,7 @@ void CbctRecon::SLT_ExportReconUSHORT()
 	QMessageBox::information(this, "Procedure Done",msgStr);
 }
 
-void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QString& outputFilePath)
+void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString& outputFilePath)
 {
     /*if (!m_spCrntReconImg)
     {
@@ -4178,12 +4178,12 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
         return;
     }
 
-    typedef itk::ImageDuplicator< USHORT_ImageType > DuplicatorType;
+    typedef itk::ImageDuplicator< UShortImageType > DuplicatorType;
     DuplicatorType::Pointer duplicator = DuplicatorType::New();
     duplicator->SetInputImage(spUsImage);
     duplicator->Update();
-    USHORT_ImageType::Pointer clonedReconImage = duplicator->GetOutput();
-    SHORT_ImageType::Pointer clonedReconImageSHORT;
+    UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
+    ShortImageType::Pointer clonedReconImageSHORT;
     
     int tissueCBCT = 0;
     int tissueCT_USHORT = 0;
@@ -4192,7 +4192,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
     bool bCBCT2HU_mapping = false;
     int crntTissueVal = 0;           
 
-    typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+    typedef itk::ThresholdImageFilter <UShortImageType> ThresholdImageFilterType;
     ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
     thresholdFilterAbove->SetInput(clonedReconImage);
     thresholdFilterAbove->ThresholdAbove(4095);
@@ -4211,7 +4211,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
     //thresholdFilter->SetOutsideValue(0);
     //thresholdFilter->Update();
 
-    typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType> ImageCalculatorFilterType;
+    typedef itk::MinimumMaximumImageCalculator <UShortImageType> ImageCalculatorFilterType;
     ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
     imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
     imageCalculatorFilter->Compute();
@@ -4227,7 +4227,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
     //USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
     //USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
 
-    typedef itk::RescaleIntensityImageFilter<USHORT_ImageType, SHORT_ImageType> RescaleFilterType;
+    typedef itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType> RescaleFilterType;
     RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
     spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
     spRescaleFilter->SetOutputMinimum(outputMinVal);
@@ -4243,7 +4243,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
 
     //waterHU = 1024;
 
-    typedef itk::AddImageFilter <SHORT_ImageType, SHORT_ImageType, SHORT_ImageType> AddImageFilterType;
+    typedef itk::AddImageFilter <ShortImageType, ShortImageType, ShortImageType> AddImageFilterType;
     AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
     addImageFilter->SetInput1(spRescaleFilter->GetOutput());
 
@@ -4260,7 +4260,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
     addImageFilter->Update();
     //m_spReconImg = spRescaleFilter->GetOutput();		
 
-    typedef itk::MinimumMaximumImageCalculator <SHORT_ImageType>
+    typedef itk::MinimumMaximumImageCalculator <ShortImageType>
         ImageCalculatorFilterType2;
 
     ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
@@ -4273,7 +4273,7 @@ void CbctRecon::ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QStrin
 
     //cout << "Short image Min and Max Values are	" << minVal2 << "	" << maxVal2 << endl;
 
-    typedef itk::ImageFileWriter<SHORT_ImageType> WriterType;
+    typedef itk::ImageFileWriter<ShortImageType> WriterType;
     WriterType::Pointer writer = WriterType::New();
     writer->SetFileName(outputFilePath.toLocal8Bit().constData());
     //writer->SetUseCompression(true); 
@@ -4744,7 +4744,7 @@ void CbctRecon::DoBeamHardeningCorrection()
 
 	//OutputImageType m_spProjImg3D: float image
 
-	typedef itk::ImageRegionIteratorWithIndex<OutputImageType> iteratorType;
+	typedef itk::ImageRegionIteratorWithIndex<FloatImageType> iteratorType;
 	iteratorType it(m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
 
 	double crntVal = 0.0;
@@ -4829,19 +4829,19 @@ void CbctRecon::SLT_ViewRegistration() //default showing function
 }
 
 
-void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT_ImageType::Pointer& spMovingImg, enPLANE enPlane, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving)
+void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE enPlane, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving)
 {
     if (!spFixedImg || !spMovingImg)
         return;            
 
-    itk::ImageSliceConstIteratorWithIndex<USHORT_ImageType> it (spFixedImg, spFixedImg->GetRequestedRegion());
+    itk::ImageSliceConstIteratorWithIndex<UShortImageType> it (spFixedImg, spFixedImg->GetRequestedRegion());
 
-    USHORT_ImageType::SizeType imgSize = spFixedImg->GetRequestedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::SizeType imgSizeBuf = spFixedImg->GetBufferedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::SizeType imgSizeLargest = spFixedImg->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
+    UShortImageType::SizeType imgSize = spFixedImg->GetRequestedRegion().GetSize(); //1016x1016 x z
+    UShortImageType::SizeType imgSizeBuf = spFixedImg->GetBufferedRegion().GetSize(); //1016x1016 x z
+    UShortImageType::SizeType imgSizeLargest = spFixedImg->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
 
-    USHORT_ImageType::PointType imgOrigin = spFixedImg->GetOrigin();
-    USHORT_ImageType::SpacingType imgSpacing = spFixedImg->GetSpacing();
+    UShortImageType::PointType imgOrigin = spFixedImg->GetOrigin();
+    UShortImageType::SpacingType imgSpacing = spFixedImg->GetSpacing();
 
     int width = 0;
     int height = 0;
@@ -4849,7 +4849,7 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
     int iCntSlice = 0;
 
     //For moving image        
-    typedef itk::ResampleImageFilter<USHORT_ImageType,USHORT_ImageType> ResampleFilterType;
+    typedef itk::ResampleImageFilter<UShortImageType,UShortImageType> ResampleFilterType;
     ResampleFilterType::Pointer filter = ResampleFilterType::New();
 
 	filter->SetInput(spMovingImg);
@@ -4858,7 +4858,7 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
     TransformType::Pointer transform = TransformType::New();
     filter->SetTransform( transform );
 
-    typedef itk::NearestNeighborInterpolateImageFunction<USHORT_ImageType, double > InterpolatorType;
+    typedef itk::NearestNeighborInterpolateImageFunction<UShortImageType, double > InterpolatorType;
     InterpolatorType::Pointer interpolator = InterpolatorType::New();
     filter->SetInterpolator( interpolator );
     filter->SetDefaultPixelValue( 0 );
@@ -4866,15 +4866,15 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
     //const double outputSpacing[2] = { 1.0, 1.0 };
     //const double outputOrigin[2] = { 0.0, 0.0 };
 
-    USHORT_ImageType::DirectionType direction;
+    UShortImageType::DirectionType direction;
     direction.SetIdentity();
     filter->SetOutputDirection( direction );
 
     //ResampledImgType2D::SizeType outSize;
 
-    USHORT_ImageType::SpacingType movingSpacing = imgSpacing;
-    USHORT_ImageType::PointType movingOrigin = imgOrigin;
-    USHORT_ImageType::SizeType movingSize = imgSize;    
+    UShortImageType::SpacingType movingSpacing = imgSpacing;
+    UShortImageType::PointType movingOrigin = imgOrigin;
+    UShortImageType::SizeType movingSize = imgSize;    
 
     switch (enPlane)
     {
@@ -4959,7 +4959,7 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
 
     YKMoving.CreateImage(width, height, 0);//exactly same dimension
 
-    itk::ImageRegionConstIterator<USHORT_ImageType> itMoving (filter->GetOutput(), filter->GetOutput()->GetBufferedRegion());
+    itk::ImageRegionConstIterator<UShortImageType> itMoving (filter->GetOutput(), filter->GetOutput()->GetBufferedRegion());
     int cnt = 0;    
 
 	//this simple code will cause flip of the image in frontal and sagittal image
@@ -5002,9 +5002,9 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
                 {
                     //double tmpVal = it.Get()*multiplyFactor;
                     //SHORT_ImageType::PixelType fixedImgVal = it.Get();
-                    USHORT_ImageType::PixelType fixedImgVal = it.Get();
-                    USHORT_ImageType::IndexType pixelIdxFixed;
-                    USHORT_ImageType::PointType pixelPhysPt;
+                    UShortImageType::PixelType fixedImgVal = it.Get();
+                    UShortImageType::IndexType pixelIdxFixed;
+                    UShortImageType::PointType pixelPhysPt;
                     pixelIdxFixed = it.GetIndex();
 
                    // spFixedImg->TransformIndexToPhysicalPoint (pixelIdxFixed, pixelPhysPt);
@@ -5044,19 +5044,19 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
 //    cout << "YK Images were filled" << endl;
 }
 
-void CbctRecon::Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& Output2D)
+void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& Output2D)
 {
     if (!pImg)
         return;            
 
-    itk::ImageSliceConstIteratorWithIndex<USHORT_ImageType> it (pImg, pImg->GetRequestedRegion());
+    itk::ImageSliceConstIteratorWithIndex<UShortImageType> it (pImg, pImg->GetRequestedRegion());
 
-    USHORT_ImageType::SizeType imgSize = pImg->GetRequestedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::SizeType imgSizeBuf = pImg->GetBufferedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::SizeType imgSizeLargest = pImg->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
+    UShortImageType::SizeType imgSize = pImg->GetRequestedRegion().GetSize(); //1016x1016 x z
+    UShortImageType::SizeType imgSizeBuf = pImg->GetBufferedRegion().GetSize(); //1016x1016 x z
+    UShortImageType::SizeType imgSizeLargest = pImg->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
 
-    USHORT_ImageType::PointType imgOrigin = pImg->GetOrigin();
-    USHORT_ImageType::SpacingType imgSpacing = pImg->GetSpacing();
+    UShortImageType::PointType imgOrigin = pImg->GetOrigin();
+    UShortImageType::SpacingType imgSpacing = pImg->GetSpacing();
 
     int width = 0;
     int height = 0;
@@ -5150,7 +5150,7 @@ void CbctRecon::Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction,
 void CbctRecon::RegisterImgDuplication( enREGI_IMAGES src, enREGI_IMAGES target )
 {
 
-  USHORT_ImageType::Pointer tmpSrc;  
+  UShortImageType::Pointer tmpSrc;  
 
 
   switch (src)
@@ -5167,7 +5167,7 @@ void CbctRecon::RegisterImgDuplication( enREGI_IMAGES src, enREGI_IMAGES target 
   }
 
   //Duplication for registration. Starting point is manual Rigid CT image
-  typedef itk::ImageDuplicator<USHORT_ImageType> DuplicatorType;
+  typedef itk::ImageDuplicator<UShortImageType> DuplicatorType;
   DuplicatorType::Pointer duplicator = DuplicatorType::New();
   duplicator->SetInputImage(tmpSrc);
   duplicator->Update();
@@ -5596,7 +5596,7 @@ void CbctRecon::init_DlgRegistration(QString& strDCM_UID) //init dlgRegistration
 }
 
 //output spProjCT3D => intensity value, not line integral
-void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, USHORT_ImageType::Pointer& spProjCT3D, bool bSave )
+void CbctRecon::ForwardProjection( UShortImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, UShortImageType::Pointer& spProjCT3D, bool bSave )
 {
   if (!spVolImg3D)
   {
@@ -5618,7 +5618,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 
   //m_spProjCTImg --> spProjCT3D
 
-  OutputImageType::Pointer spResultProjImageFloat;
+  FloatImageType::Pointer spResultProjImageFloat;
   //Euler Transformation for RTK's weird orientation
 
   int iNumOfProjections = 0;
@@ -5626,39 +5626,39 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
   if(true)
   {
 	//0) CT image Transformation
-	USHORT_ImageType::SizeType size_original = spVolImg3D->GetLargestPossibleRegion().GetSize();	
-	USHORT_ImageType::SpacingType spacing_original = spVolImg3D->GetSpacing();
+	UShortImageType::SizeType size_original = spVolImg3D->GetLargestPossibleRegion().GetSize();	
+	UShortImageType::SpacingType spacing_original = spVolImg3D->GetSpacing();
 
 	//Same image type from original image -3D & float
-	USHORT_ImageType::IndexType start_trans;
+	UShortImageType::IndexType start_trans;
 	start_trans[0] = 0;
 	start_trans[1] = 0;
 	start_trans[2] = 0;
 
-	USHORT_ImageType::SizeType size_trans;
+	UShortImageType::SizeType size_trans;
 	size_trans[0] = size_original[1]; // X //512
 	size_trans[1] = size_original[2]; //Y  //512
 	size_trans[2] = size_original[0]; //Z //300
 
 	cout << " size_trans" << size_trans << endl;
 
-	USHORT_ImageType::SpacingType spacing_trans;
+	UShortImageType::SpacingType spacing_trans;
 	spacing_trans[0] = spacing_original[1];
 	spacing_trans[1] = spacing_original[2];
 	spacing_trans[2] = spacing_original[0];	
 
 	cout << " spacing_trans" << spacing_trans << endl;
 
-	USHORT_ImageType::PointType Origin_trans;
+	UShortImageType::PointType Origin_trans;
 	Origin_trans[0] = -0.5* size_trans[0]*spacing_trans[0];
 	Origin_trans[1] = -0.5* size_trans[1]*spacing_trans[1];
 	Origin_trans[2] = -0.5* size_trans[2]*spacing_trans[2];		
 
-	USHORT_ImageType::RegionType region_trans;
+	UShortImageType::RegionType region_trans;
 	region_trans.SetSize(size_trans);
 	region_trans.SetIndex(start_trans);
 
-	typedef itk::FlipImageFilter< USHORT_ImageType >  FilterType;
+	typedef itk::FlipImageFilter< UShortImageType >  FilterType;
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
 
@@ -5693,7 +5693,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	cout << "Transform matrix:" << "	" << endl;
 	cout << transform->GetMatrix() << std::endl;
 
-	typedef itk::ResampleImageFilter<USHORT_ImageType, USHORT_ImageType> ResampleFilterType;	
+	typedef itk::ResampleImageFilter<UShortImageType, UShortImageType> ResampleFilterType;	
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New(); 	
 
 	resampler->SetInput(flipFilter->GetOutput());
@@ -5703,7 +5703,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	resampler->SetOutputDirection( flipFilter->GetOutput()->GetDirection() ); //image normal?	
 	resampler->SetTransform(transform);
 
-	typedef itk::CastImageFilter< USHORT_ImageType, OutputImageType> CastFilterType; //Maybe not inplace filter
+	typedef itk::CastImageFilter< UShortImageType, FloatImageType> CastFilterType; //Maybe not inplace filter
 	CastFilterType::Pointer castFilter = CastFilterType::New();
 	castFilter->SetInput(resampler->GetOutput());
 
@@ -5739,25 +5739,25 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	cout << "Temporary forcing CT# applied for tissue" << endl;
 
 	cout << "CBCT calibration Factor(Recommended: 1, 0): A = " << calibF_A << "  B= " << calibF_B << endl;
-	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType> MultiplyImageFilterType;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(castFilter->GetOutput());	
 	multiplyImageFilter->SetConstant(calibF_A/65535.0);
 
-	typedef itk::AddImageFilter <OutputImageType, OutputImageType, OutputImageType> AddImageFilterType;
+	typedef itk::AddImageFilter <FloatImageType, FloatImageType, FloatImageType> AddImageFilterType;
 	AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
 	addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
 	double addingVal = calibF_B/65535.0;
 	addImageFilter->SetConstant2(addingVal);	
 	addImageFilter->Update(); //will generate map of real_mu (att.coeff)	
 
-	OutputImageType::Pointer spCTImg_mu;	
+	FloatImageType::Pointer spCTImg_mu;	
 	spCTImg_mu = addImageFilter->GetOutput();
 
 	//2) Prepare empty projection images //Should be corresonponding to raw projection images
 	
 	// Create a stack of empty projection images
-	typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
+	typedef rtk::ConstantImageSource< FloatImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
 	ConstantImageSourceType::Pointer constantImageSource = ConstantImageSourceType::New();
 
 	ConstantImageSourceType::SizeType size;
@@ -5786,7 +5786,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	constantImageSource->SetOrigin( origin );
 	constantImageSource->SetSpacing( spacing );
 
-	OutputImageType::DirectionType imageDirection;		
+	FloatImageType::DirectionType imageDirection;		
 	imageDirection.SetIdentity(); //no effect
 	constantImageSource->SetDirection( imageDirection );
 	constantImageSource->SetSize( size );
@@ -5799,12 +5799,12 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " << fwdMethod << endl;
 
 	// Create forward projection image filter
-	rtk::ForwardProjectionImageFilter<OutputImageType, OutputImageType>::Pointer forwardProjection; //Float to Float
+	rtk::ForwardProjectionImageFilter<FloatImageType, FloatImageType>::Pointer forwardProjection; //Float to Float
 
 	switch(fwdMethod)
 	{
 	case (en_Joseph):
-	  forwardProjection = rtk::JosephForwardProjectionImageFilter<OutputImageType, OutputImageType>::New();
+	  forwardProjection = rtk::JosephForwardProjectionImageFilter<FloatImageType, FloatImageType>::New();
 	  break;
 	case (en_CudaRayCast):
 #if CUDA_FOUND
@@ -5815,7 +5815,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 #endif
 	  break;
 	case(en_RayCastInterpolator):
-	  forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<OutputImageType, OutputImageType>::New();
+	  forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<FloatImageType, FloatImageType>::New();
 	  break;
 
 	default:
@@ -5840,14 +5840,14 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 
   //From Float to USHORT and line integral to intensity
   
-  spProjCT3D = USHORT_ImageType::New(); //later
-  USHORT_ImageType::SizeType projCT_size = spResultProjImageFloat->GetLargestPossibleRegion().GetSize(); //1024 1024 350
-  USHORT_ImageType::IndexType projCT_idxStart= spResultProjImageFloat->GetLargestPossibleRegion().GetIndex(); //0 0 0 
-  USHORT_ImageType::SpacingType projCT_spacing = spResultProjImageFloat->GetSpacing(); // 0.4 0.4 1.0
-  USHORT_ImageType::PointType  projCT_origin = spResultProjImageFloat->GetOrigin(); //-204.6 -204.6 -174.5
+  spProjCT3D = UShortImageType::New(); //later
+  UShortImageType::SizeType projCT_size = spResultProjImageFloat->GetLargestPossibleRegion().GetSize(); //1024 1024 350
+  UShortImageType::IndexType projCT_idxStart= spResultProjImageFloat->GetLargestPossibleRegion().GetIndex(); //0 0 0 
+  UShortImageType::SpacingType projCT_spacing = spResultProjImageFloat->GetSpacing(); // 0.4 0.4 1.0
+  UShortImageType::PointType  projCT_origin = spResultProjImageFloat->GetOrigin(); //-204.6 -204.6 -174.5
 
   //Copy informations from spResultProjImageFloat
-  OutputImageType::RegionType projCT_region;
+  FloatImageType::RegionType projCT_region;
   projCT_region.SetSize(projCT_size);
   projCT_region.SetIndex(projCT_idxStart);
 
@@ -5859,8 +5859,8 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
   spProjCT3D->FillBuffer(0);
 
   //Calculation process
-  itk::ImageRegionConstIterator<OutputImageType> itSrc (spResultProjImageFloat, spResultProjImageFloat->GetRequestedRegion());
-  itk::ImageRegionIterator<USHORT_ImageType> itTarg (spProjCT3D, spProjCT3D->GetRequestedRegion()); //writing
+  itk::ImageRegionConstIterator<FloatImageType> itSrc (spResultProjImageFloat, spResultProjImageFloat->GetRequestedRegion());
+  itk::ImageRegionIterator<UShortImageType> itTarg (spProjCT3D, spProjCT3D->GetRequestedRegion()); //writing
 
   itSrc.GoToBegin();
   itTarg.GoToBegin();
@@ -5927,12 +5927,12 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
   }
 }
 
-void CbctRecon::SaveProjImageAsHIS( USHORT_ImageType::Pointer& spProj3D, YK16GrayImage* arrYKImage, QString& strSavingFolder, int iCnt, double resampleF )
+void CbctRecon::SaveProjImageAsHIS( UShortImageType::Pointer& spProj3D, YK16GrayImage* arrYKImage, QString& strSavingFolder, int iCnt, double resampleF )
 {
   cout << "Starting Saving files" << endl;
   FILE* fd = NULL;
 
-   USHORT_ImageType::Pointer targetImg3D;
+   UShortImageType::Pointer targetImg3D;
    double restoreResampleF =  1.0/resampleF;
    
   if (resampleF != 1.0)
@@ -5945,7 +5945,7 @@ void CbctRecon::SaveProjImageAsHIS( USHORT_ImageType::Pointer& spProj3D, YK16Gra
 	targetImg3D = spProj3D;
   }
 
-  itk::ImageSliceConstIteratorWithIndex<USHORT_ImageType> it_FwdProj (targetImg3D, targetImg3D->GetRequestedRegion());
+  itk::ImageSliceConstIteratorWithIndex<UShortImageType> it_FwdProj (targetImg3D, targetImg3D->GetRequestedRegion());
 
   it_FwdProj.SetFirstDirection(0);
   it_FwdProj.SetSecondDirection(1);
@@ -6036,7 +6036,7 @@ void CbctRecon::SLT_DoScatterCorrection_APRIORI()
 }
 
 //spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value (0-65535)
-void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave)
+void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D, UShortImageType::Pointer& spProjScat3D, double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave)
 {
   //Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1)  
@@ -6051,8 +6051,8 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	return;
   }  
 
-  USHORT_ImageType::SizeType size1 = spProjRaw3D->GetRequestedRegion().GetSize();
-  USHORT_ImageType::SizeType size2 = spProjCT3D->GetRequestedRegion().GetSize();
+  UShortImageType::SizeType size1 = spProjRaw3D->GetRequestedRegion().GetSize();
+  UShortImageType::SizeType size2 = spProjCT3D->GetRequestedRegion().GetSize();
 
   cout << "Raw3DProj Size= " << size1 << endl;
   cout << "spProjCT Size= " << size2 << endl;
@@ -6075,7 +6075,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
         }	
   }    
 
-  USHORT_ImageType::Pointer spTmpProjRaw3D;
+  UShortImageType::Pointer spTmpProjRaw3D;
 
   if (bHighResolMacro)
   {
@@ -6092,7 +6092,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
   
  // cout << "Scat3D size = " << spProjScat3D->GetRequestedRegion().GetSize() << endl;
 
-  USHORT_ImageType::SizeType imgSize = spTmpProjRaw3D->GetRequestedRegion().GetSize();
+  UShortImageType::SizeType imgSize = spTmpProjRaw3D->GetRequestedRegion().GetSize();
   //USHORT_ImageType::SizeType imgSize = spProjCT3D->GetRequestedRegion().GetSize();
 
   //USHORT_ImageType::SizeType imgSize = spSrcImg3D->GetBufferedRegion().GetSize();
@@ -6104,9 +6104,9 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
   double mAs_correctionFactor = GetRawIntensityScaleFactor();
   for (int i = 0 ; i < iSizeZ ; i++)  
   {	
-	OutputImageType2D::Pointer spImg2DRaw;
-	OutputImageType2D::Pointer spImg2DPrim;
-	OutputImageType2D::Pointer spImg2DScat;
+	FloatImage2DType::Pointer spImg2DRaw;
+	FloatImage2DType::Pointer spImg2DPrim;
+	FloatImage2DType::Pointer spImg2DScat;
 
         Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i, PLANE_AXIAL); //simple conversion between ushort 3D to float 2D (using casting, not log): input/output: 0-65535
 	Get2DFrom3D(spProjCT3D, spImg2DPrim, i, PLANE_AXIAL);	
@@ -6127,9 +6127,9 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	//Dimension should be matched
 	AllocateByRef(spImg2DRaw, spImg2DScat);
 
-	itk::ImageRegionConstIteratorWithIndex<OutputImageType2D> it_Src1(spImg2DRaw, spImg2DRaw->GetRequestedRegion());
-	itk::ImageRegionConstIteratorWithIndex<OutputImageType2D> it_Src2(spImg2DPrim, spImg2DPrim->GetRequestedRegion());
-	itk::ImageRegionIteratorWithIndex<OutputImageType2D> it_Tar(spImg2DScat, spImg2DScat->GetRequestedRegion());
+	itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src1(spImg2DRaw, spImg2DRaw->GetRequestedRegion());
+	itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src2(spImg2DPrim, spImg2DPrim->GetRequestedRegion());
+	itk::ImageRegionIteratorWithIndex<FloatImage2DType> it_Tar(spImg2DScat, spImg2DScat->GetRequestedRegion());
 
 	int cnt1=0; int cnt2 = 0;
 	for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd() ; ++it_Src1, ++it_Src2, ++it_Tar)
@@ -6143,7 +6143,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	//Resampling to speed-up
 
 	//ResampleItkImage2D(spImg2DScat, spImg2DScat, resF2D);
-	typedef itk::MedianImageFilter<OutputImageType2D, OutputImageType2D> MedianFilterType;	
+	typedef itk::MedianImageFilter<FloatImage2DType, FloatImage2DType> MedianFilterType;	
 
 	MedianFilterType::Pointer medianFilterX = MedianFilterType::New();
 	MedianFilterType::InputSizeType radiusX;
@@ -6163,14 +6163,14 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
 	medianFilterY->Update();
 	spImg2DScat = medianFilterY->GetOutput();	
 		
-	typedef itk::SmoothingRecursiveGaussianImageFilter<OutputImageType2D, OutputImageType2D>  SmoothingFilterType;
+	typedef itk::SmoothingRecursiveGaussianImageFilter<FloatImage2DType, FloatImage2DType>  SmoothingFilterType;
 	SmoothingFilterType::Pointer gaussianFilter = SmoothingFilterType::New();	
 	//gaussianFilter->SetInput(medianFilter->GetOutput());
 	gaussianFilter->SetInput(spImg2DScat);
 	gaussianFilter->SetSigma(gaussianSigma); //filter specific setting for 512x 512 image	
 
 	//spImg2DScat = gaussianFilter->GetOutput();
-	typedef itk::AddImageFilter<OutputImageType2D, OutputImageType2D, OutputImageType2D> AddImageFilterType;
+	typedef itk::AddImageFilter<FloatImage2DType, FloatImage2DType, FloatImage2DType> AddImageFilterType;
 	AddImageFilterType::Pointer addFilter = AddImageFilterType::New();
 	addFilter->SetInput1(gaussianFilter->GetOutput());	
 	addFilter->SetConstant2((float)nonNegativeScatOffset);
@@ -6226,7 +6226,7 @@ void CbctRecon::GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, US
   } 
 }
 
-void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjScat3D, USHORT_ImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, int postMedian, bool bSave)
+void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjScat3D, UShortImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, int postMedian, bool bSave)
 {
   //Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1)  
@@ -6241,8 +6241,8 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 	return;
   } 
 
-  USHORT_ImageType::SizeType size1 = spProjRaw3D->GetRequestedRegion().GetSize();
-  USHORT_ImageType::SizeType size2 = spProjScat3D->GetRequestedRegion().GetSize();
+  UShortImageType::SizeType size1 = spProjRaw3D->GetRequestedRegion().GetSize();
+  UShortImageType::SizeType size2 = spProjScat3D->GetRequestedRegion().GetSize();
 
   cout << "Raw3DProj Size= " << size1 << endl;
   cout << "spProjScat3D Size= " << size2 << endl;
@@ -6265,7 +6265,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
       }
   }
 
-  USHORT_ImageType::Pointer spTmpProjScat3D;
+  UShortImageType::Pointer spTmpProjScat3D;
 
   if (bHighResolMacro)
   {
@@ -6280,7 +6280,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
   AllocateByRef(spProjRaw3D, m_spProjCorr3D);
 
 
-  USHORT_ImageType::SizeType imgSize = spProjRaw3D->GetRequestedRegion().GetSize();
+  UShortImageType::SizeType imgSize = spProjRaw3D->GetRequestedRegion().GetSize();
 
   //USHORT_ImageType::SizeType imgSize = spSrcImg3D->GetBufferedRegion().GetSize();
   //Create spProjScat3D with same dimension of the spProjRaw3D
@@ -6291,9 +6291,9 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
   double mAs_correctionFactor = GetRawIntensityScaleFactor();
   for (int i = 0 ; i < iSizeZ ; i++)  
   {	
-	OutputImageType2D::Pointer spImg2DRaw;
-	OutputImageType2D::Pointer spImg2DScat;
-	OutputImageType2D::Pointer spImg2DCorr;
+	FloatImage2DType::Pointer spImg2DRaw;
+	FloatImage2DType::Pointer spImg2DScat;
+	FloatImage2DType::Pointer spImg2DCorr;
 
 	Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, PLANE_AXIAL);
         Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, PLANE_AXIAL);
@@ -6301,9 +6301,9 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 	//Dimension should be matched
 	AllocateByRef(spImg2DRaw, spImg2DCorr);
 
-	itk::ImageRegionConstIteratorWithIndex<OutputImageType2D> it_Src1(spImg2DRaw, spImg2DRaw->GetRequestedRegion());
-	itk::ImageRegionConstIteratorWithIndex<OutputImageType2D> it_Src2(spImg2DScat, spImg2DScat->GetRequestedRegion());
-	itk::ImageRegionIteratorWithIndex<OutputImageType2D> it_Tar(spImg2DCorr, spImg2DCorr->GetRequestedRegion());
+	itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src1(spImg2DRaw, spImg2DRaw->GetRequestedRegion());
+	itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src2(spImg2DScat, spImg2DScat->GetRequestedRegion());
+	itk::ImageRegionIteratorWithIndex<FloatImage2DType> it_Tar(spImg2DCorr, spImg2DCorr->GetRequestedRegion());
 
 	float rawVal, scatVal, corrVal;
 
@@ -6328,7 +6328,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 
 	if (postMedian >= 2)//YK2015
 	{
-		typedef itk::MedianImageFilter<OutputImageType2D, OutputImageType2D> MedianFilterType;
+		typedef itk::MedianImageFilter<FloatImage2DType, FloatImage2DType> MedianFilterType;
 		MedianFilterType::Pointer medianFilter = MedianFilterType::New();
 		MedianFilterType::InputSizeType radius;
 
@@ -6407,7 +6407,7 @@ void CbctRecon::ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USH
 
 
 //spSrcImg3D: usually projImage in USHORT type
-void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageType2D::Pointer& spTargetImg2D, int idx, enPLANE iDirection)
+void CbctRecon::Get2DFrom3D( UShortImageType::Pointer& spSrcImg3D, FloatImage2DType::Pointer& spTargetImg2D, int idx, enPLANE iDirection)
 {
   if (!spSrcImg3D)
 	return;
@@ -6434,9 +6434,9 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
   }
 
   //Create 2D target image based on geometry of 3D
-  USHORT_ImageType::SizeType imgDim = spSrcImg3D->GetBufferedRegion().GetSize();
-  USHORT_ImageType::SpacingType spacing = spSrcImg3D->GetSpacing();
-  USHORT_ImageType::PointType origin = spSrcImg3D->GetOrigin();
+  UShortImageType::SizeType imgDim = spSrcImg3D->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing = spSrcImg3D->GetSpacing();
+  UShortImageType::PointType origin = spSrcImg3D->GetOrigin();
 
   int width = imgDim[idxHor];
   int height  = imgDim[idxVer];
@@ -6451,26 +6451,26 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
 	return;
   }
 
-  OutputImageType2D::IndexType idxStart;  
+  FloatImage2DType::IndexType idxStart;  
   idxStart[0] = 0;
   idxStart[1] = 0;
 
-  OutputImageType2D::SizeType size2D;
+  FloatImage2DType::SizeType size2D;
   size2D[0] = imgDim[idxHor];
   size2D[1] = imgDim[idxVer];
 
-  OutputImageType2D::SpacingType spacing2D;
+  FloatImage2DType::SpacingType spacing2D;
   spacing2D[0] = spacing[idxHor];
   spacing2D[1] = spacing[idxVer];
 
-  OutputImageType2D::PointType origin2D;
+  FloatImage2DType::PointType origin2D;
 //  origin2D[0] = origin[idxHor];
 //  origin2D[1] = origin[idxVer];
   origin2D[0] = size2D[0]*spacing2D[0]/-2.0;
   origin2D[1] = size2D[1]*spacing2D[1]/-2.0;
 
 
-  OutputImageType2D::RegionType region;
+  FloatImage2DType::RegionType region;
   region.SetSize(size2D);
   region.SetIndex(idxStart);
 
@@ -6480,7 +6480,7 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
 	cout << "something is here in target image. is it gonna be overwritten?" << endl;
   }
 
-  spTargetImg2D = OutputImageType2D::New();
+  spTargetImg2D = FloatImage2DType::New();
   spTargetImg2D->SetRegions(region);
   spTargetImg2D->SetSpacing(spacing2D);
   spTargetImg2D->SetOrigin(origin2D);
@@ -6492,9 +6492,9 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
   //cout << "target image size = " << spTargetImg2D->GetRequestedRegion().GetSize() << " " << endl;
   
   
-  itk::ImageSliceConstIteratorWithIndex<USHORT_ImageType> it_3D (spSrcImg3D, spSrcImg3D->GetRequestedRegion());
+  itk::ImageSliceConstIteratorWithIndex<UShortImageType> it_3D (spSrcImg3D, spSrcImg3D->GetRequestedRegion());
   //itk::ImageRegionIteratorWithIndex<OutputImageType2D> it_2D (spTargetImg2D, spTargetImg2D->GetRequestedRegion());
-  itk::ImageRegionIterator<OutputImageType2D> it_2D (spTargetImg2D, spTargetImg2D->GetRequestedRegion());
+  itk::ImageRegionIterator<FloatImage2DType> it_2D (spTargetImg2D, spTargetImg2D->GetRequestedRegion());
 
   it_3D.SetFirstDirection(idxHor);
   it_3D.SetSecondDirection(idxVer);
@@ -6537,7 +6537,7 @@ void CbctRecon::Get2DFrom3D( USHORT_ImageType::Pointer& spSrcImg3D, OutputImageT
 }
 
 
-void CbctRecon::Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageType::Pointer& spTargetImg3D, int idx, enPLANE iDirection )
+void CbctRecon::Set2DTo3D( FloatImage2DType::Pointer& spSrcImg2D, UShortImageType::Pointer& spTargetImg3D, int idx, enPLANE iDirection )
 {
   if (!spSrcImg2D || !spTargetImg3D) //Target image should be also ready.
 	return;
@@ -6563,13 +6563,13 @@ void CbctRecon::Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageT
 	break;
   }
 
-  OutputImageType2D::SizeType imgDim2D = spSrcImg2D->GetBufferedRegion().GetSize();
-  OutputImageType2D::SpacingType spacing2D = spSrcImg2D->GetSpacing();
-  OutputImageType2D::PointType origin2D = spSrcImg2D->GetOrigin();
+  FloatImage2DType::SizeType imgDim2D = spSrcImg2D->GetBufferedRegion().GetSize();
+  FloatImage2DType::SpacingType spacing2D = spSrcImg2D->GetSpacing();
+  FloatImage2DType::PointType origin2D = spSrcImg2D->GetOrigin();
   
-  USHORT_ImageType::SizeType imgDim3D = spTargetImg3D->GetBufferedRegion().GetSize();
-  USHORT_ImageType::SpacingType spacing3D = spTargetImg3D->GetSpacing();
-  USHORT_ImageType::PointType origin3D = spTargetImg3D->GetOrigin();
+  UShortImageType::SizeType imgDim3D = spTargetImg3D->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing3D = spTargetImg3D->GetSpacing();
+  UShortImageType::PointType origin3D = spTargetImg3D->GetOrigin();
 
   //Filtering
   if (imgDim2D[0] != imgDim3D[idxHor] ||
@@ -6586,8 +6586,8 @@ void CbctRecon::Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageT
  
   
   //itk::ImageRegionConstIteratorWithIndex<OutputImageType2D> it_2D (spSrcImg2D, spSrcImg2D->GetRequestedRegion());
-  itk::ImageRegionConstIterator<OutputImageType2D> it_2D (spSrcImg2D, spSrcImg2D->GetRequestedRegion());
-  itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it_3D (spTargetImg3D, spTargetImg3D->GetRequestedRegion());  
+  itk::ImageRegionConstIterator<FloatImage2DType> it_2D (spSrcImg2D, spSrcImg2D->GetRequestedRegion());
+  itk::ImageSliceIteratorWithIndex<UShortImageType> it_3D (spTargetImg3D, spTargetImg3D->GetRequestedRegion());  
 
   it_3D.SetFirstDirection(idxHor);
   it_3D.SetSecondDirection(idxVer);
@@ -6645,7 +6645,7 @@ void CbctRecon::Set2DTo3D( OutputImageType2D::Pointer& spSrcImg2D, USHORT_ImageT
 
 //From line integral to raw intensity
 //bkIntensity is usually 65535
-void CbctRecon::ConvertLineInt2Intensity( OutputImageType::Pointer& spProjLineInt3D, USHORT_ImageType::Pointer& spProjIntensity3D, int bkIntensity )
+void CbctRecon::ConvertLineInt2Intensity( FloatImageType::Pointer& spProjLineInt3D, UShortImageType::Pointer& spProjIntensity3D, int bkIntensity )
 {
   if (!spProjLineInt3D)
 	return;
@@ -6653,8 +6653,8 @@ void CbctRecon::ConvertLineInt2Intensity( OutputImageType::Pointer& spProjLineIn
 
   AllocateByRef(spProjLineInt3D, spProjIntensity3D);
   
-  itk::ImageRegionConstIteratorWithIndex<OutputImageType> it_Src(spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());
-  itk::ImageRegionIteratorWithIndex<USHORT_ImageType> it_Tar(spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());    
+  itk::ImageRegionConstIteratorWithIndex<FloatImageType> it_Src(spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());
+  itk::ImageRegionIteratorWithIndex<UShortImageType> it_Tar(spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());    
   
   for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd() ; ++it_Src, ++it_Tar)
   {
@@ -6670,7 +6670,7 @@ void CbctRecon::ConvertLineInt2Intensity( OutputImageType::Pointer& spProjLineIn
 }
 
 
-void CbctRecon::ConvertIntensity2LineInt( USHORT_ImageType::Pointer& spProjIntensity3D, OutputImageType::Pointer& spProjLineInt3D, int bkIntensity)
+void CbctRecon::ConvertIntensity2LineInt( UShortImageType::Pointer& spProjIntensity3D, FloatImageType::Pointer& spProjLineInt3D, int bkIntensity)
 {
   if (!spProjIntensity3D)
 	return;
@@ -6678,8 +6678,8 @@ void CbctRecon::ConvertIntensity2LineInt( USHORT_ImageType::Pointer& spProjInten
 
   AllocateByRef(spProjIntensity3D, spProjLineInt3D);
 
-  itk::ImageRegionConstIteratorWithIndex<USHORT_ImageType> it_Src(spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());
-  itk::ImageRegionIteratorWithIndex<OutputImageType> it_Tar(spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());    
+  itk::ImageRegionConstIteratorWithIndex<UShortImageType> it_Src(spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());
+  itk::ImageRegionIteratorWithIndex<FloatImageType> it_Tar(spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());    
 
 
 
@@ -6692,19 +6692,19 @@ void CbctRecon::ConvertIntensity2LineInt( USHORT_ImageType::Pointer& spProjInten
 }
 
 
-void CbctRecon::AllocateByRef( OutputImageType::Pointer& spRefImg3D, OutputImageType::Pointer& spTarImg3D )
+void CbctRecon::AllocateByRef( FloatImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D )
 {
-  OutputImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
-  OutputImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
+  FloatImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
+  FloatImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
 
-  OutputImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
-  OutputImageType::PointType originSrc = spRefImg3D->GetOrigin();
+  FloatImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
+  FloatImageType::PointType originSrc = spRefImg3D->GetOrigin();
 
-  OutputImageType::RegionType region;
+  FloatImageType::RegionType region;
   region.SetSize(sizeSrc);
   region.SetIndex(startSrc);  
 
-  spTarImg3D = OutputImageType::New();
+  spTarImg3D = FloatImageType::New();
 
   spTarImg3D->SetRegions(region);
   spTarImg3D->SetSpacing(spacingSrc);
@@ -6714,19 +6714,19 @@ void CbctRecon::AllocateByRef( OutputImageType::Pointer& spRefImg3D, OutputImage
   spTarImg3D->FillBuffer(0);
 }
 
-void CbctRecon::AllocateByRef( USHORT_ImageType::Pointer& spRefImg3D, USHORT_ImageType::Pointer& spTarImg3D )
+void CbctRecon::AllocateByRef( UShortImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D )
 {
-  USHORT_ImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
-  USHORT_ImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
+  UShortImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
+  UShortImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
 
-  USHORT_ImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
-  USHORT_ImageType::PointType originSrc = spRefImg3D->GetOrigin();
+  UShortImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
+  UShortImageType::PointType originSrc = spRefImg3D->GetOrigin();
 
-  USHORT_ImageType::RegionType region;
+  UShortImageType::RegionType region;
   region.SetSize(sizeSrc);
   region.SetIndex(startSrc);  
 
-  spTarImg3D = USHORT_ImageType::New();
+  spTarImg3D = UShortImageType::New();
 
   spTarImg3D->SetRegions(region);
   spTarImg3D->SetSpacing(spacingSrc);
@@ -6737,19 +6737,19 @@ void CbctRecon::AllocateByRef( USHORT_ImageType::Pointer& spRefImg3D, USHORT_Ima
 }
 
 
-void CbctRecon::AllocateByRef( OutputImageType2D::Pointer& spRefImg2D, OutputImageType2D::Pointer& spTarImg2D )
+void CbctRecon::AllocateByRef( FloatImage2DType::Pointer& spRefImg2D, FloatImage2DType::Pointer& spTarImg2D )
 {
-  OutputImageType2D::SizeType sizeSrc = spRefImg2D->GetBufferedRegion().GetSize();
-  OutputImageType2D::IndexType startSrc = spRefImg2D->GetBufferedRegion().GetIndex();
+  FloatImage2DType::SizeType sizeSrc = spRefImg2D->GetBufferedRegion().GetSize();
+  FloatImage2DType::IndexType startSrc = spRefImg2D->GetBufferedRegion().GetIndex();
 
-  OutputImageType2D::SpacingType spacingSrc = spRefImg2D->GetSpacing();
-  OutputImageType2D::PointType originSrc = spRefImg2D->GetOrigin();
+  FloatImage2DType::SpacingType spacingSrc = spRefImg2D->GetSpacing();
+  FloatImage2DType::PointType originSrc = spRefImg2D->GetOrigin();
   
-  OutputImageType2D::RegionType region;
+  FloatImage2DType::RegionType region;
   region.SetSize(sizeSrc);
   region.SetIndex(startSrc);  
 
-  spTarImg2D = OutputImageType2D::New();
+  spTarImg2D = FloatImage2DType::New();
 
   spTarImg2D->SetRegions(region);
   spTarImg2D->SetSpacing(spacingSrc);
@@ -6759,25 +6759,25 @@ void CbctRecon::AllocateByRef( OutputImageType2D::Pointer& spRefImg2D, OutputIma
   spTarImg2D->FillBuffer(0);
 }
 
-void CbctRecon::AllocateByRef( USHORT_ImageType::Pointer& spRefImg3D, OutputImageType::Pointer& spTarImg3D )
+void CbctRecon::AllocateByRef( UShortImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D )
 {
-  USHORT_ImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
-  USHORT_ImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
-  USHORT_ImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
-  USHORT_ImageType::PointType originSrc = spRefImg3D->GetOrigin();
+  UShortImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
+  UShortImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
+  UShortImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
+  UShortImageType::PointType originSrc = spRefImg3D->GetOrigin();
 
 
-  OutputImageType::SizeType size =  (OutputImageType::SizeType)sizeSrc;
-  OutputImageType::IndexType start = (OutputImageType::IndexType)startSrc;
-  OutputImageType::SpacingType spacing = (OutputImageType::SpacingType)spacingSrc;
-  OutputImageType::PointType origin = (OutputImageType::PointType)originSrc;
+  FloatImageType::SizeType size =  (FloatImageType::SizeType)sizeSrc;
+  FloatImageType::IndexType start = (FloatImageType::IndexType)startSrc;
+  FloatImageType::SpacingType spacing = (FloatImageType::SpacingType)spacingSrc;
+  FloatImageType::PointType origin = (FloatImageType::PointType)originSrc;
 
 
-  OutputImageType::RegionType region;
+  FloatImageType::RegionType region;
   region.SetSize(size);
   region.SetIndex(start);  
 
-  spTarImg3D = OutputImageType::New();
+  spTarImg3D = FloatImageType::New();
 
   spTarImg3D->SetRegions(region);
   spTarImg3D->SetSpacing(spacing);
@@ -6788,25 +6788,25 @@ void CbctRecon::AllocateByRef( USHORT_ImageType::Pointer& spRefImg3D, OutputImag
 
 }
 
-void CbctRecon::AllocateByRef( OutputImageType::Pointer& spRefImg3D, USHORT_ImageType::Pointer& spTarImg3D )
+void CbctRecon::AllocateByRef( FloatImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D )
 {
-  OutputImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
-  OutputImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
-  OutputImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
-  OutputImageType::PointType originSrc = spRefImg3D->GetOrigin();
+  FloatImageType::SizeType sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
+  FloatImageType::IndexType startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
+  FloatImageType::SpacingType spacingSrc = spRefImg3D->GetSpacing();
+  FloatImageType::PointType originSrc = spRefImg3D->GetOrigin();
   
 
-  USHORT_ImageType::SizeType size =  (USHORT_ImageType::SizeType)sizeSrc;
-  USHORT_ImageType::IndexType start = (USHORT_ImageType::IndexType)startSrc;
-  USHORT_ImageType::SpacingType spacing = (USHORT_ImageType::SpacingType)spacingSrc;
-  USHORT_ImageType::PointType origin = (USHORT_ImageType::PointType)originSrc;
+  UShortImageType::SizeType size =  (UShortImageType::SizeType)sizeSrc;
+  UShortImageType::IndexType start = (UShortImageType::IndexType)startSrc;
+  UShortImageType::SpacingType spacing = (UShortImageType::SpacingType)spacingSrc;
+  UShortImageType::PointType origin = (UShortImageType::PointType)originSrc;
 
-  USHORT_ImageType::RegionType region;
+  UShortImageType::RegionType region;
 
   region.SetSize(size);
   region.SetIndex(start);  
 
-  spTarImg3D = USHORT_ImageType::New();
+  spTarImg3D = UShortImageType::New();
 
   spTarImg3D->SetRegions(region);
   spTarImg3D->SetSpacing(spacing);
@@ -6817,13 +6817,13 @@ void CbctRecon::AllocateByRef( OutputImageType::Pointer& spRefImg3D, USHORT_Imag
 
 }
 //it works! new memory will be allocated for spTarImg
-void CbctRecon::ResampleItkImage( OutputImageType::Pointer& spSrcImg, OutputImageType::Pointer& spTarImg, double resFactor )
+void CbctRecon::ResampleItkImage( FloatImageType::Pointer& spSrcImg, FloatImageType::Pointer& spTarImg, double resFactor )
 {
   if (!spSrcImg)
 	return;
 
 //  cout << "original Origin: " << spSrcImg2D->GetOrigin() << endl;
-  typedef itk::ResampleImageFilter<OutputImageType, OutputImageType, float> ResampleImageFilterType;
+  typedef itk::ResampleImageFilter<FloatImageType, FloatImageType, float> ResampleImageFilterType;
   ResampleImageFilterType::Pointer resample = ResampleImageFilterType::New();  
 
   resample->SetOutputDirection( spSrcImg->GetDirection() );  
@@ -6831,26 +6831,26 @@ void CbctRecon::ResampleItkImage( OutputImageType::Pointer& spSrcImg, OutputImag
   typedef itk::AffineTransform< float, 3 >  TransformType;
   TransformType::Pointer transform = TransformType::New();
 
-  typedef itk::NearestNeighborInterpolateImageFunction<OutputImageType, float >  InterpolatorType;
+  typedef itk::NearestNeighborInterpolateImageFunction<FloatImageType, float >  InterpolatorType;
   InterpolatorType::Pointer interpolator = InterpolatorType::New();
   resample->SetInterpolator( interpolator );
 
   resample->SetDefaultPixelValue( 50 );
 
-  OutputImageType::SizeType inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
-  OutputImageType::SizeType outputSize;
+  FloatImageType::SizeType inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
+  FloatImageType::SizeType outputSize;
   outputSize[0] = qRound(inputSize[0] * resFactor);
   outputSize[1] = qRound(inputSize[1] * resFactor); 
   outputSize[2] = inputSize[2];
   resample->SetSize(outputSize);  
 
-  OutputImageType::SpacingType outputSpacing;
+  FloatImageType::SpacingType outputSpacing;
   outputSpacing[0] = spSrcImg->GetSpacing()[0] * (static_cast<double>(inputSize[0]) / static_cast<double>(outputSize[0]));
   outputSpacing[1] = spSrcImg->GetSpacing()[1] * (static_cast<double>(inputSize[1]) / static_cast<double>(outputSize[1]));
   outputSpacing[2] = spSrcImg->GetSpacing()[2];
   resample->SetOutputSpacing(outputSpacing);
 
-  OutputImageType::PointType outputOrigin = spSrcImg->GetOrigin(); //Float image
+  FloatImageType::PointType outputOrigin = spSrcImg->GetOrigin(); //Float image
   resample->SetOutputOrigin( outputOrigin );  
 
   resample->SetInput(spSrcImg);
@@ -6864,13 +6864,13 @@ void CbctRecon::ResampleItkImage( OutputImageType::Pointer& spSrcImg, OutputImag
 
 }
 
-void CbctRecon::ResampleItkImage( USHORT_ImageType::Pointer& spSrcImg, USHORT_ImageType::Pointer& spTarImg, double resFactor )
+void CbctRecon::ResampleItkImage( UShortImageType::Pointer& spSrcImg, UShortImageType::Pointer& spTarImg, double resFactor )
 {
   if (!spSrcImg)
 	return;
 
   //  cout << "original Origin: " << spSrcImg2D->GetOrigin() << endl;
-  typedef itk::ResampleImageFilter<USHORT_ImageType, USHORT_ImageType, float> ResampleImageFilterType;
+  typedef itk::ResampleImageFilter<UShortImageType, UShortImageType, float> ResampleImageFilterType;
   ResampleImageFilterType::Pointer resample = ResampleImageFilterType::New();  
 
   resample->SetOutputDirection( spSrcImg->GetDirection() );  
@@ -6878,26 +6878,26 @@ void CbctRecon::ResampleItkImage( USHORT_ImageType::Pointer& spSrcImg, USHORT_Im
   typedef itk::AffineTransform< float, 3 >  TransformType;
   TransformType::Pointer transform = TransformType::New();
 
-  typedef itk::NearestNeighborInterpolateImageFunction<USHORT_ImageType, float >  InterpolatorType;
+  typedef itk::NearestNeighborInterpolateImageFunction<UShortImageType, float >  InterpolatorType;
   InterpolatorType::Pointer interpolator = InterpolatorType::New();
   resample->SetInterpolator( interpolator );
 
   resample->SetDefaultPixelValue( 50 );
 
-  USHORT_ImageType::SizeType inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
-  USHORT_ImageType::SizeType outputSize;
+  UShortImageType::SizeType inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
+  UShortImageType::SizeType outputSize;
   outputSize[0] = qRound(inputSize[0] * resFactor);
   outputSize[1] = qRound(inputSize[1] * resFactor); 
   outputSize[2] = inputSize[2];
   resample->SetSize(outputSize);  
 
-  USHORT_ImageType::SpacingType outputSpacing;
+  UShortImageType::SpacingType outputSpacing;
   outputSpacing[0] = spSrcImg->GetSpacing()[0] * (static_cast<double>(inputSize[0]) / static_cast<double>(outputSize[0]));
   outputSpacing[1] = spSrcImg->GetSpacing()[1] * (static_cast<double>(inputSize[1]) / static_cast<double>(outputSize[1]));
   outputSpacing[2] = spSrcImg->GetSpacing()[2];
   resample->SetOutputSpacing(outputSpacing);
 
-  USHORT_ImageType::PointType outputOrigin = spSrcImg->GetOrigin(); //Float image
+  UShortImageType::PointType outputOrigin = spSrcImg->GetOrigin(); //Float image
   resample->SetOutputOrigin( outputOrigin );  
 
   resample->SetInput(spSrcImg);
@@ -6911,7 +6911,7 @@ void CbctRecon::ResampleItkImage( USHORT_ImageType::Pointer& spSrcImg, USHORT_Im
 
 }
 
-void CbctRecon::ResampleItkImage2D ( OutputImageType2D::Pointer& spSrcImg2D, OutputImageType2D::Pointer& spTarImg2D, double resFactor )
+void CbctRecon::ResampleItkImage2D ( FloatImage2DType::Pointer& spSrcImg2D, FloatImage2DType::Pointer& spTarImg2D, double resFactor )
 {
   if (!spSrcImg2D)
   {
@@ -6920,7 +6920,7 @@ void CbctRecon::ResampleItkImage2D ( OutputImageType2D::Pointer& spSrcImg2D, Out
   }
 
 //  cout << "original Origin: " << spSrcImg2D->GetOrigin() << endl;
-  typedef itk::ResampleImageFilter<OutputImageType2D, OutputImageType2D, float> ResampleImageFilterType;
+  typedef itk::ResampleImageFilter<FloatImage2DType, FloatImage2DType, float> ResampleImageFilterType;
   ResampleImageFilterType::Pointer resample = ResampleImageFilterType::New();  
 
   resample->SetOutputDirection( spSrcImg2D->GetDirection() );
@@ -6944,25 +6944,25 @@ void CbctRecon::ResampleItkImage2D ( OutputImageType2D::Pointer& spSrcImg2D, Out
   typedef itk::AffineTransform< float, 2 >  TransformType;
   TransformType::Pointer transform = TransformType::New();
 
-  typedef itk::NearestNeighborInterpolateImageFunction<OutputImageType2D, float >  InterpolatorType;
+  typedef itk::NearestNeighborInterpolateImageFunction<FloatImage2DType, float >  InterpolatorType;
   InterpolatorType::Pointer interpolator = InterpolatorType::New();
   resample->SetInterpolator( interpolator );    
   
 
   resample->SetDefaultPixelValue( 50 );
 
-  OutputImageType2D::SizeType inputSize = spSrcImg2D->GetLargestPossibleRegion().GetSize();
-  OutputImageType2D::SizeType outputSize;
+  FloatImage2DType::SizeType inputSize = spSrcImg2D->GetLargestPossibleRegion().GetSize();
+  FloatImage2DType::SizeType outputSize;
   outputSize[0] = qRound(inputSize[0] * resFactor);
   outputSize[1] = qRound(inputSize[1] * resFactor); 
   resample->SetSize(outputSize);  
 
-  OutputImageType2D::SpacingType outputSpacing;
+  FloatImage2DType::SpacingType outputSpacing;
   outputSpacing[0] = spSrcImg2D->GetSpacing()[0] * (static_cast<double>(inputSize[0]) / static_cast<double>(outputSize[0]));
   outputSpacing[1] = spSrcImg2D->GetSpacing()[1] * (static_cast<double>(inputSize[1]) / static_cast<double>(outputSize[1]));
   resample->SetOutputSpacing(outputSpacing);
 
-  OutputImageType2D::PointType outputOrigin = spSrcImg2D->GetOrigin(); //Float image
+  FloatImage2DType::PointType outputOrigin = spSrcImg2D->GetOrigin(); //Float image
   resample->SetOutputOrigin( outputOrigin );  
 
 
@@ -7047,12 +7047,12 @@ void CbctRecon::AfterScatCorrectionMacro()
 }
 
 //called whenver recon 3D image for display changes.
-void CbctRecon::UpdateReconImage(USHORT_ImageType::Pointer& spNewImg, QString& fileName)
+void CbctRecon::UpdateReconImage(UShortImageType::Pointer& spNewImg, QString& fileName)
 {
 	m_spCrntReconImg = spNewImg;
 	ui.lineEdit_Cur3DFileName->setText(fileName);	
 
-	USHORT_ImageType::SizeType size = m_spCrntReconImg->GetRequestedRegion().GetSize();
+	UShortImageType::SizeType size = m_spCrntReconImg->GetRequestedRegion().GetSize();
 
 	m_dspYKReconImage->CreateImage(size[0], size[1],0);
 
@@ -7085,12 +7085,12 @@ void CbctRecon::SLT_TempAudit()
 
 }
 
-void CbctRecon::SaveUSHORTAsSHORT_DICOM( USHORT_ImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir)
+void CbctRecon::SaveUSHORTAsSHORT_DICOM( UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir)
 {
   if (!spImg)
 	return;
 
-  SHORT_ImageType::Pointer spShortImg;
+  ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
   Plm_image plm_img(spShortImg);  
@@ -7113,18 +7113,18 @@ void CbctRecon::SaveUSHORTAsSHORT_DICOM( USHORT_ImageType::Pointer& spImg, QStri
 }
 
 
-void CbctRecon::ConvertUshort2Short(USHORT_ImageType::Pointer& spImgUshort, SHORT_ImageType::Pointer& spImgShort)
+void CbctRecon::ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort)
 {  
 	//cout << "Before filter spImgUshort" << spImgUshort << endl;
 
-	typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+	typedef itk::ThresholdImageFilter <UShortImageType> ThresholdImageFilterType;
 	ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
 	thresholdFilter->SetInput(spImgUshort);
 	thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
 	thresholdFilter->SetOutsideValue(0);
 	thresholdFilter->Update();
 
-	typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType> ImageCalculatorFilterType;
+	typedef itk::MinimumMaximumImageCalculator <UShortImageType> ImageCalculatorFilterType;
 	ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New ();
 	imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
 	imageCalculatorFilter->Compute();
@@ -7140,7 +7140,7 @@ void CbctRecon::ConvertUshort2Short(USHORT_ImageType::Pointer& spImgUshort, SHOR
 	//USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
 	//USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
 
-	typedef itk::RescaleIntensityImageFilter<USHORT_ImageType, SHORT_ImageType> RescaleFilterType;
+	typedef itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType> RescaleFilterType;
 	RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
 	spRescaleFilter->SetInput(thresholdFilter->GetOutput());
 	spRescaleFilter->SetOutputMinimum(outputMinVal);
@@ -7156,7 +7156,7 @@ void CbctRecon::ConvertUshort2Short(USHORT_ImageType::Pointer& spImgUshort, SHOR
 void CbctRecon::SLT_LoadPlanCT_USHORT()
 {
   //typedef itk::ImageFileWriter<OutputImageType> WriterType;
-  typedef itk::ImageFileReader<USHORT_ImageType> ReaderType;
+  typedef itk::ImageFileReader<UShortImageType> ReaderType;
   ReaderType::Pointer reader = ReaderType::New();
 
   QString fileName = QFileDialog::getOpenFileName(this, "Open Image",m_strPathDirDefault, "Projection file (*.mha)",0,0);		
@@ -7214,10 +7214,10 @@ void CbctRecon::SLT_DoScatterCorrectionUniform()
   if (!m_spProjImg3DFloat)
 	return;
 
-  USHORT_ImageType::Pointer spIntensityRaw;
+  UShortImageType::Pointer spIntensityRaw;
   ConvertLineInt2Intensity( m_spProjImg3DFloat, spIntensityRaw,65535);
 
-  typedef rtk::BoellaardScatterCorrectionImageFilter<USHORT_ImageType, USHORT_ImageType> ScatterFilterType;
+  typedef rtk::BoellaardScatterCorrectionImageFilter<UShortImageType, UShortImageType> ScatterFilterType;
 
   ScatterFilterType::Pointer spScatFilter = ScatterFilterType::New();
 
@@ -7237,7 +7237,7 @@ void CbctRecon::SLT_DoScatterCorrectionUniform()
 
   spScatFilter->Update(); //errir occured
 
-  USHORT_ImageType::Pointer spIntensityUniformCorr = spScatFilter->GetOutput();
+  UShortImageType::Pointer spIntensityUniformCorr = spScatFilter->GetOutput();
 
   ConvertIntensity2LineInt(spIntensityUniformCorr, m_spProjImg3DFloat, 65535);
 
@@ -7513,7 +7513,7 @@ void CbctRecon::SLT_ExportAngularWEPL_byFile()
     ExportAngularWEPL_byFile(filePath); 
 }
 
-void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend )
+void CbctRecon::GetAngularWEPL_SinglePoint( UShortImageType::Pointer& spUshortImage, float fAngleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend )
 {
 	if (!spUshortImage)
 		return;
@@ -7521,10 +7521,10 @@ void CbctRecon::GetAngularWEPL_SinglePoint( USHORT_ImageType::Pointer& spUshortI
 	if (fAngleGap <= 0)
 		return;
 
-  SHORT_ImageType::Pointer spShortImg;
+  ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spUshortImage, spShortImg);
 
-  typedef itk::CastImageFilter< SHORT_ImageType, OutputImageType > CastFilterType;
+  typedef itk::CastImageFilter< ShortImageType, FloatImageType > CastFilterType;
   CastFilterType::Pointer castFilter = CastFilterType::New();
   castFilter->SetInput(spShortImg);
   castFilter->Update();
@@ -7881,7 +7881,7 @@ void CbctRecon::SLTM_ViewExternalCommand()
 
 void CbctRecon::LoadExternalFloatImage(QString& strPath, bool bConversion)
 {
-	typedef itk::ImageFileReader<OutputImageType> ReaderType;
+	typedef itk::ImageFileReader<FloatImageType> ReaderType;
 	ReaderType::Pointer reader = ReaderType::New();
 
 	//QString filePath = strPath;
@@ -7889,7 +7889,7 @@ void CbctRecon::LoadExternalFloatImage(QString& strPath, bool bConversion)
 	reader->SetFileName(strPath.toLocal8Bit().constData());
 	reader->Update();
 
-	OutputImageType::Pointer spCrntImg = reader->GetOutput();
+	FloatImageType::Pointer spCrntImg = reader->GetOutput();
 
 	//Float image 
 	cout << "Float image has been loaded" << endl;
@@ -7899,16 +7899,16 @@ void CbctRecon::LoadExternalFloatImage(QString& strPath, bool bConversion)
 		TransformationRTK2IEC(spCrntImg);
 	}
 	
-	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
+	typedef itk::AbsImageFilter<FloatImageType, FloatImageType> AbsImageFilterType;
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
 	absImgFilter->SetInput(spCrntImg); // 20140206 modified it was a bug
 
-	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType> MultiplyImageFilterType;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
 	multiplyImageFilter->SetConstant(65536); //calculated already	
 
-	typedef itk::CastImageFilter< OutputImageType, USHORT_ImageType > CastFilterType;
+	typedef itk::CastImageFilter< FloatImageType, UShortImageType > CastFilterType;
 	CastFilterType::Pointer castFilter = CastFilterType::New();
 	castFilter->SetInput(multiplyImageFilter->GetOutput());		
 	castFilter->Update();
@@ -7921,40 +7921,40 @@ void CbctRecon::LoadExternalFloatImage(QString& strPath, bool bConversion)
 	UpdateReconImage(m_spRawReconImg, strCrntFileName);
 }
 
-void CbctRecon::TransformationRTK2IEC(OutputImageType::Pointer& spSrcTarg)
+void CbctRecon::TransformationRTK2IEC(FloatImageType::Pointer& spSrcTarg)
 {
-	OutputImageType::SizeType sizeOutput = spSrcTarg->GetBufferedRegion().GetSize();
-	OutputImageType::SpacingType spacingOutput = spSrcTarg->GetSpacing();
+	FloatImageType::SizeType sizeOutput = spSrcTarg->GetBufferedRegion().GetSize();
+	FloatImageType::SpacingType spacingOutput = spSrcTarg->GetSpacing();
 
 	//Transformation is applied
 	cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << endl;
 	//Same image type from original image -3D & float
-	OutputImageType::IndexType start_trans;
+	FloatImageType::IndexType start_trans;
 	start_trans[0] = 0;
 	start_trans[1] = 0;
 	start_trans[2] = 0;
 
-	OutputImageType::SizeType size_trans;
+	FloatImageType::SizeType size_trans;
 	size_trans[0] = sizeOutput[0]; // X //410
 	size_trans[1] = sizeOutput[2]; //Y  // 410
 	size_trans[2] = sizeOutput[1]; //Z // 120?
 
-	OutputImageType::SpacingType spacing_trans;
+	FloatImageType::SpacingType spacing_trans;
 	spacing_trans[0] = spacingOutput[0];
 	spacing_trans[1] = spacingOutput[2];
 	spacing_trans[2] = spacingOutput[1];
 
-	OutputImageType::PointType Origin_trans;
+	FloatImageType::PointType Origin_trans;
 	Origin_trans[0] = -0.5* size_trans[0] * spacing_trans[0];
 	Origin_trans[1] = -0.5* size_trans[1] * spacing_trans[1];
 	Origin_trans[2] = -0.5* size_trans[2] * spacing_trans[2];
 
-	OutputImageType::RegionType region_trans;
+	FloatImageType::RegionType region_trans;
 	region_trans.SetSize(size_trans);
 	region_trans.SetIndex(start_trans);
 
 	/* 2) Prepare Target image */
-	OutputImageType::Pointer targetImg = spSrcTarg;
+	FloatImageType::Pointer targetImg = spSrcTarg;
 
 	/* 3) Configure transform */
 	typedef itk::Euler3DTransform< double > TransformType;
@@ -7981,7 +7981,7 @@ void CbctRecon::TransformationRTK2IEC(OutputImageType::Pointer& spSrcTarg)
 	cout << "Transform matrix:" << "	" << endl;
 	cout << transform->GetMatrix() << std::endl;
 
-	typedef itk::ResampleImageFilter<OutputImageType, OutputImageType> ResampleFilterType;
+	typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleFilterType;
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 	//OutputImageType::RegionType fixedImg_Region = fixedImg->GetLargestPossibleRegion().GetSize();
 
@@ -7996,7 +7996,7 @@ void CbctRecon::TransformationRTK2IEC(OutputImageType::Pointer& spSrcTarg)
 
 	cout << "LR flip filter is being applied" << endl;
 
-	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
+	typedef itk::FlipImageFilter< FloatImageType >  FilterType;
 
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
@@ -8023,10 +8023,10 @@ void CbctRecon::SLTM_LoadDICOMdir()
 
 	Plm_image plmImg;
 	plmImg.load_native(dirPath.toLocal8Bit().constData());
-	SHORT_ImageType::Pointer spShortImg = plmImg.itk_short();
+	ShortImageType::Pointer spShortImg = plmImg.itk_short();
 
 	//Figure out whether this is NKI
-	typedef itk::MinimumMaximumImageCalculator <SHORT_ImageType> ImageCalculatorFilterType;
+	typedef itk::MinimumMaximumImageCalculator <ShortImageType> ImageCalculatorFilterType;
 	ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
 	imageCalculatorFilter->SetImage(spShortImg);
 	imageCalculatorFilter->Compute();
@@ -8036,7 +8036,7 @@ void CbctRecon::SLTM_LoadDICOMdir()
 	
 	
 	//Thresholding
-	typedef itk::ThresholdImageFilter <SHORT_ImageType> ThresholdImageFilterType;
+	typedef itk::ThresholdImageFilter <ShortImageType> ThresholdImageFilterType;
 	ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
 
 	thresholdFilter->SetInput(spShortImg);
@@ -8055,7 +8055,7 @@ void CbctRecon::SLTM_LoadDICOMdir()
 	unsigned short outputMinVal = (USHORT_PixelType)(minVal + 1024);
 	unsigned short outputMaxVal = (USHORT_PixelType)(maxVal + 1024);
 
-	typedef itk::RescaleIntensityImageFilter<SHORT_ImageType, USHORT_ImageType> RescaleFilterType;
+	typedef itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType> RescaleFilterType;
 	RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
 	spRescaleFilter->SetInput(thresholdFilter->GetOutput());
 	spRescaleFilter->SetOutputMinimum(outputMinVal);
@@ -8085,14 +8085,14 @@ void CbctRecon::MedianFilterByGUI()
 	QFileInfo outFileInfo(strPath);
 	strCrntFileName = outFileInfo.fileName();*/	
 
-	USHORT_ImageType::SizeType indexRadius;
+	UShortImageType::SizeType indexRadius;
 	indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
 	indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
 	indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
 
 	if (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0)
 	{
-		typedef itk::MedianImageFilter<USHORT_ImageType, USHORT_ImageType >  FilterType;
+		typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  FilterType;
 		FilterType::Pointer medFilter = FilterType::New();
 
 		//this is radius. 1 --> median window 3
@@ -8130,7 +8130,7 @@ void CbctRecon::FileExportByGUI()//USHORT
 	}
 	else
 	{
-		typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
+		typedef itk::ImageFileWriter<UShortImageType> WriterType;
 		WriterType::Pointer writer = WriterType::New();
 		writer->SetFileName(outputFilePath.toLocal8Bit().constData());
 		writer->SetUseCompression(true); //not exist in original code (rtkfdk)	
@@ -8199,24 +8199,24 @@ void CbctRecon::SLTM_Export2DDoseMapAsMHA()
 	double spacingY = (double)(m_spCrntReconImg->GetSpacing()[1]);//not sure...		
 
 	//Export float 2D image
-	OutputImageType2D::Pointer doseImg2D = OutputImageType2D::New();
-	OutputImageType2D::SizeType doseSize;
+	FloatImage2DType::Pointer doseImg2D = FloatImage2DType::New();
+	FloatImage2DType::SizeType doseSize;
 	doseSize[0] = m_dspYKReconImage->m_iWidth;
 	doseSize[1] = m_dspYKReconImage->m_iHeight;
 
-	OutputImageType2D::IndexType doseStart;
+	FloatImage2DType::IndexType doseStart;
 	doseStart[0] = 0;
 	doseStart[1] = 0;
 
-	OutputImageType2D::RegionType doseRegion;
+	FloatImage2DType::RegionType doseRegion;
 	doseRegion.SetSize(doseSize);
 	doseRegion.SetIndex(doseStart);
 
-	OutputImageType2D::SpacingType doseSpacing;
+	FloatImage2DType::SpacingType doseSpacing;
 	doseSpacing[0] = spacingX;
 	doseSpacing[1] = spacingY;
 
-	OutputImageType2D::PointType doseOrigin;
+	FloatImage2DType::PointType doseOrigin;
 	doseOrigin[0] = originLeft;
 	doseOrigin[1] = originTop;
 
@@ -8229,7 +8229,7 @@ void CbctRecon::SLTM_Export2DDoseMapAsMHA()
 
 	double factor_ushort2float = 0.01; // cGy --> Gy
 	
-	itk::ImageRegionIterator<OutputImageType2D> it(doseImg2D, doseImg2D->GetLargestPossibleRegion());
+	itk::ImageRegionIterator<FloatImage2DType> it(doseImg2D, doseImg2D->GetLargestPossibleRegion());
 	
 	float pixel_val = 0.0f;
 	int i = 0;
@@ -8240,7 +8240,7 @@ void CbctRecon::SLTM_Export2DDoseMapAsMHA()
 		i++;
 	}
 	//YK201502
-	typedef itk::ImageFileWriter<OutputImageType2D> WriterType;	
+	typedef itk::ImageFileWriter<FloatImage2DType> WriterType;	
 	WriterType::Pointer writer = WriterType::New();	
 	writer->SetFileName(strPath.toLocal8Bit().constData());
 	writer->SetUseCompression(true); 
@@ -8518,7 +8518,7 @@ void CbctRecon::SLTM_ForwardProjection()
         //QString outputPath = "D:/ProjTemplate.mha";
         QString outputPath = "D:/2D3DRegi/FwdProj_0.mha";
 
-        typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
+        typedef itk::ImageFileWriter<UShortImageType> WriterType;
         WriterType::Pointer writer = WriterType::New();
         writer->SetFileName(outputPath.toLocal8Bit().constData());
         //writer->SetUseCompression(true); 
@@ -9090,20 +9090,20 @@ bool CbctRecon::GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, 
     return true;
 }
 
-void CbctRecon::GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius)
+void CbctRecon::GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius)
 {
     if (!spImgCanvas)
         return;
     //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
-    USHORT_ImageType::PointType origin = spImgCanvas->GetOrigin();
-    USHORT_ImageType::SpacingType spacing = spImgCanvas->GetSpacing();
-    USHORT_ImageType::SizeType size = spImgCanvas->GetBufferedRegion().GetSize();
+    UShortImageType::PointType origin = spImgCanvas->GetOrigin();
+    UShortImageType::SpacingType spacing = spImgCanvas->GetSpacing();
+    UShortImageType::SizeType size = spImgCanvas->GetBufferedRegion().GetSize();
 
     //itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
-    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(spImgCanvas, spImgCanvas->GetRequestedRegion());
+    itk::ImageSliceIteratorWithIndex<UShortImageType> it(spImgCanvas, spImgCanvas->GetRequestedRegion());
 
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
-    USHORT_ImageType::SizeType imgSize = spImgCanvas->GetRequestedRegion().GetSize(); //1016x1016 x z	
+    UShortImageType::SizeType imgSize = spImgCanvas->GetRequestedRegion().GetSize(); //1016x1016 x z	
 
     int width = imgSize[0];
     int height = imgSize[1];
@@ -9157,7 +9157,7 @@ void CbctRecon::GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, flo
 }
 
 
-float CbctRecon::GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity)
+float CbctRecon::GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR, float* sdIntensity)
 {
     if (!spImg)
         return -1.0;
@@ -9165,12 +9165,12 @@ float CbctRecon::GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphere
     float meanIntensity = 0.0;
 
     //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
-    USHORT_ImageType::PointType origin = spImg->GetOrigin();
-    USHORT_ImageType::SpacingType spacing = spImg->GetSpacing();
-    USHORT_ImageType::SizeType size = spImg->GetBufferedRegion().GetSize();
+    UShortImageType::PointType origin = spImg->GetOrigin();
+    UShortImageType::SpacingType spacing = spImg->GetSpacing();
+    UShortImageType::SizeType size = spImg->GetBufferedRegion().GetSize();
 
-    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(spImg, spImg->GetRequestedRegion());
-    USHORT_ImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize(); //1016x1016 x z	
+    itk::ImageSliceIteratorWithIndex<UShortImageType> it(spImg, spImg->GetRequestedRegion());
+    UShortImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize(); //1016x1016 x z	
 
     int width = imgSize[0];
     int height = imgSize[1];
@@ -9284,10 +9284,10 @@ float CbctRecon::GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphere
     return meanIntensity;
 }
 
-void CbctRecon::AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval)
+void CbctRecon::AddConstHU(UShortImageType::Pointer& spImg, int HUval)
 {
 
-    typedef itk::ImageRegionIteratorWithIndex<USHORT_ImageType> iteratorType;
+    typedef itk::ImageRegionIteratorWithIndex<UShortImageType> iteratorType;
     iteratorType it(spImg, spImg->GetRequestedRegion());
 
     it.GoToBegin();
@@ -9690,7 +9690,7 @@ void CbctRecon::LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget)
     if (!fInfo.exists())
         return;
 
-    USHORT_ImageType::Pointer spImg;
+    UShortImageType::Pointer spImg;
 
     if (!LoadShortImageToUshort(filePath, spImg))
     {
@@ -9719,7 +9719,7 @@ void CbctRecon::LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget)
         break;
     }
 
-    typedef itk::MinimumMaximumImageCalculator <USHORT_ImageType>
+    typedef itk::MinimumMaximumImageCalculator <UShortImageType>
         ImageCalculatorFilterType2;
 
     ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
@@ -9734,8 +9734,8 @@ void CbctRecon::LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget)
     cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2 << endl;
 
     //Update UI
-    USHORT_ImageType::SizeType imgDim = spImg->GetBufferedRegion().GetSize();
-    USHORT_ImageType::SpacingType spacing = spImg->GetSpacing();
+    UShortImageType::SizeType imgDim = spImg->GetBufferedRegion().GetSize();
+    UShortImageType::SpacingType spacing = spImg->GetSpacing();
 
     cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << endl;
     cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << endl;
@@ -9762,7 +9762,7 @@ void CbctRecon::LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget)
 
 //trans: mm, dicom order
 //COuch shift values: directlry come from the INI.XVI file only multiplied by 10.0
-void CbctRecon::ImageTransformUsingCouchCorrection(USHORT_ImageType::Pointer& spUshortInput, USHORT_ImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot)
+void CbctRecon::ImageTransformUsingCouchCorrection(UShortImageType::Pointer& spUshortInput, UShortImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot)
 {
     //couch_trans, couch_rot--> as it is from the text file. only x 10.0 was applied    
     if (!spUshortInput)
@@ -9966,7 +9966,7 @@ void CbctRecon::GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>
 
     float fAngleGap = 1.0;
 
-    USHORT_ImageType::Pointer spImg;
+    UShortImageType::Pointer spImg;
 
     QString strFilePath = filePath;
     if (!LoadShortImageToUshort(strFilePath, spImg))
@@ -10036,13 +10036,13 @@ void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
         return;
     }
      
-    m_spProjImgCT3D = USHORT_ImageType::New(); //later
-    USHORT_ImageType::SizeType projCT_size = m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize(); //1024 1024 350
-    USHORT_ImageType::IndexType projCT_idxStart = m_spProjImgRaw3D->GetLargestPossibleRegion().GetIndex(); //0 0 0 
-    USHORT_ImageType::SpacingType projCT_spacing = m_spProjImgRaw3D->GetSpacing(); // 0.4 0.4 1.0
-    USHORT_ImageType::PointType  projCT_origin = m_spProjImgRaw3D->GetOrigin(); //-204.6 -204.6 -174.5
+    m_spProjImgCT3D = UShortImageType::New(); //later
+    UShortImageType::SizeType projCT_size = m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize(); //1024 1024 350
+    UShortImageType::IndexType projCT_idxStart = m_spProjImgRaw3D->GetLargestPossibleRegion().GetIndex(); //0 0 0 
+    UShortImageType::SpacingType projCT_spacing = m_spProjImgRaw3D->GetSpacing(); // 0.4 0.4 1.0
+    UShortImageType::PointType  projCT_origin = m_spProjImgRaw3D->GetOrigin(); //-204.6 -204.6 -174.5
 
-    USHORT_ImageType::RegionType projCT_region;
+    UShortImageType::RegionType projCT_region;
     projCT_region.SetSize(projCT_size);
     projCT_region.SetIndex(projCT_idxStart);
 
@@ -10082,12 +10082,12 @@ void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
     for (int i = 0; i < iCntRefVol; i++)
     {
         //Load volume: Short image
-        SHORT_ImageType::Pointer spOutputShort_raw = SHORT_ImageType::New();
+        ShortImageType::Pointer spOutputShort_raw = ShortImageType::New();
         //ShortImageType::Pointer spOutputShort_threshold = ShortImageType::New();
-        USHORT_ImageType::Pointer spOutputUshort = USHORT_ImageType::New();
+        UShortImageType::Pointer spOutputUshort = UShortImageType::New();
         //UShortImageType::Pointer spOutputUshort_register = UShortImageType::New();
-        USHORT_ImageType::Pointer spUshortRotated = USHORT_ImageType::New();
-        OutputImageType::Pointer spAttFloat = OutputImageType::New();
+        UShortImageType::Pointer spUshortRotated = UShortImageType::New();
+        FloatImageType::Pointer spAttFloat = FloatImageType::New();
 
         QString strDirPath = m_strListPerProjRefVol.at(i);
 
@@ -10174,8 +10174,8 @@ void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
 //refer to YKPRoc later
 //void YKPROC::ForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY, , UShortImageType::Pointer& spProj3D)
 //iSliceIdx == Proj index 0 - 364
-void CbctRecon::SingleForwardProjection(OutputImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
-    USHORT_ImageType::Pointer& spProjImg3D, int iSliceIdx)
+void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
+    UShortImageType::Pointer& spProjImg3D, int iSliceIdx)
 {
     if (!spVolImgFloat)
         return;
@@ -10187,7 +10187,7 @@ void CbctRecon::SingleForwardProjection(OutputImageType::Pointer& spVolImgFloat,
     //2) Prepare empty projection images //Should be corresonponding to raw projection images
 
     // Create a stack of empty projection images
-    typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
+    typedef rtk::ConstantImageSource< FloatImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
     ConstantImageSourceType::Pointer constantImageSource = ConstantImageSourceType::New();
 
     ConstantImageSourceType::SizeType size;
@@ -10330,7 +10330,7 @@ void CbctRecon::SingleForwardProjection(OutputImageType::Pointer& spVolImgFloat,
     itSrc.GoToBegin();
 
 
-    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it_FwdProj3D(spProjImg3D, spProjImg3D->GetRequestedRegion());
+    itk::ImageSliceIteratorWithIndex<UShortImageType> it_FwdProj3D(spProjImg3D, spProjImg3D->GetRequestedRegion());
 
     it_FwdProj3D.SetFirstDirection(0);
     it_FwdProj3D.SetSecondDirection(1);
@@ -10876,7 +10876,7 @@ double vectorSum(const vector<double>& vDouble)
 
 
 //Dir or File
-bool CbctRecon::LoadShortImageDirOrFile(QString& strPathDir, SHORT_ImageType::Pointer& spOutputShortImg)
+bool CbctRecon::LoadShortImageDirOrFile(QString& strPathDir, ShortImageType::Pointer& spOutputShortImg)
 {
     QFileInfo fInfo(strPathDir);
     if (!fInfo.exists())
@@ -10915,9 +10915,9 @@ bool CbctRecon::LoadShortImageDirOrFile(QString& strPathDir, SHORT_ImageType::Po
     return true;
 }
 
-void CbctRecon::ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, USHORT_ImageType::Pointer& spOutputImgUshort)
+void CbctRecon::ConvertShort2Ushort(ShortImageType::Pointer& spInputImgShort, UShortImageType::Pointer& spOutputImgUshort)
 {
-    typedef itk::ThresholdImageFilter <SHORT_ImageType> ThresholdImageFilterType;
+    typedef itk::ThresholdImageFilter <ShortImageType> ThresholdImageFilterType;
     ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
     thresholdFilterAbove->SetInput(spInputImgShort);
     thresholdFilterAbove->ThresholdAbove(3071);
@@ -10930,7 +10930,7 @@ void CbctRecon::ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, U
     thresholdFilterBelow->Update();
 
 
-    typedef itk::MinimumMaximumImageCalculator <SHORT_ImageType> ImageCalculatorFilterType;
+    typedef itk::MinimumMaximumImageCalculator <ShortImageType> ImageCalculatorFilterType;
     ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
     imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
     imageCalculatorFilter->Compute();
@@ -10938,10 +10938,10 @@ void CbctRecon::ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, U
     double maxVal = (double)(imageCalculatorFilter->GetMaximum());
 
     //Min value is always 3024 --> outside the FOV
-    USHORT_ImageType::PixelType outputMinVal = (USHORT_ImageType::PixelType)(minVal + 1024);
-    USHORT_ImageType::PixelType outputMaxVal = (USHORT_ImageType::PixelType)(maxVal + 1024);
+    UShortImageType::PixelType outputMinVal = (UShortImageType::PixelType)(minVal + 1024);
+    UShortImageType::PixelType outputMaxVal = (UShortImageType::PixelType)(maxVal + 1024);
 
-    typedef itk::RescaleIntensityImageFilter<SHORT_ImageType, USHORT_ImageType> RescaleFilterType;
+    typedef itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType> RescaleFilterType;
     RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
     spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
     spRescaleFilter->SetOutputMinimum(outputMinVal);
@@ -10952,7 +10952,7 @@ void CbctRecon::ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, U
 }
 
 
-void CbctRecon::RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHORT_ImageType::Pointer& spOutputImgUS)
+void CbctRecon::RotateImgBeforeFwd(UShortImageType::Pointer& spInputImgUS, UShortImageType::Pointer& spOutputImgUS)
 {
     if (!spInputImgUS)
     {
@@ -10960,31 +10960,31 @@ void CbctRecon::RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHO
         return;
     }
     //1) Transform
-    USHORT_ImageType::SizeType size_original = spInputImgUS->GetLargestPossibleRegion().GetSize();
-    USHORT_ImageType::SpacingType spacing_original = spInputImgUS->GetSpacing();
+    UShortImageType::SizeType size_original = spInputImgUS->GetLargestPossibleRegion().GetSize();
+    UShortImageType::SpacingType spacing_original = spInputImgUS->GetSpacing();
 
     //Same image type from original image -3D & float
-    USHORT_ImageType::IndexType start_trans;
+    UShortImageType::IndexType start_trans;
     start_trans[0] = 0;
     start_trans[1] = 0;
     start_trans[2] = 0;
 
-    USHORT_ImageType::SizeType size_trans;
+    UShortImageType::SizeType size_trans;
     size_trans[0] = size_original[1]; // X //512
     size_trans[1] = size_original[2]; //Y  //512
     size_trans[2] = size_original[0]; //Z //300    
 
-    USHORT_ImageType::SpacingType spacing_trans;
+    UShortImageType::SpacingType spacing_trans;
     spacing_trans[0] = spacing_original[1];
     spacing_trans[1] = spacing_original[2];
     spacing_trans[2] = spacing_original[0];
 
-    USHORT_ImageType::PointType Origin_trans;
+    UShortImageType::PointType Origin_trans;
     Origin_trans[0] = -0.5* size_trans[0] * spacing_trans[0];
     Origin_trans[1] = -0.5* size_trans[1] * spacing_trans[1];
     Origin_trans[2] = -0.5* size_trans[2] * spacing_trans[2];
 
-    USHORT_ImageType::RegionType region_trans;
+    UShortImageType::RegionType region_trans;
     region_trans.SetSize(size_trans);
     region_trans.SetIndex(start_trans);
 
@@ -11023,7 +11023,7 @@ void CbctRecon::RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHO
     /*cout << "Transform matrix:" << "	" << endl;
     cout << transform->GetMatrix() << std::endl;*/
 
-    typedef itk::ResampleImageFilter<USHORT_ImageType, USHORT_ImageType> ResampleFilterType;
+    typedef itk::ResampleImageFilter<UShortImageType, UShortImageType> ResampleFilterType;
     ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 
     resampler->SetInput(flipFilter->GetOutput());
@@ -11037,9 +11037,9 @@ void CbctRecon::RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHO
     spOutputImgUS = resampler->GetOutput();
 }
 
-void CbctRecon::ConvertUshort2AttFloat(USHORT_ImageType::Pointer& spImgUshort, OutputImageType::Pointer& spAttImgFloat)
+void CbctRecon::ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, FloatImageType::Pointer& spAttImgFloat)
 {
-    typedef itk::CastImageFilter< USHORT_ImageType, OutputImageType> CastFilterType; //Maybe not inplace filter
+    typedef itk::CastImageFilter< UShortImageType, FloatImageType> CastFilterType; //Maybe not inplace filter
     CastFilterType::Pointer castFilter = CastFilterType::New();
     castFilter->SetInput(spImgUshort);
 
@@ -11047,12 +11047,12 @@ void CbctRecon::ConvertUshort2AttFloat(USHORT_ImageType::Pointer& spImgUshort, O
     double calibF_A = 1.0;
     double calibF_B = 0.0;
 
-    typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+    typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType> MultiplyImageFilterType;
     MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
     multiplyImageFilter->SetInput(castFilter->GetOutput());
     multiplyImageFilter->SetConstant(calibF_A / 65535.0);
 
-    typedef itk::AddImageFilter <OutputImageType, OutputImageType, OutputImageType> AddImageFilterType;
+    typedef itk::AddImageFilter <FloatImageType, FloatImageType, FloatImageType> AddImageFilterType;
     AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
     addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
     double addingVal = calibF_B / 65535.0;

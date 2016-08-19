@@ -199,9 +199,9 @@ void DlgRegistration::SLT_CrntPosGo()
   double curDCMPosZ = ui.lineEditCurPosZ->text().toDouble();
 
 
-  USHORT_ImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
-  USHORT_ImageType::PointType imgOrigin = m_spFixed->GetOrigin();
-  USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
+  UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
+  UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
+  UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
   //double curPhysPos[3];
   //curPhysPos[0] = imgOrigin[2] + sliderPosIdxZ*imgSpacing[2] ; //Z in default setting
@@ -253,9 +253,9 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 	  break;
 	}
 
-    USHORT_ImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::PointType imgOrigin = m_spFixed->GetOrigin();
-    USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
+    UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
+    UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
+    UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
     double curPhysPos[3];
     curPhysPos[0] = imgOrigin[2] + sliderPosIdxZ*imgSpacing[2] ; //Z in default setting
@@ -346,7 +346,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 
 
 	////Update Origin text box
-	USHORT_ImageType::PointType imgOriginFixed = m_spFixed->GetOrigin();
+	UShortImageType::PointType imgOriginFixed = m_spFixed->GetOrigin();
 	QString strOriFixed;
 	strOriFixed.sprintf("%3.4f, %3.4f, %3.4f", imgOriginFixed[0], imgOriginFixed[1], imgOriginFixed[2]);
 	ui.lineEditOriginFixed->setText(strOriFixed);
@@ -354,7 +354,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 
 	if (m_spMoving)
 	{
-	  USHORT_ImageType::PointType imgOriginMoving = m_spMoving->GetOrigin();
+	  UShortImageType::PointType imgOriginMoving = m_spMoving->GetOrigin();
 	  QString strOriMoving;
 	  strOriMoving.sprintf("%3.4f, %3.4f, %3.4f", imgOriginMoving[0], imgOriginMoving[1], imgOriginMoving[2]);
 	  ui.lineEditOriginMoving->setText(strOriMoving);
@@ -379,9 +379,9 @@ void DlgRegistration::whenFixedImgLoaded()
 
 	m_spFixed = m_pParent->m_spReconImg;*/
 
-    USHORT_ImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::PointType imgOrigin = m_spFixed->GetOrigin();
-    USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
+    UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
+    UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
+    UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
 	//to avoid first unnecessary action.
     disconnect(ui.sliderPosDisp1, SIGNAL(valueChanged(int)), this, SLOT(SLT_DrawImageWhenSliceChange()));
@@ -982,7 +982,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   QString filePathXform = m_strPathPlastimatch + "/" + "xform_rigid.txt";
   QString filePathROI = m_strPathPlastimatch + "/" + "fixed_roi_rigid.mha"; //optional
 
-  typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+  typedef itk::ImageFileWriter<UShortImageType> writerType;
 
   writerType::Pointer writer1 = writerType::New();
   writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
@@ -1016,7 +1016,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
           //Create Image using FixedImage sp
 
           //Image Pointer here
-          USHORT_ImageType::Pointer spRoiMask;
+          UShortImageType::Pointer spRoiMask;
           m_pParent->AllocateByRef(m_spFixed, spRoiMask);
           m_pParent->GenerateCylinderMask(spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
 
@@ -1037,7 +1037,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //QString filePathFixed_proc = filePathFixed;
 
 
-  typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+  typedef itk::ImageFileReader<UShortImageType> readerType;
 
 
   QString strPathOriginalCTSkinMask;
@@ -1059,8 +1059,8 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   {
       cout << "Preprocessing for CBCT is not done. It is being done here before rigid body registration" << endl;
 
-      USHORT_ImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
-      USHORT_ImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
+      UShortImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
+      UShortImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
 
       double fShift[3];
       fShift[0] = (double)(originBefore[0] - originAfter[0]);//DICOM
@@ -1333,7 +1333,7 @@ void DlgRegistration::ImageManualMove( int direction, double resol )
 	return;  
 
   //USHORT_ImageType::SizeType imgSize = m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
-  USHORT_ImageType::PointType imgOrigin = m_spMoving->GetOrigin();
+  UShortImageType::PointType imgOrigin = m_spMoving->GetOrigin();
   //USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();  
 
   if (direction == 37)  //LEFT
@@ -1356,7 +1356,7 @@ void DlgRegistration::ImageManualMove( int direction, double resol )
   //Display relative movement
   //Starting point? RefCT image
   //Only Valid when Moving image is the ManualMove
-  USHORT_ImageType::PointType imgOriginRef = m_pParent->m_spRefCTImg->GetOrigin(); 
+  UShortImageType::PointType imgOriginRef = m_pParent->m_spRefCTImg->GetOrigin(); 
 
   QString strDelta;
   strDelta.sprintf("delta(mm): %3.1f, %3.1f, %3.1f", (double)(imgOrigin[0]- imgOriginRef[0]),
@@ -1375,7 +1375,7 @@ void DlgRegistration::ImageManualMoveOneShot(float shiftX, float shiftY, float s
         return;
 
     //USHORT_ImageType::SizeType imgSize = m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
-    USHORT_ImageType::PointType imgOrigin = m_spMoving->GetOrigin();
+    UShortImageType::PointType imgOrigin = m_spMoving->GetOrigin();
     //USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();  
     imgOrigin[0] = imgOrigin[0] - shiftX;
     imgOrigin[1] = imgOrigin[1] - shiftY;
@@ -1388,7 +1388,7 @@ void DlgRegistration::ImageManualMoveOneShot(float shiftX, float shiftY, float s
     //Display relative movement
     //Starting point? RefCT image
     //Only Valid when Moving image is the ManualMove
-    USHORT_ImageType::PointType imgOriginRef = m_pParent->m_spRefCTImg->GetOrigin();
+    UShortImageType::PointType imgOriginRef = m_pParent->m_spRefCTImg->GetOrigin();
 
     QString strDelta;
     strDelta.sprintf("delta(mm): %3.1f, %3.1f, %3.1f", (double)(imgOrigin[0] - imgOriginRef[0]),
@@ -1745,7 +1745,7 @@ void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)
 {
   //cout << "LoadImgFromComboBox " << "index " << idx << "text " << strSelectedComboTxt.toLocal8Bit().constData() << endl;
 
-  USHORT_ImageType::Pointer spTmpImg;
+  UShortImageType::Pointer spTmpImg;
   if (strSelectedComboTxt.compare(QString("RAW_CBCT"), Qt::CaseSensitive) == 0)
   {
 	spTmpImg = m_pParent->m_spRawReconImg;
@@ -1884,7 +1884,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   QString filePathOutputStage2 = m_strPathPlastimatch + "/" + "output_deform_stage2.mha";
   QString filePathOutputStage3 = m_strPathPlastimatch + "/" + "output_deform_stage3.mha";
 
-  typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+  typedef itk::ImageFileWriter<UShortImageType> writerType;
 
   writerType::Pointer writer1 = writerType::New();
   writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
@@ -1919,7 +1919,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
           //Create Image using FixedImage sp
 
           //Image Pointer here
-          USHORT_ImageType::Pointer spRoiMask;
+          UShortImageType::Pointer spRoiMask;
           m_pParent->AllocateByRef(m_spFixed, spRoiMask);
           m_pParent->GenerateCylinderMask(spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
 
@@ -2067,7 +2067,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   cout << "5: DoRegistrationDeform: Registration is done" << endl;
   cout << "6: DoRegistrationDeform: Reading output image" << endl;
 
-  typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+  typedef itk::ImageFileReader<UShortImageType> readerType;
   QFileInfo tmpFileInfo;
 
   readerType::Pointer readerDefSt1 = readerType::New();  
@@ -2899,7 +2899,7 @@ void DlgRegistration::init( QString& strDCMUID )
 {
   SetPlmOutputDir(strDCMUID);
 
-  USHORT_ImageType::Pointer spNull;
+  UShortImageType::Pointer spNull;
   //unlink all of the pointers
   //m_pParent->m_spReconImg->Delete(); //fixed image // ID: RawCBCT
   m_pParent->m_spRefCTImg = spNull;
@@ -2935,7 +2935,7 @@ void DlgRegistration::SLT_PassMovingImgForAnalysis()
 	m_pParent->UpdateReconImage(m_spMoving, ui.comboBoxImgMoving->currentText());
 }
 
-void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
+void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
 {
   if (!spCBCT)
   {
@@ -2982,7 +2982,7 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
   QString filePathCBCT = m_strPathPlastimatch + "/" + "CorrCBCT.mha"; //usually corrected one
   QString filePathCBCT_noSkin = m_strPathPlastimatch + "/" + "CorrCBCT_final.mha"; //usually corrected one
   	  
-  typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+  typedef itk::ImageFileWriter<UShortImageType> writerType;
   writerType::Pointer writer = writerType::New();
   writer->SetFileName(filePathCBCT.toLocal8Bit().constData());
   writer->SetUseCompression(true);
@@ -3013,7 +3013,7 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
 
   //m_strPathCTSkin_autoRegi = strPath_mskSkinCT_autoRegi; //for further use. this is not expanded one!
 
-  typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+  typedef itk::ImageFileReader<UShortImageType> readerType;
   readerType::Pointer readerCBCT = readerType::New();    
   QFileInfo tmpFileInfo(filePathCBCT_noSkin);
 
@@ -3057,7 +3057,7 @@ void DlgRegistration::SLT_DoLowerMaskIntensity()
     SelectComboExternal(1, REGISTER_COR_CBCT);
 }
 
-void DlgRegistration::ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold)
+void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw, UShortImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold)
 {
     if (!spCBCTraw || !spCBCTcor)
     {
@@ -3102,20 +3102,20 @@ void DlgRegistration::ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTra
         return;
     }     
 
-    typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+    typedef itk::ImageFileReader<UShortImageType> readerType;
     readerType::Pointer reader = readerType::New();
     reader->SetFileName(strPathOutputMask.toLocal8Bit().constData());
     reader->Update();
 
-    USHORT_ImageType::Pointer spShellMask = reader->GetOutput();
+    UShortImageType::Pointer spShellMask = reader->GetOutput();
 
-    itk::ImageRegionIterator<USHORT_ImageType> itRaw(spCBCTraw, spCBCTraw->GetBufferedRegion());
-    itk::ImageRegionIterator<USHORT_ImageType> itCor(spCBCTcor, spCBCTcor->GetBufferedRegion());
-    itk::ImageRegionIterator<USHORT_ImageType> itMask(spShellMask, spShellMask->GetBufferedRegion());
+    itk::ImageRegionIterator<UShortImageType> itRaw(spCBCTraw, spCBCTraw->GetBufferedRegion());
+    itk::ImageRegionIterator<UShortImageType> itCor(spCBCTcor, spCBCTcor->GetBufferedRegion());
+    itk::ImageRegionIterator<UShortImageType> itMask(spShellMask, spShellMask->GetBufferedRegion());
 
-    USHORT_ImageType::SizeType size1 = spCBCTraw->GetBufferedRegion().GetSize();
-    USHORT_ImageType::SizeType size2 = spCBCTcor->GetBufferedRegion().GetSize();
-    USHORT_ImageType::SizeType size3 = spShellMask->GetBufferedRegion().GetSize();
+    UShortImageType::SizeType size1 = spCBCTraw->GetBufferedRegion().GetSize();
+    UShortImageType::SizeType size2 = spCBCTcor->GetBufferedRegion().GetSize();
+    UShortImageType::SizeType size3 = spShellMask->GetBufferedRegion().GetSize();
 
     if (size1[0] != size3[0] || size1[1] != size3[1] || size1[2] != size3[2])
     {
@@ -3167,7 +3167,7 @@ void DlgRegistration::GenShellMask(QString& strPathInputMask, QString& strPathOu
 
 
 
-void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin )
+void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin )
 {
   if (cropMargin != 0.0)
   {
@@ -3184,7 +3184,7 @@ void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, Q
   //Export cur image first
   QString filePathCurImg = m_strPathPlastimatch + "/" + "SkinCropRS_curImg.mha"; //usually corrected one
 
-  typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+  typedef itk::ImageFileWriter<UShortImageType> writerType;
 
   writerType::Pointer writer = writerType::New();
   writer->SetFileName(filePathCurImg.toLocal8Bit().constData());
@@ -3320,7 +3320,7 @@ void DlgRegistration::CropSkinUsingRS( USHORT_ImageType::Pointer& spImgUshort, Q
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);  
   //strPathSkinRemovedCT .mha file is ready. this is SHORT image
 
-  typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+  typedef itk::ImageFileReader<UShortImageType> readerType;
   readerType::Pointer reader = readerType::New();  
 
   QFileInfo tmpFileInfo = QFileInfo(strPathSkinRemovedCT); //cropped image
@@ -3431,7 +3431,7 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     QString filePathOutput = m_strPathPlastimatch + "/" + "output_gradient.mha";
     QString filePathXform = m_strPathPlastimatch + "/" + "xform_gradient.txt";
 
-    typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+    typedef itk::ImageFileWriter<UShortImageType> writerType;
 
     writerType::Pointer writer1 = writerType::New();
     writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
@@ -3574,8 +3574,8 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     else
         bPrepareMaskOnly = true;
 
-    USHORT_ImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
-    USHORT_ImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
+    UShortImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
+    UShortImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
 
     double fShift[3];
     fShift[0] = (double)(originBefore[0] - originAfter[0]);//DICOM
@@ -3589,7 +3589,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     QString filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi  
 
     //writing
-    typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+    typedef itk::ImageFileWriter<UShortImageType> writerType;
     writerType::Pointer writer = writerType::New();
     writer->SetFileName(filePathFixed.toLocal8Bit().constData());
     writer->SetUseCompression(true);
@@ -3631,7 +3631,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
         cout << "Trying to read file: filePathFixed_proc" << endl;
         //Update RawReconImg
-        typedef itk::ImageFileReader<USHORT_ImageType> readerType;
+        typedef itk::ImageFileReader<UShortImageType> readerType;
         readerType::Pointer reader = readerType::New();
         reader->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
         reader->Update();
