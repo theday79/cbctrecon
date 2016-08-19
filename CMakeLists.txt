@@ -20,8 +20,6 @@ FIND_PACKAGE(CUDA)
 
 FIND_PACKAGE(OpenCL)
 
-
-
 get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
 set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
 

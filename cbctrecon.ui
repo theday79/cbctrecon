@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MGH CBCT Reconstructor (bug report to: ykp1@mgh.harvard.edu)</string>
+   <string>CBCT Reconstructor (bug report to YangPark [theday79@gmail.com])</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="qyklabel" name="labelImageRaw">
@@ -858,6 +858,9 @@
       </property>
      </widget>
      <widget class="QRadioButton" name="radioButton_UseOpenCL">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>400</x>
@@ -1260,7 +1263,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>130</string>
+       <string>190</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_PostTablePosY">
@@ -1273,10 +1276,13 @@
        </rect>
       </property>
       <property name="text">
-       <string>130</string>
+       <string>190</string>
       </property>
      </widget>
      <widget class="QCheckBox" name="checkBox_PostDispObjOn">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -1292,7 +1298,7 @@
        <string>Display</string>
       </property>
       <property name="checked">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_PostDoNow">
@@ -1503,7 +1509,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>64,30</string>
+       <string>64,40</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_64">
@@ -2414,14 +2420,14 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>360</x>
+      <x>310</x>
       <y>690</y>
-      <width>151</width>
+      <width>131</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Beam Hardening Correction</string>
+     <string>Beam Hardening Corr</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_15">
@@ -2843,6 +2849,19 @@
      </property>
     </widget>
    </widget>
+   <widget class="QPushButton" name="pushButton_SaveCurrentSetting">
+    <property name="geometry">
+     <rect>
+      <x>450</x>
+      <y>690</y>
+      <width>91</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save Setting</string>
+    </property>
+   </widget>
    <zorder>groupBox_8</zorder>
    <zorder>groupBox</zorder>
    <zorder>labelImageRaw</zorder>
@@ -2893,6 +2912,7 @@
    <zorder>groupBox_15</zorder>
    <zorder>groupBox_16</zorder>
    <zorder>groupBox_17</zorder>
+   <zorder>pushButton_SaveCurrentSetting</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -2943,6 +2963,9 @@
     <addaction name="actionFull_apriori_scatter_correction_macro"/>
     <addaction name="actionBatch_apriori_scatter_correction_macro"/>
     <addaction name="actionWEPL_calculation_on_multiple_mha_files"/>
+    <addaction name="actionLoad_per_projection_ref_3D_image"/>
+    <addaction name="actionScatter_correction_with_per_projection_3D_ref"/>
+    <addaction name="actionCropMaskBatchmode"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -3139,6 +3162,21 @@
   <action name="actionWEPL_calculation_on_multiple_mha_files">
    <property name="text">
     <string>WEPL calculation on multiple mha files</string>
+   </property>
+  </action>
+  <action name="actionLoad_per_projection_ref_3D_image">
+   <property name="text">
+    <string>Load per projection ref 3D image</string>
+   </property>
+  </action>
+  <action name="actionScatter_correction_with_per_projection_3D_ref">
+   <property name="text">
+    <string>Scatter correction with per projection 3D ref</string>
+   </property>
+  </action>
+  <action name="actionCropMaskBatchmode">
+   <property name="text">
+    <string>CropMaskBatchmode</string>
    </property>
   </action>
  </widget>
@@ -4551,6 +4589,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoad_per_projection_ref_3D_image</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLTM_LoadPerProjRefList()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionScatter_correction_with_per_projection_3D_ref</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLTM_ScatterCorPerProjRef()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCropMaskBatchmode</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLTM_CropMaskBatch()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>668</x>
+     <y>501</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_SaveCurrentSetting</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_SaveCurrentSetting()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>520</x>
+     <y>736</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>549</x>
+     <y>847</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_LoadRawImages()</slot>
@@ -4616,5 +4718,9 @@
   <slot>SLT_LoadCTdeformMHA()</slot>
   <slot>SLT_DoCouchCorrection()</slot>
   <slot>SLTM_WELPCalcMultipleFiles()</slot>
+  <slot>SLTM_LoadPerProjRefList()</slot>
+  <slot>SLTM_ScatterCorPerProjRef()</slot>
+  <slot>SLTM_CropMaskBatch()</slot>
+  <slot>SLT_SaveCurrentSetting()</slot>
  </slots>
 </ui>

@@ -74,15 +74,6 @@
 
 
 
-#if CUDA_FOUND
-# include "rtkCudaFDKConeBeamReconstructionFilter.h"
-# include "rtkCudaForwardProjectionImageFilter.h"
-#endif
-
-#if OPENCL_FOUND
-# include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
-#endif
-
 
 //related includes for fowward projection
 //#include "itkMedianImageFilter.h"
@@ -96,9 +87,7 @@
 #include "rtkRayCastInterpolatorForwardProjectionImageFilter.h"
 #include "rtkBoellaardScatterCorrectionImageFilter.h"
 
-
 #include <QXmlStreamReader>
-
 
 #define round(dTemp) (long(dTemp+(dTemp>0? .5:-.5)))
 
@@ -222,13 +211,21 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WFlags flags)
 
 //	if (QProcess::execute(QString("H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release\\rtkfdk")) < 0)
 	//	qDebug() << "Failed to run";
-
 	m_strPathDirDefault = "D:\\Program_data\\01_20140827_CBCT_All\\04_patient_phan_pelvis_M\\IMAGES\\img_1.3.46.423632.135786.1409186054.9_M20mAs6440";
 
+        QString strPathCurAppDir = QDir::currentPath(); //should be same as .exe file
+        cout << "Current app path= " << strPathCurAppDir.toLocal8Bit().constData() << endl;
+        m_strPathDefaultConfigFile = strPathCurAppDir + "/" + "DefaultConfig.cfg";
 
-
+        if (!LoadCurrentSetting(m_strPathDefaultConfigFile)) //Update GUI
+        {
+            cout << "DefaultConfig.cfg is not found in the application folder. A new one will be created" << endl;
+            if (!SaveCurrentSetting(m_strPathDefaultConfigFile))
+            {
+                cout << "Error in SaveCurrentSetting" << endl;
+            }
+        }            
         m_bMacroContinue = true;
-
 }
 
 CbctRecon::~CbctRecon()
@@ -1843,7 +1840,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 #endif  
 
 #if OPENCL_FOUND
-	typedef rtk::OpenCLFDKConeBeamReconstructionFilter              FDKOPENCLType;
+	//typedef rtk::OpenCLFDKConeBeamReconstructionFilter              FDKOPENCLType;
 #endif
 
 	if(!strcmp(strHardware, "cpu") )
@@ -1873,8 +1870,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	else if(!strcmp(strHardware, "opencl") )
 	{
 #if OPENCL_FOUND
-		feldkamp = FDKOPENCLType::New();
-		SET_FELDKAMP_OPTIONS( static_cast<FDKOPENCLType*>(feldkamp.GetPointer()) );
+            /*feldkamp = FDKOPENCLType::New();
+            SET_FELDKAMP_OPTIONS( static_cast<FDKOPENCLType*>(feldkamp.GetPointer()) );*/
 #else
 		std::cerr << "The program has not been compiled with opencl option" << std::endl;
 		return;
@@ -2118,8 +2115,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		static_cast<FDKCUDAType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
 #endif
 #if OPENCL_FOUND
-	else if(!strcmp(strHardware, "opencl") )
-		static_cast<FDKOPENCLType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
+	//else if(!strcmp(strHardware, "opencl") )
+	//	static_cast<FDKOPENCLType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
 #endif	
 
 	m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1],0);
@@ -2682,6 +2679,15 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
   ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat, m_fResampleF);
   ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
+
+  OutputImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
+  OutputImageType::SizeType FloatImgSize = m_spProjImg3DFloat->GetBufferedRegion().GetSize();
+  OutputImageType::SpacingType FloatImgSpacing = m_spProjImg3DFloat->GetSpacing();
+
+  cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", " << originPt[2] << endl;
+  cout << "YKDEBUG: Size" << FloatImgSize[0] << ", " << FloatImgSize[1] << ", " << FloatImgSize[2] << endl;
+  cout << "YKDEBUG: Spacing" << FloatImgSpacing[0] << ", " << FloatImgSpacing[1] << ", " << FloatImgSpacing[2] << endl;
+
 
   cout << "Raw3DProj dimension " << m_spProjImgRaw3D->GetRequestedRegion().GetSize() << endl;
 
@@ -3977,10 +3983,10 @@ void CbctRecon::CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, flo
     USHORT_ImageType::SizeType size = sp_Img->GetBufferedRegion().GetSize();
 
     //itk::ImageSliceConstIteratorWithIndex<OutputImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
-    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(sp_Img, sp_Img->GetRequestedRegion());
+    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it(sp_Img, sp_Img->GetBufferedRegion());
 
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
-    USHORT_ImageType::SizeType imgSize = sp_Img->GetRequestedRegion().GetSize(); //1016x1016 x z	
+    USHORT_ImageType::SizeType imgSize = sp_Img->GetBufferedRegion().GetSize(); //1016x1016 x z	
 
     int width = imgSize[0];
     int height = imgSize[1];
@@ -4045,6 +4051,11 @@ void CbctRecon::SLT_DoPostProcessing()
 
         float physRadius = ui.lineEdit_PostFOV_R->text().toFloat();
         float physTablePosY = ui.lineEdit_PostTablePosY->text().toFloat();
+
+        cout << "YKDEBUG " << physPosX << ","
+            << physPosY << ","
+            << physRadius << ","
+            << physTablePosY << endl;
 
         CropFOV3D(m_spCrntReconImg, physPosX, physPosY, physRadius, physTablePosY);
 
@@ -4990,7 +5001,8 @@ void CbctRecon::Draw2DFrom3DDouble(USHORT_ImageType::Pointer& spFixedImg, USHORT
                 while( !it.IsAtEndOfLine())
                 {
                     //double tmpVal = it.Get()*multiplyFactor;
-                    SHORT_ImageType::PixelType fixedImgVal = it.Get();
+                    //SHORT_ImageType::PixelType fixedImgVal = it.Get();
+                    USHORT_ImageType::PixelType fixedImgVal = it.Get();
                     USHORT_ImageType::IndexType pixelIdxFixed;
                     USHORT_ImageType::PointType pixelPhysPt;
                     pixelIdxFixed = it.GetIndex();
@@ -5664,7 +5676,7 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	TransformType::ParametersType param;
 	param.SetSize(6);	
 	param.put(0, itk::Math::pi/-2.0); //rot X // 0.5 = PI/2	
-	param.put(1, 0);//rot Y
+	param.put(1, 0);//rot Y 
 	param.put(2, itk::Math::pi/2.0);//rot Z
 	param.put(3, 0.0); // Trans X mm
 	param.put(4, 0.0); // Trans Y mm
@@ -5994,6 +6006,12 @@ void CbctRecon::SLT_DoScatterCorrection_APRIORI()
 	cout << "Error!: No ref image for forward projection is found." << endl;
 	return;
   }  
+
+  //YKTEMP
+  cout << "ProjImgCT Size = " << m_spProjImgCT3D->GetBufferedRegion().GetSize()[0] << ", " << m_spProjImgCT3D->GetBufferedRegion().GetSize()[1] << ", " << m_spProjImgCT3D->GetBufferedRegion().GetSize()[2] << endl;
+  cout << "ProjImgCT origin = " << m_spProjImgCT3D->GetOrigin()[0] << ", " << m_spProjImgCT3D->GetOrigin()[1] << ", " << m_spProjImgCT3D->GetOrigin()[2] << endl;
+  cout << "ProjImgCT spacing = " << m_spProjImgCT3D->GetSpacing()[0] << ", " << m_spProjImgCT3D->GetSpacing()[1] << ", " << m_spProjImgCT3D->GetSpacing()[2] << endl;
+
 
   //double scaResam = ui.lineEdit_scaResam->text().toDouble();
   double scaMedian = ui.lineEdit_scaMedian->text().toDouble();
@@ -7257,15 +7275,35 @@ void CbctRecon::SLT_FileExportShortDICOM_CurrentImg()
   QInputDialog inputDlg;
 
   bool ok;
-  QString text = QInputDialog::getText(this, "Input Dialog","set End Fix for Patient UID", QLineEdit::Normal, "PatientID_EndFix", &ok);
+  QString textInput = QInputDialog::getText(this, "Input Dialog","Set Patient ID and Name", QLineEdit::Normal, "PatientID_LastName_FirstName", &ok);
 
-  QString strEndFix = "YKP";
+  //QString strEndFix = "YKP";
   QString strPatientID;
+  QString strLastName;
+  QString strFirstName;
 
-  if (ok && !text.isEmpty())
+  if (ok && !textInput.isEmpty())
   {
-	strEndFix = text;
-	strPatientID = m_strDCMUID + "_" + strEndFix;
+      QStringList strListPtInfo = textInput.split("_");      
+
+      if (strListPtInfo.count() >= 3)
+      {
+          strPatientID = strListPtInfo.at(0);
+          strLastName = strListPtInfo.at(1);
+          strFirstName = strListPtInfo.at(2);
+      }
+      else if (strListPtInfo.count() == 2)
+      {
+          strPatientID = strListPtInfo.at(0);
+          strLastName = strListPtInfo.at(1);
+      }
+      else if (strListPtInfo.count() == 1)
+      {
+          strPatientID = strListPtInfo.at(0);
+      }
+      else
+          strPatientID = m_strDCMUID;
+        //strPatientID = m_strDCMUID + "_" + strEndFix;
   }
   else
   {
@@ -7275,14 +7313,16 @@ void CbctRecon::SLT_FileExportShortDICOM_CurrentImg()
   if (strPatientID.isEmpty())
 	return;  
 
-  bool tmpResult = crntDir.mkdir(strPatientID); //what if the directory exists?	
+  QString strDirName = strPatientID + "_DCM";
+  bool tmpResult = crntDir.mkdir(strDirName); //what if the directory exists?	
   if (!tmpResult)
   {
 	cout << "DICOM dir seems to exist already. Files will be overwritten." << endl;
   }
 
-  QString strSavingFolder = dirPath + "/" + strPatientID;
-  SaveUSHORTAsSHORT_DICOM(m_spCrntReconImg, strPatientID, strEndFix, strSavingFolder);
+  QString strSavingFolder = dirPath + "/" + strDirName;
+  QString strFullName = strLastName + ", " + strFirstName;
+  SaveUSHORTAsSHORT_DICOM(m_spCrntReconImg, strPatientID, strFullName, strSavingFolder);
 }
 
 void CbctRecon::SLT_AddConstHUToCurImg()
@@ -8435,6 +8475,9 @@ QString CbctRecon::XML_GetSingleItemString(QXmlStreamReader& xml)
 
 void CbctRecon::SLTM_ForwardProjection()
 {
+    if (!m_spRawReconImg)
+        return;
+
     GeometryType::Pointer crntGeometry = GeometryType::New();
 
     if (!m_spCustomGeometry)
@@ -8452,8 +8495,10 @@ void CbctRecon::SLTM_ForwardProjection()
 
         double curMVGantryAngle = 0.0;
 
-        double startAngle = 180.0; //kV = 270.0, CW
-        int NumOfProj = 360;
+        //double startAngle = 180.0; //kV = 270.0, CW
+        double startAngle = 270; //kV = 360.0, CW
+        //int NumOfProj = 360;        
+        int NumOfProj = 1;
 
         for (int i = 0; i < NumOfProj; i++)
         {
@@ -8470,7 +8515,8 @@ void CbctRecon::SLTM_ForwardProjection()
         ForwardProjection(m_spRawReconImg, crntGeometry, m_spProjImgRaw3D, false);
         //Save proj3D;
 
-        QString outputPath = "D:/ProjTemplate.mha";
+        //QString outputPath = "D:/ProjTemplate.mha";
+        QString outputPath = "D:/2D3DRegi/FwdProj_0.mha";
 
         typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
         WriterType::Pointer writer = WriterType::New();
@@ -9937,6 +9983,446 @@ void CbctRecon::GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>
     }
 }
 
+void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
+{
+    if (m_strListPerProjRefVol.empty())
+    {
+        cout << "Error! Ref Vol list is not ready yet. Load it first" << endl;
+        return;
+    }
+
+    //Find the mask file    
+    //QString strPath_mskSkinCT_final;
+    //QString strPath_mskSkinCT_autoRegi_exp = m_pDlgRegistration->m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
+    //QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
+
+    //QString strPath_mskSkinCT_manualRegi_exp = m_pDlgRegistration->m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
+    //QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
+
+    //if (maskInfoAuto.exists()) //if the mask file is not prepared, give up the skin removal
+    //{
+    //    strPath_mskSkinCT_final = strPath_mskSkinCT_autoRegi_exp;
+    //}
+    //else
+    //{
+    //    cout << "Mask file of auto-registration is not prepared. Use manual regi-mask instead" << endl;
+
+    //    if (maskInfoManual.exists())
+    //    {
+    //        strPath_mskSkinCT_final = strPath_mskSkinCT_manualRegi_exp;
+    //    }
+    //    else
+    //    {
+    //        cout << "Mask file of manual registration is not prepared. Skip skin removal!" << endl;
+    //        return;
+    //    }
+    //}
+
+    ////cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << endl;
+
+    //if (m_pDlgRegistration->m_strPathPlastimatch.length() < 1)
+    //{
+    //    cout << "NO plastimatch Dir was defined. CorrCBCT will not be saved automatically" << endl;
+    //    return;
+    //}
+    //Forward proj
+
+    //Make a canvas
+    m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize();    
+
+    if (!m_spProjImgRaw3D)
+    {
+        cout << "ERRORRR! m_spProjImgRaw3D" << endl;
+        return;
+    }
+     
+    m_spProjImgCT3D = USHORT_ImageType::New(); //later
+    USHORT_ImageType::SizeType projCT_size = m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize(); //1024 1024 350
+    USHORT_ImageType::IndexType projCT_idxStart = m_spProjImgRaw3D->GetLargestPossibleRegion().GetIndex(); //0 0 0 
+    USHORT_ImageType::SpacingType projCT_spacing = m_spProjImgRaw3D->GetSpacing(); // 0.4 0.4 1.0
+    USHORT_ImageType::PointType  projCT_origin = m_spProjImgRaw3D->GetOrigin(); //-204.6 -204.6 -174.5
+
+    USHORT_ImageType::RegionType projCT_region;
+    projCT_region.SetSize(projCT_size);
+    projCT_region.SetIndex(projCT_idxStart);
+
+    m_spProjImgCT3D->SetRegions(projCT_region);
+    m_spProjImgCT3D->SetSpacing(projCT_spacing);
+    m_spProjImgCT3D->SetOrigin(projCT_origin);
+
+    m_spProjImgCT3D->Allocate();
+    m_spProjImgCT3D->FillBuffer(0);
+    
+    //YKTEMP
+    cout << "ProjImgCT Size = " << m_spProjImgCT3D->GetBufferedRegion().GetSize()[0] << ", " << m_spProjImgCT3D->GetBufferedRegion().GetSize()[1] << ", " << m_spProjImgCT3D->GetBufferedRegion().GetSize()[2] << endl;
+    cout << "ProjImgCT origin = " << m_spProjImgCT3D->GetOrigin()[0] << ", " << m_spProjImgCT3D->GetOrigin()[1] << ", " << m_spProjImgCT3D->GetOrigin()[2] << endl;
+    cout << "ProjImgCT spacing = " << m_spProjImgCT3D->GetSpacing()[0] << ", " << m_spProjImgCT3D->GetSpacing()[1] << ", " << m_spProjImgCT3D->GetSpacing()[2] << endl;
+
+
+    int iCntRefVol = m_strListPerProjRefVol.count();   
+
+
+    if (iCntRefVol< 1)
+    {
+        cout << "Error! no volume data for loading" << endl;
+        return;
+    }
+
+    int flexCnt = (int)(m_spCustomGeometry->GetGantryAngles().size());
+    if (flexCnt != iCntRefVol)
+    {
+        cout << "Error! flex count doesn't match" << endl;
+        return;
+    }
+
+    double curMVAngle = 0.0;
+    double curPanelOffsetX = 0.0;
+    double curPanelOffsetY = 0.0;
+
+    for (int i = 0; i < iCntRefVol; i++)
+    {
+        //Load volume: Short image
+        SHORT_ImageType::Pointer spOutputShort_raw = SHORT_ImageType::New();
+        //ShortImageType::Pointer spOutputShort_threshold = ShortImageType::New();
+        USHORT_ImageType::Pointer spOutputUshort = USHORT_ImageType::New();
+        //UShortImageType::Pointer spOutputUshort_register = UShortImageType::New();
+        USHORT_ImageType::Pointer spUshortRotated = USHORT_ImageType::New();
+        OutputImageType::Pointer spAttFloat = OutputImageType::New();
+
+        QString strDirPath = m_strListPerProjRefVol.at(i);
+
+        if (!LoadShortImageDirOrFile(strDirPath, spOutputShort_raw))
+        {
+            cout << "Error! in " << i << " th image. File couldn't be found. Path= " << strDirPath.toLocal8Bit().constData() << endl;
+            return;
+        }
+
+        ConvertShort2Ushort(spOutputShort_raw, spOutputUshort);
+
+        RotateImgBeforeFwd(spOutputUshort, spUshortRotated);//IEC to RTK w/ kVGantry             
+        ConvertUshort2AttFloat(spUshortRotated, spAttFloat);
+        
+        curMVAngle = m_spCustomGeometry->GetGantryAngles().at(i);
+        curPanelOffsetX = m_spCustomGeometry->GetProjectionOffsetsX().at(i);
+        curPanelOffsetY = m_spCustomGeometry->GetProjectionOffsetsY().at(i);
+
+        SingleForwardProjection(spAttFloat, curMVAngle, curPanelOffsetX, curPanelOffsetY, m_spProjImgCT3D, i);
+        cout << "Proj: "<< i << "/" << iCntRefVol << endl;
+    }    
+
+    /* typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
+     WriterType::Pointer writer = WriterType::New();
+     writer->SetFileName("D:/TmpProjCT3D.mha");
+     writer->SetUseCompression(true);
+     writer->SetInput(m_spProjImgCT3D);
+     writer->Update();
+     */
+    double scaMedian = ui.lineEdit_scaMedian->text().toDouble();
+    double scaGaussian = ui.lineEdit_scaGaussian->text().toDouble();
+
+    cout << "Generating scatter map is ongoing..." << endl;
+
+    cout << "To account for the mAs values, the intensity scale factor of " << GetRawIntensityScaleFactor() << "will be multiplied during scatter correction to avoid negative scatter" << endl;
+
+    GenScatterMap_PriorCT(m_spProjImgRaw3D, m_spProjImgCT3D, m_spProjImgScat3D, scaMedian, scaGaussian, m_iFixedOffset_ScatterMap, false);	//void GenScatterMap2D_PriorCT()  
+    m_spProjImgCT3D->Initialize(); //memory saving
+
+    cout << "Scatter correction is in progress..." << endl;
+
+    int postScatMedianSize = ui.lineEdit_scaPostMedian->text().toInt();
+    ScatterCorr_PrioriCT(m_spProjImgRaw3D, m_spProjImgScat3D, m_spProjImgCorr3D, m_iFixedOffset_ScatterMap, postScatMedianSize, true);
+    m_spProjImgScat3D->Initialize(); //memory saving  
+
+    cout << "AfterCorrectionMacro is ongoing..." << endl;
+    AfterScatCorrectionMacro();
+    cout << "FINISHED!Scatter correction: CBCT DICOM files are saved" << endl;
+
+    ////1) Export current CBCT file
+    //QString filePathCBCT = m_strPathPlastimatch + "/" + "CorrCBCT.mha"; //usually corrected one
+    //QString filePathCBCT_noSkin = m_strPathPlastimatch + "/" + "CorrCBCT_final.mha"; //usually corrected one
+
+    //typedef itk::ImageFileWriter<USHORT_ImageType> writerType;
+    //writerType::Pointer writer = writerType::New();
+    //writer->SetFileName(filePathCBCT.toLocal8Bit().constData());
+    //writer->SetUseCompression(true);
+    //writer->SetInput(spCBCT);
+
+    //cout << "Writing the CBCT file" << endl;
+    //writer->Update();
+
+    //QFileInfo CBCTInfo(filePathCBCT);
+    //if (!CBCTInfo.exists())
+    //{
+    //    cout << "No CBCT file to read. Maybe prior writing failed" << endl;
+    //    return;
+    //}
+
+    ////ERROR HERE! delete the temporry folder.
+    //cout << "Delete the temporary folder if it crashes" << endl;
+
+    ////4) eliminate the air region (temporarily)
+    ////Mask_parms parms_msk;
+    ////DIMENSION SHOULD BE MATCHED!!!! BETWEEN raw CBCT and Mask files
+    //Mask_operation mask_option = MASK_OPERATION_MASK;
+    //QString input_fn = filePathCBCT.toLocal8Bit().constData();
+    //QString mask_fn = strPath_mskSkinCT_final.toLocal8Bit().constData();
+    //QString output_fn = filePathCBCT_noSkin.toLocal8Bit().constData();
+    //float mask_value = 0.0; //unsigned short  
+    //plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+}
+
+//refer to YKPRoc later
+//void YKPROC::ForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY, , UShortImageType::Pointer& spProj3D)
+//iSliceIdx == Proj index 0 - 364
+void CbctRecon::SingleForwardProjection(OutputImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
+    USHORT_ImageType::Pointer& spProjImg3D, int iSliceIdx)
+{
+    if (!spVolImgFloat)
+        return;
+    if (!spProjImg3D)
+        return;    
+
+
+
+    //2) Prepare empty projection images //Should be corresonponding to raw projection images
+
+    // Create a stack of empty projection images
+    typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
+    ConstantImageSourceType::Pointer constantImageSource = ConstantImageSourceType::New();
+
+    ConstantImageSourceType::SizeType size;
+    ConstantImageSourceType::SpacingType spacing;
+    ConstantImageSourceType::PointType origin;
+
+    //cout << "Setting-up vacant projection image data" << endl;
+
+    //a) size	
+    //cout << "chk1" << endl;
+    size[0] = spProjImg3D->GetBufferedRegion().GetSize()[0];
+    size[1] = spProjImg3D->GetBufferedRegion().GetSize()[1];
+    size[2] = 1;
+
+    int totalProjSize = spProjImg3D->GetBufferedRegion().GetSize()[2];
+    if (iSliceIdx >= totalProjSize)
+    {
+        cout << "Error! totalProjSize= " << totalProjSize << " iSliceIdx= " << iSliceIdx << endl;
+    }
+
+    //b) spacing		  
+    spacing[0] = spProjImg3D->GetSpacing()[0];    
+    spacing[1] = spProjImg3D->GetSpacing()[1];
+    spacing[2] = 1.0;
+
+    //c) Origin: can center be the image center? or should be related to the CT image???
+    /*origin[0] = spacing[0] * (size[0] - 1) * -0.5;
+    origin[1] = spacing[1] * (size[1] - 1) * -0.5;
+    origin[2] = 0.0;*/
+
+    origin[0] = spProjImg3D->GetOrigin()[0];
+    origin[1] = spProjImg3D->GetOrigin()[1];
+    origin[2] = 0.0;
+
+    constantImageSource->SetOrigin(origin);
+    constantImageSource->SetSpacing(spacing);
+
+    FloatImageType::DirectionType imageDirection;
+    imageDirection.SetIdentity(); //no effect
+    constantImageSource->SetDirection(imageDirection);
+    constantImageSource->SetSize(size);
+    constantImageSource->SetConstant(1.0);
+    constantImageSource->UpdateOutputInformation();
+
+    //cout << "Canvas for projection image is ready to write" << endl;
+
+    //4) Prepare CT image to be projected
+    int fwdMethod = en_CudaRayCast; //later, it will be coming from the GUI	
+    //    cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " << fwdMethod << endl;
+
+    // Create forward projection image filter
+    rtk::ForwardProjectionImageFilter<FloatImageType, FloatImageType>::Pointer forwardProjection; //Float to Float
+
+    switch (fwdMethod)
+    {
+    case (en_Joseph) :
+        forwardProjection = rtk::JosephForwardProjectionImageFilter<FloatImageType, FloatImageType>::New();
+        break;
+    case (en_CudaRayCast) :
+#if CUDA_FOUND
+        forwardProjection = rtk::CudaForwardProjectionImageFilter::New();
+#else
+        std::cerr << "The program has not been compiled with cuda option" << std::endl;
+        return EXIT_FAILURE;
+#endif
+        break;
+    case(en_RayCastInterpolator) :
+        forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<FloatImageType, FloatImageType>::New();
+        break;
+
+    default:
+        std::cerr << "Unhandled --method value." << std::endl;
+        return;
+    }
+
+    GeometryType::Pointer spGeometry = GeometryType::New();
+
+    //9 parameters are required
+    double curSAD = 1000.0; //SourceToIsocenterDistances
+    double curSDD = 1536.0;
+    double curGantryAngle = fMVGanAngle;//MV
+
+    double curProjOffsetX = panelOffsetX;
+    double curProjOffsetY = panelOffsetY;
+
+    double curOutOfPlaneAngles = 0.0;
+    double curInPlaneAngles = 0.0;
+
+    double curSrcOffsetX = 0.0;
+    double curSrcOffsetY = 0.0;
+
+    spGeometry->AddProjection(curSAD, curSDD, curGantryAngle,
+        curProjOffsetX, curProjOffsetY, //Flexmap 
+        curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
+        curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
+
+    itk::TimeProbe projProbe;
+    //cout << "Forward projection is now ongoing" << endl;
+
+    forwardProjection->SetInput(constantImageSource->GetOutput()); //Canvas. projection image will be saved here.	
+    forwardProjection->SetInput(1, spVolImgFloat); //reference plan CT image
+    forwardProjection->SetGeometry(spGeometry);
+
+    projProbe.Start();
+    TRY_AND_EXIT_ON_ITK_EXCEPTION(forwardProjection->Update())
+        projProbe.Stop();
+
+    FloatImageType::Pointer resultFwdImg = forwardProjection->GetOutput();
+    cout << "Forward projection done by in method ID = " << fwdMethod << " in:	" << projProbe.GetMean() << ' ' << projProbe.GetUnit() << '.' << std::endl;
+
+    //normalization or shift
+
+    //typedef itk::MinimumMaximumImageCalculator<FloatImageType>   MinMaxCalculatorType;
+    //MinMaxCalculatorType::Pointer spCalculator = MinMaxCalculatorType::New();
+    //spCalculator->SetImage(resultFwdImg);
+    //spCalculator->Compute();
+
+    //float minValAtt = spCalculator->GetMinimum();
+    //float maxValAtt = spCalculator->GetMaximum();
+
+    //float maxValProj = (65535.0 / exp(minValAtt)); 
+    //float minValProj = (65535.0 / exp(maxValAtt)); //physically true	
+
+    //float valOffset = maxValProj - 65535.0; //not possible! always <=65535
+    //if (valOffset < 0)
+    //    valOffset = 0.0;
+
+    //cout << "MaxValProj=" << maxValProj << " MInval=" << minValProj << " ValOffset = " << valOffset << endl;
+
+    itk::ImageRegionConstIterator<FloatImageType> itSrc(resultFwdImg, resultFwdImg->GetRequestedRegion()); //2D
+
+    float fProjVal = 0.0; //mu_t, the lower means the higher attn.
+    double tmpConvVal = 0.0;
+
+    //Convert line integral to intensity value (I0/I = exp(mu_t)) --> I = I0/exp(mu_t)
+
+    /*if (resultFwdImg->GetBufferedRegion().GetSize()[0] != pYKImage2D->m_iWidth)
+        return;*/
+
+    itSrc.GoToBegin();
+
+
+    itk::ImageSliceIteratorWithIndex<USHORT_ImageType> it_FwdProj3D(spProjImg3D, spProjImg3D->GetRequestedRegion());
+
+    it_FwdProj3D.SetFirstDirection(0);
+    it_FwdProj3D.SetSecondDirection(1);
+    it_FwdProj3D.GoToBegin();
+
+    int curSliceIdx = 0;
+    
+    while (!it_FwdProj3D.IsAtEnd())
+    {       
+        if (curSliceIdx == iSliceIdx)
+        {
+            //Search matching slice using slice iterator for m_spProjCTImg
+            while (!it_FwdProj3D.IsAtEndOfSlice() && !itSrc.IsAtEnd())
+            {
+                while (!it_FwdProj3D.IsAtEndOfLine() && !itSrc.IsAtEnd())
+                {
+                    fProjVal = itSrc.Get(); // mu_t //63.5 --> 6.35 
+                    tmpConvVal = (65535.0 / exp(fProjVal)); //intensity value        
+
+                    unsigned short val = 0;
+                    if (tmpConvVal <= 0.0)
+                        val = 0;
+                    else if (tmpConvVal > 65535.0)
+                        val = 65535;
+                    else
+                        val = (unsigned short)tmpConvVal;
+
+                    //unsigned short tmpVal = (unsigned short)(it_FwdProj3D.Get());
+                    //tmpVal = 65535 - tmpVal; //inverse is done here
+
+                    it_FwdProj3D.Set(val);
+
+                    ++it_FwdProj3D;
+                    ++itSrc;
+                }
+                it_FwdProj3D.NextLine();
+            }
+            it_FwdProj3D.NextSlice();
+        }
+        it_FwdProj3D.NextSlice();
+        curSliceIdx++;      
+    }       
+    //Save this file
+   
+}//release all the memory
+
+
+void CbctRecon::SLTM_LoadPerProjRefList()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "PerProjVol list", m_strPathDirDefault, "File path list (*.txt)", 0, 0);
+
+    if (filePath.length() < 1)
+        return;
+
+    ifstream fin;
+    fin.open(filePath.toLocal8Bit().constData(), ios::in);
+    if (fin.fail())
+        return;
+
+    m_strListPerProjRefVol.clear();
+
+    char str[MAX_LINE_LENGTH];
+    //File format:
+    // header [Projection]	 [phase] 	 [amplitude] 	 [filename]
+    //0	0.45	1	D:/4DCT_ScatterCor/03_MotionModelA/ model_out_N_0000_phase_0.45_amp_1.mha    
+
+    memset(str, 0, MAX_LINE_LENGTH);
+    fin.getline(str, MAX_LINE_LENGTH);
+
+    while (!fin.eof())
+    {        
+        memset(str, 0, MAX_LINE_LENGTH);
+        fin.getline(str, MAX_LINE_LENGTH);
+        QString strLine(str);
+        
+        QStringList strList = strLine.split('\t');//tab
+
+        if (strList.count() > 0 && strList.count() < 4)
+        {
+            cout << "Str = " << strLine.toLocal8Bit().constData() << endl;
+            cout << "abnormal file expression." << endl;
+            break;
+        }       
+
+        m_strListPerProjRefVol.push_back(strList.at(3));
+    }
+
+    cout << m_strListPerProjRefVol.count() << " image paths were found" << endl;
+    
+    fin.close();
+}
+
 
 
 
@@ -10389,3 +10875,497 @@ double vectorSum(const vector<double>& vDouble)
 //Projection image Median filtering using CUDA
 
 
+//Dir or File
+bool CbctRecon::LoadShortImageDirOrFile(QString& strPathDir, SHORT_ImageType::Pointer& spOutputShortImg)
+{
+    QFileInfo fInfo(strPathDir);
+    if (!fInfo.exists())
+        return false;
+
+    Plm_image plmImg;
+    plmImg.load_native(strPathDir.toLocal8Bit().constData());
+    ShortImageType::Pointer spShortImg = plmImg.itk_short();
+
+    //Figure out whether this is NKI
+    typedef itk::MinimumMaximumImageCalculator <ShortImageType> ImageCalculatorFilterType;
+    ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
+    imageCalculatorFilter->SetImage(spShortImg);
+    imageCalculatorFilter->Compute();
+
+    /* double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
+    double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());*/
+
+    //Thresholding
+    typedef itk::ThresholdImageFilter <ShortImageType> ThresholdImageFilterType;
+
+    ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+    thresholdFilterAbove->SetInput(spShortImg);
+    thresholdFilterAbove->ThresholdAbove(3072);
+    thresholdFilterAbove->SetOutsideValue(3072);
+
+    ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+    thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+    thresholdFilterBelow->ThresholdBelow(-1024);
+    thresholdFilterBelow->SetOutsideValue(-1024);
+    thresholdFilterBelow->Update();
+
+    spOutputShortImg = thresholdFilterBelow->GetOutput();
+    cout << "Image file was loaded" << endl;
+
+    return true;
+}
+
+void CbctRecon::ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, USHORT_ImageType::Pointer& spOutputImgUshort)
+{
+    typedef itk::ThresholdImageFilter <SHORT_ImageType> ThresholdImageFilterType;
+    ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+    thresholdFilterAbove->SetInput(spInputImgShort);
+    thresholdFilterAbove->ThresholdAbove(3071);
+    thresholdFilterAbove->SetOutsideValue(3071);
+
+    ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+    thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+    thresholdFilterBelow->ThresholdBelow(-1024);
+    thresholdFilterBelow->SetOutsideValue(-1024);
+    thresholdFilterBelow->Update();
+
+
+    typedef itk::MinimumMaximumImageCalculator <SHORT_ImageType> ImageCalculatorFilterType;
+    ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
+    imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
+    imageCalculatorFilter->Compute();
+    double minVal = (double)(imageCalculatorFilter->GetMinimum());
+    double maxVal = (double)(imageCalculatorFilter->GetMaximum());
+
+    //Min value is always 3024 --> outside the FOV
+    USHORT_ImageType::PixelType outputMinVal = (USHORT_ImageType::PixelType)(minVal + 1024);
+    USHORT_ImageType::PixelType outputMaxVal = (USHORT_ImageType::PixelType)(maxVal + 1024);
+
+    typedef itk::RescaleIntensityImageFilter<SHORT_ImageType, USHORT_ImageType> RescaleFilterType;
+    RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+    spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
+    spRescaleFilter->SetOutputMinimum(outputMinVal);
+    spRescaleFilter->SetOutputMaximum(outputMaxVal);
+    spRescaleFilter->Update();
+
+    spOutputImgUshort = spRescaleFilter->GetOutput();
+}
+
+
+void CbctRecon::RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHORT_ImageType::Pointer& spOutputImgUS)
+{
+    if (!spInputImgUS)
+    {
+        cout << "ERROR! No 3D image file" << endl;
+        return;
+    }
+    //1) Transform
+    USHORT_ImageType::SizeType size_original = spInputImgUS->GetLargestPossibleRegion().GetSize();
+    USHORT_ImageType::SpacingType spacing_original = spInputImgUS->GetSpacing();
+
+    //Same image type from original image -3D & float
+    USHORT_ImageType::IndexType start_trans;
+    start_trans[0] = 0;
+    start_trans[1] = 0;
+    start_trans[2] = 0;
+
+    USHORT_ImageType::SizeType size_trans;
+    size_trans[0] = size_original[1]; // X //512
+    size_trans[1] = size_original[2]; //Y  //512
+    size_trans[2] = size_original[0]; //Z //300    
+
+    USHORT_ImageType::SpacingType spacing_trans;
+    spacing_trans[0] = spacing_original[1];
+    spacing_trans[1] = spacing_original[2];
+    spacing_trans[2] = spacing_original[0];
+
+    USHORT_ImageType::PointType Origin_trans;
+    Origin_trans[0] = -0.5* size_trans[0] * spacing_trans[0];
+    Origin_trans[1] = -0.5* size_trans[1] * spacing_trans[1];
+    Origin_trans[2] = -0.5* size_trans[2] * spacing_trans[2];
+
+    USHORT_ImageType::RegionType region_trans;
+    region_trans.SetSize(size_trans);
+    region_trans.SetIndex(start_trans);
+
+    typedef itk::FlipImageFilter< UShortImageType >  FilterType;
+    FilterType::Pointer flipFilter = FilterType::New();
+    typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+
+    FlipAxesArrayType arrFlipAxes;
+    arrFlipAxes[0] = 1;
+    arrFlipAxes[1] = 0;
+    arrFlipAxes[2] = 0;
+
+    flipFilter->SetFlipAxes(arrFlipAxes);
+    flipFilter->SetInput(spInputImgUS); //plan CT, USHORT image
+
+    typedef itk::Euler3DTransform< double > TransformType;
+    TransformType::Pointer transform = TransformType::New();
+
+    TransformType::ParametersType param;
+    param.SetSize(6);
+    param.put(0, itk::Math::pi / -2.0); //rot X // 0.5 = PI/2	
+    param.put(1, 0);//rot Y
+    param.put(2, itk::Math::pi / 2.0);//rot Z
+    param.put(3, 0.0); // Trans X mm
+    param.put(4, 0.0); // Trans Y mm
+    param.put(5, 0.0); // Trans Z mm
+
+    TransformType::ParametersType fixedParam(3); //rotation center
+    fixedParam.put(0, 0);
+    fixedParam.put(1, 0);
+    fixedParam.put(2, 0);
+
+    transform->SetParameters(param);
+    transform->SetFixedParameters(fixedParam); //Center of the Transform
+
+    /*cout << "Transform matrix:" << "	" << endl;
+    cout << transform->GetMatrix() << std::endl;*/
+
+    typedef itk::ResampleImageFilter<USHORT_ImageType, USHORT_ImageType> ResampleFilterType;
+    ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+
+    resampler->SetInput(flipFilter->GetOutput());
+    resampler->SetSize(size_trans);
+    resampler->SetOutputOrigin(Origin_trans); //Lt Top Inf of Large Canvas
+    resampler->SetOutputSpacing(spacing_trans); // 1 1 1 
+    resampler->SetOutputDirection(flipFilter->GetOutput()->GetDirection()); //image normal?	
+    resampler->SetTransform(transform);
+    resampler->Update();
+
+    spOutputImgUS = resampler->GetOutput();
+}
+
+void CbctRecon::ConvertUshort2AttFloat(USHORT_ImageType::Pointer& spImgUshort, OutputImageType::Pointer& spAttImgFloat)
+{
+    typedef itk::CastImageFilter< USHORT_ImageType, OutputImageType> CastFilterType; //Maybe not inplace filter
+    CastFilterType::Pointer castFilter = CastFilterType::New();
+    castFilter->SetInput(spImgUshort);
+
+    //Default value
+    double calibF_A = 1.0;
+    double calibF_B = 0.0;
+
+    typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+    MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
+    multiplyImageFilter->SetInput(castFilter->GetOutput());
+    multiplyImageFilter->SetConstant(calibF_A / 65535.0);
+
+    typedef itk::AddImageFilter <OutputImageType, OutputImageType, OutputImageType> AddImageFilterType;
+    AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
+    addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
+    double addingVal = calibF_B / 65535.0;
+    addImageFilter->SetConstant2(addingVal);
+    addImageFilter->Update(); //will generate map of real_mu (att.coeff)	
+
+    //FloatImageType::Pointer spCTImg_mu;
+    spAttImgFloat = multiplyImageFilter->GetOutput();
+}
+
+void CbctRecon::SLTM_CropMaskBatch()
+{
+    //Specify mask file (USHORT)
+    QString maskFilePath = QFileDialog::getOpenFileName(this, "Mask image (Ushort)", m_strPathDirDefault, "3D mask file (*.mha)", 0, 0);
+
+    if (maskFilePath.length() < 1)
+        return;    
+
+    //QString strPath_mskSkinCT_final;
+    //QString strPath_mskSkinCT_autoRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
+    //QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
+
+    //QString strPath_mskSkinCT_manualRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
+    //QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
+
+    //if (maskInfoAuto.exists()) //if the mask file is not prepared, give up the skin removal
+    //{
+    //    strPath_mskSkinCT_final = strPath_mskSkinCT_autoRegi_exp;
+    //}
+    //else
+    //{
+    //    cout << "Mask file of auto-registration is not prepared. Use manual regi-mask instead" << endl;
+
+    //    if (maskInfoManual.exists())
+    //    {
+    //        strPath_mskSkinCT_final = strPath_mskSkinCT_manualRegi_exp;
+    //    }
+    //    else
+    //    {
+    //        cout << "Mask file of manual registration is not prepared. Skip skin removal!" << endl;
+    //        return;
+    //    }
+    //}
+
+
+
+    //Get File names (SHORT) where to apply Mask cropping
+    QStringList targetFilePaths = QFileDialog::getOpenFileNames(this, "Select one or more files to open",
+        m_strPathDirDefault, "target files (*.mha)");
+
+    int iCnt = targetFilePaths.size();
+
+    if (iCnt < 1)
+        return;   
+
+    for (int i = 0; i < iCnt; i++)
+    {
+        QString curPath = targetFilePaths.at(i);
+
+        //Overritting    
+        Mask_operation mask_option = MASK_OPERATION_MASK;
+        QString input_fn = curPath.toLocal8Bit().constData();
+        //QString mask_fn = strPath_mskSkinCT_final.toLocal8Bit().constData();
+        QString mask_fn = maskFilePath.toLocal8Bit().constData();
+        QString output_fn = curPath.toLocal8Bit().constData();
+        float mask_value = -1024.0; //unsigned short  
+        m_pDlgRegistration->plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+        cout << i+1 << "/" << iCnt << endl;
+    }
+
+
+  //  QString strPath_mskSkinCT_final;
+  //QString strPath_mskSkinCT_autoRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";  
+  //QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
+
+  //QString strPath_mskSkinCT_manualRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
+  //QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
+
+  //if (maskInfoAuto.exists()) //if the mask file is not prepared, give up the skin removal
+  //{
+  //    strPath_mskSkinCT_final = strPath_mskSkinCT_autoRegi_exp;
+  //}
+  //else
+  //{
+  //    cout << "Mask file of auto-registration is not prepared. Use manual regi-mask instead" << endl;
+
+  //    if (maskInfoManual.exists())
+  //    {
+  //        strPath_mskSkinCT_final = strPath_mskSkinCT_manualRegi_exp;
+  //    }
+  //    else
+  //    {
+  //        cout << "Mask file of manual registration is not prepared. Skip skin removal!" << endl;
+  //        return;
+  //    }
+  //}	
+
+}
+
+void CbctRecon::SLT_SaveCurrentSetting()
+{    
+    if (!SaveCurrentSetting(m_strPathDefaultConfigFile))
+    {
+        cout << "Error! in SaveCurrentSetting" << endl;
+        return;
+    }        
+}
+
+bool CbctRecon::SaveCurrentSetting(QString& strPathConfigFile)
+{
+    QFileInfo fInfo(strPathConfigFile);
+    if (!fInfo.exists())
+    {
+        cout << "Config file not exist. will be created now" << endl;        
+    }
+    else
+    {
+        cout << "Config file is found. it will be overwritten now" << endl;
+    }
+        
+
+    ofstream fout;
+    fout.open(strPathConfigFile.toLocal8Bit().constData());
+
+    QString strRefmAs = ui.lineEdit_RefmAs->text();
+    QString PostFOV_R = ui.lineEdit_PostFOV_R->text();
+    QString PostTablePosY = ui.lineEdit_PostTablePosY->text();
+    
+    QString strBkFillCT = m_pDlgRegistration->ui.lineEditBkFillCT->text();
+    QString strBkDetectCT = m_pDlgRegistration->ui.lineEditBkDetectCT->text();
+    QString strBubFillCT = m_pDlgRegistration->ui.lineEditBubFillCT->text();
+    
+    
+    QString strBkFillCBCT = m_pDlgRegistration->ui.lineEditBkFillCBCT->text();
+    QString strBkDetectCBCT = m_pDlgRegistration->ui.lineEditBubDetectCBCT->text();
+    QString strBubFillCBCT = m_pDlgRegistration->ui.lineEditBubFillCBCT->text();
+    
+    QString strCropContourName = m_pDlgRegistration->ui.lineEditCropContourName->text();
+
+    QString strFOVPos = m_pDlgRegistration->ui.lineEditFOVPos->text();
+
+    QString strArgument1 = m_pDlgRegistration->ui.lineEditArgument1->text();
+    QString strArgument2 = m_pDlgRegistration->ui.lineEditArgument2->text();
+    QString strArgument3 = m_pDlgRegistration->ui.lineEditArgument3->text();
+
+    bool bExportFwd = ui.checkBox_ExportFwd->isChecked();
+    bool bExportScat = ui.checkBox_ExportScat->isChecked();
+    bool bExportCor = ui.checkBox_ExportCor->isChecked();        
+    bool bExportVolDICOM = ui.checkBox_ExportVolDICOM->isChecked();
+    bool bCouchShiftAddToMacro = ui.checkBox_CouchShiftAddToMacro->isChecked();
+
+    //From Registration GUI    
+    bool bCropBkgroundCT = m_pDlgRegistration->ui.checkBoxCropBkgroundCT->isChecked();    
+    bool bCropBkgroundCBCT = m_pDlgRegistration->ui.checkBoxCropBkgroundCBCT->isChecked();
+
+    bool bFillBubbleCT = m_pDlgRegistration->ui.checkBoxFillBubbleCT->isChecked();   
+    bool bFillBubbleCBCT = m_pDlgRegistration->ui.checkBoxFillBubbleCBCT->isChecked();    
+    
+    bool bUseROIForRigid = m_pDlgRegistration->ui.checkBoxUseROIForRigid->isChecked();
+    bool bUseROIForDIR = m_pDlgRegistration->ui.checkBoxUseROIForDIR->isChecked();            
+
+    bool bRadioButton_mse = m_pDlgRegistration->ui.radioButton_mse->isChecked();
+    bool bRadioButton_mi = m_pDlgRegistration->ui.radioButton_mi->isChecked();
+    
+
+    fout << "strRefmAs" << "\t" << strRefmAs.toLocal8Bit().constData() << endl;
+    fout << "PostFOV_R" << "\t" << PostFOV_R.toLocal8Bit().constData() << endl;
+    fout << "PostTablePosY" << "\t" << PostTablePosY.toLocal8Bit().constData() << endl;
+
+    fout << "strBkFillCT" << "\t" << strBkFillCT.toLocal8Bit().constData() << endl;
+    fout << "strBkDetectCBCT" << "\t" << strBkDetectCBCT.toLocal8Bit().constData() << endl;
+    fout << "strBubFillCBCT" << "\t" << strBubFillCBCT.toLocal8Bit().constData() << endl;
+
+    fout << "strBkFillCBCT" << "\t" << strBkFillCBCT.toLocal8Bit().constData() << endl;
+    fout << "strBkDetectCBCT" << "\t" << strBkDetectCBCT.toLocal8Bit().constData() << endl;
+    fout << "strBubFillCBCT" << "\t" << strBubFillCBCT.toLocal8Bit().constData() << endl;
+
+    fout << "strCropContourName" << "\t" << strCropContourName.toLocal8Bit().constData() << endl;
+
+    fout << "strFOVPos" << "\t" << strFOVPos.toLocal8Bit().constData() << endl;
+    fout << "strArgument1" << "\t" << strArgument1.toLocal8Bit().constData() << endl;
+    fout << "strArgument2" << "\t" << strArgument2.toLocal8Bit().constData() << endl;
+    fout << "strArgument3" << "\t" << strArgument3.toLocal8Bit().constData() << endl;
+
+    fout << "bExportFwd" << "\t" << bExportFwd << endl;
+    fout << "bExportScat" << "\t" << bExportScat << endl;
+    fout << "bExportCor" << "\t" << bExportCor << endl;
+    fout << "bExportVolDICOM" << "\t" << bExportVolDICOM << endl;
+    fout << "bCouchShiftAddToMacro" << "\t" << bCouchShiftAddToMacro << endl;
+
+    fout << "bCropBkgroundCT" << "\t" << bCropBkgroundCT << endl;
+    fout << "bCropBkgroundCBCT" << "\t" << bCropBkgroundCBCT << endl;
+
+    fout << "bFillBubbleCT" << "\t" << bFillBubbleCT << endl;
+    fout << "bFillBubbleCBCT" << "\t" << bFillBubbleCBCT << endl;
+    
+    fout << "bUseROIForRigid" << "\t" << bUseROIForRigid << endl;
+    fout << "bUseROIForDIR" << "\t" << bUseROIForDIR << endl;
+
+    fout << "radioButton_mse" << "\t" << bRadioButton_mse << endl;
+    fout << "radioButton_mi" << "\t" << bRadioButton_mi << endl;
+
+
+    fout.close();
+    return true;
+}
+
+bool CbctRecon::LoadCurrentSetting(QString& strPathConfigFile)
+{
+    QFileInfo fInfo(strPathConfigFile);
+
+    if (!fInfo.exists())
+    {
+      //  cout << "Config file doesn't exist" << endl;
+        return false;
+    }
+
+    ifstream fin;
+    char str[MAX_LINE_LENGTH];
+
+    fin.open(strPathConfigFile.toLocal8Bit().constData());
+
+    if (fin.fail())
+        return false;   
+
+    int cnt = 0;
+    while (!fin.eof())
+    {
+        memset(str, 0, MAX_LINE_LENGTH);
+        fin.getline(str, MAX_LINE_LENGTH); //Read out header
+        QString tmpStr = QString(str);
+        QStringList strList = tmpStr.split("\t");		//tab
+
+        QString strHeader, strContent;
+        bool bFlagContent = false;
+        if (strList.count() == 2)
+        {         
+            strHeader = strList.at(0);
+            strContent = strList.at(1);                       
+
+            if (strContent.toInt() == 1)
+                bFlagContent = true;
+            else
+                bFlagContent = false;
+
+            if (strHeader == "strRefmAs")
+                ui.lineEdit_RefmAs->setText(strContent);
+            else if (strHeader == "PostFOV_R")
+                ui.lineEdit_PostFOV_R->setText(strContent);
+            else if (strHeader == "PostTablePosY")
+                ui.lineEdit_PostTablePosY->setText(strContent);
+
+            else if (strHeader == "strBkFillCT")
+                m_pDlgRegistration->ui.lineEditBkFillCT->setText(strContent);
+            else if (strHeader == "strBkDetectCT")
+                m_pDlgRegistration->ui.lineEditBkDetectCT->setText(strContent);
+            else if (strHeader == "strBubFillCT")
+                m_pDlgRegistration->ui.lineEditBubFillCT->setText(strContent);
+
+            else if (strHeader == "strBkFillCBCT")
+                m_pDlgRegistration->ui.lineEditBkFillCBCT->setText(strContent);
+            else if (strHeader == "strBkDetectCBCT")
+                m_pDlgRegistration->ui.lineEditBubDetectCBCT->setText(strContent);
+            else if (strHeader == "strBubFillCBCT")
+                m_pDlgRegistration->ui.lineEditBubFillCBCT->setText(strContent);
+
+            if (strHeader == "strCropContourName")
+                m_pDlgRegistration->ui.lineEditCropContourName->setText(strContent);
+            else if (strHeader == "strFOVPos")
+                m_pDlgRegistration->ui.lineEditFOVPos->setText(strContent);
+
+            else if (strHeader == "strArgument1")
+                m_pDlgRegistration->ui.lineEditArgument1->setText(strContent);
+            else if (strHeader == "strArgument2")
+                m_pDlgRegistration->ui.lineEditArgument2->setText(strContent);
+            else if (strHeader == "strArgument3")
+                m_pDlgRegistration->ui.lineEditArgument3->setText(strContent);
+
+            else if (strHeader == "bExportFwd")
+                ui.checkBox_ExportFwd->setChecked(bFlagContent);
+            else if (strHeader == "bExportScat")
+                ui.checkBox_ExportScat->setChecked(bFlagContent);
+            else if (strHeader == "bExportCor")
+                ui.checkBox_ExportCor->setChecked(bFlagContent);
+
+            else if (strHeader == "bExportVolDICOM")
+                ui.checkBox_ExportVolDICOM->setChecked(bFlagContent);
+            else if (strHeader == "bCouchShiftAddToMacro")
+                ui.checkBox_CouchShiftAddToMacro->setChecked(bFlagContent);
+
+            else if (strHeader == "bCropBkgroundCT")
+                m_pDlgRegistration->ui.checkBoxCropBkgroundCT->setChecked(bFlagContent);
+            else if (strHeader == "bCropBkgroundCBCT")
+                m_pDlgRegistration->ui.checkBoxCropBkgroundCBCT->setChecked(bFlagContent);
+
+            else if (strHeader == "bFillBubbleCT")
+                m_pDlgRegistration->ui.checkBoxFillBubbleCT->setChecked(bFlagContent);
+            else if (strHeader == "bFillBubbleCBCT")
+                m_pDlgRegistration->ui.checkBoxFillBubbleCBCT->setChecked(bFlagContent);
+
+            else if (strHeader == "bUseROIForRigid")
+                m_pDlgRegistration->ui.checkBoxUseROIForRigid->setChecked(bFlagContent);
+            else if (strHeader == "bUseROIForDIR")
+                m_pDlgRegistration->ui.checkBoxUseROIForDIR->setChecked(bFlagContent);
+
+            else if (strHeader == "radioButton_mse")                           
+               m_pDlgRegistration->ui.radioButton_mse->setChecked(bFlagContent);                
+            else if (strHeader == "radioButton_mi")
+                m_pDlgRegistration->ui.radioButton_mi->setChecked(bFlagContent);           
+                
+        }        
+    }
+    fin.close();
+
+    return true;
+}

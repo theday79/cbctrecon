@@ -228,7 +228,7 @@ public:
       
 
 
-private:
+public:
     Ui::DlgRegistrationClass ui;
 	
 };

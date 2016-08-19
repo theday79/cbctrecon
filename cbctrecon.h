@@ -48,11 +48,18 @@
 #include <rtkFDKBackProjectionImageFilter.h>
 #include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkConstantImageSource.h>
-
-
 #include <rtkDisplacedDetectorImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
+
+#if CUDA_FOUND
+# include "rtkCudaFDKConeBeamReconstructionFilter.h"
+# include "rtkCudaForwardProjectionImageFilter.h"
+#endif
+
+#if OPENCL_FOUND
+//# include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
+#endif
 
 // ITK includes
 #include <itkStreamingImageFilter.h>
@@ -309,6 +316,19 @@ public:
 
         void GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL);
 
+
+        void SingleForwardProjection(OutputImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
+            USHORT_ImageType::Pointer& spProjImg3D, int iSliceIdx);
+
+        bool LoadShortImageDirOrFile(QString& strPathDir, SHORT_ImageType::Pointer& spOutputShortImg);
+        void ConvertShort2Ushort(SHORT_ImageType::Pointer& spInputImgShort, USHORT_ImageType::Pointer& spOutputImgUshort);
+
+        void RotateImgBeforeFwd(USHORT_ImageType::Pointer& spInputImgUS, USHORT_ImageType::Pointer& spOutputImgUS);
+        void ConvertUshort2AttFloat(USHORT_ImageType::Pointer& spImgUshort, OutputImageType::Pointer& spAttImgFloat);
+
+        bool SaveCurrentSetting(QString& strPathConfigFile);
+        bool LoadCurrentSetting(QString& strPathConfigFile);
+
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
 		void SLT_LoadRawImages(); //independent 2d projection files //not used in clinical case
@@ -421,6 +441,14 @@ public:
 
                 void SLT_DoCouchCorrection();
                 void SLTM_WELPCalcMultipleFiles();
+
+                void SLTM_ScatterCorPerProjRef();
+                void SLTM_LoadPerProjRefList();
+                void SLTM_CropMaskBatch();
+
+                void SLT_SaveCurrentSetting();
+
+
                 
 
 public:
@@ -507,12 +535,16 @@ public:
 	QTimer* m_Timer;
 	bool m_busyTimer;
 
-
         vector<string> m_vSelectedFileNames;
 
         bool m_bMacroContinue;
 
         vector<float> m_vPhaseFloat;
+
+
+        QStringList m_strListPerProjRefVol;
+
+        QString m_strPathDefaultConfigFile;
 	
 
 //private:

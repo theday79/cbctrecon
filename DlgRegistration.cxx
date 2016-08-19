@@ -2940,6 +2940,7 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
   if (!spCBCT)
   {
       cout << "Error! No CBCT image is available" << endl;
+      return;
   }
 
   //find the closest skin contour for CBCT: !8 mm expansion from auto rigid body
@@ -2950,6 +2951,7 @@ void DlgRegistration::PostSkinRemovingCBCT( USHORT_ImageType::Pointer& spCBCT )
 
   QString strPath_mskSkinCT_manualRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
   QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
+
   if (maskInfoAuto.exists()) //if the mask file is not prepared, give up the skin removal
   {
       strPath_mskSkinCT_final = strPath_mskSkinCT_autoRegi_exp;
@@ -3399,7 +3401,6 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
         cout << "Error!  No isocenter position was found. " << endl;
         return;
     }
-
    
      
 
