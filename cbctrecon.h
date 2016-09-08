@@ -44,7 +44,9 @@
 
 // RTK includes
 #include <rtkHndImageIO.h>
+#include <rtkXimImageIO.h>
 #include <rtkVarianObiGeometryReader.h> // ELEKTASynergy VS VARIANObi
+#include <rtkVarianProBeamGeometryReader.h> // ELEKTASynergy VS VARIANObi
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
 
@@ -294,6 +296,7 @@ public:
 	void DoReconstructionFDK(enREGI_IMAGES target);
 	void CudaDoReconstructionFDK(enREGI_IMAGES target);
 	void CudaDoReconstructionTV(enREGI_IMAGES target); // ADDED BY AGRAVGAARD
+	void DoReconstructionTV(enREGI_IMAGES target); // ADDED BY AGRAVGAARD
 
 	
 	void UpdateReconImage(USHORT_ImageType::Pointer& spNewImg, QString& fileName);
@@ -362,6 +365,8 @@ public:
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
 		void SLT_LoadRawImages(); //independent 2d projection files //not used in clinical case
+		void SLT_LoadRawHndImages(); 
+		void SLT_LoadRawXimImages(); 
 		void SLT_Load3DImage(); //indenepndent 3D mha file. UshortFormat. Do reconstruction is an antoher way to make m_spReconImg
 		void SLT_Load3DImageShort();
 		void SLT_LoadNKIImage();
@@ -488,7 +493,7 @@ public:
 	//RTK recon
 	GeometryType::Pointer m_spFullGeometry; //sp = smart pointer
 	GeometryType::Pointer m_spCustomGeometry;
-	
+	bool ximIsUsed = true;
 	bool m_bScanDirectionCW;
 
 	OutputImageType::Pointer m_spProjImg3DFloat; //This is float image loaded by RTK. line integral (mu_t value). To convert this to Intensity, use mu t = ln(65535/I)

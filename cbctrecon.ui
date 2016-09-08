@@ -1032,9 +1032,9 @@ color: rgb(186, 186, 186);</string>
      <widget class="QLabel" name="label_29">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>160</x>
         <y>120</y>
-        <width>81</width>
+        <width>71</width>
         <height>16</height>
        </rect>
       </property>
@@ -1123,7 +1123,7 @@ color: rgb(186, 186, 186);</string>
      <widget class="QLineEdit" name="lineEdit_Ramp_CosineCut">
       <property name="geometry">
        <rect>
-        <x>120</x>
+        <x>230</x>
         <y>120</y>
         <width>31</width>
         <height>20</height>
@@ -1334,6 +1334,32 @@ color: rgb(186, 186, 186);</string>
       </property>
       <property name="checked">
        <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="lineEdit_Ramp_RamLakCut">
+      <property name="geometry">
+       <rect>
+        <x>120</x>
+        <y>120</y>
+        <width>31</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>5.0</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_68">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>120</y>
+        <width>111</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>RamLakCutFrequency</string>
       </property>
      </widget>
     </widget>

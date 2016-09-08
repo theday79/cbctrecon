@@ -85,7 +85,8 @@
 # include "rtkCudaForwardProjectionImageFilter.h"
 #endif
 
-# include "rtkADMMTotalVariationConeBeamReconstructionFilter.h" // ADDED BY AGRAVGAARD
+# include "rtkADMMWaveletsConeBeamReconstructionFilter.h" // ADDED BY AGRAVGAARD
+# include "rtkConjugateGradientConeBeamReconstructionFilter.h" // ADDED BY AGRAVGAARD
 # include "rtkTotalVariationImageFilter.h" // ADDED BY AGRAVGAARD
 # include "itkStatisticsImageFilter.h" // ADDED BY AGRAVGAARD
 # include "rtkDownsampleImageFilter.h"
@@ -169,9 +170,9 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 	m_bScanDirectionCW = true;
 
 	//Disable cuda & opencl as defaults
-	ui.radioButton_UseCPU->setDisabled(true);
+	ui.radioButton_UseCPU->setChecked(true);
 	ui.radioButton_UseCUDA->setDisabled(true);
-	ui.radioButton_UseOpenCL->setChecked(true);
+	ui.radioButton_UseOpenCL->setDisabled(true);
 
 	ui.pushButton_DoRecon->setDisabled(true);
 
@@ -194,14 +195,17 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
 	//connect(ui.MyLabel, SIGNAL(Mouse_Pos()), this, SLOT(MouseCurrPos()));
 
+
+#if OPENCL_FOUND
+	ui.radioButton_UseOpenCL->setDisabled(false);
+	ui.radioButton_UseCUDA->setChecked(true);
+#endif
+
 #if CUDA_FOUND
 	ui.radioButton_UseCUDA->setDisabled(false);
 	ui.radioButton_UseCUDA->setChecked(true);
 #endif
 
-#if OPENCL_FOUND
-	ui.radioButton_UseOpenCL->setDisabled(false);
-#endif
 	m_pTableModel = NULL;
 	m_pDlgRegistration = new DlgRegistration(this);
 	m_pDlgExternalCommand = new DlgExternalCommand(this);
@@ -275,8 +279,15 @@ void CbctRecon::ReleaseMemory()
 	}
 }
 
+void CbctRecon::SLT_LoadRawImages(){
+	if (ximIsUsed)
+		SLT_LoadRawXimImages();
+	else
+		SLT_LoadRawHndImages();
+}
+
 //Function for independent projection his images
-void CbctRecon::SLT_LoadRawImages()
+void CbctRecon::SLT_LoadRawHndImages()
 {
 	//QStringList files = QFileDialog::getOpenFileNames(this,"Select one or more files to open",
 	//	"/home","projection images (*.his)");
@@ -326,6 +337,65 @@ void CbctRecon::SLT_LoadRawImages()
 
 	ui.spinBoxImgIdx->setMinimum(0);
 	ui.spinBoxImgIdx->setMaximum(m_iImgCnt-1);
+	ui.spinBoxImgIdx->setValue(0);
+
+	SetMaxAndMinValueOfProjectionImage();
+	SLT_InitializeGraphLim();
+
+	SLT_DrawRawImages(); //Change FileName as well.. read spinbox value and draw image
+}
+
+//Function for independent projection his images
+void CbctRecon::SLT_LoadRawXimImages()
+{
+	//QStringList files = QFileDialog::getOpenFileNames(this,"Select one or more files to open",
+	//	"/home","projection images (*.his)");
+
+	QStringList files = QFileDialog::getOpenFileNames(this, "Select one or more files to open",
+		m_strPathDirDefault, "projection images (*.xim)"); // ELEKTA vs VARIAN
+
+	m_iImgCnt = files.size();
+
+	if (m_iImgCnt < 1)
+		return;
+
+	ReleaseMemory();
+
+	m_arrYKImage = new YK16GrayImage[m_iImgCnt];
+
+
+	typedef rtk::XimImageIO readerType;
+	readerType::Pointer reader = readerType::New();
+
+	for (int i = 0; i < m_iImgCnt; ++i)
+	{
+		QString strFile = files.at(i);
+
+		reader->SetFileName(strFile.toLocal8Bit().constData());
+		reader->ReadImageInformation();
+
+		int width = reader->GetDimensions(0); // width
+		int height = reader->GetDimensions(1); // height
+		int sizePix = reader->GetImageSizeInPixels();
+		int sizeBuf = reader->GetImageSizeInBytes();
+		int bytesPerPix = qRound(sizeBuf / (double)sizePix);
+
+		if (bytesPerPix != 2)
+			break;
+
+		m_arrYKImage[i].CreateImage(width, height, 0);
+
+		reader->Read(m_arrYKImage[i].m_pData);
+
+		m_arrYKImage[i].m_strFilePath = strFile;
+		//Copy his header - 100 bytes
+		m_arrYKImage[i].CopyHndHeader(strFile.toLocal8Bit().constData());
+	}
+
+	m_multiplyFactor = 1.0;
+
+	ui.spinBoxImgIdx->setMinimum(0);
+	ui.spinBoxImgIdx->setMaximum(m_iImgCnt - 1);
 	ui.spinBoxImgIdx->setValue(0);
 
 	SetMaxAndMinValueOfProjectionImage();
@@ -1702,6 +1772,7 @@ void CbctRecon::SLT_SetOutputPath()
 	ui.lineEdit_OutputFilePath->setText(strPath);
 }
 
+#if CUDA_FOUND
 void CbctRecon::CudaDoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
 {
 
@@ -2132,7 +2203,15 @@ void CbctRecon::CudaDoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVG
 	//2) Load Geometry file.
 	//3) Prepare all parameters from GUI components
 }
+#else
+void CbctRecon::CudaDoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVGAARD
+{
+	cout << "This program were not compiled with the CUDA option, total variation only implemented with CUDA." << endl;
+	return;
+}
+#endif
 
+#if CUDA_FOUND
 void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 {
 	typedef itk::CastImageFilter <OutputImageType, CUDAOutputImageType > castToCudaType;
@@ -2636,7 +2715,13 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	//2) Load Geometry file.
 	//3) Prepare all parameters from GUI components
 }
-
+#else
+void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
+{
+	cout << "This program were not compiled with the CUDA option, please select OpenCL or CPU instead!" << endl;
+	return;
+}
+#endif
 
 void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 {
@@ -2766,6 +2851,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
 	double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
 	double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
+	double fRamLak = ui.lineEdit_Ramp_RamLakCut->text().toDouble();
 
 	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
         {
@@ -2775,8 +2861,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 				fTruncCorFactor = ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
         }
 
-        //YKTEMP
-        cout << "fTruncCorFactor =" << fTruncCorFactor << endl;
 	// This macro sets options for fdk filter which I can not see how to do better
 	// because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
 #define SET_FELDKAMP_OPTIONS(f) \
@@ -2787,7 +2871,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	f->GetRampFilter()->SetHannCutFrequency(fHannCut); \
 	f->GetRampFilter()->SetCosineCutFrequency(fCosineCut); \
 	f->GetRampFilter()->SetHammingFrequency(fHamming); \
-	f->GetRampFilter()->SetHannCutFrequencyY(fHannCutY); 
+	f->GetRampFilter()->SetHannCutFrequencyY(fHannCutY); \
+	f->GetRampFilter()->SetRamLakCutFrequency(fRamLak);
 
 	
 
@@ -2829,8 +2914,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	{
 		feldkamp->Update();
 		cout << "FOV filter is being added.." << endl;
-		feldkamp->Update();
-		cout << "FOV filter is being added.." << endl;
 		fieldofviewFilter->SetInput(0, feldkamp->GetOutput());
 		fieldofviewFilter->SetGeometry(m_spCustomGeometry);
 		if (!ui.checkBox_UseDDF->isChecked()) 
@@ -2842,8 +2925,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 		
 	}
 	
-	
-
 	cout << "Cone beam reconstruction pipeline is ready" << endl;
 
 	// Streaming depending on streaming capability of writer --> not affect the calc. speed
@@ -2912,8 +2993,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	//else{
 	param.put(0, 0.0); //rot X // 0.5 = PI/2 //Actuly is  rot Z ELEKTA VS VARIAN <-- THIS MIGHT BE THE SOLUTION
 	//}
-	param.put(1,  itk::Math::pi / 2.0);//rot Y //Actuly is rot Y
-	param.put(2,  itk::Math::pi / -2.0);//rot Z //Actuly is rot X
+	param.put(1, itk::Math::pi_over_2);//rot Y //Actuly is rot Y
+	param.put(2, -itk::Math::pi_over_2);//rot Z //Actuly is rot X
 	param.put(3, 0.0); // Trans X mm
 	param.put(4, 0.0); // Trans Y mm
 	param.put(5, 0.0); // Trans Z mm
@@ -2940,31 +3021,27 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	resampler->SetOutputDirection( targetImg->GetDirection() ); //image normal?
 	resampler->SetTransform(transform);
 	//resampler->Update();//yktemp Error 2
-
-	//LR flip
-
-	cout << "LR flip filter is being applied" << endl;
-
 	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
-
 	FilterType::Pointer flipFilter = FilterType::New();
-	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
 
-	FlipAxesArrayType arrFlipAxes;
-	arrFlipAxes[0] = 1;
-	arrFlipAxes[1] = 0;
-	arrFlipAxes[2] = 0;
-
-	flipFilter->SetFlipAxes(arrFlipAxes);
-	flipFilter->SetInput(resampler->GetOutput());
-
+	if (!ximIsUsed){
+	  //LR flip
+	  cout << "LR flip filter is being applied" << endl;
+	  typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+	  FlipAxesArrayType arrFlipAxes;
+	  arrFlipAxes[0] = 1;
+	  arrFlipAxes[1] = 0;
+	  arrFlipAxes[2] = 0;
+	  flipFilter->SetFlipAxes(arrFlipAxes);
+	  flipFilter->SetInput(resampler->GetOutput());
+	}
 	/*OutputImageType::Pointer floatImg = flipFilter->GetOutput();*/
 	//const unsigned int Dimension = 3;
 	//FinalImageType::Pointer finalImg ;
 	
 	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
-	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
+	absImgFilter->SetInput(ximIsUsed ? resampler->GetOutput():flipFilter->GetOutput()); // 20140206 modified it was a bug
 	//absImgFilter->SetInput(resampler->GetOutput());
 
 	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
@@ -3184,6 +3261,380 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	//3) Prepare all parameters from GUI components
 }
 
+
+void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
+{
+	//Hardware Type
+	if (!ui.radioButton_UseCPU->isChecked())
+		cout << "no OpenCL version of Total Variation Cone Beam Reconstruction available -> using CPU!" << endl;
+
+	if (!m_spProjImg3DFloat)
+	{
+		cout << "processed Projection image is not ready yet" << endl;
+		return;
+	}
+	//Resampling first --> to save the recon time. 1024 --> 512
+
+	typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+	DuplicatorType::Pointer duplicator = DuplicatorType::New();
+	duplicator->SetInputImage(m_spProjImg3DFloat);
+	duplicator->Update();
+
+	OutputImageType::Pointer spCurImg = duplicator->GetOutput(); //already down sampled
+
+	//Displaced detector weighting // set pipeline //inplace filter
+	typedef rtk::DisplacedDetectorImageFilter< OutputImageType > DDFType;
+	DDFType::Pointer ddf = DDFType::New();
+	if (ui.checkBox_UseDDF->isChecked())
+	{
+		ddf->SetInput(spCurImg);
+		//ddf->SetGeometry( geometryReader->GetOutputObject() );
+		ddf->SetGeometry(m_spCustomGeometry);
+		cout << "DDF was set in pipeline" << endl;
+
+		if (ui.checkBox_UpdateAfterFiltering->isChecked())
+			ddf->Update();//no mememory increas: InPlace Filter
+
+		spCurImg = ddf->GetOutput();
+	}
+
+	typedef rtk::ParkerShortScanImageFilter< OutputImageType > PSSFType;
+	PSSFType::Pointer pssf = PSSFType::New();
+	if (ui.checkBox_UsePSSF->isChecked())
+	{
+		// Short scan image filter
+		pssf->SetInput(spCurImg);
+		pssf->SetGeometry(m_spCustomGeometry);
+		cout << "short scan image filter success" << endl;
+
+		if (ui.checkBox_UpdateAfterFiltering->isChecked())
+			pssf->Update(); //no mememory increas: InPlace Filter
+
+		spCurImg = pssf->GetOutput();
+	}
+
+	if (ui.checkBox_UpdateAfterFiltering->isChecked())
+	{
+		typedef itk::ImageDuplicator< OutputImageType > DuplicatorType;
+		DuplicatorType::Pointer duplicator = DuplicatorType::New();
+		duplicator->SetInputImage(spCurImg);
+		duplicator->Update();
+		m_spProjImg3DFloat = duplicator->GetOutput();
+
+		SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
+		SLT_DrawProjImages();
+	}
+
+
+	// Generate image sources for cone beam CT reconstruction
+	typedef rtk::ConstantImageSource< OutputImageType > ConstantImageSourceType;
+
+	ConstantImageSourceType::PointType origin;
+	ConstantImageSourceType::SpacingType spacing;
+	ConstantImageSourceType::SizeType sizeOutput;
+
+	sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); //pixel
+	sizeOutput[1] = ui.lineEdit_outImgDim_SI->text().toInt();  //Caution!: direction is different in NKI SCAN FIle
+	sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
+
+	spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
+	spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
+	spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
+
+	origin[0] = -0.5*sizeOutput[0] * spacing[0]; //Y in DCM?
+	origin[1] = -0.5*sizeOutput[1] * spacing[1]; //Z in DCM?
+	origin[2] = -0.5*sizeOutput[2] * spacing[2]; //X in DCM?
+
+	ConstantImageSourceType::Pointer constantImageSource = ConstantImageSourceType::New();
+	constantImageSource->SetOrigin(origin);
+	constantImageSource->SetSpacing(spacing);
+	constantImageSource->SetSize(sizeOutput);
+	constantImageSource->SetConstant(0.0);  //initial value
+	
+
+	float Beta = 1000; // ui.lineEdit_TVbeta->text().toFloat();
+	float Alpha = 10; //ui.lineEdit_TValpha->text().toFloat();
+	float AL_iter = 3; //ui.lineEdit_AL_iter->text().toUInt();
+	float CG_iter = 3; //ui.lineEdit_CG_iter->text().toUInt();
+
+
+	cout << "Admm options are being set.." << endl;
+	/*
+	// ADMMTotalVariation reconstruction filtering
+	typedef rtk::ADMMWaveletsConeBeamReconstructionFilter
+		<OutputImageType> ADMMType;
+	ADMMType::Pointer admm = ADMMType::New();
+	admm->SetInput( 0, constantImageSource->GetOutput()); // buffered region of [0, 0, 0]?
+	admm->SetInput(1, spCurImg);
+	admm->SetGeometry( m_spCustomGeometry );
+	admm->SetAlpha( Alpha );
+	admm->SetBeta( Beta );
+	admm->SetAL_iterations( AL_iter );
+	admm->SetCG_iterations( CG_iter );
+	admm->SetNumberOfLevels( 3 ); 
+	admm->SetOrder( 3 );
+	admm->SetForwardProjectionFilter( 0 );
+	admm->SetBackProjectionFilter( 0 );
+	*/
+	typedef rtk::ConjugateGradientConeBeamReconstructionFilter <OutputImageType> IterReconType;
+	IterReconType::Pointer iterRecon = IterReconType::New();
+	iterRecon->SetInput(0, constantImageSource->GetOutput());
+	iterRecon->SetInput(1, spCurImg);
+	iterRecon->SetGeometry(m_spCustomGeometry);
+	iterRecon->SetNumberOfIterations(10);
+	// In all cases, use the Joseph forward projector
+	iterRecon->SetForwardProjectionFilter(0);
+	ConstantImageSourceType::Pointer uniformWeightsSource = ConstantImageSourceType::New();
+	uniformWeightsSource->SetInformationFromImage(spCurImg);
+	uniformWeightsSource->SetConstant(1.0);
+	iterRecon->SetBackProjectionFilter(0);
+	iterRecon->SetInput(2, uniformWeightsSource->GetOutput());
+
+	typedef rtk::FieldOfViewImageFilter <OutputImageType, OutputImageType> FOVFilterType;
+	FOVFilterType::Pointer fieldofviewFilter = FOVFilterType::New();
+	if (ui.checkBox_UpdateAfterFiltering->isChecked())
+	{
+		cout << "Wait for iterative reconstruction to finish.." << endl;
+		try
+		{
+			iterRecon->Update();
+		}
+		catch (itk::ExceptionObject & e)
+		{
+			cout << e.what() << ", error: " << e << endl;
+			system("pause");
+			cerr << e << endl;
+		}
+		cout << "FOV filter is being added.." << endl;
+		fieldofviewFilter->SetInput(0, iterRecon->GetOutput());
+		fieldofviewFilter->SetGeometry(m_spCustomGeometry);
+		if (!ui.checkBox_UseDDF->isChecked())
+		{
+			fieldofviewFilter->SetDisplacedDetector(TRUE);
+		}
+		fieldofviewFilter->SetProjectionsStack(duplicator->GetOutput());
+		fieldofviewFilter->Update();
+
+	}
+
+	cout << "Cone beam reconstruction pipeline is ready" << endl;
+
+	// Streaming depending on streaming capability of writer --> not affect the calc. speed
+
+	typedef itk::StreamingImageFilter<OutputImageType, OutputImageType> StreamerType;
+	StreamerType::Pointer streamerBP = StreamerType::New();
+
+	if (ui.checkBox_UpdateAfterFiltering->isChecked())
+	{
+		streamerBP->SetInput(fieldofviewFilter->GetOutput());
+	}
+	else
+	{
+		streamerBP->SetInput(iterRecon->GetOutput());
+	}
+	streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
+
+	cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << endl;
+	//Same image type from original image -3D & float
+	OutputImageType::IndexType start_trans;
+	start_trans[0] = 0;
+	start_trans[1] = 0;
+	start_trans[2] = 0;
+
+	OutputImageType::SizeType size_trans;
+	size_trans[0] = sizeOutput[0]; // X //410
+	size_trans[1] = sizeOutput[2]; //Y  // 410
+	size_trans[2] = sizeOutput[1]; //Z // 120?
+
+	OutputImageType::SpacingType spacing_trans;
+	spacing_trans[0] = spacing[0];
+	spacing_trans[1] = spacing[2];
+	spacing_trans[2] = spacing[1];
+
+	OutputImageType::PointType Origin_trans;
+	Origin_trans[0] = -0.5* size_trans[0] * spacing_trans[0];
+	Origin_trans[1] = -0.5* size_trans[1] * spacing_trans[1];
+	Origin_trans[2] = -0.5* size_trans[2] * spacing_trans[2];
+
+	OutputImageType::RegionType region_trans;
+	region_trans.SetSize(size_trans);
+	region_trans.SetIndex(start_trans);
+
+	/* 2) Prepare Target image */
+	OutputImageType::Pointer targetImg = streamerBP->GetOutput();
+
+	/* 3) Configure transform */
+	typedef itk::Euler3DTransform< double > TransformType;
+	TransformType::Pointer transform = TransformType::New();
+
+	TransformType::ParametersType param;
+	param.SetSize(6);
+	param.put(0, 0.0); //rot X // 0.5 = PI/2 //Actuly is  rot Z ELEKTA VS VARIAN <-- THIS MIGHT BE THE SOLUTION
+	param.put(1, itk::Math::pi_over_2);//rot Y //Actuly is rot Y
+	param.put(2, -itk::Math::pi_over_2);//rot Z //Actuly is rot X
+	param.put(3, 0.0); // Trans X mm
+	param.put(4, 0.0); // Trans Y mm
+	param.put(5, 0.0); // Trans Z mm
+
+	TransformType::ParametersType fixedParam(3); //rotation center
+	fixedParam.put(0, 0);
+	fixedParam.put(1, 0);
+	fixedParam.put(2, 0);
+
+	transform->SetParameters(param);
+	transform->SetFixedParameters(fixedParam); //Center of the Transform
+
+	cout << "Transform matrix:" << "	" << endl;
+	cout << transform->GetMatrix() << std::endl;
+
+	typedef itk::ResampleImageFilter<OutputImageType, OutputImageType> ResampleFilterType;
+	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+	resampler->SetInput(targetImg);
+	resampler->SetSize(size_trans);
+	resampler->SetOutputOrigin(Origin_trans); //Lt Top Inf of Large Canvas
+	resampler->SetOutputSpacing(spacing_trans); // 1 1 1
+	resampler->SetOutputDirection(targetImg->GetDirection()); //image normal?
+	resampler->SetTransform(transform);
+
+	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
+	FilterType::Pointer flipFilter = FilterType::New();
+
+	if (!ximIsUsed){
+		//LR flip
+		cout << "LR flip filter is being applied" << endl;
+		typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+		FlipAxesArrayType arrFlipAxes;
+		arrFlipAxes[0] = 1;
+		arrFlipAxes[1] = 0;
+		arrFlipAxes[2] = 0;
+		flipFilter->SetFlipAxes(arrFlipAxes);
+		flipFilter->SetInput(resampler->GetOutput());
+	}
+
+	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
+	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
+	absImgFilter->SetInput(ximIsUsed ? resampler->GetOutput() : flipFilter->GetOutput()); 
+
+	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
+
+	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
+	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
+	multiplyImageFilter->SetConstant(65536); //calculated already
+
+	//typedef unsigned short FinalPixelType;
+	//typedef itk::Image< FinalPixelType, 3 > FinalImageType;
+	typedef itk::CastImageFilter< OutputImageType, USHORT_ImageType > CastFilterType;
+	CastFilterType::Pointer castFilter = CastFilterType::New();
+	castFilter->SetInput(multiplyImageFilter->GetOutput());
+	castFilter->Update(); 
+
+	USHORT_ImageType::Pointer tmpReconImg;
+	//if all 0 0 0 don't do the median filtering
+
+	itk::TimeProbe reconTimeProbe;
+	reconTimeProbe.Start();
+
+	cout << "Reconstructing the image.. please wait..." << endl;
+	USHORT_ImageType::SizeType indexRadius;
+	indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+	indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+	indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
+	if (ui.checkBox_PostMedianOn->isChecked() && (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0))
+	{
+		typedef itk::MedianImageFilter<USHORT_ImageType, USHORT_ImageType >  FilterType;
+		FilterType::Pointer medFilter = FilterType::New();
+
+		//this is radius. 1 --> median window 3
+		cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << endl;
+
+		medFilter->SetRadius(indexRadius);
+		medFilter->SetInput(castFilter->GetOutput());
+		medFilter->Update(); //Error here!g
+		tmpReconImg = medFilter->GetOutput();
+		//cout << "median filtering has been done" << endl;
+	}
+	else
+	{
+		tmpReconImg = castFilter->GetOutput();
+	}
+
+	typedef itk::ThresholdImageFilter <USHORT_ImageType> ThresholdImageFilterType;
+	ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
+	thresholdFilterAbove->SetInput(tmpReconImg);
+	thresholdFilterAbove->ThresholdAbove(4095);
+	thresholdFilterAbove->SetOutsideValue(4095);
+
+	ThresholdImageFilterType::Pointer thresholdFilterBelow = ThresholdImageFilterType::New();
+	thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+	thresholdFilterBelow->ThresholdBelow(0);
+	thresholdFilterBelow->SetOutsideValue(0);
+	thresholdFilterBelow->Update();
+	tmpReconImg = thresholdFilterBelow->GetOutput();
+
+	cout << "After Filtering" << endl;
+
+	reconTimeProbe.Stop();
+	std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
+	ui.lineEdit_ReconstructionTime->setText(QString("%1").arg(reconTimeProbe.GetMean()));
+
+	//By default CanRunInPlace checks whether the input and output image type match.
+	switch (target)
+	{
+	case REGISTER_RAW_CBCT:
+		m_spRawReconImg = tmpReconImg; //Checked.. successfully alive.
+		m_spCrntReconImg = m_spRawReconImg;
+		break;
+	case REGISTER_COR_CBCT:
+		m_spScatCorrReconImg = tmpReconImg; //Checked.. successfully alive.
+		m_spCrntReconImg = m_spScatCorrReconImg;
+		break;
+	}
+	QString outputFilePath = ui.lineEdit_OutputFilePath->text();
+
+	QFileInfo outFileInfo(outputFilePath);
+	QDir outFileDir = outFileInfo.absoluteDir();
+
+	if (outputFilePath.length() < 2 || !outFileDir.exists())
+	{
+		cout << "No available output path. Should be exported later" << endl;
+		ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
+	}
+	else
+	{
+		typedef itk::ImageFileWriter<USHORT_ImageType> WriterType;
+		WriterType::Pointer writer = WriterType::New();
+		writer->SetFileName(outputFilePath.toLocal8Bit().constData());
+		writer->SetUseCompression(true); //not exist in original code (rtkfdk)
+		writer->SetInput(m_spCrntReconImg);
+
+		cout << "Writing the image to: " << outputFilePath.toLocal8Bit().constData() << endl;
+
+		TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
+
+		ui.lineEdit_Cur3DFileName->setText(outputFilePath);
+		std::cout << std::endl;
+		std::cout << "Output generation was succeeded" << std::endl;
+	}
+
+
+	m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
+
+	ui.spinBoxReconImgSliceNo->setMinimum(0);
+	ui.spinBoxReconImgSliceNo->setMaximum(size_trans[2] - 1);
+	ui.spinBoxReconImgSliceNo->setValue(qRound(size_trans[2] / 2.0)); 
+	//SLT_ViewRegistration();
+	if (target == REGISTER_COR_CBCT)
+	{
+		UpdateReconImage(m_spCrntReconImg, QString("SCATTER_COR_CBCT"));
+	}
+	else if (target == REGISTER_RAW_CBCT)
+	{
+		UpdateReconImage(m_spCrntReconImg, QString("RAW_CBCT"));
+	}
+
+	cout << "FINISHED!: Total Variation CBCT reconstruction" << endl;
+}
+
 void CbctRecon::SLT_DoReconstruction()
 {
 	if (ui.checkBox_FDK->isChecked())
@@ -3206,8 +3657,11 @@ void CbctRecon::SLT_DoReconstruction()
 	}
 	else if (ui.checkBox_TV->isChecked() && !ui.checkBox_FDK->isChecked())
 	{
+#if CUDA_FOUND
 		CudaDoReconstructionTV(REGISTER_RAW_CBCT);
-
+#else
+		DoReconstructionTV(REGISTER_RAW_CBCT);
+#endif
 		m_pDlgRegistration->UpdateListOfComboBox(0);//combo selection signalis called
 		m_pDlgRegistration->UpdateListOfComboBox(1);
 
@@ -3402,8 +3856,11 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	m_iImgCnt = 0; //should be reset
 	m_iCntSelectedProj = 0;
 	ReleaseMemory(); //only reset mem for indepent projection images
-
-	char * regexp = "Proj_.*.hnd"; //".[0-9a-fA-F].hnd"; //is"; VARIAN vs ELEKTA
+	char * regexp;
+	if (ximIsUsed)
+		regexp = "Proj_.*.xim"; //".[0-9a-fA-F].hnd"; //is"; VARIAN vs ELEKTA
+	else
+		regexp = "Proj_.*.hnd"; //".[0-9a-fA-F].hnd"; //is"; VARIAN vs ELEKTA
 	//char * regexp = ".*.his";
 	vector <string> names;
 	itk::RegularExpressionSeriesFileNames::Pointer regexpnames = itk::RegularExpressionSeriesFileNames::New();
@@ -3470,6 +3927,25 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		LoadRTKGeometryFile("RTKgeometry.xml");
 		// ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData()); //will generate m_spFullGeometry
 	}
+	else if (geomFileInfo.fileName() == "Scan.xml")//this is XVI XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
+	{
+		cout << "Varian ProBeam XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << endl;
+		// ADDED BY AGRAVGAARD :::::::: Thief'd from RTK/applications/ rtkvarianobigemetry.cxx
+		rtk::VarianProBeamGeometryReader::Pointer reader;
+		reader = rtk::VarianProBeamGeometryReader::New();
+		reader->SetXMLFileName(geomPath.toLocal8Bit().constData());
+		reader->SetProjectionsFileNames(regexpnames->GetFileNames());
+		TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->UpdateOutputData());
+		// Write
+		rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
+			rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
+		xmlWriter->SetFilename("RTKgeometry.xml");
+		xmlWriter->SetObject(reader->GetGeometry());
+		TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
+		cout << "RTK standard Geometry XML File was created:" << "RTKgeometry.xml" << endl;
+		LoadRTKGeometryFile("RTKgeometry.xml");
+		// ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData()); //will generate m_spFullGeometry
+	}
 	else
 	{
 		cout << "RTK standard Geometry XML File was found:" << geomPath.toLocal8Bit().constData() << endl;
@@ -3485,16 +3961,18 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
 	if (iFullGeoDataSize !=fullCnt )
 	{
-		cout << "Size of geometry data and file numbers are not same! Check and retry" << endl;
-		return;
+		//cout << "Size of geometry data and file numbers are not same! Continue anyway?" << endl;
+		//system("pause"); //WINDOWS
+		QMessageBox msgBox;
+		msgBox.setText("Size of geometry data and file numbers are not same!");
+		msgBox.exec();
 	}
 
 	//3) Seletively load projection file
 
 	double meanGap = vectorMean(m_spFullGeometry->GetAngularGaps(m_spFullGeometry->GetSourceAngles())) / itk::Math::pi * 180.0;
-	cout << "AngularGaps Mean (deg): " << meanGap << endl;
 	double angleSum = vectorSum(m_spFullGeometry->GetAngularGaps(m_spFullGeometry->GetSourceAngles())) / itk::Math::pi * 180.0;//total rot. range from first angle
-	cout << "AngularGaps Sum (deg): " << angleSum  << endl;
+	cout << "AngularGaps Sum (deg): " << angleSum << ", Mean (deg): " << meanGap << endl;
 
 
 	double gantryAngleInterval = ui.lineEdit_ManualProjAngleGap->text().toDouble();
@@ -3518,7 +3996,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
 	vector<int> vExcludeIdx;
 
-	cout << "[Excluding-files-function] has been omitted. To reactivaite it, please edit SLT_LoadSelectedProjFiles" << endl;
+	// cout << "[Excluding-files-function] has been omitted. To reactivaite it, please edit SLT_LoadSelectedProjFiles" << endl;
 
 
 ///////////////////////////////////Exclude outlier projection files
@@ -3608,15 +4086,14 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
   //Regenerate geometry object
   m_spCustomGeometry = GeometryType::New();
-
   for (itIdx =vSelectedIdx.begin() ; itIdx != vSelectedIdx.end() ; itIdx++ )
   {
 	  //9 parameters are required
 	  double curSID = m_spFullGeometry->GetSourceToIsocenterDistances().at(*itIdx);
 	  double curSDD = m_spFullGeometry->GetSourceToDetectorDistances().at(*itIdx);
 	  double curGantryAngle = m_spFullGeometry->GetGantryAngles().at(*itIdx);
-	  double kVAng = curGantryAngle * 360. / (2.*itk::Math::pi);
-	  double MVAng = kVAng - 90.0;
+	  double kVAng = curGantryAngle * 180. * itk::Math::one_over_pi; // 360 / 2 = 180
+	  double MVAng = kVAng - 90;
 	  if (MVAng < 0.0)
 		  MVAng = MVAng + 360;
 	  curGantryAngle = MVAng;
@@ -3632,10 +4109,9 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
 	  m_spCustomGeometry->AddProjection(curSID, curSDD,curGantryAngle,
 		  curProjOffsetX,curProjOffsetY, //Flexmap
-		  curOutOfPlaneAngles, curInPlaneAngles, //In elekta, these are 0
-		  curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
+		  curOutOfPlaneAngles, curInPlaneAngles, //In elekta and varian, these are 0
+		  curSrcOffsetX, curSrcOffsetY); //In elekta and varian, these are 0
   }
-  cout << "Geometry generated" << endl;
   //Regenerate fileNames and geometry object based on the selected indices.
 
   if (!m_vSelectedFileNames.empty())
@@ -3669,15 +4145,13 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
   //cout << countFiles << " files were copied." << endl;
   ////YKTEMP
 
-  cout << "Projection reader initiation.." << endl;
   // Reads the cone beam projections
   typedef rtk::ProjectionsReader< OutputImageType > ReaderType;
   ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileNames(m_vSelectedFileNames);
-  TRY_AND_EXIT_ON_ITK_EXCEPTION( reader->GenerateOutputInformation() )
+  TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->GenerateOutputInformation());
   cout << "Reading..." << endl;
-  TRY_AND_EXIT_ON_ITK_EXCEPTION( reader->Update() )
-
+  TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->Update());
   //After reading the whole file,
   //HIS header should be saved
 
@@ -3778,7 +4252,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
  //Error occurss. tmpe inactivated
 
   //std::cout << vSelectedFileNames.size() << std::endl;
-  std::cout << "Projection reading succeeded." << m_vSelectedFileNames.size() << " files were read" << std::endl;
+  std::cout << "Projection reading succeeded: " << m_vSelectedFileNames.size() << " files were read" << std::endl;
 
   //Following macro
   //set default 3D median filter
@@ -3836,7 +4310,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	  cout << "FINISHED!: Reconstruction. Load pCT and Proceed to registration" << endl;
   }
 
-  PlaySound(TEXT("chime.wav"), NULL, SND_SYNC);
+  PlaySound(TEXT("chime.wav"), NULL, SND_SYNC); //WINDOWS
 }
 
 //
@@ -4438,7 +4912,7 @@ void CbctRecon::SLT_UpdateTable()
 	//QFileInfo tmpInfo = QFileInfo(m_arrYKImage[i].m_strFilePath);
 	//m_pTableModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Index")));
 	//m_pTableModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Profile")));
-	m_pTableModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Position(mm)")));
+	m_pTableModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Index"))); //is not mm
 	m_pTableModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Value")));
 	//}
 
@@ -5840,12 +6314,21 @@ void CbctRecon::DoBeamHardeningCorrection()
 
 	double crntVal = 0.0;
 	double corrF = 0.0;
-	//double corrVal = 0.0;
-
+	
 	double poly3_a = 9.321e-05;
 	double poly3_b = -2.609e-03;
 	double poly3_c = 3.374e-02;
 	double poly3_d = 9.691e-01;
+	double poly3_e = 0.0;
+
+	//double corrVal = 0.0;
+	if (ximIsUsed){
+	  poly3_a = 6.0e-8;
+	  poly3_b = 9.0e-5;
+	  poly3_c = 1.0e-2;
+	  poly3_d = 0.8;
+	  poly3_e = -1.47;
+	}
 
 	//Shortening factor 0.9 is applied
 	/*double poly3_a = 11.24e-05;
@@ -5859,13 +6342,13 @@ void CbctRecon::DoBeamHardeningCorrection()
 	double poly3_c = 3.923e-02;
 	double poly3_d = 9.727e-01;*/
 
-	cout << "Beam hardening corrF poly curve:" << poly3_a <<"	" << poly3_b << "	" <<poly3_c << "	"<<poly3_d << endl;
+	cout << "Beam hardening corrF poly curve: " << poly3_a <<", " << poly3_b << ", " <<poly3_c << ", "<<poly3_d << endl;
 
 	it.GoToBegin();
 
 	while (!it.IsAtEnd())
 	{
-		crntVal = (double)(it.Get()); //raw mu_t
+		crntVal = (double)(it.Get()); //raw mu_t -> tau in Varian Confidential
 
 		if (crntVal < 1.189) //corresponding to 5 cm of water depth
 		{
@@ -5880,7 +6363,7 @@ void CbctRecon::DoBeamHardeningCorrection()
 				poly3_c*pow(crntVal,1.0) +
 				poly3_d;
 		}
-		it.Set((float)(crntVal*corrF));
+		it.Set((float)(crntVal*corrF + poly3_e));
 		++it;
 	}
 }
@@ -5993,7 +6476,7 @@ void CbctRecon::SLT_DoBTC()
 			}
 			else
 			{
-				corrF = crntVal - 1e-2; //approximate precition of fit 
+				corrF = crntVal - 1e-2; //approximate precision of fit 
 			}
 			//poly3_d / (1.0 + exp(-poly3_b * (x_idx - poly3_a))) + poly3_c + poly3_d / (1.0 + exp(poly3_b * (x_idx - poly3_e)));
 		}
@@ -6421,9 +6904,20 @@ void CbctRecon::FindAllRelevantPaths(QString pathProjHisDir)//called following S
 		ui.lineEdit_VarianGeomPath->setText(m_strPathGeomXML);
 		cout << "Patient DIR set to: Scan0/../../" << endl;
 		m_strPathGeomXML = curHisDir.absolutePath() + "/../"; // <- Might break shit, dunno..
+		ximIsUsed = false;
 		return;
 	}
-	else 
+	else if (curHisDir.dirName().contains("Acquisitions", Qt::CaseSensitive))
+	{
+		cout << "XML set by guessing: Acquisitions/../Scan.xml" << endl;
+		m_strPathGeomXML = curHisDir.absolutePath() + "/../../" + "Scan.xml";
+		ui.lineEdit_VarianGeomPath->setText(m_strPathGeomXML);
+		cout << "Patient DIR set to: Acquisitions/../../../" << endl;
+		m_strPathGeomXML = curHisDir.absolutePath() + "/../../"; // <- Might break shit, dunno..
+		ximIsUsed = true;
+		return;
+	}
+	else
 	{
 		cout << "Projection folder should have format [img_UID]" << endl;
 		cout << "XML file cannot be made" << endl;
@@ -6827,16 +7321,17 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 
 	typedef itk::FlipImageFilter< USHORT_ImageType >  FilterType;
 	FilterType::Pointer flipFilter = FilterType::New();
-	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+	if (!ximIsUsed){
+	  typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
 
-	FlipAxesArrayType arrFlipAxes;
-	arrFlipAxes[0] = 1;
-	arrFlipAxes[1] = 0;
-	arrFlipAxes[2] = 0;
+	  FlipAxesArrayType arrFlipAxes;
+	  arrFlipAxes[0] = 1;
+	  arrFlipAxes[1] = 0;
+	  arrFlipAxes[2] = 0;
 
-	flipFilter->SetFlipAxes(arrFlipAxes);
-	flipFilter->SetInput(spVolImg3D); //plan CT, USHORT image
-
+      flipFilter->SetFlipAxes(arrFlipAxes);
+	  flipFilter->SetInput(spVolImg3D); //plan CT, USHORT image
+	}
 	typedef itk::Euler3DTransform< double > TransformType;
 	TransformType::Pointer transform = TransformType::New();
 
@@ -6863,11 +7358,11 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	typedef itk::ResampleImageFilter<USHORT_ImageType, USHORT_ImageType> ResampleFilterType;
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 
-	resampler->SetInput(flipFilter->GetOutput());
+	resampler->SetInput(ximIsUsed?spVolImg3D:flipFilter->GetOutput());
 	resampler->SetSize(size_trans);
 	resampler->SetOutputOrigin( Origin_trans); //Lt Top Inf of Large Canvas
 	resampler->SetOutputSpacing( spacing_trans ); // 1 1 1
-	resampler->SetOutputDirection( flipFilter->GetOutput()->GetDirection() ); //image normal?
+	resampler->SetOutputDirection( ximIsUsed?spVolImg3D->GetDirection():flipFilter->GetOutput()->GetDirection() ); //image normal?
 	resampler->SetTransform(transform);
 
 	typedef itk::CastImageFilter< USHORT_ImageType, OutputImageType> CastFilterType; //Maybe not inplace filter
@@ -7133,7 +7628,7 @@ void CbctRecon::SaveProjImageAsHIS( USHORT_ImageType::Pointer& spProj3D, YK16Gra
 
   if (resampleF != 1.0)
   {
-	cout << "restore the  resampled image by applying a factor of " << restoreResampleF << endl;
+	cout << "restore the resampled image by applying a factor of " << restoreResampleF << endl;
 	ResampleItkImage(spProj3D, targetImg3D,restoreResampleF);
   }
   else
