@@ -13,6 +13,11 @@ PROJECT(CbctRecon)
 
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
+IF(NOT WIN32)
+  set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+  set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/install)
+ENDIF()
+
 FIND_PACKAGE(RTK REQUIRED)
 INCLUDE(${RTK_USE_FILE})
 
@@ -27,25 +32,31 @@ if(USE_OPENCL)
   IF(OPENCL_LIBRARIES AND OPENCL_INCLUDE_DIRS)
     INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
     SET(OPENCL_FOUND TRUE)
+    SET(PREFER_OPENCL TRUE)
   ELSE(OPENCL_LIBRARIES AND OPENCL_INCLUDE_DIRS)
     SET(OPENCL_FOUND FALSE)
+    SET(PREFER_OPENCL FALSE)
   ENDIF(OPENCL_LIBRARIES AND OPENCL_INCLUDE_DIRS)
 endif()
 
-FIND_PACKAGE(CUDA_wrap)
-if(CUDA_FOUND)
-  SET(USE_CUDA_DEFAULT ON)
-else()
-  SET(USE_CUDA_DEFAULT OFF)
-endif()
-option(USE_CUDA "Use CUDA for CBCTrecon" ${USE_CUDA_DEFAULT})
+IF(NOT PREFER_OPENCL)
+  FIND_PACKAGE(CUDA_wrap)
+  if(CUDA_FOUND)
+    SET(USE_CUDA_DEFAULT ON)
+  else()
+    SET(USE_CUDA_DEFAULT OFF)
+  endif()
+  option(USE_CUDA "Use CUDA for CBCTrecon" ${USE_CUDA_DEFAULT})
 
-IF(USE_CUDA)
-  IF(NOT CUDA_FOUND)
-    FIND_PACKAGE(CUDA_wrap REQUIRED)
+  IF(USE_CUDA)
+    IF(NOT CUDA_FOUND)
+      FIND_PACKAGE(CUDA_wrap REQUIRED)
+    ENDIF()
+    INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+    set(PREFER_OPENCL FALSE)
   ENDIF()
-  INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 ENDIF()
+
 #=========================================================
 
 # Find BZIP2 (required for Varian HNC)
@@ -64,26 +75,6 @@ FIND_PACKAGE(Qt5Core REQUIRED)
 FIND_PACKAGE(Qt5OpenGL REQUIRED)
 FIND_PACKAGE(Qt5PrintSupport REQUIRED)
 
-find_package (Plastimatch)
-message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
-message (STATUS "Plastimatch_DIR = ${Plastimatch_DIR}")
-message (STATUS "Plastimatch_SOURCE = ${Plastimatch_SRC}")
-message (STATUS "PLM_SRC_ROOT = ${PLM_SRC_ROOT}")
-
-message (STATUS "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
-message (STATUS "CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
-message (STATUS "MY_PARENT_DIR = ${MY_PARENT_DIR}")
-
-message (STATUS "PLASTIMATCH_LIBRARIES = ${PLASTIMATCH_LIBRARIES}")
-message (STATUS "PLASTIMATCH_LIBRARY = ${PLASTIMATCH_LIBRARY}")
-message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
-message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
-message (STATUS "PLASTIMATCH_SOURCE_DIR = ${PLASTIMATCH_DIR}")
-
-#MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRECTORIES}")
-#MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRS}")
-#MESSAGE(STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_LINK_DIR}")
-
 if (QT5_FOUND)
   message (STATUS "Looking for Qt5 - found")
   include (${QT_USE_FILE})
@@ -95,10 +86,72 @@ endif ()
 FIND_PACKAGE(ITK)
 IF(ITK_FOUND)
    INCLUDE(${ITK_USE_FILE})
+   set(PLM_SUPERBUILD FALSE)
 ELSE(ITK_FOUND)
-   MESSAGE(FATAL_ERROR 
-          "Cannot build without ITK.  Please set ITK_DIR.")
+  IF(WIN32)
+    MESSAGE(FATAL_ERROR 
+      "Cannot build without ITK.  Please set ITK_DIR.")
+  ELSE()
+    set(PLM_SUPERBUILD TRUE)
+  ENDIF()
 ENDIF(ITK_FOUND)
+
+
+IF(NOT WIN32)
+  include(ExternalProject)
+  ## External Project Plastimatch: 
+  ExternalProject_Add(
+    plastimatch
+
+    GIT_REPOSITORY "https://gitlab.com/agravgaard/plastimatch.git"
+    GIT_TAG "master"
+
+    UPDATE_COMMAND ""
+    PATCH_COMMAND ""
+
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rdParty/Plastimatch"
+    CMAKE_ARGS -DCUDA_FOUND=${USE_CUDA} -DPLM_CONFIG_DISABLE_CUDA=${PREFER_OPENCL} -DPLM_SUPERBUILD=${PLM_SUPERBUILD} -DCMAKE_INSTALL_PREFIX=${GLOBAL_OUTPUT_PATH}/Plastimatch
+
+    TEST_COMMAND ""
+  )
+
+  ExternalProject_Add_Step(
+    plastimatch CopyToBin
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${GLOBAL_OUTPUT_PATH}/Plastimatch/bin ${GLOBAL_OUTPUT_PATH}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${GLOBAL_OUTPUT_PATH}/Plastimatch/lib ${GLOBAL_OUTPUT_PATH}
+    DEPENDEES install
+  )
+  set(PLASTIMATCH_INCLUDE_DIRS 
+      "${CMAKE_CURRENT_BINARY_DIR}/plastimatch-prefix/src/plastimatch-build/"
+      "${CMAKE_SOURCE_DIR}/3rdParty/Plastimatch/src/"
+      "${CMAKE_SOURCE_DIR}/3rdParty/Plastimatch/src/plastimatch/util"
+      "${CMAKE_SOURCE_DIR}/3rdParty/Plastimatch/src/plastimatch/dose"
+      "${CMAKE_SOURCE_DIR}/3rdParty/Plastimatch/src/plastimatch/sys"
+      "${CMAKE_SOURCE_DIR}/3rdParty/Plastimatch/src/plastimatch/base")
+  message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
+  INCLUDE_DIRECTORIES(${PLASTIMATCH_INCLUDE_DIRS})
+  set(Plastimatch_FOUND)
+ELSE()
+  find_package (plastimatch)
+  message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
+  message (STATUS "Plastimatch_DIR = ${Plastimatch_DIR}")
+  message (STATUS "Plastimatch_SOURCE = ${Plastimatch_SRC}")
+  message (STATUS "PLM_SRC_ROOT = ${PLM_SRC_ROOT}")
+
+  message (STATUS "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
+  message (STATUS "CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
+  message (STATUS "MY_PARENT_DIR = ${MY_PARENT_DIR}")
+
+  message (STATUS "PLASTIMATCH_LIBRARIES = ${PLASTIMATCH_LIBRARIES}")
+  message (STATUS "PLASTIMATCH_LIBRARY = ${PLASTIMATCH_LIBRARY}")
+  message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
+  message (STATUS "PLASTIMATCH_SOURCE_DIR = ${PLASTIMATCH_DIR}")
+
+  #MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRECTORIES}")
+  #MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRS}")
+  #MESSAGE(STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_LINK_DIR}")
+ENDIF()
+
 
 #Find DCMTK
 
@@ -176,9 +229,11 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 #	"H:/lib/plastimatch/SRC/src/plastimatch/cli"
 #	"H:/lib/plastimatch/SRC/src/plastimatch/clp")
 
-SET (PLASTIMATCH_INCLUDE_DIRS
-	${PLASTIMATCH_INCLUDE_DIRS}
-	"C:/Users/PC/Builds/Plastimatch/plastimatch-master/src/plastimatch/reconstruct")
+IF(WIN32)
+  SET (PLASTIMATCH_INCLUDE_DIRS
+    ${PLASTIMATCH_INCLUDE_DIRS}
+    "C:/Users/PC/Builds/Plastimatch/plastimatch-master/src/plastimatch/reconstruct")
+ENDIF()
 
 message (STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_INCLUDE_DIRS}")
 message (STATUS "CMAKE_LIBRARY_PATH = ${CMAKE_LIBRARY_PATH}")
@@ -187,6 +242,9 @@ message (STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 INCLUDE_DIRECTORIES(${PLASTIMATCH_INCLUDE_DIRS})
+
+# Find includes in corresponding build directories (For Qt5 in linux):
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 SET(QT_USE_QTCORE TRUE)
 SET(QT_USE_QTGUI TRUE)
@@ -203,21 +261,41 @@ message (STATUS "DCMTK_LIBRARY_DIRS = ${DCMTK_LIBRARY_DIRS}")
 message (STATUS "DCMTK_LIBRARIES = ${DCMTK_LIBRARIES}")
 
 #this is for "Linker->Additional dependencies"
-TARGET_LINK_LIBRARIES(CbctRecon
-netapi32.lib
-${ITK_LIBRARIES}
-${RTK_LIBRARIES}
-${QT_LIBRARIES}
-${Qt5Core_LIBRARIES}
-${Qt5Widgets_LIBRARIES}
-${Qt5OpenGL_LIBRARIES}
-${Qt5PrintSupport_LIBRARIES}
-${CUDA_LIBRARIES}
-${CUDA_FFT_LIB}
-${OPENCL_LIBRARIES}
-${PLASTIMATCH_LIBRARIES}
-${BZIP2_LIBRARIES}
-Winmm.lib
-#${DCMTK_LIBRARIES} a lot of link error.. dectection.. 
+if(WIN32)
+  TARGET_LINK_LIBRARIES(CbctRecon
+    netapi32.lib
+    ${ITK_LIBRARIES}
+    ${RTK_LIBRARIES}
+    ${QT_LIBRARIES}
+    ${Qt5Core_LIBRARIES}
+    ${Qt5Widgets_LIBRARIES}
+    ${Qt5OpenGL_LIBRARIES}
+    ${Qt5PrintSupport_LIBRARIES}
+    ${CUDA_LIBRARIES}
+    ${CUDA_FFT_LIB}
+    ${OPENCL_LIBRARIES}
+    ${PLASTIMATCH_LIBRARIES}
+    ${BZIP2_LIBRARIES}
+    Winmm.lib
+    #${DCMTK_LIBRARIES} a lot of link error.. dectection.. 
+  )
+else()
+  TARGET_LINK_LIBRARIES(CbctRecon
+    ${ITK_LIBRARIES}
+    ${RTK_LIBRARIES}
+    ${QT_LIBRARIES}
+    ${Qt5Core_LIBRARIES}
+    ${Qt5Widgets_LIBRARIES}
+    ${Qt5OpenGL_LIBRARIES}
+    ${Qt5PrintSupport_LIBRARIES}
+    ${CUDA_LIBRARIES}
+    ${CUDA_FFT_LIB}
+    ${OPENCL_LIBRARIES}
+    ${PLASTIMATCH_LIBRARIES}
+    ${BZIP2_LIBRARIES}
 )
+endif()
 
+add_dependencies(CbctRecon
+  plastimatch
+)
