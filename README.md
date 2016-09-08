@@ -22,7 +22,7 @@ In order to compile the software, you must have installed the following prerequi
   <li>VTK - Latest</li>
   <li>ITK - Latest</li>
   <li>RTK -  https://github.com/agravgaard/RTK</li>
-  <li>Plastimatch -  https://github.com/agravgaard/plastimatch</li>
+  <li>Plastimatch -  https://gitlab.com/agravgaard/plastimatch</li>
   <li>Bzlib2 - https://github.com/philr/bzip2-windows/releases </li>
 </ul>
 
