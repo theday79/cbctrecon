@@ -2,10 +2,7 @@
 #define CBCTRECON_H
 
 #include <QtWidgets/QMainWindow>
-//  QMainWindow>
 //#include <QTimer>
-//#include <itkGPUImage.h>
-//#include <itkCudaImage.h> //unnessecary
 #include "ui_cbctrecon.h"
 #include "YK16GrayImage.h"
 
@@ -13,11 +10,6 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 #include "itkTileImageFilter.h"
-//#include "DlgRegistration.h"
-//#include "itkDerivativeImageFilter.h"
-//#include "itkSmoothingRecursiveGaussianImageFilter.h"
-//#include "itkIntensityWindowingImageFilter.h"
-//#include "itkMedianImageFilter.h"
 //
 ////class YK16GrayImage;
 ////
@@ -33,14 +25,6 @@
 //#define DEFAULT_PERCENT_BADPIX_ON_COLUMN 30
 //#define DEFAULT_PERCENT_BADPIX_ON_ROW 30
 //
-//typedef itk::Image<float,2> FloatImageType;
-//typedef itk::Image<unsigned short, 2> UnsignedShortImageType;
-//typedef itk::ImageFileReader<UnsignedShortImageType> readerType;
-//typedef itk::DerivativeImageFilter<UnsignedShortImageType, FloatImageType> DerivativeFilterType;
-//typedef itk::SmoothingRecursiveGaussianImageFilter<UnsignedShortImageType, UnsignedShortImageType>  SmoothingFilterType;
-//typedef itk::IntensityWindowingImageFilter<UnsignedShortImageType, UnsignedShortImageType>  WindowingFilterType;
-//typedef itk::MedianImageFilter<UnsignedShortImageType,UnsignedShortImageType> MedianFilterType;
-
 
 // RTK includes
 #include <rtkHndImageIO.h>
@@ -265,10 +249,7 @@ public:
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	void ForwardProjection (USHORT_ImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, USHORT_ImageType::Pointer& spProjCT3D, bool bSave);
 	//to be implemented: Save projection3D to *.his files	
-	//void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, bool bSave);	//void GenScatterMap2D_PriorCT()
-	//void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, double resF2D, double medianRadius, double gaussianSigma, bool bSave);
 	void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave);
-	//void ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjScat3D, USHORT_ImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, bool bSave);
 	void ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjScat3D, USHORT_ImageType::Pointer& m_spProjCorr3D, int nonNegativeScatOffset, int postMedian, bool bSave);
 	void AfterScatCorrectionMacro();
 
@@ -308,7 +289,6 @@ public:
 
 	double GetRawIntensityScaleFactor();
 
-	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
 	void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);
 
 	void GetAngularWEPL_MultiPoint(USHORT_ImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
@@ -328,17 +308,17 @@ public:
 	FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader& xml);
 	QString XML_GetSingleItemString(QXmlStreamReader& xml);
 
-        bool GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, float& ms);
+	bool GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, float& ms);
 
-        void SetProjDir(QString& strProjPath);
+	void SetProjDir(QString& strProjPath);
 
-        bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false, bool bCBCT_IntensityShift = false);
+	bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false, bool bCBCT_IntensityShift = false);
 
-		void ExportAngularWEPL_byFile(QString& strPathOutput);
+	void ExportAngularWEPL_byFile(QString& strPathOutput);
 
-		void OptimizedExportAngularWEPL_byFile(QString& strPathOutput);
+	void OptimizedExportAngularWEPL_byFile(QString& strPathOutput);
 
-        void ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QString& outputFilePath);
+	void ExportReconSHORT_HU(USHORT_ImageType::Pointer& spUsImage, QString& outputFilePath);
 	/*Temporary implementation for XVI5 xml*/
 
 
@@ -349,18 +329,17 @@ public:
 
 	//void AuditMemory();
 
-        void CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
+	void CropFOV3D(USHORT_ImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
 
+	void GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
 
-        void GenerateCylinderMask(USHORT_ImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
+	float GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
 
-        float GetMeanIntensity(USHORT_ImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
+	void AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval);
 
-        void AddConstHU(USHORT_ImageType::Pointer& spImg, int HUval);
+	bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
 
-		bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
-
-		void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin = 5);
+	void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin = 5);
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
@@ -377,102 +356,69 @@ public:
 		void SLT_LoadImageFloat3D();  //Dose file
 		void SLTM_LoadDICOMdir(); //independent 2d projection files //not used in clinical case
 		void SLTM_LoadRTKoutput();
-
 		void SLT_DrawRawImages(); //external *.his images
 		void SLT_DrawProjImages(); // draw images from HIS FILE READER or filtered image before going into recon.
 		void SLT_DrawReconImage();
-
 		//tools
 		void SLT_FileNameHex2Dec();	
 		void SLT_MakeVarianXML();		// ELEKTA VS VARIAN
-		
 		//Gain/ Offset correction
 		void SLT_OpenOffsetFile();
 		void SLT_OpenGainFile();
 		void SLT_OpenBadpixelFile();
 		void SLT_ApplyCalibration();
-
 		//Gain/ Offset correction
 		void SLT_SetHisDir();
 		void SLT_OpenVarianGeomFile(); // ELEKTA VS VARIAN
-
 		void SLT_SetOutputPath();
 		void SLT_DoReconstruction();
-
 		//Profile table
 		//void SLT_GetProjectionProfile();
 		//void SLT_GetReconImgProfile();
 		void SLT_CopyTableToClipBoard();
-
 		void SLT_DataProbeProj();
 		void SLT_DataProbeRecon();
 		void SLT_DrawGraph();
-
 		void SLT_InitializeGraphLim();
 		void SLT_UpdateTable();
-
 		void SLT_CalculateROI_Recon();
 		void SLT_CalculateROI_Proj();
 		void SLT_GoForcedProbePos();
-
 		void SLT_PostApplyFOVDispParam();
 		void SLT_DoPostProcessing(); //cropping Circle
-                void SLT_PostProcCropInv();
-
-
+        void SLT_PostProcCropInv();
 		void SLT_ExportReconUSHORT();
 		void SLT_ExportReconSHORT_HU();
 		void SLT_DoBHC();
 		void SLT_DoBTC();
-
 		void SLT_Export2DDose_TIF();
 		void SLTM_Export2DDoseMapAsMHA();
-
-
-                void SLT_ViewRegistration();
-
+		void SLT_ViewRegistration();
 		void SLT_DoScatterCorrection_APRIORI();
-
 		void SLT_TempAudit();
-
 		void SLT_CalcAndSaveAngularWEPL();
-
 		void SLT_DoScatterCorrectionUniform();
-
 		void SLT_FileExportShortDICOM_CurrentImg();
-
 		void SLT_AddConstHUToCurImg();
-
 		void SLT_SetCBCTSkinRSPath();
 		void SLT_CropSkinUsingRS();
 		void SLT_CropSkinUsingThreshold();
-
 		void SLT_ExportAngularWEPL_byFile();
 		void SLT_OptExportAngularWEPL_byFile();
 		void SLT_GeneratePOIData();
 		void SLT_LoadPOIData();
-
 		void SLT_StartSyncFromSharedMem();
 		void SLT_StopSyncFromSharedMem();
-
 		void SLT_TimerEvent();
-
 		void SLTM_ViewExternalCommand();
-
 		void SLT_MedianFilterDoNow();
 		void SLTM_ExportProjGeometryTXT();
-
-                void SLTM_ForwardProjection();
-
-                void SLTM_FineResolScatterCorrectrionMacro();//projection: full, scatter map:512x512
-
-                void SLTM_FullScatterCorrectionMacroAP();
-
-                void SLTM_BatchScatterCorrectionMacroAP();
-				
-				void SLT_OpenPhaseData(); //fill lineEdit_PhaseTxtPath
-			
-				void SLT_Export4DCBCT(); //phase resorting
+        void SLTM_ForwardProjection();
+        void SLTM_FineResolScatterCorrectrionMacro();//projection: full, scatter map:512x512
+        void SLTM_FullScatterCorrectionMacroAP();
+        void SLTM_BatchScatterCorrectionMacroAP();
+		void SLT_OpenPhaseData(); //fill lineEdit_PhaseTxtPath
+		void SLT_Export4DCBCT(); //phase resorting
 
 public:
 
@@ -541,11 +487,11 @@ public:
 	QString m_strPathGeomXML; //after Generation of the XML from DBF files
 	QString m_strPathPlanCTDir;
 	QString m_strPathRS; //for body and lung contours
-        QString m_strPathPlan; //for isocenter position
+	QString m_strPathPlan; //for isocenter position
 	QString m_strPathDirDefault; //QFileDialog default starting point
 	QString m_strPathRS_CBCT; //QFileDialog default starting point
-        QString m_strPathVarianINI; //for mAs values
-		QString m_strPathIMAGES;//upper folder of projection files (His)
+	QString m_strPathVarianINI; //for mAs values
+	QString m_strPathIMAGES;//upper folder of projection files (His)
 	int m_iFixedOffset_ScatterMap;//fixed! allows negative value of scatter
 	double m_fResampleF; //typically 0.5. this is updated during LoadSelectedProj image and ui.lineEdit_DownResolFactor.//also affects all other scatter correction method
 	double m_fProjSpacingX; //updated from SelectedProjLoad
@@ -556,12 +502,11 @@ public:
 	QTimer* m_Timer;
 	bool m_busyTimer;
 
+	vector<string> m_vSelectedFileNames;
 
-        vector<string> m_vSelectedFileNames;
-
-        bool m_bMacroContinue;
+	bool m_bMacroContinue;
 	
-		vector<float> m_vPhaseFloat;
+	vector<float> m_vPhaseFloat;
 
 //private:
 public:

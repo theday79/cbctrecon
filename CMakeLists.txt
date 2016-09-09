@@ -97,7 +97,7 @@ ELSE(ITK_FOUND)
 ENDIF(ITK_FOUND)
 
 
-IF(NOT WIN32)
+IF(!WIN32)
   include(ExternalProject)
   ## External Project Plastimatch: 
   ExternalProject_Add(
@@ -133,19 +133,31 @@ IF(NOT WIN32)
   set(Plastimatch_FOUND)
 ELSE()
   find_package (plastimatch)
+  set(PLASTIMATCH_INCLUDE_DIRS 
+      ${PLASTIMATCH_INCLUDE_DIRS}
+      "${Plastimatch_DIR}/src/"
+      "${Plastimatch_DIR}/src/plastimatch/"
+      "${Plastimatch_DIR}/src/plastimatch/util"
+      "${Plastimatch_DIR}/src/plastimatch/dose"
+      "${Plastimatch_DIR}/src/plastimatch/sys"
+      "${Plastimatch_DIR}/src/plastimatch/base"
+      "${Plastimatch_DIR}/src/plastimatch/register"
+      "${Plastimatch_DIR}/src/plastimatch/segment"
+      "${Plastimatch_DIR}/../plastimatch-master-build") #Sorry, I'll fix later..
   message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
-  message (STATUS "Plastimatch_DIR = ${Plastimatch_DIR}")
-  message (STATUS "Plastimatch_SOURCE = ${Plastimatch_SRC}")
-  message (STATUS "PLM_SRC_ROOT = ${PLM_SRC_ROOT}")
+  message (STATUS "Plastimatch_DIR (Source dir) = ${Plastimatch_DIR}")
+  message (STATUS "plastimatch_DIR (Install->CMake dir) = ${plastimatch_DIR}")
+  # message (STATUS "Plastimatch_SOURCE = ${Plastimatch_SRC}")
+  # message (STATUS "PLM_SRC_ROOT = ${PLM_SRC_ROOT}")
 
   message (STATUS "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
   message (STATUS "CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
-  message (STATUS "MY_PARENT_DIR = ${MY_PARENT_DIR}")
+  # message (STATUS "MY_PARENT_DIR = ${MY_PARENT_DIR}")
 
   message (STATUS "PLASTIMATCH_LIBRARIES = ${PLASTIMATCH_LIBRARIES}")
-  message (STATUS "PLASTIMATCH_LIBRARY = ${PLASTIMATCH_LIBRARY}")
+  # message (STATUS "PLASTIMATCH_LIBRARY = ${PLASTIMATCH_LIBRARY}")
   message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
-  message (STATUS "PLASTIMATCH_SOURCE_DIR = ${PLASTIMATCH_DIR}")
+  # message (STATUS "PLASTIMATCH_SOURCE_DIR = ${PLASTIMATCH_DIR}")
 
   #MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRECTORIES}")
   #MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRS}")
