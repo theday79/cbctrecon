@@ -146,11 +146,13 @@ struct VEC3D{
   double z;  
 };
 
-
+//
 struct FLEXDATA{
 	float fGanAngle; //MV beam gantry angle
 	float fPanelOffsetX; //MV beam gantry angle
-	float fPanelOffsetY; //MV beam gantry angle	
+	float fPanelOffsetY; //MV beam gantry angle
+        bool bKV_On;
+        bool bMV_On;
 };
 
 
@@ -274,6 +276,7 @@ public:
 
 	/*Temporary implementation for XVI5 xml*/
 	void LoadXVIGeometryFile(const char* filePath); //temporary implenetation using QT XML. This is for XVI v >5.0.2. _Frames.xml is in every projection folder 
+
 	FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader& xml);
 	QString XML_GetSingleItemString(QXmlStreamReader& xml);
 
@@ -502,10 +505,10 @@ public:
 	double m_fProjImgValueMax; //value of float image
 	double m_fProjImgValueMin;
 
-	double m_multiplyFactor;
-	QStandardItemModel *m_pTableModel;
-    DlgRegistration* m_pDlgRegistration;
-	DlgExternalCommand* m_pDlgExternalCommand;
+        double m_multiplyFactor;
+        QStandardItemModel *m_pTableModel;
+        DlgRegistration* m_pDlgRegistration;
+        DlgExternalCommand* m_pDlgExternalCommand;
 
 	//Automatically detected relavant file/Dir path when load the projection files (SLT_SetHisDir)
 
@@ -548,6 +551,8 @@ public:
         QStringList m_strListPerProjRefVol;
 
         QString m_strPathDefaultConfigFile;
+
+        vector<int> m_vExcludeProjIdx;//if kVON (exposed_ tag is false
 	
 
 //private:

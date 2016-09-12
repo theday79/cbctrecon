@@ -174,7 +174,7 @@ public:
           void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly = false);//8 mm skin cut + fill air bubbles inside CBCT
 
 	 void SetPlmOutputDir(QString& endFix);
-	 void init(QString& strDCMUID);
+	 void initDlgRegistration(QString& strDCMUID);
 
 	 void PostSkinRemovingCBCT(UShortImageType::Pointer& spCBCT); //this function will be called from main Dlg.         
 

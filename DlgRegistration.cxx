@@ -1879,7 +1879,6 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   QString filePathOutput = m_strPathPlastimatch + "/" + "output_deform.mha";
   QString filePathXform = m_strPathPlastimatch + "/" + "xform_deform.txt";
 
-
   QString filePathOutputStage1 = m_strPathPlastimatch + "/" + "output_deform_stage1.mha";
   QString filePathOutputStage2 = m_strPathPlastimatch + "/" + "output_deform_stage2.mha";
   QString filePathOutputStage3 = m_strPathPlastimatch + "/" + "output_deform_stage3.mha";
@@ -2895,7 +2894,7 @@ void DlgRegistration::SetPlmOutputDir(QString& endFix)
   m_strPathPlastimatch = dirName;
 }
 
-void DlgRegistration::init( QString& strDCMUID )
+void DlgRegistration::initDlgRegistration( QString& strDCMUID )
 {
   SetPlmOutputDir(strDCMUID);
 
