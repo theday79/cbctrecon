@@ -87,6 +87,7 @@
 
 # include "rtkADMMWaveletsConeBeamReconstructionFilter.h" // ADDED BY AGRAVGAARD
 # include "rtkConjugateGradientConeBeamReconstructionFilter.h" // ADDED BY AGRAVGAARD
+# include "rtkSARTConeBeamReconstructionFilter.h" // ADDED BY AGRAVGAARD
 # include "rtkTotalVariationImageFilter.h" // ADDED BY AGRAVGAARD
 # include "itkStatisticsImageFilter.h" // ADDED BY AGRAVGAARD
 # include "rtkDownsampleImageFilter.h"
@@ -239,8 +240,8 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 	//	qDebug() << "Failed to run";
 
 	//m_strPathDirDefault = "D:\\Program_data\\01_20140827_CBCT_All\\04_patient_phan_pelvis_M\\IMAGES\\img_1.3.46.423632.135786.1409186054.9_M20mAs6440";
-	m_strPathDirDefault = "C:\\Users\\PC\\Documents\\Alderson_phantom\\k\\Raw projections";
-
+	//m_strPathDirDefault = "C:\\Users\\PC\\Documents\\Alderson_phantom\\k\\Raw projections";
+	m_strPathDirDefault = "C:\\Users\\PC\\Documents\\Scripps_CBCT\\CBCT_Scatter_Project\\CBCT\\RawData\\CatPhan";
 
         m_bMacroContinue = true;
 
@@ -3376,6 +3377,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 	admm->SetForwardProjectionFilter( 0 );
 	admm->SetBackProjectionFilter( 0 );
 	*/
+	/*
 	typedef rtk::ConjugateGradientConeBeamReconstructionFilter <OutputImageType> IterReconType;
 	IterReconType::Pointer iterRecon = IterReconType::New();
 	iterRecon->SetInput(0, constantImageSource->GetOutput());
@@ -3389,6 +3391,17 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 	uniformWeightsSource->SetConstant(1.0);
 	iterRecon->SetBackProjectionFilter(0);
 	iterRecon->SetInput(2, uniformWeightsSource->GetOutput());
+	*/
+	typedef rtk::SARTConeBeamReconstructionFilter <OutputImageType, OutputImageType> ReconType;
+	ReconType::Pointer Recon = ReconType::New();
+	Recon->SetInput(0, constantImageSource->GetOutput());
+	Recon->SetInput(1, spCurImg);
+	Recon->SetGeometry(m_spCustomGeometry);
+	Recon->SetLambda(0.3); //Default value
+	Recon->SetNumberOfIterations(10); //Default = 3
+	Recon->SetNumberOfProjectionsPerSubset(1); // default value
+	Recon->SetBackProjectionFilter(1); // backProj=0, Joseph=1, Cuda=2, normJoseph=3, CudaRay=4
+	Recon->SetForwardProjectionFilter(0); // Joseph=0, RayCast=1, Cuda=2
 
 	typedef rtk::FieldOfViewImageFilter <OutputImageType, OutputImageType> FOVFilterType;
 	FOVFilterType::Pointer fieldofviewFilter = FOVFilterType::New();
@@ -3397,7 +3410,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 		cout << "Wait for iterative reconstruction to finish.." << endl;
 		try
 		{
-			iterRecon->Update();
+			Recon->Update();
 		}
 		catch (itk::ExceptionObject & e)
 		{
@@ -3406,7 +3419,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 			cerr << e << endl;
 		}
 		cout << "FOV filter is being added.." << endl;
-		fieldofviewFilter->SetInput(0, iterRecon->GetOutput());
+		fieldofviewFilter->SetInput(0, Recon->GetOutput());
 		fieldofviewFilter->SetGeometry(m_spCustomGeometry);
 		if (!ui.checkBox_UseDDF->isChecked())
 		{
@@ -3430,7 +3443,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 	}
 	else
 	{
-		streamerBP->SetInput(iterRecon->GetOutput());
+		streamerBP->SetInput(Recon->GetOutput());
 	}
 	streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
 
@@ -3959,10 +3972,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		return;
 	}
 
-	if (iFullGeoDataSize !=fullCnt )
+	if (iFullGeoDataSize != fullCnt && iFullGeoDataSize-1 != fullCnt)
 	{
-		//cout << "Size of geometry data and file numbers are not same! Continue anyway?" << endl;
-		//system("pause"); //WINDOWS
 		QMessageBox msgBox;
 		msgBox.setText("Size of geometry data and file numbers are not same!");
 		msgBox.exec();
@@ -3995,7 +4006,16 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 ///////////////////////////////////Exclude outlier projection files
 
 	vector<int> vExcludeIdx;
-
+	/*
+	if (ximIsUsed){ // Possibly due to the slow acceleration the first and last few projections make artefacts
+		int n_excl = 4; // exclude from each side
+		int last_offset = iFullGeoDataSize - 2 * n_excl; //new last index + 1
+		for (int i = 0; i < 8; i++)
+		{
+			vExcludeIdx.push_back(i < n_excl ? i : (last_offset + i ));
+		}
+	}
+	*/
 	// cout << "[Excluding-files-function] has been omitted. To reactivaite it, please edit SLT_LoadSelectedProjFiles" << endl;
 
 
@@ -4085,6 +4105,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
   }
 
   //Regenerate geometry object
+  //cout << "Gantry (deg): ";
   m_spCustomGeometry = GeometryType::New();
   for (itIdx =vSelectedIdx.begin() ; itIdx != vSelectedIdx.end() ; itIdx++ )
   {
@@ -4092,26 +4113,26 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	  double curSID = m_spFullGeometry->GetSourceToIsocenterDistances().at(*itIdx);
 	  double curSDD = m_spFullGeometry->GetSourceToDetectorDistances().at(*itIdx);
 	  double curGantryAngle = m_spFullGeometry->GetGantryAngles().at(*itIdx);
-	  double kVAng = curGantryAngle * 180. * itk::Math::one_over_pi; // 360 / 2 = 180
-	  double MVAng = kVAng - 90;
+	  double kVAng = 360 - curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees -> flip direction
+	  double MVAng = kVAng - 90.0;
 	  if (MVAng < 0.0)
-		  MVAng = MVAng + 360;
+		  MVAng = MVAng + 360.0;
 	  curGantryAngle = MVAng;
-	  // cout << "Gantry " << curGantryAngle << " (deg)" << endl;
+	  //cout << curGantryAngle << ", ";
+
 	  double curProjOffsetX = m_spFullGeometry->GetProjectionOffsetsX().at(*itIdx);
 	  double curProjOffsetY = m_spFullGeometry->GetProjectionOffsetsY().at(*itIdx);
-
 	  double curOutOfPlaneAngles = m_spFullGeometry->GetOutOfPlaneAngles().at(*itIdx);
 	  double curInPlaneAngles = m_spFullGeometry->GetInPlaneAngles().at(*itIdx);
-
 	  double curSrcOffsetX = m_spFullGeometry->GetSourceOffsetsX().at(*itIdx);
 	  double curSrcOffsetY = m_spFullGeometry->GetSourceOffsetsY().at(*itIdx);
 
 	  m_spCustomGeometry->AddProjection(curSID, curSDD,curGantryAngle,
-		  curProjOffsetX,curProjOffsetY, //Flexmap
+		  curProjOffsetX,curProjOffsetY, //Flexmap. For Xim, these are 0
 		  curOutOfPlaneAngles, curInPlaneAngles, //In elekta and varian, these are 0
 		  curSrcOffsetX, curSrcOffsetY); //In elekta and varian, these are 0
   }
+  //cout << endl;
   //Regenerate fileNames and geometry object based on the selected indices.
 
   if (!m_vSelectedFileNames.empty())
@@ -6355,7 +6376,6 @@ void CbctRecon::DoBeamHardeningCorrection()
 			//corrF = 1+(1-crntVal);
 			corrF = 1.0;
 		}
-
 		else
 		{
 			corrF = poly3_a*pow(crntVal,3.0) +
@@ -6370,27 +6390,25 @@ void CbctRecon::DoBeamHardeningCorrection()
 
 void CbctRecon::SLT_DoBHC()
 {
-  //Temp
- // SLT_TempAudit();
-	//return;
+  if (!m_spProjImg3DFloat)
+	return;
 
-	if (true)
-	{
-		cout << "Beam hardening correction is under progress.." << endl;
-		DoBeamHardeningCorrection();//only for m_spProjImg3D
-		SetMaxAndMinValueOfProjectionImage();
-	}
-
-	SLT_DrawProjImages();
+  DoBeamHardeningCorrection();//only for m_spProjImg3D
+  SetMaxAndMinValueOfProjectionImage();
+  SLT_DrawProjImages();
 }
 
 
 void CbctRecon::SLT_DoBTC()
 {
 	if (!m_spProjImg3DFloat)
-		return;
+	  return;
 
-	//OutputImageType m_spProjImg3D: float image
+	if (ximIsUsed){
+	  cout << "Bow tie filtering should not be used for Xim data (from Scripps) !!" << endl;
+	  return;
+	}
+ 	//OutputImageType m_spProjImg3D: float image
 
 	typedef itk::ImageRegionIteratorWithIndex<OutputImageType> iteratorType;
 	iteratorType it(m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
@@ -6493,7 +6511,6 @@ void CbctRecon::SLT_DoBTC()
 		it.Set((float)(crntVal - corrF)); // (log(65535 / (crntVal - corrF))));
 		++it;
 	}
-	cout << endl;
 	SetMaxAndMinValueOfProjectionImage();
 	SLT_DrawProjImages();
 	cout << "Bow-tie correction done." << endl;
