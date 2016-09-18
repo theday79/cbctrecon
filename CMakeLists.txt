@@ -143,7 +143,7 @@ ELSE()
       "${Plastimatch_DIR}/src/plastimatch/base"
       "${Plastimatch_DIR}/src/plastimatch/register"
       "${Plastimatch_DIR}/src/plastimatch/segment"
-      "${Plastimatch_DIR}/../plastimatch-master-build") #Sorry, I'll fix later..
+      "${Plastimatch_DIR}/../build") #Sorry, I'll fix later..
   message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
   message (STATUS "Plastimatch_DIR (Source dir) = ${Plastimatch_DIR}")
   message (STATUS "plastimatch_DIR (Install->CMake dir) = ${plastimatch_DIR}")
@@ -174,6 +174,11 @@ LINK_DIRECTORIES("${DCMTK_DIR}/lib")
 
 #works But A lot of lInk error (detection...
 
+set(DCMTK_INCLUDE_DIRS
+    ${DCMTK_INCLUDE_DIRS}
+    "${DCMTK_DIR}/include/"
+    )
+INCLUDE_DIRECTORIES(${DCMTK_INCLUDE_DIRS})
 MESSAGE(STATUS "DCMTK_FOUND = ${DCMTK_FOUND}")
 MESSAGE(STATUS "DCMTK_DIR = ${DCMTK_DIR}")
 MESSAGE(STATUS "DCMTK_ROOT_DIR = ${DCMTK_ROOT_DIR}")

@@ -2016,15 +2016,10 @@ void CbctRecon::CudaDoReconstructionTV(enREGI_IMAGES target)  // ADDED BY AGRAVG
 	resampler->SetTransform(transform);
 	//resampler->Update();//yktemp Error 2
 
-	//LR flip
-
-	cout << "LR flip filter is being applied" << endl;
-
+	cout << "Flip filter is being applied" << endl;
 	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
-
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
-
 	FlipAxesArrayType arrFlipAxes;
 	arrFlipAxes[0] = 1;
 	arrFlipAxes[1] = 0;
@@ -2335,6 +2330,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
 	double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
 	double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
+	double fRamLak = ui.lineEdit_Ramp_RamLakCut->text().toDouble();
 
 	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
 	{
@@ -2348,6 +2344,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	cout << "fTruncCorFactor =" << fTruncCorFactor << endl;
 	// This macro sets options for fdk filter which I can not see how to do better
 	// because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
+	/*
 #define SET_FELDKAMP_OPTIONS(f) \
 	f->SetInput( 0, constantImageSource->GetOutput() ); \
 	f->SetInput( 1, spCurImg ); \
@@ -2357,17 +2354,26 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	f->GetRampFilter()->SetCosineCutFrequency(fCosineCut); \
 	f->GetRampFilter()->SetHammingFrequency(fHamming); \
 	f->GetRampFilter()->SetHannCutFrequencyY(fHannCutY); 
-
+	*/
 
 
 	// FDK reconstruction filtering
-	itk::ImageToImageFilter<CUDAOutputImageType, CUDAOutputImageType>::Pointer CUDAfeldkamp;
+	// itk::ImageToImageFilter<CUDAOutputImageType, CUDAOutputImageType>::Pointer CUDAfeldkamp;
 	typedef rtk::CudaFDKConeBeamReconstructionFilter FDKCUDAType;
-
+	FDKCUDAType::Pointer CUDAfeldkamp = FDKCUDAType::New();
 
 	cout << "CUDA will be used for FDK reconstruction" << endl;
-	CUDAfeldkamp = FDKCUDAType::New();
-	SET_FELDKAMP_OPTIONS(static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer()));
+	// CUDAfeldkamp = FDKCUDAType::New();
+	CUDAfeldkamp->SetInput(0, constantImageSource->GetOutput());
+	CUDAfeldkamp->SetInput(1, spCurImg);
+	CUDAfeldkamp->SetGeometry(m_spCustomGeometry);
+	CUDAfeldkamp->GetRampFilter()->SetTruncationCorrection(fTruncCorFactor);
+	CUDAfeldkamp->GetRampFilter()->SetHannCutFrequency(fHannCut);
+	CUDAfeldkamp->GetRampFilter()->SetCosineCutFrequency(fCosineCut);
+	CUDAfeldkamp->GetRampFilter()->SetHammingFrequency(fHamming);
+	CUDAfeldkamp->GetRampFilter()->SetHannCutFrequencyY(fHannCutY);
+	CUDAfeldkamp->GetRampFilter()->SetRamLakCutFrequency(fRamLak);
+	// SET_CUDA_FELDKAMP_OPTIONS(static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer()));
 
 	typedef rtk::FieldOfViewImageFilter <CUDAOutputImageType, CUDAOutputImageType> FOVFilterType;
 	FOVFilterType::Pointer fieldofviewFilter = FOVFilterType::New();
@@ -2486,18 +2492,14 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	//LR flip
 
-	cout << "LR flip filter is being applied" << endl;
-
+	cout << "Flip filter is being applied" << endl;
 	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
-
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
-
 	FlipAxesArrayType arrFlipAxes;
 	arrFlipAxes[0] = 1;
 	arrFlipAxes[1] = 0;
 	arrFlipAxes[2] = 0;
-
 	flipFilter->SetFlipAxes(arrFlipAxes);
 	flipFilter->SetInput(resampler->GetOutput());
 
@@ -3025,24 +3027,22 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
 	FilterType::Pointer flipFilter = FilterType::New();
 
-	if (!ximIsUsed){
-	  //LR flip
-	  cout << "LR flip filter is being applied" << endl;
-	  typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
-	  FlipAxesArrayType arrFlipAxes;
-	  arrFlipAxes[0] = 1;
-	  arrFlipAxes[1] = 0;
-	  arrFlipAxes[2] = 0;
-	  flipFilter->SetFlipAxes(arrFlipAxes);
-	  flipFilter->SetInput(resampler->GetOutput());
-	}
+	cout << "Flip filter is being applied" << endl;
+	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+	FlipAxesArrayType arrFlipAxes;
+	arrFlipAxes[0] = 1;
+	arrFlipAxes[1] = 0;
+	arrFlipAxes[2] = 0;
+	flipFilter->SetFlipAxes(arrFlipAxes);
+	flipFilter->SetInput(resampler->GetOutput());
+	
 	/*OutputImageType::Pointer floatImg = flipFilter->GetOutput();*/
 	//const unsigned int Dimension = 3;
 	//FinalImageType::Pointer finalImg ;
 	
 	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
-	absImgFilter->SetInput(ximIsUsed ? resampler->GetOutput():flipFilter->GetOutput()); // 20140206 modified it was a bug
+	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
 	//absImgFilter->SetInput(resampler->GetOutput());
 
 	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
@@ -3262,7 +3262,12 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 	//3) Prepare all parameters from GUI components
 }
 
-
+#ifdef CUDA_FOUND
+void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
+{
+	cout << "You shouldn't use the CPU for iterative when compiled on cuda option!" << endl;
+}
+#else
 void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 {
 	//Hardware Type
@@ -3512,21 +3517,18 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
 	FilterType::Pointer flipFilter = FilterType::New();
 
-	if (!ximIsUsed){
-		//LR flip
-		cout << "LR flip filter is being applied" << endl;
-		typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
-		FlipAxesArrayType arrFlipAxes;
-		arrFlipAxes[0] = 1;
-		arrFlipAxes[1] = 0;
-		arrFlipAxes[2] = 0;
-		flipFilter->SetFlipAxes(arrFlipAxes);
-		flipFilter->SetInput(resampler->GetOutput());
-	}
-
+	cout << "Flip filter is being applied" << endl;
+	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+	FlipAxesArrayType arrFlipAxes;
+	arrFlipAxes[0] = 1;
+	arrFlipAxes[1] = 0;
+	arrFlipAxes[2] = 0;
+	flipFilter->SetFlipAxes(arrFlipAxes);
+	flipFilter->SetInput(resampler->GetOutput());
+	
 	typedef itk::AbsImageFilter<OutputImageType, OutputImageType> AbsImageFilterType;
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
-	absImgFilter->SetInput(ximIsUsed ? resampler->GetOutput() : flipFilter->GetOutput()); 
+	absImgFilter->SetInput(flipFilter->GetOutput()); 
 
 	typedef itk::MultiplyImageFilter<OutputImageType, OutputImageType, OutputImageType> MultiplyImageFilterType;
 
@@ -3647,6 +3649,7 @@ void CbctRecon::DoReconstructionTV(enREGI_IMAGES target)
 
 	cout << "FINISHED!: Total Variation CBCT reconstruction" << endl;
 }
+#endif
 
 void CbctRecon::SLT_DoReconstruction()
 {
@@ -4113,7 +4116,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	  double curSID = m_spFullGeometry->GetSourceToIsocenterDistances().at(*itIdx);
 	  double curSDD = m_spFullGeometry->GetSourceToDetectorDistances().at(*itIdx);
 	  double curGantryAngle = m_spFullGeometry->GetGantryAngles().at(*itIdx);
-	  double kVAng = 360 - curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees -> flip direction
+	  double kVAng = 180.0 - curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees -> flip direction
 	  double MVAng = kVAng - 90.0;
 	  if (MVAng < 0.0)
 		  MVAng = MVAng + 360.0;
@@ -7338,25 +7341,22 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 
 	typedef itk::FlipImageFilter< USHORT_ImageType >  FilterType;
 	FilterType::Pointer flipFilter = FilterType::New();
-	if (!ximIsUsed){
-	  typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
-
-	  FlipAxesArrayType arrFlipAxes;
-	  arrFlipAxes[0] = 1;
-	  arrFlipAxes[1] = 0;
-	  arrFlipAxes[2] = 0;
-
-      flipFilter->SetFlipAxes(arrFlipAxes);
-	  flipFilter->SetInput(spVolImg3D); //plan CT, USHORT image
-	}
+	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
+    FlipAxesArrayType arrFlipAxes;
+	arrFlipAxes[0] = 1;
+	arrFlipAxes[1] = 0;
+	arrFlipAxes[2] = 0;
+	flipFilter->SetFlipAxes(arrFlipAxes);
+	flipFilter->SetInput(spVolImg3D); //plan CT, USHORT image
+	
 	typedef itk::Euler3DTransform< double > TransformType;
 	TransformType::Pointer transform = TransformType::New();
 
 	TransformType::ParametersType param;
 	param.SetSize(6);
-	param.put(0, itk::Math::pi / -2.0); //rot X // 0.5 = PI/2
+	param.put(0, -itk::Math::pi_over_2); //rot X 
 	param.put(1, 0);//rot Y
-	param.put(2, itk::Math::pi/2.0);//rot Z
+	param.put(2, itk::Math::pi_over_2);//rot Z
 	param.put(3, 0.0); // Trans X mm
 	param.put(4, 0.0); // Trans Y mm
 	param.put(5, 0.0); // Trans Z mm
@@ -7375,11 +7375,11 @@ void CbctRecon::ForwardProjection( USHORT_ImageType::Pointer& spVolImg3D, Geomet
 	typedef itk::ResampleImageFilter<USHORT_ImageType, USHORT_ImageType> ResampleFilterType;
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 
-	resampler->SetInput(ximIsUsed?spVolImg3D:flipFilter->GetOutput());
+	resampler->SetInput(flipFilter->GetOutput());
 	resampler->SetSize(size_trans);
 	resampler->SetOutputOrigin( Origin_trans); //Lt Top Inf of Large Canvas
 	resampler->SetOutputSpacing( spacing_trans ); // 1 1 1
-	resampler->SetOutputDirection( ximIsUsed?spVolImg3D->GetDirection():flipFilter->GetOutput()->GetDirection() ); //image normal?
+	resampler->SetOutputDirection(flipFilter->GetOutput()->GetDirection() ); //image normal?
 	resampler->SetTransform(transform);
 
 	typedef itk::CastImageFilter< USHORT_ImageType, OutputImageType> CastFilterType; //Maybe not inplace filter
@@ -10154,15 +10154,11 @@ void CbctRecon::TransformationRTK2IEC(OutputImageType::Pointer& spSrcTarg)
 	resampler->SetOutputDirection(targetImg->GetDirection()); //image normal?
 	resampler->SetTransform(transform);
 
-	//LR flip
-
-	cout << "LR flip filter is being applied" << endl;
+	cout << "Flip filter is being applied" << endl;
 
 	typedef itk::FlipImageFilter< OutputImageType >  FilterType;
-
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
-
 	FlipAxesArrayType arrFlipAxes;
 	arrFlipAxes[0] = 1;
 	arrFlipAxes[1] = 0;
