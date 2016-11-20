@@ -90,6 +90,7 @@ public slots:
 	void SLT_DoRegistrationDeform();
         void SLT_DoRegistrationGradient();
         void SLT_ManualMoveByDCMPlan();
+        void SLT_ManualMoveByDCMPlanOpen();
 
 	void SLT_BringFocusToEnableArrow(bool bChecked);
 
@@ -112,6 +113,7 @@ public slots:
         void SLT_ConfirmManualRegistration();
         void SLT_IntensityNormCBCT();
         void SLT_DoLowerMaskIntensity(); //button
+
 
 
 public:
@@ -185,6 +187,10 @@ public:
          void ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw, UShortImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold = 1100);
 
          void GenShellMask(QString& strPathInputMask, QString& strPathOutputMask, double fInnerMargin, double fOuterMargin);
+
+        VEC3D GetIsocenterDCM_FromRTPlan(QString& strFilePath);
+
+
 
 	 //void keyPressEvent ( QKeyEvent * e );	 
      //void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage* pOutput2D);

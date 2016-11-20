@@ -256,7 +256,7 @@ public:
 	void UpdateReconImage(UShortImageType::Pointer& spNewImg, QString& fileName);
 
 	//void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName);//ushort image --> short image --> 
-	void SaveUSHORTAsSHORT_DICOM( UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir);
+	void SaveUSHORTAsSHORT_DICOM( UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir);       
 
 	void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort);
 
@@ -299,6 +299,7 @@ public:
 
 	//void AuditMemory();
 
+        void CropSupInf(UShortImageType::Pointer& sp_Img, float physPosInfCut, float physPosSupCut);
         void CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
 
 
@@ -333,7 +334,7 @@ public:
         void ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, FloatImageType::Pointer& spAttImgFloat);
 
         bool SaveCurrentSetting(QString& strPathConfigFile);
-        bool LoadCurrentSetting(QString& strPathConfigFile);
+        bool LoadCurrentSetting(QString& strPathConfigFile);        
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
 	public slots:			
@@ -453,6 +454,8 @@ public:
                 void SLTM_CropMaskBatch();
 
                 void SLT_SaveCurrentSetting();
+
+                void SLT_CropSupInf();
 
 
                 

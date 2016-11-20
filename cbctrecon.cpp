@@ -4013,7 +4013,97 @@ void CbctRecon::SLT_PostApplyFOVDispParam()
     SLT_DrawReconImage();
 }
 
+void CbctRecon::CropSupInf(UShortImageType::Pointer& sp_Img, float physPosInfCut, float physPosSupCut)
+{
+    if (!sp_Img)
+        return;
+    //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
+    UShortImageType::PointType origin = sp_Img->GetOrigin();
+    UShortImageType::SpacingType spacing = sp_Img->GetSpacing();
+    UShortImageType::SizeType size = sp_Img->GetBufferedRegion().GetSize();
 
+    cout << "Old Origin" << origin << endl;
+    cout << "Old spacing" << spacing << endl;
+    cout << "Old size" << size << endl;
+
+    UShortImageType::SizeType sizeLower, sizeUpper;// not index. this is width of pixels that will be taken away.
+    sizeLower[0] = 0;
+    sizeLower[1] = 0;
+    sizeLower[2] = 0;
+    /*indexUpper[0] = size[0] - 1;
+    indexUpper[1] = size[1] - 1;
+    indexUpper[2] = size[2] - 1;*/
+    sizeUpper[0] = 0;
+    sizeUpper[1] = 0;
+    sizeUpper[2] = 0;
+
+    double minPosSI = origin[2];
+    double maxPosSI = origin[2] + (size[2] - 1)*spacing[2];
+
+    if (minPosSI >= physPosInfCut)
+        physPosInfCut = minPosSI;
+    if (maxPosSI <= physPosSupCut)
+        physPosSupCut = maxPosSI;
+
+    if (physPosSupCut <= physPosInfCut)
+        return;    
+
+    ////calc index
+    sizeLower[2] = qRound((physPosInfCut - minPosSI) / spacing[2]);
+    sizeUpper[2] = qRound((maxPosSI - physPosSupCut) / spacing[2]);
+    //
+    typedef itk::CropImageFilter <UShortImageType, UShortImageType> CropImageFilterType;
+    CropImageFilterType::Pointer CropFilter = CropImageFilterType::New();
+
+    CropFilter->SetInput(sp_Img);
+    CropFilter->SetLowerBoundaryCropSize(sizeLower);
+    CropFilter->SetUpperBoundaryCropSize(sizeUpper);
+    
+    CropFilter->Update();
+
+    if (sp_Img == m_spRawReconImg)
+    {
+        sp_Img = CropFilter->GetOutput();
+        m_spRawReconImg = sp_Img;
+    }
+
+    if (sp_Img == m_spRefCTImg)
+    {
+        sp_Img = CropFilter->GetOutput();
+        m_spRefCTImg = sp_Img;
+        m_spManualRigidCT = sp_Img;
+    }   
+    
+
+    UShortImageType::PointType origin_new = sp_Img->GetOrigin();
+    UShortImageType::SpacingType spacing_new = sp_Img->GetSpacing();
+    UShortImageType::SizeType size_new = sp_Img->GetBufferedRegion().GetSize();
+
+    //origin_new[2] = physPosInfCut;
+    //sp_Img->SetOrigin(origin_new);
+
+    cout << "New Origin" << origin_new << endl;
+    cout << "New spacing" << spacing_new << endl;
+    cout << "New size" << size_new << endl;
+
+    cout << "LowPos[mm, index] = " << physPosInfCut << ", " << sizeLower[2] << endl;
+    cout << "UpperPos[mm, index] = " << physPosSupCut << ", " << sizeUpper[2] << endl;
+    cout << "Cropping SI has been successfully done." << endl;    
+
+    //Result: same image after cropping    
+    /*
+        sizeDiff[0] = CropFilter->GetOutput()->GetBufferedRegion().GetSize()[0] - pYKImageROI->m_iWidth;
+        sizeDiff[1] = CropFilter->GetOutput()->GetBufferedRegion().GetSize()[1] - pYKImageROI->m_iHeight;
+
+        if (sizeDiff[0] != 0 || sizeDiff[1] != 0)
+        {
+        cout << "Cross-correlation error! template size is not matching ROI image even after cropping" << endl;
+        return;
+        }
+
+        rescaleFilter->SetInput(CropFilter->GetOutput());*/
+}
+ 
 // mm
 void CbctRecon::CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY)
 {
@@ -7078,11 +7168,23 @@ void CbctRecon::AfterScatCorrectionMacro()
 void CbctRecon::UpdateReconImage(UShortImageType::Pointer& spNewImg, QString& fileName)
 {
     m_spCrntReconImg = spNewImg;
+
+
+    UShortImageType::PointType origin_new = m_spCrntReconImg->GetOrigin();
+    UShortImageType::SpacingType spacing_new = m_spCrntReconImg->GetSpacing();
+    UShortImageType::SizeType size_new = m_spCrntReconImg->GetBufferedRegion().GetSize(); 
+
+    cout << "New Origin" << origin_new << endl;
+    cout << "New spacing" << spacing_new << endl;
+    cout << "New size" << size_new << endl;
+
     ui.lineEdit_Cur3DFileName->setText(fileName);
 
     UShortImageType::SizeType size = m_spCrntReconImg->GetRequestedRegion().GetSize();
 
     m_dspYKReconImage->CreateImage(size[0], size[1], 0);
+
+    disconnect(ui.spinBoxReconImgSliceNo, SIGNAL(valueChanged(int)), this, SLOT(SLT_DrawReconImage()));
 
     ui.spinBoxReconImgSliceNo->setMinimum(0);
     ui.spinBoxReconImgSliceNo->setMaximum(size[2] - 1);
@@ -7091,9 +7193,12 @@ void CbctRecon::UpdateReconImage(UShortImageType::Pointer& spNewImg, QString& fi
     //SLT_DrawReconImage(); //Update Table, Update Graph	
 
     //m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1],0);	
-    SLT_InitializeGraphLim();
-    ui.spinBoxReconImgSliceNo->setValue(initVal); //DrawRecon Imge is called, but sometimes skipped
+    SLT_InitializeGraphLim();    
+
+    ui.spinBoxReconImgSliceNo->setValue(initVal); 
     ui.radioButton_graph_recon->setChecked(true);
+
+    connect(ui.spinBoxReconImgSliceNo, SIGNAL(valueChanged(int)), this, SLOT(SLT_DrawReconImage()));
 
     SLT_DrawReconImage();
 }
@@ -11428,4 +11533,54 @@ bool CbctRecon::LoadCurrentSetting(QString& strPathConfigFile)
     fin.close();
 
     return true;
+}
+
+void CbctRecon::SLT_CropSupInf()
+{
+    if (!m_spCrntReconImg)
+        return;    
+
+    int bRaw = false;
+
+    if (m_spCrntReconImg == m_spRawReconImg)
+        bRaw = true;
+
+    
+    float dcmPosCutSup = ui.lineEdit_SupCutPos->text().toFloat(); //mm 
+    float dcmPosCutInf = ui.lineEdit_InfCutPos->text().toFloat(); //mm    
+        
+    //CropFOV3D(m_spCrntReconImg, physPosX, physPosY, physRadius, physTablePosY);
+    CropSupInf(m_spCrntReconImg, dcmPosCutInf, dcmPosCutSup);
+    //QString strPath = m_strPathDirDefault + "/" + "TempSI_Cropped.mha";
+    //QString strTmpFile = "C:/TmpSI_Cropped.mha";
+    
+    QString strPath = m_pDlgRegistration->m_strPathPlastimatch + "/" + "tmp_SI_cropped.mha";
+    ExportReconSHORT_HU(m_spCrntReconImg, strPath); 
+
+    QString strName = "SI_Cropped";
+    if (bRaw)
+    {
+        if (!LoadShortImageToUshort(strPath, m_spRawReconImg))
+        {
+            cout << "error! in LoadShortImageToUshort" << endl;
+        }
+        UpdateReconImage(m_spRawReconImg, strName);
+    }
+    else
+    {
+        if (!LoadShortImageToUshort(strPath, m_spRefCTImg))
+        {
+            cout << "error! in LoadShortImageToUshort" << endl;
+        }
+        UpdateReconImage(m_spRefCTImg, strName);
+    } 
+
+    ///*So buggy*/
+  
+   
+
+    /*QString strName = "SI_Cropped";
+    UpdateReconImage(m_spCrntReconImg, strName);*/
+
+   // SLT_DrawReconImage();
 }

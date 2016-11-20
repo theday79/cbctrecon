@@ -47,6 +47,7 @@
 #include "rtplan.h"
 #include "plm_file_format.h"
 #include "dcmtk_rt_study.h"
+#include <QFileDialog>
 
 //#include "pcmd_dmap.h"
 
@@ -3413,6 +3414,45 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
     SelectComboExternal(1, REGISTER_MANUAL_RIGID);
 }
 
+
+void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+
+    if (filePath.length() < 1)
+        return;
+
+
+    VEC3D planIso = GetIsocenterDCM_FromRTPlan(filePath);
+
+    if (planIso.x == 0.0 &&
+        planIso.y == 0.0 &&
+        planIso.z == 0.0)
+    {
+        cout << "Warning!!!! Plan iso is 0 0 0. Most likely not processed properly" << endl;
+    }
+    else
+    {
+        cout << "isocenter was found: " << planIso.x << ", " << planIso.y << ", " << planIso.z << endl;
+    }
+    
+    if (!m_spFixed || !m_spMoving)
+        return;
+
+    if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
+        return;    
+
+    //ImageManualMoveOneShot(-iso_pos[0], -iso_pos[1], -iso_pos[2]);    
+    ImageManualMoveOneShot(planIso.x, planIso.y, planIso.z);
+
+    UpdateListOfComboBox(0);//combo selection signalis called
+    UpdateListOfComboBox(1);
+
+    SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected 
+    SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+}
+
+
 void DlgRegistration::SLT_DoRegistrationGradient()
 {
     //1) Save current image files
@@ -3688,4 +3728,78 @@ void DlgRegistration::SLT_IntensityNormCBCT()
     m_pParent->UpdateReconImage(m_spFixed, QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix)));    
     SelectComboExternal(0, REGISTER_RAW_CBCT);
 }
+
+
+
+
+VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
+{
+    VEC3D resultPtDcm = { 0.0, 0.0, 0.0 };
+    Dcmtk_rt_study* pRTstudyRP; //iso center info
+    pRTstudyRP = new Dcmtk_rt_study();
+
+    //cout << "Before plm_file_format_deduce" << endl;
+    Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strFilePath.toLocal8Bit().constData());
+    //cout << "After plm_file_format_deduce" << endl;
+
+    if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
+    {
+        cout << "PLM_FILE_FMT_DICOM_RTPLAN " << "is found" << endl;
+        pRTstudyRP->load(strFilePath.toLocal8Bit().constData());
+    }
+    else
+    {
+        cout << "Found file is not RTPLAN. Skipping dcm plan." << endl;
+        return resultPtDcm;
+    }
+    Rtplan::Pointer rtplan = pRTstudyRP->get_rtplan();
+
+    if (!rtplan)
+    {
+        cout << "Error! no dcm plan is loaded" << endl;
+        return resultPtDcm;
+    }
+
+    int iCntBeam = rtplan->num_beams;
+
+    if (iCntBeam < 1)
+    {
+        cout << "Error! no beam is found" << endl;
+        return resultPtDcm;
+    }
+
+    float* final_iso_pos = NULL;
+
+    for (int i = 0; i < iCntBeam; i++)
+    {
+        Rtplan_beam *curBeam = rtplan->beamlist[i];
+
+        int iCntCP = curBeam->num_cp;
+
+        for (int j = 0; j < iCntCP; j++)
+        {
+            float* cur_iso_pos = curBeam->cplist[j]->get_isocenter();
+            cout << "Beam ID: " << curBeam->id << ", Control point ID: " << curBeam->cplist[j]->control_pt_no <<
+                ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << endl;
+
+            if (i == 0 && j == 0) //choose first beam's isocenter
+                final_iso_pos = curBeam->cplist[j]->get_isocenter();
+        }
+    }
+    //VEC3D shiftVal;// = GetShiftValueFromGradientXForm(filePathXform, true); //true: inverse trans should be applied if CBCT was moving image //in mm    
+
+    if (final_iso_pos == NULL)
+    {
+        cout << "Error!  No isocenter position was found. " << endl;
+        return resultPtDcm;
+    }
+
+    resultPtDcm.x = final_iso_pos[0];
+    resultPtDcm.y = final_iso_pos[1];
+    resultPtDcm.z = final_iso_pos[2];
+
+    return resultPtDcm;
+}
+
+
 
