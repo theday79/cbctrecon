@@ -3924,7 +3924,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		cout << "XVI Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << endl;
 		LoadXVIGeometryFile(geomPath.toLocal8Bit().constData()); //will generate m_spFullGeometry
 	}
-	else if (geomFileInfo.fileName() == "ProjectionInfo.xml")//this is XVI XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
+	else if (geomFileInfo.fileName() == "ProjectionInfo.xml")//this is OBI XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
 	{
 		cout << "Varian XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << endl;
 		// ADDED BY AGRAVGAARD :::::::: Thief'd from RTK/applications/ rtkvarianobigemetry.cxx
@@ -3943,7 +3943,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		LoadRTKGeometryFile("RTKgeometry.xml");
 		// ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData()); //will generate m_spFullGeometry
 	}
-	else if (geomFileInfo.fileName() == "Scan.xml")//this is XVI XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
+	else if (geomFileInfo.fileName() == "Scan.xml")//this is XIM XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
 	{
 		cout << "Varian ProBeam XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << endl;
 		// ADDED BY AGRAVGAARD :::::::: Thief'd from RTK/applications/ rtkvarianobigemetry.cxx
@@ -3960,6 +3960,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
 		cout << "RTK standard Geometry XML File was created:" << "RTKgeometry.xml" << endl;
 		LoadRTKGeometryFile("RTKgeometry.xml");
+		cout << "Done!";
 		// ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData()); //will generate m_spFullGeometry
 	}
 	else
@@ -4116,7 +4117,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	  double curSID = m_spFullGeometry->GetSourceToIsocenterDistances().at(*itIdx);
 	  double curSDD = m_spFullGeometry->GetSourceToDetectorDistances().at(*itIdx);
 	  double curGantryAngle = m_spFullGeometry->GetGantryAngles().at(*itIdx);
-	  double kVAng = 180.0 - curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees -> flip direction
+	  double kVAng = curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees
 	  double MVAng = kVAng - 90.0;
 	  if (MVAng < 0.0)
 		  MVAng = MVAng + 360.0;
@@ -4147,28 +4148,6 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
       m_vSelectedFileNames.push_back(curStr);
   }
 
-
-  ////YKTEMP
-  ////cout << vSelectedIdx.size() << " is the number of selected index" << endl;
-  ////cout << m_spCustomGeometry->GetGantryAngles().size() << " is the number of m_spCustomGeometry" << endl;
-  //rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
-  //    rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-  //xmlWriter->SetFilename("X:/Documents/FewProjGeom.xml");
-  //xmlWriter->SetObject(m_spCustomGeometry);
-  //TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
-  ////Copy selected his files to a different folder
-
-  //int countFiles = m_vSelectedFileNames.size();
-  //for (int i = 0; i < countFiles; i++)
-  //{
-  //    QFileInfo fInfo(m_vSelectedFileNames.at(i).c_str());
-  //    QString strDir = "X:/Documents/FewProjDir";
-  //    QString strNewFilePath = strDir + "/" + fInfo.fileName();
-  //    QFile::copy(fInfo.absoluteFilePath(), strNewFilePath);
-  //}
-  //cout << countFiles << " files were copied." << endl;
-  ////YKTEMP
-
   // Reads the cone beam projections
   typedef rtk::ProjectionsReader< OutputImageType > ReaderType;
   ReaderType::Pointer reader = ReaderType::New();
@@ -4180,7 +4159,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
   //HIS header should be saved
 
   /*
-  cout << "Copying the HND info to buffer." << endl;
+  cout << "Copying the HIS info to buffer." << endl;
 
   m_iCntSelectedProj = m_vSelectedFileNames.size();
   m_arrYKBufProj = new YK16GrayImage [m_iCntSelectedProj];
@@ -4188,7 +4167,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
   for (int i = 0 ; i< m_iCntSelectedProj; i++)
   {
       m_arrYKBufProj[i].m_strFilePath = m_vSelectedFileNames.at(i).c_str();
-      m_arrYKBufProj[i].CopyHndHeader(m_vSelectedFileNames.at(i).c_str());
+      m_arrYKBufProj[i].CopyHisHeader(m_vSelectedFileNames.at(i).c_str());
   }
   */ // AG: THIS DOES NOT SEEM USEFUL FOR HND FILES ITS GONNA FAIL AT SAVING LATER ANYWAY?
   m_iCntSelectedProj = m_vSelectedFileNames.size(); // EXCEPT THIS
@@ -6338,12 +6317,18 @@ void CbctRecon::DoBeamHardeningCorrection()
 
 	double crntVal = 0.0;
 	double corrF = 0.0;
-	
+	/* Below were used for Elekta
 	double poly3_a = 9.321e-05;
 	double poly3_b = -2.609e-03;
 	double poly3_c = 3.374e-02;
 	double poly3_d = 9.691e-01;
-	double poly3_e = 0.0;
+	double poly3_e = 0.0; */
+
+	double poly3_a = 6.0e-08; // Acc 5 :: Catphan calibration (after ugly full-fan bowtie corr.)
+	double poly3_b = -1.0e-08;
+	double poly3_c = -5.0e-07;
+	double poly3_d = 8.0e-01;
+	double poly3_e = 1.47;
 
 	//double corrVal = 0.0;
 	if (ximIsUsed){
@@ -6400,7 +6385,29 @@ void CbctRecon::SLT_DoBHC()
   SetMaxAndMinValueOfProjectionImage();
   SLT_DrawProjImages();
 }
+template <typename T> int sgn(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+double heaviside(double x) {
+	return .5 * sgn(x) + 0.5;
+}
 
+double fullFan_subFunction(double a, double b, double c, double d, double x){
+	return c - sqrt(abs(pow(a, 2) - pow(x * d - b, 2))) *
+		heaviside(x * d - b + a) * heaviside(-( x * d - b - a));
+}
+
+double fullFan_Function(double a, double b, double c, double d, double e, double x){
+	return (
+		fullFan_subFunction(a, b, c, d, x - 3. * e) +
+		fullFan_subFunction(a, b, c, d, x - 2. * e) +
+		fullFan_subFunction(a, b, c, d, x - e) +
+		fullFan_subFunction(a, b, c, d, x) +
+		fullFan_subFunction(a, b, c, d, x + e) +
+		fullFan_subFunction(a, b, c, d, x + 2. * e) +
+		fullFan_subFunction(a, b, c, d, x + 3. * e)
+		) * .142857;
+}
 
 void CbctRecon::SLT_DoBTC()
 {
@@ -6443,6 +6450,7 @@ void CbctRecon::SLT_DoBTC()
 	d =     0.01284  (0.01283, 0.01285)
 	e =       10.55  (10.46, 10.64)
 	2.0225;3.2433;4.1869;0.0128;10.5462
+	1.4419;2.3382;2.6395;0.0092;18.1504 Acc 5 Catphan
 	*/
 	
 	QStringList strList = ui.lineEdit_fBTcor->text().split(';');
@@ -6455,7 +6463,8 @@ void CbctRecon::SLT_DoBTC()
 	else if (strList.length() != 5 && ui.checkBox_Fullfan->isChecked())
 	{
 		cout << "Wrong number of arguments!" << endl
-			<< "Must be a;b;c;d;e -> d. / (1 + exp(-b.*(x - a))) + c + d. / (1 + exp(b.*(x - e)))" << endl;
+			<< "Must be a;b;c;d;e -> c - sqrt(abs(a^2-((x+/-e)*d-b)^2)) * heaviside((x+/-e)*d-b+a) * heaviside(-((x+/-e)*d-b-a))" << endl;
+			// << "Must be a;b;c;d;e -> d. / (1 + exp(-b.*(x - a))) + c + d. / (1 + exp(b.*(x - e)))" << endl;
 		return;
 	}
 	double poly3_a = strList.at(0).toDouble();  //264.6; //lineEdit_fBTcor
@@ -6490,10 +6499,11 @@ void CbctRecon::SLT_DoBTC()
 		{
 			if (crntVal > (poly3_c - poly3_a))
 			{
-				corrF = poly3_c -
+				corrF = fullFan_Function(poly3_a, poly3_b, poly3_c, poly3_d, poly3_e, x_idx);
+				/* corrF = poly3_c -
 					sqrt(abs(pow(poly3_a, 2) - pow(x_idx * poly3_d - poly3_b, 2))) /
 					(1 + exp(-poly3_e * (x_idx * poly3_d - poly3_b + poly3_a))) /
-					(1 + exp(poly3_e * (x_idx * poly3_d - poly3_b - poly3_a)));
+					(1 + exp(poly3_e * (x_idx * poly3_d - poly3_b - poly3_a))); */
 			}
 			else
 			{
@@ -9379,38 +9389,57 @@ void CbctRecon::OptimizedExportAngularWEPL_byFile(QString& strPathOutput)
 		//GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, curPOI, i, vOutputWEPL, true);
 		//if (m_spRawReconImg)
 	GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
-	cout << "..And I'm back BABYYY!! (RAW)" << endl;
+	cout << "Done: (RAW)";
 	if (m_spScatCorrReconImg)
 	{
-		GetAngularWEPL_MultiPoint(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
-		cout << "..And I'm back BABYYY!! (COR)" << endl;
+		try{
+			GetAngularWEPL_MultiPoint(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
+			cout << " (COR)";
+		}
+		catch (exception e){
+			cout << " (COR) failed!!: e=" << e.what() << endl;
+			vOutputWEPL_corCBCT.~vector();
+		}
 	}
 	if (m_spManualRigidCT)
 	{
-		GetAngularWEPL_MultiPoint(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
-		cout << "..And I'm back BABYYY!! (MAN)" << endl;
+		try{
+			GetAngularWEPL_MultiPoint(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
+			cout << " (MAN)";
+		}
+		catch(exception e){
+			cout << " (MAN) failed!!: e=" << e.what() << endl;
+			vOutputWEPL_manual.~vector();
+		}
 	}
 	if (m_spAutoRigidCT)
 	{
-		GetAngularWEPL_MultiPoint(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
-		cout << "..And I'm back BABYYY!! (AUT)" << endl;
+		try {
+			GetAngularWEPL_MultiPoint(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
+			cout << " (AUT)";
+		}
+		catch (exception e){
+			cout << " (AUT) failed!!: e=" << e.what() << endl;
+			vOutputWEPL_auto_rigid.~vector();
+		}
 	}
 	if (m_spDeformedCT_Final)
 	{
-		GetAngularWEPL_MultiPoint(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
-		cout << "..And I'm back BABYYY!! (DEF)" << endl;
+		try{
+			GetAngularWEPL_MultiPoint(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
+			cout << " (DEF)";
+		}
+		catch (exception e){
+			cout << " (DEF) failed!!: e=" << e.what() << endl;
+			vOutputWEPL_deform.~vector();
+		}
 	}
-	//	cout << "OK, point: " << i << " succeeded. Next..\n" << endl;
-	//}
-	//cout << "Computed WEPL points: " << vOutputWEPL.size() << endl;
-	cout << "OK calculation is done, time to save the results...\n" << endl;
+	cout << endl;
+	
+	cout << "Saving results...";
 
 	ofstream fout;
 	fout.open(strPathOutput.toLocal8Bit().constData());
-
-	//    double curAngle2;
-
-	//fout << "POI_Index" << "," << "Gantry_Angle" << "," << "WEPL(mm)" << endl;
 
 	int cntWEPL = vOutputWEPL_rawCBCT.size();
 
@@ -9442,7 +9471,7 @@ void CbctRecon::OptimizedExportAngularWEPL_byFile(QString& strPathOutput)
 		fout << endl;
 	}
 	fout.close();
-	cout << "Saving angular WEPL is completed\n" << endl;
+	cout << "done!" << endl;
 
 }
 
@@ -9691,7 +9720,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(USHORT_ImageType::Pointer& spUshortIma
 	int sizePOI = m_vPOI_DCM.size();
 	WEPLData* stArrWEPL = new WEPLData[sizePOI * sizeAngles];
 
-	cout << "Everything is OK!? Let's calculate WEPL...\n" << endl;
+	// cout << "Everything is OK!? Let's calculate WEPL...\n" << endl;
 	
 	for (int p = 0; p < sizePOI; p++)
 	{
@@ -9785,7 +9814,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(USHORT_ImageType::Pointer& spUshortIma
 		}
 	}
 
-	cout << "Return results for saving.." << endl;
+	// cout << "Return results for saving.." << endl;
 
 	if (!bAppend)
 		vOutputWEPLData.clear();

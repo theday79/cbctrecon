@@ -60,12 +60,12 @@ ENDIF()
 #=========================================================
 
 # Find BZIP2 (required for Varian HNC)
-FIND_PACKAGE(BZip2)
-IF(BZIP2_FOUND)
-  INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIR})
-ELSE(BZIP2_FOUND)
-  MESSAGE(FATAL_ERROR "Cannot build without bzip2.")
-ENDIF(BZIP2_FOUND)
+#FIND_PACKAGE(BZip2)
+#IF(BZIP2_FOUND)
+#  INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIR})
+#ELSE(BZIP2_FOUND)
+#  MESSAGE(FATAL_ERROR "Cannot build without bzip2.")
+#ENDIF(BZIP2_FOUND)
 
 # get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
 # set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
@@ -143,7 +143,7 @@ ELSE()
       "${Plastimatch_DIR}/src/plastimatch/base"
       "${Plastimatch_DIR}/src/plastimatch/register"
       "${Plastimatch_DIR}/src/plastimatch/segment"
-      "${Plastimatch_DIR}/../build") #Sorry, I'll fix later..
+      "${Plastimatch_BUILD_DIR}/") #Sorry, I'll fix later..
   message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
   message (STATUS "Plastimatch_DIR (Source dir) = ${Plastimatch_DIR}")
   message (STATUS "plastimatch_DIR (Install->CMake dir) = ${plastimatch_DIR}")
@@ -249,7 +249,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 IF(WIN32)
   SET (PLASTIMATCH_INCLUDE_DIRS
     ${PLASTIMATCH_INCLUDE_DIRS}
-    "C:/Users/PC/Builds/Plastimatch/plastimatch-master/src/plastimatch/reconstruct")
+    "${Plastimatch_DIR}/src/plastimatch/reconstruct")
 ENDIF()
 
 message (STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_INCLUDE_DIRS}")
@@ -292,7 +292,7 @@ if(WIN32)
     ${CUDA_FFT_LIB}
     ${OPENCL_LIBRARIES}
     ${PLASTIMATCH_LIBRARIES}
-    ${BZIP2_LIBRARIES}
+    #${BZIP2_LIBRARIES} needed for HNC
     Winmm.lib
     #${DCMTK_LIBRARIES} a lot of link error.. dectection.. 
   )
@@ -309,7 +309,7 @@ else()
     ${CUDA_FFT_LIB}
     ${OPENCL_LIBRARIES}
     ${PLASTIMATCH_LIBRARIES}
-    ${BZIP2_LIBRARIES}
+    #${BZIP2_LIBRARIES} Needed fo HNC
 )
 endif()
 
