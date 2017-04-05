@@ -16,7 +16,7 @@ In order to compile the software, you must have installed the following prerequi
   <li>DCMTK - Latest: https://github.com/commontk/DCMTK </li>
   <li>ITK - Latest: https://github.com/InsightSoftwareConsortium/ITK </li>
   <li>RTK - Latest: https://github.com/SimonRit/RTK </li>
-  <li>Plastimatch - https://gitlab.com/agravgaard/plastimatch </li>
+  <li>Plastimatch - https://github.com/agravgaard/plastimatch </li>
 </ul>
 <b>Build and Install order and important flags*:</b>
 <ul>
