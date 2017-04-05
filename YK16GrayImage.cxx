@@ -22,7 +22,7 @@ YK16GrayImage::YK16GrayImage(void)
 
 	m_pData = NULL;
 	m_pPixmap = NULL;// for display
-	m_pVarianHndHeader = NULL; // ELEKTA VS VARIAN
+	m_pElektaHisHeader = NULL;
 
 	//m_pQImage = NULL;	
 
@@ -75,7 +75,7 @@ YK16GrayImage::YK16GrayImage(int width, int height)
 
 	m_pData = NULL;
 	m_pPixmap = NULL;// for display
-	m_pVarianHndHeader = NULL; // ELEKTA VS VARIAN
+	m_pElektaHisHeader = NULL;
 
 	m_fPixelMean = 0.0;
 	m_fPixelSD = 0.0;
@@ -142,10 +142,10 @@ bool YK16GrayImage::ReleaseBuffer()
 	m_iWidth = 0;
 	m_iHeight = 0;
 
-	if (m_pVarianHndHeader!= NULL) // ELEKTA VS VARIAN
+	if (m_pElektaHisHeader!= NULL)
 	{
-		delete [] m_pVarianHndHeader; // ELEKTA VS VARIAN
-		m_pVarianHndHeader= NULL; // ELEKTA VS VARIAN
+		delete [] m_pElektaHisHeader;
+		m_pElektaHisHeader= NULL;
 	}
 
 	return true;
@@ -667,14 +667,14 @@ bool YK16GrayImage::SaveDataAsHis( const char *filePath, bool bInverse )
 	if (m_pData == NULL)
 		return false;
 
-	if (m_pVarianHndHeader ==NULL) // ELEKTA VS VARIAN
+	if (m_pElektaHisHeader ==NULL)
 		return false;
 
 
 	FILE* fd = NULL;
 	fd = fopen(filePath, "wb");
 
-	fwrite(m_pVarianHndHeader, 100, 1, fd); // ELEKTA VS VARIAN
+	fwrite(m_pElektaHisHeader, 100, 1, fd);
 
 	int imgSize = m_iWidth*m_iHeight;
 
@@ -696,7 +696,7 @@ bool YK16GrayImage::SaveDataAsHis( const char *filePath, bool bInverse )
 
 }
 
-void YK16GrayImage::CopyHndHeader( const char *hisFilePath )
+void YK16GrayImage::CopyHisHeader( const char *hisFilePath )
 {
 	// open file
 	std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
@@ -705,11 +705,11 @@ void YK16GrayImage::CopyHndHeader( const char *hisFilePath )
 		cout << "Fail to open" << "	" << hisFilePath << endl;		
 
 	// read header
-	if (m_pVarianHndHeader != NULL) // ELEKTA VS VARIAN
-		delete [] m_pVarianHndHeader; // ELEKTA VS VARIAN
+	if (m_pElektaHisHeader != NULL)
+		delete [] m_pElektaHisHeader;
 
-	m_pVarianHndHeader = new char [DEFAULT_VARIAN_HIS_HEADER_SIZE]; // DEFAULT_ELEKTA_HIS_HEADER_SIZE = 100 // ELEKTA VS VARIAN
-	file.read(m_pVarianHndHeader, DEFAULT_VARIAN_HIS_HEADER_SIZE);	// ELEKTA VS VARIAN
+	m_pElektaHisHeader = new char [DEFAULT_ELEKTA_HIS_HEADER_SIZE]; // DEFAULT_ELEKTA_HIS_HEADER_SIZE = 100
+	file.read(m_pElektaHisHeader, DEFAULT_ELEKTA_HIS_HEADER_SIZE);	
 }
 //
 //void YK16GrayImage::Swap(YK16GrayImage* pImgA, YK16GrayImage* pImgB)
@@ -918,12 +918,12 @@ bool YK16GrayImage::CloneImage( YK16GrayImage& other )
 	CreateImage(width, height, 0);
 	CopyFromBuffer(other.m_pData, width, height);
 
-	if (other.m_pVarianHndHeader != NULL) // ELEKTA VS VARIAN
+	if (other.m_pElektaHisHeader != NULL)
 	{
-	  m_pVarianHndHeader = new char [DEFAULT_VARIAN_HIS_HEADER_SIZE]; // ELEKTA VS VARIAN
-	  for (int i = 0 ; i<DEFAULT_VARIAN_HIS_HEADER_SIZE ; i++ ) // ELEKTA VS VARIAN
+	  m_pElektaHisHeader = new char [DEFAULT_ELEKTA_HIS_HEADER_SIZE]; 
+	  for (int i = 0 ; i<DEFAULT_ELEKTA_HIS_HEADER_SIZE ; i++ )
 	  {
-		m_pVarianHndHeader[i] = other.m_pVarianHndHeader[i]; // ELEKTA VS VARIAN
+		m_pElektaHisHeader[i] = other.m_pElektaHisHeader[i];
 	  }
 	}
 
@@ -1542,8 +1542,8 @@ bool YK16GrayImage::FillPixMapDual( int winMid1, int winMid2,int winWidth1, int 
 
 	int newLeftTopX = centerX - qRound(newWidth/2.0);//data position
 	int newLeftTopY = centerY - qRound(newHeight/2.0);	//data position
-	m_QImage = tmpQImage.copy(qRound((qreal)newLeftTopX), qRound((qreal) newLeftTopY), newWidth, newHeight); //memory allocated here!!!
-	
+	m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth, newHeight); //memory allocated here!!!
+	//                        ^~~~~~~~ and ^~~~~~~~~~~ is already initialized as int, no need to qRound
 
 	//m_QImage = tmpQImage.copy(0,0,m_iWidth, m_iHeight); //memory allocated here!!!        
 	//YKTEMP: is it needed? no it worked without below:
@@ -1884,7 +1884,7 @@ void YK16GrayImage::InvertImage()
 	return;
 
   int imgSize= m_iWidth * m_iHeight;
-  //Data inversion: Default for Elekta XVI system // ELEKTA VS VARIAN ?
+  //Data inversion: Default for Elekta XVI system
   for (int i = 0 ; i<imgSize ; i++)
   {
 	m_pData[i] = 65535 - m_pData[i];
