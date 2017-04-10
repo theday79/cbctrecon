@@ -279,7 +279,7 @@ void CbctRecon::LoadRawHndImages()
 	//	"/home","projection images (*.his)");
 
 	QStringList files = QFileDialog::getOpenFileNames(this, "Select one or more files to open",
-		m_strPathDirDefault, "projection images (*.hnd)"); // ELEKTA vs VARIAN
+		m_strPathDirDefault, "projection images (*.hnd)");
 
 	m_iImgCnt = files.size();
 
@@ -338,7 +338,7 @@ void CbctRecon::LoadRawXimImages()
 	//	"/home","projection images (*.his)");
 
 	QStringList files = QFileDialog::getOpenFileNames(this, "Select one or more files to open",
-		m_strPathDirDefault, "projection images (*.xim)"); // ELEKTA vs VARIAN
+		m_strPathDirDefault, "projection images (*.xim)");
 
 	m_iImgCnt = files.size();
 
@@ -1996,7 +1996,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	StreamerType::Pointer streamerBP = StreamerType::New();
 
 	streamerBP->SetInput(CUDAfeldkamp->GetOutput());
-	streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
+	streamerBP->SetNumberOfStreamDivisions(1); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
 
 	cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << endl;
 
@@ -2047,10 +2047,10 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	//	param.put(0, 0.0);
 	//}
 	//else{
-	param.put(0, 0.0); //rot X // 0.5 = PI/2 //Actuly is  rot Z ELEKTA VS VARIAN <-- THIS MIGHT BE THE SOLUTION
+	param.put(0, 0.0); //rot X // 0.5 = PI/2
 					   //}
-	param.put(1, itk::Math::pi / 2.0);//rot Y //Actuly is rot Y
-	param.put(2, itk::Math::pi / -2.0);//rot Z //Actuly is rot X
+	param.put(1, itk::Math::pi / 2.0);//rot Y
+	param.put(2, itk::Math::pi / -2.0);//rot Z
 	param.put(3, 0.0); // Trans X mm
 	param.put(4, 0.0); // Trans Y mm
 	param.put(5, 0.0); // Trans Z mm
@@ -2441,7 +2441,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
     typedef itk::StreamingImageFilter<FloatImageType, FloatImageType> StreamerType;
     StreamerType::Pointer streamerBP = StreamerType::New();
     streamerBP->SetInput(feldkamp->GetOutput());
-    streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from "rtkfdk" //AGA: stated in test: 4 for ITK MAJOR >= 4
+	streamerBP->SetNumberOfStreamDivisions(1); // YK: 1 in example code from "rtkfdk"
 
     cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << endl;
 
@@ -3184,14 +3184,12 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
         double curSID = m_spFullGeometry->GetSourceToIsocenterDistances().at(*itIdx);
         double curSDD = m_spFullGeometry->GetSourceToDetectorDistances().at(*itIdx);
         double curGantryAngle = m_spFullGeometry->GetGantryAngles().at(*itIdx);
-		if (!hisIsUsed)
-		{
-			double kVAng = curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees
-			double MVAng = kVAng - 90.0;
-			if (MVAng < 0.0)
-				MVAng = MVAng + 360.0;
-			curGantryAngle = MVAng;
-		}
+		double kVAng = curGantryAngle * 180.0 * itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees
+		double MVAng = kVAng - (hisIsUsed ? 0.0 : 90.0);
+		if (MVAng < 0.0)
+			MVAng = MVAng + 360.0;
+		curGantryAngle = MVAng;
+		
 		double curProjOffsetX = m_spFullGeometry->GetProjectionOffsetsX().at(*itIdx);
         double curProjOffsetY = m_spFullGeometry->GetProjectionOffsetsY().at(*itIdx);
 
@@ -3254,8 +3252,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     typedef rtk::ProjectionsReader< FloatImageType > ReaderType;
     ReaderType::Pointer reader = ReaderType::New();
     reader->SetFileNames(m_vSelectedFileNames);
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->GenerateOutputInformation())
-        TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->Update())
+    // TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->GenerateOutputInformation()) //Not necessary in tests, so shouldn't be here unless debugging
+    TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->Update())
 
         //After reading the whole file,
         //HIS header should be saved
@@ -3329,8 +3327,9 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     //ui.lineEdit_scaGaussian->setText(QString("%1").arg(defaultScaGaussian));
     //ui.lineEdit_scaPostMedian->setText(QString("%1").arg(defaultScaPostProjMedian));
 
-    ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat, m_fResampleF);
-    ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
+	if (m_fResampleF != 1)
+		ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat, m_fResampleF); // BROKEN AF for .his where input size != 1024 (tested with 1016) -> outputs offset -inputoffset/refactor^2 and 4 pixels too few in x and y
+    ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);      // if X not 1024 == input size: out_offset = in_offset + (1024*res_f - X*res_f)*out_spacing     <- will still break down at fw_projection
 
     FloatImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
     FloatImageType::SizeType FloatImgSize = m_spProjImg3DFloat->GetBufferedRegion().GetSize();
@@ -6661,15 +6660,8 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
 
         //a) size	
         //cout << "chk1" << endl;
-		if (hisIsUsed) {
-			size[0] = qRound((double)DEFAULT_ELEKTA_PROJ_WIDTH * m_fResampleF);
-			size[1] = qRound((double)DEFAULT_ELEKTA_PROJ_HEIGHT* m_fResampleF);
-		}
-		else
-		{
-			size[0] = qRound((double)DEFAULT_VARIAN_PROJ_WIDTH * m_fResampleF);
-			size[1] = qRound((double)DEFAULT_VARIAN_PROJ_HEIGHT* m_fResampleF);
-		}
+		size[0] = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0]; // qRound((double)DEFAULT_W*m_fResampleF);
+		size[1] = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
         size[2] = spGeometry->GetGantryAngles().size();
         iNumOfProjections = size[2];
 
@@ -7753,8 +7745,11 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer& spSrcImg, FloatImageTy
     typedef itk::NearestNeighborInterpolateImageFunction<FloatImageType, float >  InterpolatorType;
     InterpolatorType::Pointer interpolator = InterpolatorType::New();
     resample->SetInterpolator(interpolator);
-
-    resample->SetDefaultPixelValue(50);
+	if (hisIsUsed && DEFAULT_ELEKTA_PROJ_HEIGHT == spSrcImg->GetBufferedRegion().GetSize()[1]
+		|| !hisIsUsed && DEFAULT_VARIAN_PROJ_HEIGHT == spSrcImg->GetBufferedRegion().GetSize()[1])
+		resample->SetDefaultPixelValue(50);
+	else
+		resample->SetDefaultPixelValue(0);
 
     FloatImageType::SizeType inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
     FloatImageType::SizeType outputSize;
@@ -7770,7 +7765,7 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer& spSrcImg, FloatImageTy
     resample->SetOutputSpacing(outputSpacing);
 
     FloatImageType::PointType outputOrigin = spSrcImg->GetOrigin(); //Float image
-    resample->SetOutputOrigin(outputOrigin);
+	resample->SetOutputOrigin(outputOrigin);
 
     resample->SetInput(spSrcImg);
     transform->SetIdentity();
@@ -9955,15 +9950,12 @@ void CbctRecon::SLTM_ForwardProjection()
             double curSID = m_spCustomGeometry->GetSourceToIsocenterDistances().at(i);
             double curSDD = m_spCustomGeometry->GetSourceToDetectorDistances().at(i);
             double curGantryAngle = m_spCustomGeometry->GetGantryAngles().at(i);
-			if (!hisIsUsed)
-			{
-				double kVAng = curGantryAngle * 360. / (2.*itk::Math::pi);
-				double MVAng = kVAng - 90.0;
-				if (MVAng < 0.0)
-					MVAng = MVAng + 360;
-				curGantryAngle = MVAng;
-			}
-
+			double kVAng = curGantryAngle * 360. / (2.*itk::Math::pi);
+			double MVAng = kVAng - (hisIsUsed ? 0.0 : 90.0);
+			if (MVAng < 0.0)
+				MVAng = MVAng + 360.0;
+			curGantryAngle = MVAng;
+			
             double curProjOffsetX = m_spCustomGeometry->GetProjectionOffsetsX().at(i);
             double curProjOffsetY = m_spCustomGeometry->GetProjectionOffsetsY().at(i);
 
