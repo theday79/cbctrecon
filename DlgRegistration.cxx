@@ -6,6 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if USE_GPMC
+  #include <algorithm>
+  #include <random>
+  #include <chrono>
+  #include <random>
+  #include <vector>
+  #include <fstream>
+
+  #define NDOSECOUNTERS 1
+  #include "goPMC.h"
+  #define N 100000
+#endif USE_GPMC
+
 #include "itkImageFileWriter.h"
 #include "itk_image_save.h"
 #include "plmcli_config.h"
@@ -3452,6 +3465,119 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
     SelectComboExternal(1, REGISTER_MANUAL_RIGID);
 }
 
+// A function to initialize source protons. Should be replaced by real beams !!!!
+void initSource(cl_float * T, cl_float3 * pos, cl_float3 * dir, cl_float * weight){
+	unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+	std::minstd_rand0 g1(seed1);  // minstd_rand0 is a standard linear_congruential_engine
+	std::fill_n(T, N, 120.0f);
+	std::fill_n(weight, N, 1.0f);
+	for (int i = 0; i < N; i++){
+		pos[i].s[0] = 5 * float(g1()) / g1.max(); // -15; // -15 to -10
+		pos[i].s[1] = 120; // -20;   // ^--- between 0 and the largest possible max = 2147483646
+		pos[i].s[2] = 5 * float(g1()) / g1.max(); // +25; //  25 to  30
+	} //                                ^------- UP TO the largest possible max = 2147483646
+	const cl_float3 temp2 = { 0.0f, 1.0f, 0.0f };
+	std::fill_n(dir, N, temp2);
+}
+
+#if !USE_GPMC
+void DlgRegistration::SLT_gPMCrecalc()
+{
+    std::cout << "You didn't compile with gPMC option"
+}
+#elseif USE_GPMC
+void DlgRegistration::SLT_gPMCrecalc()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+    // below is probably definitely not good enough.. you need to do the same as for Lauras project.
+    LoadRTPlan(filePath);
+    Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
+
+    // Export fixed and moving as DCM
+    
+    // Start gPMC
+    	// Get OpenCL platform and device.
+	cl::Platform platform;
+	cl::Platform::get(&platform);
+	std::vector<cl::Device> devs;
+	platform.getDevices(CL_DEVICE_TYPE_CPU, &devs);
+
+	cl::Device device;
+	try{
+		device = devs.at(0); // throws exception in contrary to []
+	}
+	catch (const std::exception& e) {
+		std::cout << "Well, this happened: " << e.what() << std::endl << "That usually means you tried to compile for CPU-device with CUDA" << std::endl;
+		std::cout << "OR you compiled for GPU-device didn't and didn't have a GPU" << std::endl;
+		std::cin.ignore();
+		return -1;
+	}
+	
+	// Initialize simulation engine.
+	goPMC::MCEngine mcEngine;
+	mcEngine.initializeComputation(platform, device);
+	
+	// Read and process physics data.
+	mcEngine.initializePhysics("input");
+	
+	// Read and process patient Dicom CT data. ITK has origin at upper left
+	mcEngine.initializePhantom("zzzCetphan504"); // "090737"); // "directoryToDicomData");
+	
+	// Initialize source protons with arrays of energy (T), position (pos), direction (dir) and weight (weight) of each proton.
+	// Position and direction should be defined in Dicom CT coordinate.
+	cl_float * T = new cl_float[N];     //Energy(MeV?) = [120.0, ..., 120.0]
+	cl_float3 * pos = new cl_float3[N]; //Position    = [(5*rand_1-15, -20, 5*rand_1+25), ..., (5*rand_N-15, -20, 5*rand_N+25)]
+	cl_float3 * dir = new cl_float3[N]; //Direction   = [(0, 1, 0), ..., (0, 1, 0)] = y?          ^-------- 0 <= rand_X <= 1
+	cl_float * weight = new cl_float[N];//Weight      = [1.0, ..., 1.0]
+	initSource(T, pos, dir, weight);
+	
+	// Choose a physics quantity to score for this simulation run.
+	// Scoring quantity could be one of {DOSE2MEDIUM, DOSE2WATER, FLUENCE, LETD}.
+	// LETD is dose weighted LET, to get dose averaged LET, divide it by DOSE2MEDIUM from another simulation run.
+	std::string quantity("DOSE2WATER"); 
+	
+	// Run simulation.
+	mcEngine.simulate(T, pos, dir, weight, N, quantity);
+	
+	// Get simulation results.
+	std::vector<cl_float> doseMean, doseStd;
+	mcEngine.getResult(doseMean, doseStd);
+	
+	// %% Do something with doseMean and doseStd %% //
+	std::cout << "doseMean size: " << doseMean.size();
+	cl_float mean = 0;
+	for (std::vector<cl_float>::iterator it = doseMean.begin(); it != doseMean.end(); ++it)
+		mean += *it;
+	std::cout << " sum: " << mean;
+	std::cout << " mean: " << mean / doseMean.size() << std::endl;
+
+	std::cout << "doseStd size: " << doseStd.size();
+	mean = 0;
+	for (std::vector<cl_float>::iterator it = doseStd.begin(); it != doseStd.end(); ++it)
+		mean += *it;
+	std::cout << " sum: " << mean;
+	std::cout << " mean: " << mean / doseStd.size() << std::endl;
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% //
+
+	// Clear the scoring counters in previous simulation runs.
+	mcEngine.clearCounter();
+
+
+	delete[] T;
+	delete[] pos;
+	delete[] dir;
+	delete[] weight;
+
+    // End gPMC
+
+    // Translate gPMC output to ITK image
+
+    // Display dose as colorwash on top of fixed and moving in all three plots
+
+    // Free whatever needs to be free
+    
+}
+#endif // USE_GPMC
 
 void DlgRegistration::SLT_DoRegistrationGradient()
 {
