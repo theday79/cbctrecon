@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.8)
 
 
 # This project is designed to be built outside the RTK source tree.
@@ -21,7 +21,7 @@ INCLUDE(${RTK_USE_FILE})
 
 FIND_PACKAGE(CUDA)
 
-FIND_PACKAGE(OpenCL)
+FIND_PACKAGE(OpenCL REQUIRED)
 
 get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
 set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
@@ -58,10 +58,6 @@ message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
 message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
 message (STATUS "PLASTIMATCH_SOURCE_DIR = ${PLASTIMATCH_DIR}")
 
-#MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRECTORIES}")
-#MESSAGE(STATUS "PLASTIMATCH_LINK_DIRECTORIES = ${Plastimatch_LINK_DIRS}")
-#MESSAGE(STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_LINK_DIR}")
-
 
 #Find ITk folder
 FIND_PACKAGE(ITK)
@@ -75,8 +71,6 @@ ENDIF(ITK_FOUND)
 #Find DCMTK
 
 find_package(DCMTK REQUIRED)
-#LINK_DIRECTORIES(${DCMTK_LIBRARY_DIRS}) #not defined
-#LINK_DIRECTORIES("H:/lib/dcmtk3.6.1/BUILD32/lib/Debug") #works
 LINK_DIRECTORIES("${DCMTK_DIR}/lib")
 
 #works But A lot of lInk error (detection...
@@ -90,6 +84,12 @@ MESSAGE(STATUS "DCMTK_LIBRARIES = ${DCMTK_LIBRARIES}")
 
 message (STATUS "DCMTK_SOURCE_DIRECTORY = ${DCMTK_SOURCE_DIRECTORY}")
 
+SET(GPMC_LIB_DIR "${PROJECT_SOURCE_DIR}/gPMC/bin")
+SET(GPMC_LIBRARIES
+  "${GPMC_LIB_DIR}/goPMC.lib"
+  "${GPMC_LIB_DIR}/dcmtk.lib"
+  "${GPMC_LIB_DIR}/libDicomRT.lib"
+)
 
 SET(CbctRecon_SOURCES
 	main.cpp
@@ -99,7 +99,7 @@ SET(CbctRecon_SOURCES
 	qcustomplot.cpp
 	DlgRegistration.cxx
 	DlgExternalCommand.cxx
-	)
+)
 
 SET(CbctRecon_HEADERS
 	cbctrecon.h
@@ -108,48 +108,28 @@ SET(CbctRecon_HEADERS
 	qcustomplot.h
 	DlgRegistration.h
 	DlgExternalCommand.h
-	)
+)
 
 SET(CbctRecon_FORMS
 	cbctrecon.ui
 	DlgRegistration.ui
-	DlgExternalCommand.ui)
+	DlgExternalCommand.ui
+)
 
 
 
-#INCLUDE(${QT_USE_FILE})
-#ADD_DEFINITIONS(${QT_DEFINITIONS})
-
-#QT4_WRAP_CPP(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
 QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
-#QT4_ADD_RESOURCES(CbctRecon_RESOURCES_RCC ${CbctRecon_RESOURCES})
 
 
 # Executable
-
-
 ADD_EXECUTABLE(CbctRecon
   ${CbctRecon_SOURCES}
-	${CbctRecon_HEADERS}
-#  ${CbctRecon_HEADERS_MOC}
+  ${CbctRecon_HEADERS}
   ${CbctRecon_FORMS_HEADERS}
-  )
+)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
-IF (OpenCL_FOUND)
-INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIR})
-ENDIF(OpenCL_FOUND)
-
-
-#SET (PLASTIMATCH_INCLUDE_DIRS
-#	${PLASTIMATCH_INCLUDE_DIRS}
-#	"H:/lib/plastimatch/SRC/src/plastimatch/segment"
-#	"H:/lib/plastimatch/SRC/src/plastimatch/cli"
-#	"H:/lib/plastimatch/SRC/src/plastimatch/clp")
-
-#SET (PLASTIMATCH_INCLUDE_DIRS
-#	${PLASTIMATCH_INCLUDE_DIRS})
 
 message (STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_INCLUDE_DIRS}")
 message (STATUS "CMAKE_LIBRARY_PATH = ${CMAKE_LIBRARY_PATH}")
@@ -158,15 +138,13 @@ message (STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 INCLUDE_DIRECTORIES(${PLASTIMATCH_INCLUDE_DIRS}
-  ${DCMTK_INCLUDE_DIR})
+  ${DCMTK_INCLUDE_DIR}
+  "${PROJECT_SOURCE_DIR}/include"
+)
 
 SET(QT_USE_QTCORE TRUE)
 SET(QT_USE_QTGUI TRUE)
 SET(QT_USE_QTOPENGL TRUE)
-
-#This is for "Linker->additional library directories" for DCMRT dir (to deal with oflog.lib not found error)
-#LINK_DIRECTORIES("H:/lib/dcmtk3.6.1/BUILD32/lib/Debug")
-#SET_TARGET_PROPERTIES (CbctRecon PROPERTIES LINK_FLAGS "H:\lib\dcmtk3.6.1\BUILD32\lib\Debug")
 
 message (STATUS "RTK_USE_FILE = ${RTK_USE_FILE}")
 
@@ -179,17 +157,11 @@ TARGET_LINK_LIBRARIES(CbctRecon
 netapi32.lib
 ${ITK_LIBRARIES}
 ${RTK_LIBRARIES}
+${GPMC_LIBRARIES}
+OpenCL::OpenCL
 Qt5::Core
 Qt5::Gui
 Qt5::OpenGL
 Qt5::PrintSupport
 Qt5::Widgets
-#${QT_LIBRARIES}
-#${QT_QTCORE_LIBRARY}
-#${QT_QTGUI_LIBRARY}
-#${QT_QTOPENGL_LIBRARY}
-${CUDA_LIBRARIES}
-${CUDA_FFT_LIB}
-${PLASTIMATCH_LIBRARIES}
-#${DCMTK_LIBRARIES} a lot of link error.. dectection..
 )
