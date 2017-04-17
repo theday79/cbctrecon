@@ -91,7 +91,7 @@ public slots:
         void SLT_DoRegistrationGradient();
         void SLT_ManualMoveByDCMPlan();
         void SLT_ManualMoveByDCMPlanOpen();
-
+		void SLT_gPMCrecalc();
 	void SLT_BringFocusToEnableArrow(bool bChecked);
 
 	void SLT_KeyMoving(bool bChecked);

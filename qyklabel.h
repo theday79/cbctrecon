@@ -15,6 +15,7 @@ class qyklabel : public QLabel
 
 public:
 	YK16GrayImage* m_pYK16Image;
+	YK16GrayImage* m_pARGBImage;
 	QRect m_Rt;
 	std::vector<QPoint> m_vPt;
 	bool m_bDrawPoints;

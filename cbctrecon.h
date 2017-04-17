@@ -57,7 +57,7 @@
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
 
-#if CUDA_FOUND
+#if CUDA_FOUND FALSE
 # include "rtkCudaFDKConeBeamReconstructionFilter.h"
 # include "rtkCudaForwardProjectionImageFilter.h"
 # include <rtkCudaDisplacedDetectorImageFilter.h>
@@ -88,7 +88,7 @@
 typedef float FloatPixelType;
 //typedef itk::Image< FloatPixelType, 3 > FloatImageType;
 //typedef itk::Image< FloatPixelType, 2 > FloatImage2DType;
-#if CUDA_FOUND
+#if CUDA_FOUND FALSE
 typedef itk::CudaImage< FloatPixelType, 3 > CUDAFloatImageType;
 #endif // CUDA_FOUND
 

@@ -191,6 +191,11 @@ void qyklabel::paintEvent( QPaintEvent * )
 		//painter.drawImage(TargetRt, m_pYK16Image->m_QImage); //it Works!YKTEMP
                 painter.drawImage(TargetRt, m_pYK16Image->m_QImage); //it Works!YKTEMP
 	}
+
+	if (m_pARGBImage != NULL)
+	{
+                painter.drawImage(TargetRt, m_pARGBImage->m_QImage); //QT::ARGB THIS WILL PROBABLY DEFINITELY CREATE PROBLEMS!
+	}
 	
 	if (m_bDrawPoints)
 	{

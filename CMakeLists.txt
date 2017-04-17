@@ -46,18 +46,13 @@ message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
 message (STATUS "Plastimatch_DIR = ${Plastimatch_DIR}")
 message (STATUS "Plastimatch_SRC = ${Plastimatch_SRC}")
 message (STATUS "Plastimatch_BUILD_DIR = ${Plastimatch_BUILD_DIR}")
-message (STATUS "PLM_SRC_ROOT = ${PLM_SRC_ROOT}")
 
 message (STATUS "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
 message (STATUS "CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
 message (STATUS "MY_PARENT_DIR = ${MY_PARENT_DIR}")
 
 message (STATUS "PLASTIMATCH_LIBRARIES = ${PLASTIMATCH_LIBRARIES}")
-message (STATUS "PLASTIMATCH_LIBRARY = ${PLASTIMATCH_LIBRARY}")
 message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
-message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
-message (STATUS "PLASTIMATCH_SOURCE_DIR = ${PLASTIMATCH_DIR}")
-
 
 #Find ITk folder
 FIND_PACKAGE(ITK)
@@ -71,25 +66,40 @@ ENDIF(ITK_FOUND)
 #Find DCMTK
 
 find_package(DCMTK REQUIRED)
-LINK_DIRECTORIES("${DCMTK_DIR}/lib")
+LINK_DIRECTORIES("${DCMTK_DIR}/../lib")
 
 #works But A lot of lInk error (detection...
 
 MESSAGE(STATUS "DCMTK_FOUND = ${DCMTK_FOUND}")
 MESSAGE(STATUS "DCMTK_DIR = ${DCMTK_DIR}")
-MESSAGE(STATUS "DCMTK_ROOT_DIR = ${DCMTK_ROOT_DIR}")
-MESSAGE(STATUS "DCMTK_INCLUDE_DIRS = ${DCMTK_INCLUDE_DIR}")
-MESSAGE(STATUS "DCMTK_LINK_DIRECTORIES = ${DCMTK_LINK_DIRECTORIES}")
-MESSAGE(STATUS "DCMTK_LIBRARIES = ${DCMTK_LIBRARIES}")
 
-message (STATUS "DCMTK_SOURCE_DIRECTORY = ${DCMTK_SOURCE_DIRECTORY}")
+## JUST TEMPORARY WHILE USING THE OLD OPENCL VERSION OF RTK ##
+# Find BZIP2 (required for Varian HNC)
+OPTION(USE_BZIP2 "RTK has enabled hnc" OFF)
+IF(USE_BZIP2)
+  FIND_PACKAGE(BZip2)
+  IF(BZIP2_FOUND)
+    INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIR})
+  ELSE(BZIP2_FOUND)
+    MESSAGE(FATAL_ERROR "Cannot build without bzip2.")
+  ENDIF(BZIP2_FOUND)
+ENDIF(USE_BZIP2)
 
-SET(GPMC_LIB_DIR "${PROJECT_SOURCE_DIR}/gPMC/bin")
-SET(GPMC_LIBRARIES
-  "${GPMC_LIB_DIR}/goPMC.lib"
-  "${GPMC_LIB_DIR}/dcmtk.lib"
-  "${GPMC_LIB_DIR}/libDicomRT.lib"
-)
+OPTION(USE_GPMC "Enable gpu Proton Monte Carlo (gPMC) dose re-calculation" ON)
+IF(USE_GPMC)
+  include(ExternalProject)
+  ExternalProject_Add(gPMC ## Yes, external is needed because otherwise dlls will interfere with local DCMTK
+	DOWNLOAD_COMMAND ""    ## Also, DCMTK must be installed in a path not called %PROGRAMFILES%/DCMTK !!!
+	SOURCE_DIR "${PROJECT_SOURCE_DIR}/gPMC"
+	# CONFIGURE_COMMAND ""
+	CMAKE_GENERATOR "Visual Studio 12 2013 Win64"
+	CMAKE_GENERATOR_TOOLSET "v120" ## Visual Studio 2013
+	CONFIGURATIONS "Debug" ## Release has not worked yet, probably some "if debug" directives in goPMC or dependencies
+	INSTALL_DIR "${CMAKE_BINARY_DIR}/install"
+	CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/install"
+  )
+  ADD_DEFINITIONS(-DUSE_GPMC=TRUE)
+ENDIF(USE_GPMC)
 
 SET(CbctRecon_SOURCES
 	main.cpp
@@ -132,14 +142,12 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 
 message (STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_INCLUDE_DIRS}")
-message (STATUS "CMAKE_LIBRARY_PATH = ${CMAKE_LIBRARY_PATH}")
 message (STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
 
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 INCLUDE_DIRECTORIES(${PLASTIMATCH_INCLUDE_DIRS}
   ${DCMTK_INCLUDE_DIR}
-  "${PROJECT_SOURCE_DIR}/include"
 )
 
 SET(QT_USE_QTCORE TRUE)
@@ -147,10 +155,7 @@ SET(QT_USE_QTGUI TRUE)
 SET(QT_USE_QTOPENGL TRUE)
 
 message (STATUS "RTK_USE_FILE = ${RTK_USE_FILE}")
-
 message (STATUS "RTK_LIBRARY_DIRS = ${RTK_LIBRARY_DIRS}")
-message (STATUS "DCMTK_LIBRARY_DIRS = ${DCMTK_LIBRARY_DIRS}")
-message (STATUS "DCMTK_LIBRARIES = ${DCMTK_LIBRARIES}")
 
 #this is for "Linker->Additional dependencies"
 TARGET_LINK_LIBRARIES(CbctRecon
@@ -158,6 +163,8 @@ netapi32.lib
 ${ITK_LIBRARIES}
 ${RTK_LIBRARIES}
 ${GPMC_LIBRARIES}
+${PLASTIMATCH_LIBRARIES}
+${BZIP2_LIBRARIES}
 OpenCL::OpenCL
 Qt5::Core
 Qt5::Gui
@@ -165,3 +172,29 @@ Qt5::OpenGL
 Qt5::PrintSupport
 Qt5::Widgets
 )
+
+## INSTALL ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
+
+if($<CONFIG:Debug>)
+  get_target_property(WIDGETDLL Qt5::Widgets IMPORTED_LOCATION_DEBUG)
+else($<CONFIG:Debug>)
+  get_target_property(WIDGETDLL Qt5::Widgets      IMPORTED_LOCATION_RELEASE)
+  get_target_property(GUIDLL    Qt5::Gui          IMPORTED_LOCATION_RELEASE)
+  get_target_property(COREDLL   Qt5::Core         IMPORTED_LOCATION_RELEASE)
+  get_target_property(COREDLL   Qt5::PrintSupport IMPORTED_LOCATION_RELEASE)
+endif($<CONFIG:Debug>)
+
+add_custom_command(
+  TARGET CbctRecon POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:Qt5::Widgets>
+    $<TARGET_FILE:Qt5::Gui>
+    $<TARGET_FILE:Qt5::Core>
+    $<TARGET_FILE:Qt5::PrintSupport>
+    install/bin #$<TARGET_FILE_DIR:CbctRecon>
+)
+
+INSTALL( TARGETS CbctRecon DESTINATION bin )
+
+FILE( GLOB DLLFILES "${CMAKE_CURRENT_BINARY_DIR}/install/bin/*" ) # also gPMC.exe
+INSTALL( FILES ${DLLFILES} DESTINATION bin )
