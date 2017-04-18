@@ -7,6 +7,9 @@
 #include <string.h>
 
 #include "itkImageFileWriter.h"
+#include "itkRescaleIntensityImageFilter.h"
+#include "itkThresholdImageFilter.h"
+#include "itkMinimumMaximumImageCalculator.h"
 #include "itk_image_save.h"
 #include "plmcli_config.h"
 #include "plm_image.h"
@@ -48,6 +51,7 @@
 #include "plm_file_format.h"
 #include "dcmtk_rt_study.h"
 #include <QFileDialog>
+#include <QProcess>
 
 //#include "pcmd_dmap.h"
 
@@ -3453,6 +3457,65 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
     SelectComboExternal(1, REGISTER_MANUAL_RIGID);
 }
 
+void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort)
+{
+	typedef itk::ThresholdImageFilter <UShortImageType> ThresholdImageFilterType;
+	ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
+	thresholdFilter->SetInput(spImgUshort);
+	thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
+	thresholdFilter->SetOutsideValue(0);
+	thresholdFilter->Update();
+
+	typedef itk::MinimumMaximumImageCalculator <UShortImageType> ImageCalculatorFilterType;
+	ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
+	imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+	imageCalculatorFilter->Compute();
+	double minVal = (double)(imageCalculatorFilter->GetMinimum());
+	double maxVal = (double)(imageCalculatorFilter->GetMaximum());
+
+	//Min value is always 3024 --> outside the FOV
+	SHORT_PixelType outputMinVal = (SHORT_PixelType)(minVal - 1024);
+	SHORT_PixelType outputMaxVal = (SHORT_PixelType)(maxVal - 1024);
+
+	typedef itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType> RescaleFilterType;
+	RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+	spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+	spRescaleFilter->SetOutputMinimum(outputMinVal);
+	spRescaleFilter->SetOutputMaximum(outputMaxVal);
+	spRescaleFilter->Update();
+
+	spImgShort = spRescaleFilter->GetOutput();
+}
+
+QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir)
+{
+	if (!spImg)
+		return "";
+
+	ShortImageType::Pointer spShortImg;
+	ConvertUshort2Short(spImg, spShortImg);
+
+	Plm_image plm_img(spShortImg);
+
+	QString endFix = "_DCM";
+
+	QString newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
+
+
+	QDir dirNew(newDirPath);
+	if (!dirNew.exists()) {
+		dirNew.mkdir(".");
+	}
+
+	Rt_study_metadata rsm;
+	rsm.set_patient_id(strPatientID.toLocal8Bit().constData());
+	rsm.set_patient_name(strPatientName.toLocal8Bit().constData());
+
+	plm_img.save_short_dicom(newDirPath.toLocal8Bit().constData(), &rsm);
+	return newDirPath.toLocal8Bit().constData();
+}
+
+
 #if !USE_GPMC
 void DlgRegistration::SLT_gPMCrecalc()
 {
@@ -3461,97 +3524,81 @@ void DlgRegistration::SLT_gPMCrecalc()
 #elif USE_GPMC
 void DlgRegistration::SLT_gPMCrecalc()
 {
+	if (!m_spFixed || !m_spMoving)
+		return;
+
+	QString fixed_dcm_dir, moving_dcm_dir = "";
+	// Export fixed and moving as DCM
+	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
+	if (m_spFixed != m_spMoving)
+		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spFixed, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
+
+	/* Load spots from dcm rtplan and write a rst-like file.
     QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
     // below is probably definitely not good enough.. you need to do the same as for Lauras project.
     LoadRTPlan(filePath);
     Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
-
-    // Export fixed and moving as DCM
-
-	/* Below must be done externally, through command line - due to incompatibilities with compilers and library versions..
-	* Pytrip-style but with somewhat better control.. (hacks to private members might be possible as well: http://stackoverflow.com/questions/424104/can-i-access-private-members-from-outside-the-class-without-using-friends)
-
-    // Start gPMC
-    	// Get OpenCL platform and device.
-	cl::Platform platform;
-	cl::Platform::get(&platform);
-	std::vector<cl::Device> devs;
-	platform.getDevices(CL_DEVICE_TYPE_CPU, &devs);
-
-	cl::Device device;
-	try{
-		device = devs.at(0); // throws exception in contrary to []
-	}
-	catch (const std::exception& e) {
-		std::cout << "Well, this happened: " << e.what() << std::endl << "That usually means you tried to compile for CPU-device with CUDA" << std::endl;
-		std::cout << "OR you compiled for GPU-device didn't and didn't have a GPU" << std::endl;
-		std::cin.ignore();
-		return;
-	}
-	// Initialize simulation engine.
-	goPMC::MCEngine mcEngine;
-	mcEngine.initializeComputation(platform, device);
-	
-	// Read and process physics data.
-	mcEngine.initializePhysics("input");
-	std::cout << "Initializing from dicom..." << std::endl;
-	// Read and process patient Dicom CT data. ITK has origin at upper left
-	mcEngine.initializePhantom("zzzCetphan504"); // "090737"); // "directoryToDicomData");
-
-	std::cout << "Initializing beam params..." << std::endl;
-	// Initialize source protons with arrays of energy (T), position (pos), direction (dir) and weight (weight) of each proton.
-	// Position and direction should be defined in Dicom CT coordinate.
-	cl_float * T = new cl_float[N];     //Energy(MeV?) = [120.0, ..., 120.0]
-	cl_float3 * pos = new cl_float3[N]; //Position    = [(5*rand_1-15, -20, 5*rand_1+25), ..., (5*rand_N-15, -20, 5*rand_N+25)]
-	cl_float3 * dir = new cl_float3[N]; //Direction   = [(0, 1, 0), ..., (0, 1, 0)] = y?          ^-------- 0 <= rand_X <= 1
-	cl_float * weight = new cl_float[N];//Weight      = [1.0, ..., 1.0]
-	std::cout << "T: " << T[17] << ", pos: " << pos[17].s[0] << ", " << pos[17].s[1] << ", " << pos[17].s[2] << ", dir: " << dir[17].s[0] << ", " << dir[17].s[1] << ", " << dir[17].s[2] << ", weight: " << weight[17] << std::endl;
-	initSource(T, pos, dir, weight);
-	std::cout << "T: " << T[17] << ", pos: " << pos[17].s[0] << ", " << pos[17].s[1] << ", " << pos[17].s[2] << ", dir: " << dir[17].s[0] << ", " << dir[17].s[1] << ", " << dir[17].s[2] << ", weight: " << weight[17] << std::endl;
-
-	// Choose a physics quantity to score for this simulation run.
-	// Scoring quantity could be one of {DOSE2MEDIUM, DOSE2WATER, FLUENCE, LETD}.
-	// LETD is dose weighted LET, to get dose averaged LET, divide it by DOSE2MEDIUM from another simulation run.
-	std::string quantity("DOSE2WATER"); 
-	
-	// Run simulation.
-	mcEngine.simulate(T, pos, dir, weight, N, quantity);
-	
-	// Get simulation results.
-	std::vector<cl_float> doseMean, doseStd;
-	mcEngine.getResult(doseMean, doseStd);
-	
-	// %% Do something with doseMean and doseStd %% //
-	std::cout << "doseMean size: " << doseMean.size();
-	cl_float mean = 0;
-	for (std::vector<cl_float>::iterator it = doseMean.begin(); it != doseMean.end(); ++it)
-		mean += *it;
-	std::cout << " sum: " << mean;
-	std::cout << " mean: " << mean / doseMean.size() << std::endl;
-
-	std::cout << "doseStd size: " << doseStd.size();
-	mean = 0;
-	for (std::vector<cl_float>::iterator it = doseStd.begin(); it != doseStd.end(); ++it)
-		mean += *it;
-	std::cout << " sum: " << mean;
-	std::cout << " mean: " << mean / doseStd.size() << std::endl;
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% //
-
-	// Clear the scoring counters in previous simulation runs.
-	mcEngine.clearCounter();
-
-	delete[] T;
-	delete[] pos;
-	delete[] dir;
-	delete[] weight;
-
-    // End gPMC
 	*/
-    // Translate gPMC output to ITK image
+
+	/* Below MUST be done externally, through command line - due to incompatibilities with compilers and library versions..
+	 * Pytrip-style but with somewhat better control.. (hacks to private members might be possible as well: http://stackoverflow.com/questions/424104/can-i-access-private-members-from-outside-the-class-without-using-friends)
+	 */
+
+	// Create gPMC command line
+	QString str_fixedOrigin = QString("%1,%2,%3") // done per image because CT might be different from reconstructed CBCT
+		.arg(m_spFixed->GetOrigin()[0])
+		.arg(m_spFixed->GetOrigin()[1])
+		.arg(m_spFixed->GetOrigin()[2]);
+	QString str_fixedDimension = QString("%1,%2,%3")
+		.arg(m_spFixed->GetBufferedRegion().GetSize()[0])
+		.arg(m_spFixed->GetBufferedRegion().GetSize()[1])
+		.arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
+	QString str_fixedSpacing = QString("%1,%2,%3")
+		.arg(m_spFixed->GetSpacing()[0])
+		.arg(m_spFixed->GetSpacing()[1])
+		.arg(m_spFixed->GetSpacing()[2]);
+
+	QString gPMC_command_str = "";
+	gPMC_command_str = QString("gPMC.exe") +  // casting this seems to cast the whole string
+		" --path " + fixed_dcm_dir +
+		" --output " + fixed_dcm_dir + "dose_fixed.mha" +
+		" --origin " + str_fixedOrigin +
+		" --spacing " + str_fixedSpacing +
+		" --dimension " + str_fixedDimension;
+	if (QProcess::execute(gPMC_command_str) < 0)
+		qDebug() << "Failed to run (fixed mc recalc)";
+	
+	if (moving_dcm_dir != "")
+	{
+		QString str_movingOrigin = QString("%1,%2,%3") // done per image because CT might be different from reconstructed CBCT
+			.arg(m_spFixed->GetOrigin()[0])
+			.arg(m_spFixed->GetOrigin()[1])
+			.arg(m_spFixed->GetOrigin()[2]);
+		QString str_movingDimension = QString("%1,%2,%3")
+			.arg(m_spFixed->GetBufferedRegion().GetSize()[0])
+			.arg(m_spFixed->GetBufferedRegion().GetSize()[1])
+			.arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
+		QString str_movingSpacing = QString("%1,%2,%3")
+			.arg(m_spFixed->GetSpacing()[0])
+			.arg(m_spFixed->GetSpacing()[1])
+			.arg(m_spFixed->GetSpacing()[2]);
+
+		gPMC_command_str = QString("gPMC.exe") +
+			" --path " + moving_dcm_dir +
+			" --output " + moving_dcm_dir + "dose_moving.mha" +
+			" --origin " + str_movingOrigin +
+			" --spacing " + str_movingSpacing +
+			" --dimension " + str_movingDimension;
+		if (QProcess::execute(gPMC_command_str) < 0)
+			qDebug() << "Failed to run (moving mc recalc)";
+	}
+	// Run gPMC externally
+	
+    // Translate gPMC output (preferably .mha) to ITK image
 
     // Display dose as colorwash on top of fixed and moving in all three plots
 
-    // Free whatever needs to be free
+    // Free whatever needs to be freed
     
 }
 #endif // USE_GPMC

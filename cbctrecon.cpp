@@ -84,7 +84,7 @@
 #include <itkFlipImageFilter.h>
 #include "itkSmoothingRecursiveGaussianImageFilter.h"
 #include "rtkJosephForwardProjectionImageFilter.h"
-#if CUDA_FOUND FALSE
+#if USE_CUDA TRUE
 # include "rtkCudaForwardProjectionImageFilter.h"
 #endif
 #include "rtkRayCastInterpolatorForwardProjectionImageFilter.h"
@@ -175,12 +175,12 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
     //connect(ui.MyLabel, SIGNAL(Mouse_Pos()), this, SLOT(MouseCurrPos()));
 
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
     ui.radioButton_UseCUDA->setDisabled(false);
     ui.radioButton_UseCUDA->setChecked(true);
 #endif  
 
-#if OPENCL_FOUND
+#if USE_OPENCL
     ui.radioButton_UseOpenCL->setDisabled(false);
 #endif
     m_pTableModel = NULL;
@@ -1818,7 +1818,7 @@ void CbctRecon::SLT_SetOutputPath()
 
     ui.lineEdit_OutputFilePath->setText(strPath);
 }
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
 void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 {
 	typedef itk::CastImageFilter <FloatImageType, CUDAFloatImageType > castToCudaType;
@@ -1833,7 +1833,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		return;
 	}
 
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
 	cout << "CUDA method will be used..." << endl;
 #else
 	cout << "Not compiled with CUDA option..." << endl;
@@ -2407,7 +2407,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
     // FDK reconstruction filtering
     itk::ImageToImageFilter<FloatImageType, FloatImageType>::Pointer feldkamp;
     typedef rtk::FDKConeBeamReconstructionFilter< FloatImageType > FDKCPUType;
-#if OPENCL_FOUND
+#if USE_OPENCL
     //typedef rtk::OpenCLFDKConeBeamReconstructionFilter              FDKOPENCLType;
 #endif
 
@@ -2426,7 +2426,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
     }
     else if (!strcmp(strHardware, "opencl"))
     {
-#if OPENCL_FOUND
+#if USE_OPENCL
         /*feldkamp = FDKOPENCLType::New();
         SET_FELDKAMP_OPTIONS( static_cast<FDKOPENCLType*>(feldkamp.GetPointer()) );*/
 #else
@@ -2667,7 +2667,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
 
     if (!strcmp(strHardware, "cpu"))
         static_cast<FDKCPUType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
-#if OPENCL_FOUND
+#if USE_OPENCL
     //else if(!strcmp(strHardware, "opencl") )
     //	static_cast<FDKOPENCLType*>(feldkamp.GetPointer())->PrintTiming(std::cout);
 #endif	
@@ -6624,7 +6624,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
         multiplyImageFilter->SetInput(castFilter->GetOutput());
         multiplyImageFilter->SetConstant(calibF_A / 65535.0);
 
-    #if CUDA_FOUND FALSE
+    #if USE_CUDA FALSE
 		typedef itk::AddImageFilter <FloatImageType, FloatImageType, CUDAFloatImageType> AddImageFilterType;
     #else
 		typedef itk::AddImageFilter <FloatImageType, FloatImageType, FloatImageType> AddImageFilterType;
@@ -6635,7 +6635,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
         addImageFilter->SetConstant2(addingVal);
         addImageFilter->Update(); //will generate map of real_mu (att.coeff)	
 
-    #if CUDA_FOUND FALSE
+    #if USE_CUDA FALSE
 		CUDAFloatImageType::Pointer spCTImg_mu;
     #else
 		FloatImageType::Pointer spCTImg_mu;
@@ -6645,7 +6645,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
         //2) Prepare empty projection images //Should be corresonponding to raw projection images
 
         // Create a stack of empty projection images
-    #if CUDA_FOUND FALSE
+    #if USE_CUDA FALSE
 		typedef rtk::ConstantImageSource< CUDAFloatImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
     #else
 		typedef rtk::ConstantImageSource< FloatImageType > ConstantImageSourceType; //Output: FLoat image = may be mu_t = log(I_0/I)
@@ -6692,7 +6692,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
 
         // Create forward projection image filter
         rtk::ForwardProjectionImageFilter<FloatImageType, FloatImageType>::Pointer forwardProjection; //Float to Float
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
 		rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType, CUDAFloatImageType>::Pointer CudaForwardProjection; //Float to Float
 #endif
         switch(fwdMethod)
@@ -6701,7 +6701,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
             forwardProjection = rtk::JosephForwardProjectionImageFilter<FloatImageType, FloatImageType>::New();
             break;
         case (en_CudaRayCast) :
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
             CudaForwardProjection = rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType, CUDAFloatImageType>::New();
 #else
             std::cerr << "The program has not been compiled with cuda option" << std::endl;
@@ -6721,7 +6721,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
         cout << "Forward projection is now ongoing" << endl;
 		if (fwdMethod == en_CudaRayCast)
 		{
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
 			CudaForwardProjection->SetInput(constantImageSource->GetOutput()); //Canvas. projection image will be saved here.	
 			CudaForwardProjection->SetInput(1, spCTImg_mu); //reference plan CT image
 			CudaForwardProjection->SetGeometry(spGeometry);
@@ -11647,7 +11647,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, 
     //    cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " << fwdMethod << endl;
 
     // Create forward projection image filter
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
 	rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType, CUDAFloatImageType>::Pointer CudaForwardProjection; //Float to Float
 #endif // CUDA_FOUND
 
@@ -11659,7 +11659,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, 
         forwardProjection = rtk::JosephForwardProjectionImageFilter<FloatImageType, FloatImageType>::New();
         break;
     case (en_CudaRayCast) :
-#if CUDA_FOUND FALSE
+#if USE_CUDA FALSE
         CudaForwardProjection = rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType, CUDAFloatImageType>::New();
 #else
         std::cerr << "The program has not been compiled with cuda option" << std::endl;

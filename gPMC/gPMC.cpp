@@ -16,6 +16,9 @@
 #include <vector>
 #include <fstream>
 
+#include "itkImage.h"
+#include "itkImageFileWriter.h"
+
 #define NDOSECOUNTERS 1
 #include "goPMC.h"
 #define N 100000
@@ -101,18 +104,22 @@ int main(int argc, char * argv[])
 {
 	GGO(gPMC, args_info);
 
-
+	const std::string stdout_file = std::string(args_info.path_arg) + "\..\gPMCstdout.txt";
+	const std::string stderr_file = std::string(args_info.path_arg) + "\..\gPMCstderr.txt";
 	FILE *stream;
-	if ((stream = freopen("D:\stdout.txt", "w", stdout)) == NULL)
+	if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
 		exit(-1);
 	FILE *stream_err;
-	if ((stream_err = freopen("D:\stderr.txt", "w", stderr)) == NULL)
+	if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
 		exit(-1);
 	// Get OpenCL platform and device.
 	cl::Platform platform;
 	cl::Platform::get(&platform);
 	std::vector<cl::Device> devs;
-	platform.getDevices(CL_DEVICE_TYPE_CPU, &devs);
+	if (args_info.hardware_arg == "gpu")
+		platform.getDevices(CL_DEVICE_TYPE_GPU, &devs);
+	else
+		platform.getDevices(CL_DEVICE_TYPE_CPU, &devs);
 
 	cl::Device device;
 	try{
@@ -130,10 +137,10 @@ int main(int argc, char * argv[])
 	mcEngine.initializeComputation(platform, device);
 	
 	// Read and process physics data.
-	mcEngine.initializePhysics("input");
+	mcEngine.initializePhysics("../lut"); // install-prefix/lut relative to install-prefix/bin/gPMC.exe
 	
 	// Read and process patient Dicom CT data. ITK has origin at upper left
-	mcEngine.initializePhantom("zzzCetphan504"); // "090737"); // "directoryToDicomData");
+	mcEngine.initializePhantom(args_info.path_arg); // "090737"); // "directoryToDicomData");
 	
 	// Initialize source protons with arrays of energy (T), position (pos), direction (dir) and weight (weight) of each proton.
 	// Position and direction should be defined in Dicom CT coordinate.
@@ -170,15 +177,60 @@ int main(int argc, char * argv[])
 	std::cout << " sum: " << mean;
 	std::cout << " mean: " << mean / doseStd.size() << std::endl;
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% //
+	typedef itk::Image<float, 3> ImageType;
+	ImageType::Pointer doseImage = ImageType::New();
+
+	float * im_spc = new float[3];
+	im_spc[0] = args_info.spacing_arg[0];
+	im_spc[1] = args_info.spacing_arg[1];
+	im_spc[2] = args_info.spacing_arg[2];
+	doseImage->SetSpacing(im_spc);
+
+	itk::Index<3> im_org;
+	im_org[0] = args_info.origin_arg[0]; //manually unrolled to help compiler optimize cache
+	im_org[1] = args_info.origin_arg[1];
+	im_org[2] = args_info.origin_arg[2];
+
+	// float * im_dim = new float[3];
+	itk::Size<3> im_dim;
+	im_dim[0] = args_info.dimension_arg[0];
+	im_dim[1] = args_info.dimension_arg[1];
+	im_dim[2] = args_info.dimension_arg[2];
+	ImageType::RegionType region(im_org, im_dim);
+	doseImage->SetRegions(region);
+	doseImage->Allocate();
+	
+	for (size_t i = 0; i < im_dim[0]; i++)
+	{
+		for (size_t j = 0; j < im_dim[1]; j++)
+		{
+			for (size_t k = 0; k < im_dim[2]; k++)
+			{
+				ImageType::IndexType pixelIndex;
+				pixelIndex[0] = i;
+				pixelIndex[1] = j;
+				pixelIndex[2] = k;
+				doseImage->SetPixel(pixelIndex, doseMean[i + j * im_dim[0] + k * im_dim[0] * im_dim[1]]);
+			}
+		}
+	}
+
+	std::cout << "Writing output... " << std::endl;
+	typedef  itk::ImageFileWriter<ImageType> WriterType;
+	WriterType::Pointer outputWriter = WriterType::New();
+	outputWriter->SetFileName(args_info.output_arg);
+	outputWriter->SetInput(doseImage);
+	outputWriter->Update();
 
 	// Clear the scoring counters in previous simulation runs.
 	mcEngine.clearCounter();
-
 
 	delete[] T;
 	delete[] pos;
 	delete[] dir;
 	delete[] weight;
+	// "Real" classes has destructors?
+
 	stream = freopen("CON", "w", stdout);
 	stream_err = freopen("CON", "w", stderr);
 	return 0;

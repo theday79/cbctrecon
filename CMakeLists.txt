@@ -18,18 +18,32 @@ SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 FIND_PACKAGE(RTK REQUIRED)
 INCLUDE(${RTK_USE_FILE})
-
-FIND_PACKAGE(CUDA)
+OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # Of by default for multiple reasons
+IF (USE_CUDA)
+  FIND_PACKAGE(CUDA REQUIRED)
+  get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
+  set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
+  ADD_DEFINITIONS(-DUSE_CUDA=TRUE)
+ELSE (USE_CUDA) 
+  ADD_DEFINITIONS(-DUSE_CUDA=FALSE)
+ENDIF (USE_CUDA)
 
 FIND_PACKAGE(OpenCL REQUIRED)
-
-get_filename_component(MY_PARENT_DIR ${CUDA_LIBRARIES} PATH)
-set (CUDA_FFT_LIB ${MY_PARENT_DIR}/cufft.lib)
+OPTION(USE_OPENCL "Toggle OpenCL on or off" ON) # Of by default for multiple reasons
+IF (USE_OPENCL)
+  ADD_DEFINITIONS(-DUSE_OPENCL=TRUE)
+ELSE (USE_OPENCL)
+  ADD_DEFINITIONS(-DUSE_OPENCL=FALSE)
+ENDIF (USE_OPENCL)
 
 find_package(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 
 
-find_package (Plastimatch)
+find_package (Plastimatch REQUIRED)
+
+SET(Plastimatch_SRC "C:/Users/Andreas/Source/Repos/plastimatch_april17" CACHE PATH "Plastimatch source dir")
+SET(Plastimatch_BUILD_DIR "D:/UserData/Builds/plastimatch-icc" CACHE PATH "Plastimatch build dir")
+
 set(PLASTIMATCH_INCLUDE_DIRS
     ${PLASTIMATCH_INCLUDE_DIRS}
     "${Plastimatch_SRC}/src/"
@@ -41,6 +55,7 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_SRC}/src/plastimatch/register"
     "${Plastimatch_SRC}/src/plastimatch/segment"
     "${Plastimatch_BUILD_DIR}/")
+
 
 message (STATUS "Plastimatch_FOUND = ${Plastimatch_FOUND}")
 message (STATUS "Plastimatch_DIR = ${Plastimatch_DIR}")
@@ -54,21 +69,14 @@ message (STATUS "MY_PARENT_DIR = ${MY_PARENT_DIR}")
 message (STATUS "PLASTIMATCH_LIBRARIES = ${PLASTIMATCH_LIBRARIES}")
 message (STATUS "PLASTIMATCH_INCLUDE_DIRS = ${PLASTIMATCH_INCLUDE_DIRS}")
 
-#Find ITk folder
-FIND_PACKAGE(ITK)
-IF(ITK_FOUND)
-   INCLUDE(${ITK_USE_FILE})
-ELSE(ITK_FOUND)
-   MESSAGE(FATAL_ERROR
-          "Cannot build without ITK.  Please set ITK_DIR.")
-ENDIF(ITK_FOUND)
+#Find ITK
+SET(ITK_DIR "C:/Program Files/ITK-icc/lib/cmake/ITK-4.12/" CACHE PATH "ITK cmake dir")
+FIND_PACKAGE(ITK REQUIRED)
+INCLUDE(${ITK_USE_FILE})
 
 #Find DCMTK
-
-find_package(DCMTK REQUIRED)
-LINK_DIRECTORIES("${DCMTK_DIR}/../lib")
-
-#works But A lot of lInk error (detection...
+FIND_PACKAGE(DCMTK REQUIRED)
+FILE ( GLOB DCMTK_LIBRARIES "${DCMTK_DIR}/../lib/*.lib")
 
 MESSAGE(STATUS "DCMTK_FOUND = ${DCMTK_FOUND}")
 MESSAGE(STATUS "DCMTK_DIR = ${DCMTK_DIR}")
@@ -87,6 +95,7 @@ ENDIF(USE_BZIP2)
 
 OPTION(USE_GPMC "Enable gpu Proton Monte Carlo (gPMC) dose re-calculation" ON)
 IF(USE_GPMC)
+  SET(MEMORY_SIZE 32 CACHE STRING "Cumputer memory in GB (for ITK)")
   include(ExternalProject)
   ExternalProject_Add(gPMC ## Yes, external is needed because otherwise dlls will interfere with local DCMTK
 	DOWNLOAD_COMMAND ""    ## Also, DCMTK must be installed in a path not called %PROGRAMFILES%/DCMTK !!!
@@ -96,7 +105,9 @@ IF(USE_GPMC)
 	CMAKE_GENERATOR_TOOLSET "v120" ## Visual Studio 2013
 	CONFIGURATIONS "Debug" ## Release has not worked yet, probably some "if debug" directives in goPMC or dependencies
 	INSTALL_DIR "${CMAKE_BINARY_DIR}/install"
-	CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/install"
+	CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/install
+      -DMEMORY_SIZE:STRING=${MEMORY_SIZE}
   )
   ADD_DEFINITIONS(-DUSE_GPMC=TRUE)
 ENDIF(USE_GPMC)
@@ -110,7 +121,6 @@ SET(CbctRecon_SOURCES
 	DlgRegistration.cxx
 	DlgExternalCommand.cxx
 )
-
 SET(CbctRecon_HEADERS
 	cbctrecon.h
 	YK16GrayImage.h
@@ -119,17 +129,12 @@ SET(CbctRecon_HEADERS
 	DlgRegistration.h
 	DlgExternalCommand.h
 )
-
 SET(CbctRecon_FORMS
 	cbctrecon.ui
 	DlgRegistration.ui
 	DlgExternalCommand.ui
 )
-
-
-
 QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
-
 
 # Executable
 ADD_EXECUTABLE(CbctRecon
@@ -140,10 +145,8 @@ ADD_EXECUTABLE(CbctRecon
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
-
 message (STATUS "PLASTIMATCH_SOURCE_DIRECTORY = ${PLASTIMATCH_INCLUDE_DIRS}")
 message (STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
-
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 INCLUDE_DIRECTORIES(${PLASTIMATCH_INCLUDE_DIRS}
@@ -157,11 +160,19 @@ SET(QT_USE_QTOPENGL TRUE)
 message (STATUS "RTK_USE_FILE = ${RTK_USE_FILE}")
 message (STATUS "RTK_LIBRARY_DIRS = ${RTK_LIBRARY_DIRS}")
 
+message (STATUS "RTK_LIBRARY_DIRS = ${ITK_LIBRARIES}")
+message (STATUS "RTK_LIBRARY_DIRS = ${RTK_LIBRARIES}")
+message (STATUS "RTK_LIBRARY_DIRS = ${DCMTK_LIBRARIES}")
+message (STATUS "RTK_LIBRARY_DIRS = ${GPMC_LIBRARIES}")
+message (STATUS "RTK_LIBRARY_DIRS = ${PLASTIMATCH_LIBRARIES}")
+message (STATUS "RTK_LIBRARY_DIRS = ${BZIP2_LIBRARIES}")
+
 #this is for "Linker->Additional dependencies"
 TARGET_LINK_LIBRARIES(CbctRecon
 netapi32.lib
 ${ITK_LIBRARIES}
 ${RTK_LIBRARIES}
+${DCMTK_LIBRARIES}
 ${GPMC_LIBRARIES}
 ${PLASTIMATCH_LIBRARIES}
 ${BZIP2_LIBRARIES}
@@ -198,3 +209,6 @@ INSTALL( TARGETS CbctRecon DESTINATION bin )
 
 FILE( GLOB DLLFILES "${CMAKE_CURRENT_BINARY_DIR}/install/bin/*" ) # also gPMC.exe
 INSTALL( FILES ${DLLFILES} DESTINATION bin )
+
+FILE( GLOB LUTFILES "${CMAKE_CURRENT_BINARY_DIR}/install/lut/*.bin" )
+INSTALL( FILES ${LUTFILES} DESTINATION lut ) # lut = look-up-tables
