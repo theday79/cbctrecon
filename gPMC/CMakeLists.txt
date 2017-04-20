@@ -31,6 +31,7 @@ if( NOT ITK_TAG )
   # ITK master 2017-03-06
   set( ITK_TAG "08dd93f8844169d92f5649b342ca5a167cfd6849" )
 endif()
+
 SET(MEMORY_SIZE 32 CACHE STRING "Cumputer memory in GB (for ITK)")
 set(ep_common_args
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -38,9 +39,9 @@ set(ep_common_args
   -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
 )
 ExternalProject_Add(ITK
-  GIT_REPOSITORY "${git_protocol}://github.com/InsightSoftwareConsortium/ITK.git"
-  GIT_TAG "${ITK_TAG}"
-  SOURCE_DIR ITK
+  # GIT_REPOSITORY "${git_protocol}://github.com/InsightSoftwareConsortium/ITK.git"
+  # GIT_TAG "${ITK_TAG}"
+  SOURCE_DIR ${ITK_DIR}
   BINARY_DIR ITK-build
   CMAKE_GENERATOR ${CMAKE_GENERATOR}
   CMAKE_GENERATOR_TOOLSET ${CMAKE_GENERATOR_TOOLSET}
