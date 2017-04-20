@@ -4,31 +4,34 @@ CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 <b>Proton dose calculation on scatter-corrected CBCT image: Feasibility study for adaptive proton therapy </b>
 http://dx.doi.org/10.1118/1.4923179
 
-For the moment Windows 64bit is supported.
-
+For the moment Windows 64bit is supported
 In order to compile the software, you must have installed the following prerequisites and compiled with Visual Studio 2013 (or 2015 with CUDA 8.0 or above) when compilation is needed:
 
 <ul>
+  <li>Git</li>
   <li>Cmake - Latest</li>
   <li>Qt 5.X</li>
   <li>FFTW (optional but recommended)</li>
   <li>CUDA [Only the cudart library is mandatory]</li>
-  <li>DCMTK - Latest: https://github.com/commontk/DCMTK </li>
+  <li><b>Below is downloaded and compiled automatically:</b></li>
+  <li>DCMTK - Latest: git://dcmtk.org/dcmtk </li>
   <li>ITK - Latest: https://github.com/InsightSoftwareConsortium/ITK </li>
   <li>RTK - Latest: https://github.com/SimonRit/RTK </li>
   <li>Plastimatch - https://github.com/agravgaard/plastimatch </li>
 </ul>
-<b>Build and Install order and important flags*:</b>
+<b>Build and Install order and important flags*: (Will soon be taken care of by superbuild)</b>
 <ul>
   <li>Your favorite: Qt 5.X, CUDA and OpenCL SDK</li>
   <li>DCMTK, `DCMTK_OVERWRITE_WIN32_COMPILER_FLAGS OFF`</li>
-  <li>ITK, `ITKReview ON`, `ITKDCMTK` and `USE_SYSTEM_DCMTK ON`</li>
+  <li>ITK, `ITKReview ON`, `ITKDCMTK ON` and `USE_SYSTEM_DCMTK ON`</li>
   <li>RTK</li>
   <li>Plastimatch</li>
   <li>CBCTRecon</li>
 </ul>
 
 *Before installation consider:
+A Visual Studio 2013 Debug Compiler is needed for gPMC
+
 If you have nVidia hardware be sure to enable the `USE_CUDA` and `CUDA_HAS_GPU` flag whenever possible.
 If you want to use CUDA without nVidia hardware, then use the PGI compiler (pgc, pgcc) with nvcc from the CUDA SDK and copy the cuda dll's from the pgi bin directory to your working directory.
 Also if you want to use Visual Studio 2015, you must use CUDA 8.0 or above due to compiler incompatibilities
