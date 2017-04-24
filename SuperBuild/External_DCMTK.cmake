@@ -2,7 +2,7 @@
 set(proj DCMTK)
 
 # Set dependency list
-set(${proj}_DEPENDENCIES "zlib")
+set(${proj}_DEPENDENCIES zlib)
 
 # Include dependent projects if any
 ExternalProject_Include_Dependencies(${proj} PROJECT_VAR proj DEPENDS_VAR ${proj}_DEPENDENCIES)
@@ -26,16 +26,13 @@ if(NOT DEFINED DCMTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       "-DCMAKE_PROJECT_DCMTK_INCLUDE:FILEPATH=${CMAKE_ROOT}/Modules/CTestUseLaunchers.cmake")
   endif()
 
-  if(UNIX)
-    list(APPEND EXTERNAL_PROJECT_OPTIONAL_ARGS
-      -DDCMTK_FORCE_FPIC_ON_UNIX:BOOL=ON
-      -DDCMTK_WITH_WRAP:BOOL=OFF   # CTK does not build on Mac with this option turned ON due to library dependencies missing
-      )
+  if(NOT DEFINED git_protocol)
+      set(git_protocol "git")
   endif()
 
   ExternalProject_SetIfNotDefined(
     ${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY
-    "${git_protocol}://github.com/commontk/dcmtk.git"
+    "${git_protocol}://github.com/commontk/DCMTK.git"
     QUIET
     )
 
@@ -53,21 +50,18 @@ if(NOT DEFINED DCMTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     BINARY_DIR ${proj}-build
     CMAKE_CACHE_ARGS
       -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-      -DCMAKE_CXX_FLAGS:STRING=${ep_common_cxx_flags}
+      -DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
       -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-      -DCMAKE_C_FLAGS:STRING=${ep_common_c_flags}
+      -DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
       ${CMAKE_PROJECT_INCLUDE_EXTERNAL_PROJECT_ARG}
-      -DBUILD_SHARED_LIBS:BOOL=ON
       -DDCMTK_WITH_DOXYGEN:BOOL=OFF
-      -DDCMTK_WITH_ZLIB:BOOL=OFF # see CTK github issue #25
-      -DDCMTK_WITH_OPENSSL:BOOL=OFF # see CTK github issue #25
-      -DDCMTK_WITH_PNG:BOOL=OFF # see CTK github issue #25
-      -DDCMTK_WITH_TIFF:BOOL=OFF  # see CTK github issue #25
-      -DDCMTK_WITH_XML:BOOL=OFF  # see CTK github issue #25
-      -DDCMTK_WITH_ICONV:BOOL=OFF  # see CTK github issue #178
       -DDCMTK_OVERWRITE_WIN32_COMPILER_FLAGS:BOOL=OFF
-      -DDCMTK_ENABLE_BUILTIN_DICTIONARY:BOOL=ON
-      -DDCMTK_ENABLE_PRIVATE_TAGS:BOOL=ON
+      -DDCMTK_WITH_XML:BOOL=OFF
+      -DDCMTK_WITH_PNG:BOOL=OFF
+      -DDCMTK_WITH_TIFF:BOOL=OFF
+      -DDCMTK_WITH_OPENSSL:BOOL=OFF
+      -DDCMTK_WITH_SNDFILE:BOOL=OFF
+      -DDCMTK_WITH_ICONV:BOOL=OFF
       ${EXTERNAL_PROJECT_OPTIONAL_ARGS}
     INSTALL_COMMAND ""
     DEPENDS

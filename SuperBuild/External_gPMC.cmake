@@ -12,16 +12,19 @@ IF(USE_GPMC)
   ExternalProject_Add(${proj} ## Yes, external is needed because otherwise dlls will interfere with local DCMTK
     DEPENDS ${${proj}_DEPENDENCIES}            ## Because download should only happen once.
 	  DOWNLOAD_COMMAND ""      ## Also, DCMTK must be installed in a path not called %PROGRAMFILES%/DCMTK !!!
-	  SOURCE_DIR "${PROJECT_SOURCE_DIR}/${proj}"
+	  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${proj}"
+    BINARY_DIR ${proj}-build
 	  # CONFIGURE_COMMAND ""
 	  CMAKE_GENERATOR "Visual Studio 12 2013 Win64"
 	  CMAKE_GENERATOR_TOOLSET "v120" ## Visual Studio 2013
 	  CONFIGURATIONS "Debug" ## Release has not worked yet, probably some "if debug" directives in goPMC or dependencies
 	  INSTALL_DIR "${CMAKE_BINARY_DIR}/install"
 	  CMAKE_ARGS
-      -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/install
+      -DCMAKE_INSTALL_PREFIX:STRING="${CMAKE_BINARY_DIR}/install"
       -DMEMORY_SIZE:STRING=${MEMORY_SIZE}
-      -DITK_DIR=${ITK_DIR}
+      -DITK_DIR:STRING=${ITK_DIR}
+      -DOPENCL_INCLUDE_DIRS:STRING=${OpenCL_INCLUDE_DIR}
+      -DOPENCL_LIBRARIES:FILEPATH=${OpenCL_LIBRARY}
   )
   ADD_DEFINITIONS(-DUSE_GPMC=TRUE)
 

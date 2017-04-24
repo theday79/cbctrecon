@@ -41,12 +41,8 @@ endif()
 
 set(CbctRecon_MAIN_PROJECT_APPLICATION_NAME ${${CbctRecon_MAIN_PROJECT}_APPLICATION_NAME})
 
-if(WIN32)
-  option(CbctRecon_BUILD_WIN32_CONSOLE "Build ${PROJECT_NAME} executable as a console app on windows (allows debug output)" ON)
-else()
-  set(CbctRecon_BUILD_WIN32_CONSOLE OFF)
-endif()
-mark_as_superbuild(CbctRecon_BUILD_WIN32_CONSOLE:BOOL)
+SET(CbctRecon_INSTALL_BIN_DIR "${CMAKE_BINARY_DIR}/install-all/bin/")
+SET(CbctRecon_INSTALL_LIB_DIR "${CMAKE_BINARY_DIR}/install-all/lib/")
 #-----------------------------------------------------------------------------
 # Superbuild script
 #-----------------------------------------------------------------------------
@@ -101,16 +97,5 @@ endif()
 if(NOT CMAKE_CONFIGURATION_TYPES)
   mark_as_superbuild(VARS CMAKE_BUILD_TYPE ALL_PROJECTS)
 endif()
-
-#-----------------------------------------------------------------------------
-# Set ITK_REQUIRED_{C,CXX}_FLAGS variables
-#-----------------------------------------------------------------------------
-include(ITKPlatformSpecificChecks)
-
-#-----------------------------------------------------------------------------
-# Set CMAKE_{C,CXX}_FLAGS variables
-#-----------------------------------------------------------------------------
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS_INIT} ${CbctRecon_REQUIRED_C_FLAGS} ${ITK_REQUIRED_C_FLAGS} ${COVERAGE_C_FLAGS} ${ADDITIONAL_C_FLAGS}" CACHE STRING "CMake C Flags" FORCE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} ${CbctRecon_REQUIRED_CXX_FLAGS} ${ITK_REQUIRED_CXX_FLAGS} ${COVERAGE_CXX_FLAGS} ${ADDITIONAL_CXX_FLAGS}" CACHE STRING "CMake CXX Flags" FORCE)
 
 ##########################END SUPERBUILD STUFF ################################
