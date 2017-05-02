@@ -20,6 +20,10 @@ IF(USE_BZIP2)
   INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIR})
 ENDIF(USE_BZIP2)
 
+IF(USE_GPMC)
+  ADD_DEFINITIONS(-DUSE_GPMC=TRUE)
+ENDIF(USE_GPMC)
+
 ############## Qt start wrapping ##############
 
 SET(CbctRecon_SOURCES
@@ -62,6 +66,28 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 INCLUDE(${ITK_USE_FILE})
 INCLUDE(${RTK_USE_FILE})
+
+FUNCTION(PREPEND var prefix)
+   SET(listVar "")
+   FOREACH(f ${ARGN})
+      LIST(APPEND listVar "${prefix}/${f}.lib")
+   ENDFOREACH(f)
+   SET(${var} "${listVar}" PARENT_SCOPE)
+ENDFUNCTION(PREPEND)
+PREPEND(RTK_LIBS_FULLPATH "${RTK_DIR}/bin/${CMAKE_CFG_INTDIR}" ${RTK_LIBRARIES})
+
+set(PLASTIMATCH_INCLUDE_DIRS
+    ${PLASTIMATCH_INCLUDE_DIRS}
+    "${Plastimatch_SRC}/src/"
+    "${Plastimatch_SRC}/src/plastimatch/"
+    "${Plastimatch_SRC}/src/plastimatch/util"
+    "${Plastimatch_SRC}/src/plastimatch/dose"
+    "${Plastimatch_SRC}/src/plastimatch/sys"
+    "${Plastimatch_SRC}/src/plastimatch/base"
+    "${Plastimatch_SRC}/src/plastimatch/register"
+    "${Plastimatch_SRC}/src/plastimatch/segment"
+    "${Plastimatch_BUILD_DIR}/")
+
 #this is for "C++ General-> Add below to Additional Include Directories"
 INCLUDE_DIRECTORIES(
   ${ITK_INCLUDE_DIRS}
@@ -82,7 +108,7 @@ message (STATUS "BZIP_LIBRARY_DIRS = ${BZIP2_LIBRARIES}")
 TARGET_LINK_LIBRARIES(CbctRecon
 netapi32.lib
 ${ITK_LIBRARIES}
-${RTK_LIBRARIES}
+${RTK_LIBS_FULLPATH}
 ${DCMTK_LIBRARIES}
 ${GPMC_LIBRARIES}
 ${PLASTIMATCH_LIBRARIES}
@@ -94,6 +120,8 @@ Qt5::OpenGL
 Qt5::PrintSupport
 Qt5::Widgets
 )
+
+# INCLUDE(External_gPMC.cmake)
 
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
@@ -110,6 +138,9 @@ else($<CONFIG:Debug>)
   get_target_property(COREDLL   Qt5::PrintSupport IMPORTED_LOCATION_RELEASE)
 endif($<CONFIG:Debug>)
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../bin)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../lut)
+
 add_custom_command(
   TARGET CbctRecon POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -117,13 +148,7 @@ add_custom_command(
     $<TARGET_FILE:Qt5::Gui>
     $<TARGET_FILE:Qt5::Core>
     $<TARGET_FILE:Qt5::PrintSupport>
-    install/bin #$<TARGET_FILE_DIR:CbctRecon>
+    ${CMAKE_CURRENT_BINARY_DIR}/../bin #$<TARGET_FILE_DIR:CbctRecon>
 )
 
-INSTALL( TARGETS CbctRecon DESTINATION bin )
-
-FILE( GLOB DLLFILES "${CMAKE_CURRENT_BINARY_DIR}/install/bin/*" ) # also gPMC.exe
-INSTALL( FILES ${DLLFILES} DESTINATION bin )
-
-FILE( GLOB LUTFILES "${CMAKE_CURRENT_BINARY_DIR}/install/lut/*.bin" )
-INSTALL( FILES ${LUTFILES} DESTINATION lut ) # lut = look-up-tables
+INSTALL( TARGETS CbctRecon DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../bin )

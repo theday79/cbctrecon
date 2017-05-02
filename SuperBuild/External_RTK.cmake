@@ -72,8 +72,8 @@ if(NOT DEFINED RTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DADDITIONAL_C_FLAGS:STRING=${ADDITIONAL_C_FLAGS}
       -DADDITIONAL_CXX_FLAGS:STRING=${ADDITIONAL_CXX_FLAGS}
       -DBUILD_TESTING:BOOL=OFF
-      -DRTK_INSTALL_BIN_DIR:STRING=${CbctRecon_INSTALL_BIN_DIR}
-      -DRTK_INSTALL_LIB_DIR:STRING=${CbctRecon_INSTALL_LIB_DIR}
+      -DRTK_INSTALL_BIN_DIR:PATH=${CbctRecon_INSTALL_BIN_DIR}
+      -DRTK_INSTALL_LIB_DIR:PATH=${CbctRecon_INSTALL_LIB_DIR}
       -DRTK_USE_GIT_PROTOCOL:BOOL=${CbctRecon_USE_GIT_PROTOCOL}
       -DRTK_USE_SYSTEM_ITK:BOOL=${RTK_USE_SYSTEM_ITK}
       -DITK_DIR:PATH=${ITK_DIR}
@@ -81,7 +81,7 @@ if(NOT DEFINED RTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DRTK_USE_CUDA:BOOL=${RTK_USE_CUDA}
       -DOPENCL_HAVE_GPU:BOOL=${RTK_USE_OPENCL} # OpenCL flags is ignored in SimonRit version.
       -DRTK_USE_OPENCL:BOOL=${RTK_USE_OPENCL}
-      -DOPENCL_INCLUDE_DIRS:STRING=${OpenCL_INCLUDE_DIR}
+      -DOPENCL_INCLUDE_DIRS:PATH=${OpenCL_INCLUDE_DIR}
       -DOPENCL_LIBRARIES:FILEPATH=${OpenCL_LIBRARY}
       -DUSE_BZIP2:BOOL=${USE_BZIP2}
       -DGIT_EXECUTABLE:FILEPATH=${GIT_EXECUTABLE}
@@ -98,13 +98,13 @@ if(NOT DEFINED RTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
   #-----------------------------------------------------------------------------
   # Launcher setting specific to build tree
 
-  # library paths
-  set(${proj}_LIBRARY_PATHS_LAUNCHER_BUILD ${RTK_DIR}/RTK-build/bin/<CMAKE_CFG_INTDIR>)
-  if(CbctRecon_USE_QtTesting)
-    list(APPEND ${proj}_LIBRARY_PATHS_LAUNCHER_BUILD
-      ${RTK_DIR}/QtTesting-build/<CMAKE_CFG_INTDIR>
-      )
+  set(_lib_subdir lib)
+  if(WIN32)
+    set(_lib_subdir bin)
   endif()
+
+  # library paths
+  set(${proj}_LIBRARY_PATHS_LAUNCHER_BUILD ${RTK_DIR}/${_lib_subdir}/<CMAKE_CFG_INTDIR>)
   mark_as_superbuild(
     VARS ${proj}_LIBRARY_PATHS_LAUNCHER_BUILD
     LABELS "LIBRARY_PATHS_LAUNCHER_BUILD"

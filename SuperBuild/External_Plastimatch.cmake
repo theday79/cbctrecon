@@ -70,16 +70,16 @@ if(NOT DEFINED Plastimatch_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DADDITIONAL_C_FLAGS:STRING=${ADDITIONAL_C_FLAGS}
       -DADDITIONAL_CXX_FLAGS:STRING=${ADDITIONAL_CXX_FLAGS}
       -DBUILD_TESTING:BOOL=OFF
-      -DPLM_INSTALL_BIN_DIR:STRING=${CbctRecon_INSTALL_BIN_DIR}
-      -DPLM_INSTALL_LIB_DIR:STRING=${CbctRecon_INSTALL_LIB_DIR}
+      -DPLM_INSTALL_BIN_DIR:PATH=${CbctRecon_INSTALL_BIN_DIR}
+      -DPLM_INSTALL_LIB_DIR:PATH=${CbctRecon_INSTALL_LIB_DIR}
       -DPLM_USE_GIT_PROTOCOL:BOOL=${CbctRecon_USE_GIT_PROTOCOL}
-      -DDCMTK_DIR:STRING=${DCMTK_DIR}
-      -DITK_DIR:STRING=${ITK_DIR}
-      -DZLIB_DIR:STRING=${ZLIB_DIR}
+      -DDCMTK_DIR:PATH=${DCMTK_DIR}
+      -DITK_DIR:PATH=${ITK_DIR}
+      -DZLIB_DIR:PATH=${ZLIB_DIR}
       -DPLM_CONFIG_DISABLE_CUDA:BOOL=${Plastimatch_DISABLE_CUDA}
       -DPLM_CONFIG_DISABLE_OPENCL:BOOL=${Plastimatch_DISABLE_OPENCL}
       -DPLM_CONFIG_DISABLE_REG23:BOOL=ON
-      -DOPENCL_INCLUDE_DIRS:STRING=${OpenCL_INCLUDE_DIR}
+      -DOPENCL_INCLUDE_DIRS:PATH=${OpenCL_INCLUDE_DIR}
       -DOPENCL_LIBRARIES:FILEPATH=${OpenCL_LIBRARY}
       -DGIT_EXECUTABLE:FILEPATH=${GIT_EXECUTABLE}
       ${EXTERNAL_PROJECT_OPTIONAL_ARGS}
@@ -91,17 +91,19 @@ if(NOT DEFINED Plastimatch_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
   ExternalProject_GenerateProjectDescription_Step(${proj})
 
   set(Plastimatch_DIR ${CMAKE_BINARY_DIR}/${proj}-build)
+  set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/${proj}-build)
+  set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/${proj})
 
   #-----------------------------------------------------------------------------
   # Launcher setting specific to build tree
 
-  # library paths
-  set(${proj}_LIBRARY_PATHS_LAUNCHER_BUILD ${Plastimatch_DIR}/Plastimatch-build/bin/<CMAKE_CFG_INTDIR>)
-  if(CbctRecon_USE_QtTesting)
-    list(APPEND ${proj}_LIBRARY_PATHS_LAUNCHER_BUILD
-      ${Plastimatch_DIR}/QtTesting-build/<CMAKE_CFG_INTDIR>
-      )
+  set(_lib_subdir lib)
+  if(WIN32)
+    set(_lib_subdir bin)
   endif()
+
+  # library paths
+  set(${proj}_LIBRARY_PATHS_LAUNCHER_BUILD ${Plastimatch_DIR}/${_lib_subdir}/<CMAKE_CFG_INTDIR>)
   mark_as_superbuild(
     VARS ${proj}_LIBRARY_PATHS_LAUNCHER_BUILD
     LABELS "LIBRARY_PATHS_LAUNCHER_BUILD"
@@ -111,10 +113,7 @@ else()
   ExternalProject_Add_Empty(${proj} DEPENDS ${${proj}_DEPENDENCIES})
 endif()
 
-set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/${proj}-build)
-set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/${proj})
-
-#mark_as_superbuild(
-#  VARS Plastimatch_DIR:PATH
-#  LABELS "FIND_PACKAGE"
-#  )
+mark_as_superbuild(
+  VARS Plastimatch_DIR:PATH
+  LABELS "FIND_PACKAGE"
+  )

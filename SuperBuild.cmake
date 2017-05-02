@@ -1,4 +1,4 @@
-SET(DEPENDENCIES DCMTK ITKv4 RTK Plastimatch gPMC)
+SET(DEPENDENCIES DCMTK ITKv4 RTK Plastimatch) # CbctReconApp)
 mark_as_superbuild(DEPENDENCIES:STRING)
 include(ExternalProjectAddSource)
 
@@ -36,18 +36,18 @@ ExternalProject_Add(${proj}
     -D${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_PATCH:STRING=${${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_PATCH}
     -D${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_TWEAK:STRING=${${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_TWEAK}
     -D${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_RC:STRING=${${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_RC}
-    -DQt5_DIR:STRING=${Qt5_DIR}
-    -DITK_DIR:STRING=${ITK_DIR}
-    -DRTK_DIR:STRING=${RTK_DIR}
-    -DDCMTK_DIR:STRING=${DCMTK_DIR}
-    -DPlastimatch_DIR:STRING=${Plastimatch_DIR}
-    -DPlastimatch_BUILD_DIR:STRING=${Plastimatch_BUILD_DIR}
-    -DPlastimatch_SRC:STRING=${Plastimatch_SRC}
+    -DQt5_DIR:PATH=${Qt5_DIR}
+    -DITK_DIR:PATH=${ITK_DIR}
+    -DRTK_DIR:PATH=${RTK_DIR}
+    -DDCMTK_DIR:PATH=${DCMTK_DIR}
+    -DPlastimatch_DIR:PATH=${Plastimatch_DIR}
+    -DPlastimatch_BUILD_DIR:PATH=${Plastimatch_BUILD_DIR}
+    -DPlastimatch_SRC:PATH=${Plastimatch_SRC}
     -DCbctRecon_APPLICATIONS_DIR:PATH=${CbctRecon_APPLICATIONS_DIR}
     -DCbctRecon_EXTENSION_SOURCE_DIRS:STRING=${CbctRecon_EXTENSION_SOURCE_DIRS}
     -DExternalData_OBJECT_STORES:PATH=${ExternalData_OBJECT_STORES}
     ${EXTERNAL_PROJECT_OPTIONAL_ARGS}
-  INSTALL_COMMAND ""
+  # INSTALL_COMMAND ""
   )
 
 # This custom external project step forces the build and later

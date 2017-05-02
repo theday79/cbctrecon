@@ -24,6 +24,8 @@ FIND_PACKAGE(Git REQUIRED) # We superbuild now.
 FIND_PACKAGE(OpenCL REQUIRED)
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 
+SET(CbctRecon_APPLICATIONS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Applications)
+
 #-----------------------------------------------------------------------------
 # Main application
 #-----------------------------------------------------------------------------
@@ -98,4 +100,11 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
   mark_as_superbuild(VARS CMAKE_BUILD_TYPE ALL_PROJECTS)
 endif()
 
+#-----------------------------------------------------------------------------
+# Clear CbctReconTargets.cmake
+#-----------------------------------------------------------------------------
+file(WRITE "${CbctRecon_BINARY_DIR}/CbctReconTargets.cmake" "")
+
 ##########################END SUPERBUILD STUFF ################################
+# INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/Superbuild/External_CbctReconApp.cmake")
+Add_Subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Applications") #/CbctRecon

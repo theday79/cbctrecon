@@ -104,8 +104,8 @@ int main(int argc, char * argv[])
 {
 	GGO(gPMC, args_info);
 
-	const std::string stdout_file = std::string(args_info.path_arg) + "\..\gPMCstdout.txt";
-	const std::string stderr_file = std::string(args_info.path_arg) + "\..\gPMCstderr.txt";
+	const std::string stdout_file = std::string(args_info.path_arg) + "\\..\\gPMCstdout.txt";
+	const std::string stderr_file = std::string(args_info.path_arg) + "\\..\\gPMCstderr.txt";
 	FILE *stream;
 	if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
 		exit(-1);
