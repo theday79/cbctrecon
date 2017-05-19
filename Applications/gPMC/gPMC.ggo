@@ -5,7 +5,7 @@ option "verbose"    v "Verbose execution (NYI)"                                 
 option "config"     - "Config file"                                                       string                       no
 option "path"       p "path containing DICOM images"                                      string                       yes
 option "output"     o "Output file name"                                                  string                       yes
-option "hardware"   - "Hardware used for computation"                                     values="cpu","gpu"           no   default="cpu"
+option "hardware"   - "Hardware used for computation"                                     values="cpu","gpu","acc"     no   default="cpu"
 option "lowmem"     l "Load only one projection per thread in memory (NYI)"               flag                         off
 option "divisions"  d "Streaming option: number of stream divisions of the CT (NYI)"      int                          no   default="1"
 option "subsetsize" - "Streaming option: number of projections processed at a time (NYI)" int                          no   default="16"

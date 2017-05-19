@@ -1,8 +1,6 @@
-SET(DEPENDENCIES DCMTK ITKv4 RTK Plastimatch) # CbctReconApp)
+SET(DEPENDENCIES DCMTK ITKv4 RTK Plastimatch)
 mark_as_superbuild(DEPENDENCIES:STRING)
 include(ExternalProjectAddSource)
-
-include(ListToString)
 
 ExternalProject_Include_Dependencies(CbctRecon DEPENDS_VAR DEPENDENCIES)
 
@@ -36,6 +34,9 @@ ExternalProject_Add(${proj}
     -D${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_PATCH:STRING=${${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_PATCH}
     -D${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_TWEAK:STRING=${${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_TWEAK}
     -D${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_RC:STRING=${${CbctRecon_MAIN_PROJECT_APPLICATION_NAME}_VERSION_RC}
+    -DUSE_CUDA:BOOL=${USE_CUDA}
+    -DUSE_OPENCL:BOOL=${USE_OPENCL}
+    -DUSE_GPMC:BOOL=${USE_GPMC}
     -DQt5_DIR:PATH=${Qt5_DIR}
     -DITK_DIR:PATH=${ITK_DIR}
     -DRTK_DIR:PATH=${RTK_DIR}
@@ -47,7 +48,6 @@ ExternalProject_Add(${proj}
     -DCbctRecon_EXTENSION_SOURCE_DIRS:STRING=${CbctRecon_EXTENSION_SOURCE_DIRS}
     -DExternalData_OBJECT_STORES:PATH=${ExternalData_OBJECT_STORES}
     ${EXTERNAL_PROJECT_OPTIONAL_ARGS}
-  # INSTALL_COMMAND ""
   )
 
 # This custom external project step forces the build and later

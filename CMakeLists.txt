@@ -9,9 +9,19 @@ endif()
 
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
-OPTION(USE_OPENCL "Toggle OpenCL on or off" ON) # ON by default for multiple reasons
-
+OPTION(USE_CUDA "Toggle CUDA on or off" ON) # OFF by default for multiple reasons
+OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # ON by default for multiple reasons
+OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
+OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON)
+IF(USE_CUDA)
+  message (STATUS "Compiling with CUDA option")
+ENDIF(USE_CUDA)
+IF(USE_OPENCL)
+  message (STATUS "Compiling with OPENCL option")
+ENDIF(USE_OPENCL)
+IF(USE_GPMC)
+  message (STATUS "Compiling with GPMC option")
+ENDIF(USE_GPMC)
 ########################START SUPERBUILD STUFF ################################
 include(ExternalProject)
 include(ExternalProjectDependency)
@@ -106,5 +116,5 @@ endif()
 file(WRITE "${CbctRecon_BINARY_DIR}/CbctReconTargets.cmake" "")
 
 ##########################END SUPERBUILD STUFF ################################
-# INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/Superbuild/External_CbctReconApp.cmake")
-Add_Subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Applications") #/CbctRecon
+
+Add_Subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/Applications")

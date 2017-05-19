@@ -20,9 +20,22 @@ IF(USE_BZIP2)
   INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIR})
 ENDIF(USE_BZIP2)
 
+OPTION(USE_CUDA "Toggle CUDA on or off" ON)
+OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # OFF because currently broken
+OPTION(USE_GPMC "Toggle gPMC on or off" ON)
+
 IF(USE_GPMC)
+  message (STATUS "Compiling with GPMC option")
   ADD_DEFINITIONS(-DUSE_GPMC=TRUE)
 ENDIF(USE_GPMC)
+IF(USE_CUDA)
+  message (STATUS "Compiling with CUDA option")
+  ADD_DEFINITIONS(-DUSE_CUDA=TRUE)
+ENDIF(USE_CUDA)
+IF(USE_OPENCL)
+  message (STATUS "Compiling with OPENCL option")
+  ADD_DEFINITIONS(-DUSE_OPENCL=TRUE)
+ENDIF(USE_OPENCL)
 
 ############## Qt start wrapping ##############
 
@@ -68,11 +81,20 @@ INCLUDE(${ITK_USE_FILE})
 INCLUDE(${RTK_USE_FILE})
 
 FUNCTION(PREPEND var prefix)
-   SET(listVar "")
-   FOREACH(f ${ARGN})
+  SET(listVar "")
+  FOREACH(f ${ARGN})
+    GET_FILENAME_COMPONENT(extension ${f} EXT)
+    GET_FILENAME_COMPONENT(file_name ${f} NAME)
+    MESSAGE(STATUS ${file_name})
+    IF(${file_name} MATCHES "cudart.lib")
+      MESSAGE(STATUS "cudart.lib was removed from linker")
+    ELSEIF(extension MATCHES ".lib")
+      LIST(APPEND listVar "${f}")
+    ELSE()
       LIST(APPEND listVar "${prefix}/${f}.lib")
-   ENDFOREACH(f)
-   SET(${var} "${listVar}" PARENT_SCOPE)
+    ENDIF()
+  ENDFOREACH(f)
+  SET(${var} "${listVar}" PARENT_SCOPE)
 ENDFUNCTION(PREPEND)
 PREPEND(RTK_LIBS_FULLPATH "${RTK_DIR}/bin/${CMAKE_CFG_INTDIR}" ${RTK_LIBRARIES})
 
@@ -99,7 +121,6 @@ INCLUDE_DIRECTORIES(
 message (STATUS "ITK_LIBRARY_DIRS = ${ITK_LIBRARIES}")
 message (STATUS "RTK_LIBRARY_DIRS = ${RTK_LIBRARIES}")
 message (STATUS "DCMTK_LIBRARY_DIRS = ${DCMTK_LIBRARIES}")
-message (STATUS "GPMC_LIBRARY_DIRS = ${GPMC_LIBRARIES}")
 message (STATUS "PLAS_LIBRARY_DIRS = ${PLASTIMATCH_LIBRARIES}")
 message (STATUS "BZIP_LIBRARY_DIRS = ${BZIP2_LIBRARIES}")
 
@@ -110,7 +131,6 @@ netapi32.lib
 ${ITK_LIBRARIES}
 ${RTK_LIBS_FULLPATH}
 ${DCMTK_LIBRARIES}
-${GPMC_LIBRARIES}
 ${PLASTIMATCH_LIBRARIES}
 ${BZIP2_LIBRARIES}
 OpenCL::OpenCL
@@ -120,8 +140,6 @@ Qt5::OpenGL
 Qt5::PrintSupport
 Qt5::Widgets
 )
-
-# INCLUDE(External_gPMC.cmake)
 
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##

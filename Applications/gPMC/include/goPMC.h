@@ -12,9 +12,9 @@
 #pragma once
 
 #ifdef GOPMC_EXPORTS
-#define GOPMC_API __declspec(dllexport) 
+#define GOPMC_API __declspec(dllexport)
 #else
-#define GOPMC_API __declspec(dllimport) 
+#define GOPMC_API __declspec(dllimport)
 #endif
 
 #include "cl.hpp"
@@ -63,4 +63,3 @@ namespace goPMC{
 	};
 
 }
-
