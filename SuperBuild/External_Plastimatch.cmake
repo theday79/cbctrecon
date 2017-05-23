@@ -46,7 +46,8 @@ if(NOT DEFINED Plastimatch_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 
   ExternalProject_SetIfNotDefined(
     ${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY
-    "${git_protocol}://github.com/agravgaard/plastimatch.git"
+    #"${git_protocol}://github.com/agravgaard/plastimatch.git"
+    "https://gitlab.com/plastimatch/plastimatch.git"
     QUIET
     )
 
@@ -83,7 +84,8 @@ if(NOT DEFINED Plastimatch_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DOPENCL_LIBRARIES:FILEPATH=${OpenCL_LIBRARY}
       -DGIT_EXECUTABLE:FILEPATH=${GIT_EXECUTABLE}
       ${EXTERNAL_PROJECT_OPTIONAL_ARGS}
-    INSTALL_COMMAND ""
+      -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/${proj}-install
+    # INSTALL_COMMAND ""
     DEPENDS
       ${${proj}_DEPENDENCIES}
     )

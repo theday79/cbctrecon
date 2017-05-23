@@ -49,7 +49,7 @@ private:
 *
 * \ingroup Macro
 */
-#define GGO(ggo_filename, args_info)                                                                     \
+#define GGO(ggo_filename, args_info)                                                                       \
 	args_info_##ggo_filename args_info;                                                                    \
 	cmdline_parser_##ggo_filename##_params args_params;                                                    \
 	cmdline_parser_##ggo_filename##_params_init(&args_params);                                             \
@@ -57,18 +57,18 @@ private:
 	args_params.check_required = 0;                                                                        \
 	args_params.override = 1;                                                                              \
 	args_params.initialize = 1;                                                                            \
-if (0 != cmdline_parser_##ggo_filename##_ext(argc, argv, &args_info, &args_params))                      \
+if (0 != cmdline_parser_##ggo_filename##_ext(argc, argv, &args_info, &args_params))                        \
 	{                                                                                                      \
 	std::cerr << "Error in cmdline_parser_" #ggo_filename "_ext" << std::endl;                             \
 	exit(1);                                                                                               \
 	}                                                                                                      \
 	std::string configFile;                                                                                \
-if (args_info.config_given)                                                                              \
+if (args_info.config_given)                                                                                \
 	configFile = args_info.config_arg;                                                                     \
 	cmdline_parser_##ggo_filename##_free(&args_info);                                                      \
-if (configFile != "")                                                                                    \
+if (configFile != "")                                                                                      \
 	{                                                                                                      \
-if (0 != cmdline_parser_##ggo_filename##_config_file(configFile.c_str(), &args_info, &args_params))      \
+if (0 != cmdline_parser_##ggo_filename##_config_file(configFile.c_str(), &args_info, &args_params))        \
 	  {                                                                                                    \
 	  std::cerr << "Error in cmdline_parser_" #ggo_filename "_config_file" << std::endl;                   \
 	  exit(1);                                                                                             \
@@ -76,7 +76,7 @@ if (0 != cmdline_parser_##ggo_filename##_config_file(configFile.c_str(), &args_i
 	  args_params.initialize = 0;                                                                          \
 	}                                                                                                      \
 	args_params.check_required = 1;                                                                        \
-if (0 != cmdline_parser_##ggo_filename##_ext(argc, argv, &args_info, &args_params))                      \
+if (0 != cmdline_parser_##ggo_filename##_ext(argc, argv, &args_info, &args_params))                        \
 	{                                                                                                      \
 	std::cerr << "Error in cmdline_parser_" #ggo_filename "_ext" << std::endl;                             \
 	exit(1);                                                                                               \
@@ -121,7 +121,7 @@ int main(int argc, char * argv[])
 	  std::cout << "Getting device GPU returned: " << platform.getDevices(CL_DEVICE_TYPE_GPU, &devs) << std::endl;
 	else if (!strcmp(args_info.hardware_arg, "cpu"))
 		std::cout << "Getting devices CPU returned: " << platform.getDevices(CL_DEVICE_TYPE_CPU, &devs) << std::endl;
-  else if (!strcmp(args_info.hardware_arg, "acc"))
+    else if (!strcmp(args_info.hardware_arg, "acc"))
 		std::cout << "Getting devices ACCELERATOR returned: " << platform.getDevices(CL_DEVICE_TYPE_ACCELERATOR, &devs) << std::endl;
 
 	cl::Device device;
@@ -138,14 +138,15 @@ int main(int argc, char * argv[])
 	// Initialize simulation engine.
 	goPMC::MCEngine mcEngine;
 	mcEngine.initializeComputation(platform, device);
-  std::cout << "Context created! Initialising physics... ";
+    std::cout << "Context created! Initialising physics... ";
 
 	// Read and process physics data.
 	mcEngine.initializePhysics("../lut"); // install-prefix/lut relative to install-prefix/bin/gPMC.exe
-  std::cout << "Physics initialised! Now reading dicom... ";
+	std::cout << "Physics initialised! Now reading dicom... ";
 	// Read and process patient Dicom CT data. ITK has origin at upper left
-	mcEngine.initializePhantom(args_info.path_arg); // "090737"); // "directoryToDicomData");
-  std::cout << "Dicom read!" << std::endl;
+	std::string dicom_path = args_info.path_arg; // to help debugging
+	mcEngine.initializePhantom(dicom_path); // "090737"); // "directoryToDicomData");
+	std::cout << "Dicom read!" << std::endl;
 
 	// Initialize source protons with arrays of energy (T), position (pos), direction (dir) and weight (weight) of each proton.
 	// Position and direction should be defined in Dicom CT coordinate.
@@ -163,7 +164,7 @@ int main(int argc, char * argv[])
 
 	// Run simulation.
 	mcEngine.simulate(T, pos, dir, weight, N, quantity);
-  std::cout << "Simulation complete! Now getting results..." << std::endl;
+	std::cout << "Simulation complete! Now getting results..." << std::endl;
 	// Get simulation results.
 	std::vector<cl_float> doseMean, doseStd;
 	mcEngine.getResult(doseMean, doseStd);

@@ -64,6 +64,10 @@
 #include "proj_matrix.h"
 #include "ray_data.h"
 
+#if (OPENMP_FOUND)
+#include <omp.h>
+#endif
+#include <thread>
 
 #if ITK_VERSION_MAJOR >= 4
 #include "gdcmUIDGenerator.h"
@@ -8695,8 +8699,6 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
     CastFilterType::Pointer castFilter = CastFilterType::New();
     castFilter->SetInput(spShortImg);
     castFilter->Update();
-
-    //Plm_image::Pointer ct_vol = Plm_image::New (spShortImg);
     Plm_image::Pointer ct_vol = Plm_image::New(castFilter->GetOutput());
 
     double fullAngle = fAngleEnd - fAngleStart;
@@ -8704,20 +8706,31 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
 
     //1) Generate parms according to the angle e.g 360 parms
     double isoTarget[3];
-    //isoTarget[0] = ui.lineEdit_ForcedProbePosX->text().toDouble(); //in mm
-    //isoTarget[1] = ui.lineEdit_ForcedProbePosY->text().toDouble();
-    //isoTarget[2] = ui.lineEdit_ForcedProbePosZ->text().toDouble();
-
     isoTarget[0] = calcPt.x;
     isoTarget[1] = calcPt.y;
     isoTarget[2] = calcPt.z;
+
+	itk::Point<double, 3U> itk_isoTarget;
+	itk_isoTarget[0] = calcPt.x;
+	itk_isoTarget[1] = calcPt.y;
+	itk_isoTarget[2] = calcPt.z;
+
+	UCharImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
+
+	UCharImageType::Pointer target_bool = UCharImageType::New();
+	target_bool->SetRegions(region);
+	target_bool->SetDirection(spShortImg->GetDirection());
+	target_bool->SetSpacing(spShortImg->GetSpacing());
+	target_bool->SetOrigin(spShortImg->GetOrigin());
+	target_bool->Allocate();
+	UCharImageType::IndexType pixelIndex;
+	target_bool->TransformPhysicalPointToIndex(itk_isoTarget, pixelIndex);
+	target_bool->SetPixel(pixelIndex, 255);
 
     float srcDistance = 2200.0; //in mm, 2.2 m
     float srcProton[3] = { 0.0, 0.0, 0.0 };
 
     float ap_distance = 1900.0; // 300 mm from the target //offset from the source
-    //float ap_distance = 1000.0; //
-
 
     float ap_spacing[2] = { 1.0, 1.0 };  //resolution
     int ap_dim[2] = { 1, 1 };
@@ -8729,8 +8742,19 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
 
     double curAngle = 0.0;
 
+	const std::string stdout_file = "WEPL_stdout.txt";
+	const std::string stderr_file = "WEPL_stderr.txt";
+	FILE *stream;
+	if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
+		exit(-1);
+	FILE *stream_err;
+	if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
+		exit(-1);
 
-    for (int i = (fAngleStart / fAngleGap); i < sizeAngles; i++)
+	int i;
+	
+#pragma omp parallel for private(curAngle) shared(stArrWEPL) num_threads(N_THREADS)
+    for (i = (fAngleStart / fAngleGap); i < sizeAngles; i++)
     {
         //YKTEMP Should be updated according to recent update of plastimatch
         curAngle = i * fAngleGap;
@@ -8739,39 +8763,31 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
         srcProton[1] = isoTarget[1] - (srcDistance*cos(curAngle * M_PI / 180.0));
         srcProton[2] = isoTarget[2];
 
-        Rt_plan scene;
+        Rt_plan* scene = new Rt_plan;
 
-        //scene.beam = new Rt_beam;
-        Rt_beam* newBeam = scene.append_beam();
-        scene.set_patient(ct_vol);
+        Rt_beam* newBeam = scene->append_beam();
+        scene->set_patient(ct_vol);
         newBeam->get_aperture()->set_distance(ap_distance);
-        newBeam->get_aperture()->set_distance(ap_distance);
+        // newBeam->get_aperture()->set_distance(ap_distance); is there a reason YK did this twice?
         newBeam->get_aperture()->set_spacing(ap_spacing);
         newBeam->get_aperture()->set_dim(ap_dim);
         newBeam->get_aperture()->set_center(ap_center);
-
 
         newBeam->set_step_length(ray_step);
         newBeam->set_isocenter_position(isoTarget);
         newBeam->set_source_position(srcProton);
 
-
-        //if (!scene.init()) {
-        /*if (!scene.compute_plan()) {
-                cout << "Error in scene initRSP" << endl;
-                return;
-                }*/
-        scene.prepare_beam_for_calc(newBeam);
+        //scene.prepare_beam_for_calc(newBeam);
+		scene->create_patient_psp(); // hu to stopping power
+		scene->set_target(target_bool);
+		newBeam->set_flavor('b'); // b for beta to get fastest dose calc
+		scene->compute_dose(newBeam); // ONLY way to call prepare_for_calc from the "outside" (without ugly tricks)
+		// newBeam->prepare_for_calc(ct_vol, newBeam->get_ct_psp(), newBeam->get_target());
 
         //wed_ct_compute in wed_main
-
-
-        Rpl_volume* rpl_vol = newBeam->rpl_vol;
-
-        //rpl_vol->compute_proj_wed_volume()
+		Rpl_volume* rpl_vol = newBeam->rsp_accum_vol; //rpl_vol;
 
         Proj_volume *proj_vol = rpl_vol->get_proj_volume();
-        //float *proj_wed_vol_img = (float*) rpl_vol->proj_wed_vol->img;
 
         const double *src = proj_vol->get_src();
         const double *iso = proj_vol->get_iso();
@@ -8795,6 +8811,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
         double ray_ap_length; //length of vector from src to ray intersection with ap plane
         double rglength; //length that we insert into get_rgdepth for each ray
 
+		rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose for some flavors of beam
         ray_data = rpl_vol->get_Ray_data();
 
         Ray_data *ray_data_single = &ray_data[ap_idx];
@@ -8811,6 +8828,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
         stArrWEPL[i].ptIndex = curPtIdx;
 
         delete newBeam;
+		delete scene; // This is because plastimatch forward declares Rt_plan otherwise we could have used delete
     }
 
     if (!bAppend)
@@ -8824,31 +8842,8 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
     delete[] stArrWEPL;
 	ct_vol->free();
 
-
-
-    //export arrWEPL
-    // QString filePath = QFileDialog::getSaveFileName(this, "Save data", "", "txt image file (*.txt)",0,0); //Filename don't need to exist
-
-    // if (filePath.length() < 1)
-    //return;
-
-    // ofstream fout;
-    // fout.open (filePath.toLocal8Bit().constData());
-
-    // double curAngle2;
-
-    // fout << "Angle" << "	" << "WEPL(mm)" << endl;
-
-    // for (int i = 0 ; i < sizeAngles ; i++)
-    // {
-    //curAngle2 = i * fAngleGap;
-    //fout << curAngle2 << "	" << arrWEPL[i] << endl;
-    // }
-
-    // delete [] arrWEPL;
-
-    // fout.close();
-    // cout << "Saving angular WEPL is completed" << endl;
+	stream = freopen("CON", "w", stdout);
+	stream_err = freopen("CON", "w", stderr);
 }
 
 void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend)
@@ -8900,19 +8895,45 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 
 	// cout << "Everything is OK!? Let's calculate WEPL...\n" << endl;
 
+
+	const std::string stdout_file = "WEPL_stdout.txt";
+	const std::string stderr_file = "WEPL_stderr.txt";
+	FILE *stream;
+	if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
+		exit(-1);
+	FILE *stream_err;
+	if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
+		exit(-1);
+
+#pragma omp parallel for
 	for (int p = 0; p < sizePOI; p++)
 	{
 		curPOI = m_vPOI_DCM.at(p);
 		isoTarget[0] = curPOI.x;  // Sorry, might do better later..
 		isoTarget[1] = curPOI.y;
 		isoTarget[2] = curPOI.z;
+
+		itk::Point<double, 3U> itk_isoTarget;
+		itk_isoTarget[0] = curPOI.x;
+		itk_isoTarget[1] = curPOI.y;
+		itk_isoTarget[2] = curPOI.z;
+
+		UCharImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
+
+		UCharImageType::Pointer target_bool = UCharImageType::New();
+		target_bool->SetRegions(region);
+		target_bool->SetDirection(spShortImg->GetDirection());
+		target_bool->SetSpacing(spShortImg->GetSpacing());
+		target_bool->SetOrigin(spShortImg->GetOrigin());
+		target_bool->Allocate();
+		UCharImageType::IndexType pixelIndex;
+		target_bool->TransformPhysicalPointToIndex(itk_isoTarget, pixelIndex);
+		target_bool->SetPixel(pixelIndex, 255);
 		//GetAngularWEPL_SinglePoint(m_spCrntReconImg, fAngleGap, curPOI, i, vOutputWEPL, true);
 		//if (m_spRawReconImg)
 		//GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_rawCBCT, true);//mandatory
 
-#ifdef DEBUG
 		cout << "POI idx: " << p << ", calculation for all given angles startng...\n";
-#endif
 
 		for (int i = qRound(fAngleStart / fAngleGap); i < (sizeAngles + qRound(fAngleStart / fAngleGap)); i++)
 		{
@@ -8924,10 +8945,10 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			srcProton[2] = isoTarget[2];
 
 			//cout << "\nDefine scene.." << endl;
-			Rt_plan scene;
+			Rt_plan* scene = new Rt_plan;
 			//cout << "New beam.." << endl;
-			Rt_beam* newBeam = scene.append_beam(); // . to ->
-			scene.set_patient(ct_vol); // . to ->
+			Rt_beam* newBeam = scene->append_beam(); // . to ->
+			scene->set_patient(ct_vol); // . to ->
 			newBeam->get_aperture()->set_distance(ap_distance);
 			newBeam->get_aperture()->set_distance(ap_distance);
 			newBeam->get_aperture()->set_spacing(ap_spacing);
@@ -8940,10 +8961,15 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			newBeam->set_source_position(srcProton);
 
 			//cout << "\nPrep beam.." << endl;
-			scene.prepare_beam_for_calc(newBeam);
+            //scene.prepare_beam_for_calc(newBeam);
+			scene->create_patient_psp(); // hu to stopping power
+			scene->set_target(target_bool);
+			newBeam->set_flavor('b'); // b for beta to get fastest dose calc
+			scene->compute_dose(newBeam); // ONLY way to call prepare_for_calc from the "outside" (without ugly tricks)
+			// newBeam->prepare_for_calc(ct_vol, newBeam->get_ct_psp(), newBeam->get_target());
 			//wed_ct_compute in wed_main
 
-			Rpl_volume* rpl_vol = newBeam->rpl_vol;
+			Rpl_volume* rpl_vol = newBeam->rsp_accum_vol; //rpl_vol;
 
 			//rpl_vol->compute_proj_wed_volume()
 
@@ -8973,6 +8999,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			double ray_ap_length; //length of vector from src to ray intersection with ap plane
 			double rglength; //length that we insert into get_rgdepth for each ray
 							 //cout << " get ray data.. " << endl;
+			rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose for some flavors of beam
 			ray_data = rpl_vol->get_Ray_data();
 
 			Ray_data *ray_data_single = &ray_data[ap_idx];
@@ -8989,6 +9016,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].ptIndex = p;
 
 			delete newBeam;
+			delete scene;
 		}
 	}
 
@@ -9007,6 +9035,9 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 
 	delete[] stArrWEPL;
 	ct_vol->free();
+
+	stream = freopen("CON", "w", stdout);
+	stream_err = freopen("CON", "w", stderr);
 }
 
 void CbctRecon::SLT_GeneratePOIData()//it fills m_vPOI_DCM

@@ -24,6 +24,15 @@ OPTION(USE_CUDA "Toggle CUDA on or off" ON)
 OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # OFF because currently broken
 OPTION(USE_GPMC "Toggle gPMC on or off" ON)
 
+include(ProcessorCount)
+ProcessorCount(N)
+if(NOT N EQUAL 0)
+  set(N_THREADS ${N} CACHE STRING "Number of available threads including hyperthreads")
+else()
+  set(N_THREADS 4 CACHE STRING "Number of available threads including hyperthreads")
+endif()
+ADD_DEFINITIONS(-DN_THREADS=${N_THREADS})
+
 IF(USE_GPMC)
   message (STATUS "Compiling with GPMC option")
   ADD_DEFINITIONS(-DUSE_GPMC=TRUE)

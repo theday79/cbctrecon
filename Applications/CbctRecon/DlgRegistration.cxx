@@ -35,6 +35,8 @@
 #include "registration.h"
 #include "registration_data.h"
 #include "registration_parms.h"
+#include "shared_parms.h"
+#include "metric_parms.h"
 #include "logfile.h"
 #include "path_util.h"
 #include "rt_study_metadata.h"
@@ -1171,8 +1173,21 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       return;
   }
 
-  std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
-  std::string strMoving = reg.get_registration_parms()->get_moving_fn();
+  Shared_parms * params = 0;
+  params = reg.get_registration_parms()->get_shared_parms();
+  std::string strFixed;
+  std::string strMoving;
+
+  std::map<std::string, Metric_parms>::iterator it;
+  for (it = params->metric.begin(); it != params->metric.end(); ++it) {
+	  if (it->first.c_str() != "0")
+		  std::cout << it->first.c_str() << std::endl;
+	  strFixed = it->second.fixed_fn; // fn is just File Name!!
+	  strMoving = it->second.moving_fn;
+  }
+
+  //std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
+  //std::string strMoving = reg.get_registration_parms()->get_moving_fn();
 
   if (strFixed.length() < 1)
   {
@@ -2038,8 +2053,21 @@ void DlgRegistration::SLT_DoRegistrationDeform()
             str_command_filepath.c_str());
   }
 
-  std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
-  std::string strMoving = reg.get_registration_parms()->get_moving_fn();
+  Shared_parms * params = 0;
+  params = reg.get_registration_parms()->get_shared_parms();
+  std::string strFixed;
+  std::string strMoving;
+
+  std::map<std::string, Metric_parms>::iterator it;
+  for (it = params->metric.begin(); it != params->metric.end(); ++it) {
+	  if (it->first.c_str() != "0")
+		  std::cout << it->first.c_str() << std::endl;
+	  strFixed = it->second.fixed_fn; // fn is just File Name!!
+	  strMoving = it->second.moving_fn;
+  }
+
+  //std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //  return d_ptr->rparms;
+  //std::string strMoving = reg.get_registration_parms()->get_moving_fn();
 
   if (strFixed.length() < 1)
   {
@@ -3497,10 +3525,7 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPat
 
 	Plm_image plm_img(spShortImg);
 
-	QString endFix = "_DCM";
-
-	QString newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
-
+	QString newDirPath = strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
 
 	QDir dirNew(newDirPath);
 	if (!dirNew.exists()) {
@@ -3519,14 +3544,14 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPat
 #if USE_GPMC
 void DlgRegistration::SLT_gPMCrecalc()
 {
-	if (!m_spFixed || !m_spMoving)
+	if (!m_spFixed)
 		return;
 
 	QString fixed_dcm_dir, moving_dcm_dir = "";
 	// Export fixed and moving as DCM
 	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
 	if (m_spFixed != m_spMoving)
-		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spFixed, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
+		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
 
 	/* Load spots from dcm rtplan and write a rst-like file.
     QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
