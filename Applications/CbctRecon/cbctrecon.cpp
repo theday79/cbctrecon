@@ -8827,8 +8827,17 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
         stArrWEPL[i].fGanAngle = curAngle;
         stArrWEPL[i].ptIndex = curPtIdx;
 
+		// This should be in the Rt_beam destructor, but it isn't
+		delete newBeam->rsp_accum_vol;
+		delete newBeam->hu_samp_vol;
+		delete newBeam->sigma_vol;
+		delete newBeam->rpl_vol_lg;
+		delete newBeam->rpl_vol_samp_lg;
+		delete newBeam->sigma_vol_lg;
+		delete newBeam->rpl_dose_vol;
+
         delete newBeam;
-		delete scene; // This is because plastimatch forward declares Rt_plan otherwise we could have used delete
+		delete scene;
     }
 
     if (!bAppend)
@@ -9014,6 +9023,15 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].fWEPL = (float)(rpl_vol->get_rgdepth(ap_idx_default, rglength));
 			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].fGanAngle = curAngle;
 			stArrWEPL[i - qRound(fAngleStart / fAngleGap) + p * sizeAngles].ptIndex = p;
+
+			// This should be in the Rt_beam destructor, but it isn't
+			delete newBeam->rsp_accum_vol;
+			delete newBeam->hu_samp_vol;
+			delete newBeam->sigma_vol;
+			delete newBeam->rpl_vol_lg;
+			delete newBeam->rpl_vol_samp_lg;
+			delete newBeam->sigma_vol_lg;
+			delete newBeam->rpl_dose_vol;
 
 			delete newBeam;
 			delete scene;
