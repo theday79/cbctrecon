@@ -106,12 +106,12 @@ int main(int argc, char * argv[])
 
 	const std::string stdout_file = std::string(args_info.path_arg) + "\\..\\gPMCstdout.txt";
 	const std::string stderr_file = std::string(args_info.path_arg) + "\\..\\gPMCstderr.txt";
-	FILE *stream;
-	if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
-		exit(-1);
-	FILE *stream_err;
-	if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
-		exit(-1);
+	//FILE *stream;
+	//if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
+	//	exit(-1);
+	//FILE *stream_err;
+	//if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
+	//	exit(-1);
 	// Get OpenCL platform and device.
 	cl::Platform platform;
 	cl::Platform::get(&platform);
@@ -145,7 +145,15 @@ int main(int argc, char * argv[])
 	std::cout << "Physics initialised! Now reading dicom... ";
 	// Read and process patient Dicom CT data. ITK has origin at upper left
 	std::string dicom_path = args_info.path_arg; // to help debugging
-	mcEngine.initializePhantom(dicom_path); // "090737"); // "directoryToDicomData");
+	try{
+		mcEngine.initializePhantom(dicom_path); // "090737"); // "directoryToDicomData");
+	}
+	catch (const std::exception& e) {
+		std::cout << "Error reading dicom: " << e.what() << std::endl;
+		std::cout << "Ususally means the implemented writer didn't give a compatible dicom image!" << std::endl;
+		return -1;
+	}
+	
 	std::cout << "Dicom read!" << std::endl;
 
 	// Initialize source protons with arrays of energy (T), position (pos), direction (dir) and weight (weight) of each proton.
@@ -188,25 +196,34 @@ int main(int argc, char * argv[])
 	ImageType::Pointer doseImage = ImageType::New();
 
 	float * im_spc = new float[3];
-	im_spc[0] = args_info.spacing_arg[0];
-	im_spc[1] = args_info.spacing_arg[1];
+	im_spc[0] = args_info.spacing_arg[0] * 0.5;
+	im_spc[1] = args_info.spacing_arg[1] * 0.5;
 	im_spc[2] = args_info.spacing_arg[2];
 	doseImage->SetSpacing(im_spc);
 
-	itk::Index<3> im_org;
-	im_org[0] = args_info.origin_arg[0]; //manually unrolled to help compiler optimize cache
+	itk::Index<3U> im_org;
+	im_org[0] = args_info.origin_arg[0];
 	im_org[1] = args_info.origin_arg[1];
 	im_org[2] = args_info.origin_arg[2];
 
 	// float * im_dim = new float[3];
-	itk::Size<3> im_dim;
-	im_dim[0] = args_info.dimension_arg[0];
-	im_dim[1] = args_info.dimension_arg[1];
+	itk::Size<3U> im_dim;
+	im_dim[0] = args_info.dimension_arg[0] * 0.5;
+	im_dim[1] = args_info.dimension_arg[1] * 0.5;
 	im_dim[2] = args_info.dimension_arg[2];
 	ImageType::RegionType region(im_org, im_dim);
 	doseImage->SetRegions(region);
 	doseImage->Allocate();
 
+	int i = 0;
+	itk::ImageRegionIterator<ImageType> imIter(doseImage, region);
+	while (!imIter.IsAtEnd())
+	{
+		imIter.Set(doseMean[i]);
+		imIter++;
+		i++;
+	}
+	/*
 	for (size_t i = 0; i < im_dim[0]; i++)
 	{
 		for (size_t j = 0; j < im_dim[1]; j++)
@@ -217,11 +234,11 @@ int main(int argc, char * argv[])
 				pixelIndex[0] = i;
 				pixelIndex[1] = j;
 				pixelIndex[2] = k;
-				doseImage->SetPixel(pixelIndex, doseMean[i + j * im_dim[0] + k * im_dim[0] * im_dim[1]]);
+				doseImage->SetPixel(pixelIndex, (float) doseMean[i + j * im_dim[0] + k * im_dim[0] * im_dim[1]]);
 			}
 		}
 	}
-
+	*/
 	std::cout << "Writing output... " << std::endl;
 	typedef  itk::ImageFileWriter<ImageType> WriterType;
 	WriterType::Pointer outputWriter = WriterType::New();
@@ -237,8 +254,9 @@ int main(int argc, char * argv[])
 	delete[] dir;
 	delete[] weight;
 	// "Real" classes has destructors?
+	//doseImage->Delete();
 
-	stream = freopen("CON", "w", stdout);
-	stream_err = freopen("CON", "w", stderr);
+	//stream = freopen("CON", "w", stdout);
+	//stream_err = freopen("CON", "w", stderr);
 	return 0;
 }

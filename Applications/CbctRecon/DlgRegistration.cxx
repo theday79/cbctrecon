@@ -55,6 +55,31 @@
 #include <QFileDialog>
 #include <QProcess>
 
+// gdcm ITK based dicom writer //
+
+#include "itkMinimumMaximumImageFilter.h"
+
+#include "itkGDCMImageIO.h"
+#include "itkGDCMSeriesFileNames.h"
+#include "itkNumericSeriesFileNames.h"
+
+#include "itkImageSeriesReader.h"
+#include "itkImageSeriesWriter.h"
+
+#include "itkResampleImageFilter.h"
+
+#include "itkIdentityTransform.h"
+#include "itkLinearInterpolateImageFunction.h"
+
+#include <itksys/SystemTools.hxx>
+
+#include "gdcmUIDGenerator.h"
+
+#include <string>
+#include <sstream>
+
+// END gdcm ITK based dicom writer //
+
 //#include "pcmd_dmap.h"
 
 //#include "pcmd_threshold.h"
@@ -3540,6 +3565,88 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPat
 	return newDirPath.toLocal8Bit().constData();
 }
 
+QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir)
+{
+	if (!spImg)
+		return "";
+
+	ShortImageType::Pointer spShortImg;
+	ConvertUshort2Short(spImg, spShortImg);
+
+	QString newDirPath = strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
+
+	QDir dirNew(newDirPath);
+	if (!dirNew.exists()) {
+		dirNew.mkdir(".");
+	} else {
+		if (dirNew.removeRecursively()) {
+			QDir dirReNew(newDirPath);
+			dirReNew.mkdir(".");
+		}
+	}
+	typedef itk::Image<USHORT_PixelType, 2> OutputImageType; //because dicom is one 2d image for each slice-file
+	typedef itk::GDCMImageIO                ImageIOType;
+	typedef itk::NumericSeriesFileNames     NamesGeneratorType;
+
+	UShortImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
+	UShortImageType::IndexType  start  = region.GetIndex();
+	UShortImageType::SizeType   size   = region.GetSize();
+
+	ImageIOType::Pointer gdcmIO = ImageIOType::New();
+	itk::MetaDataDictionary & dict = gdcmIO->GetMetaDataDictionary();
+	std::string value;
+	value = "CT";
+	itk::EncapsulateMetaData<std::string>(dict, "0008|0060", value); // Modality
+	value = "DERIVED\\SECONDARY\\AXIAL"; // This is virtually always correct when using ITK to write an image
+	itk::EncapsulateMetaData<std::string>(dict, "0008|0008", value); // Image Type
+	value = "SI";
+	itk::EncapsulateMetaData<std::string>(dict, "0008|0064", value); // Conversion Type
+	double value_double = spShortImg->GetSpacing()[2];
+	std::ostringstream strs;
+	strs << value_double;
+	value = strs.str();
+	std::cout << "slice spacing: " + value << std::endl;
+	itk::EncapsulateMetaData<std::string>(dict, "0018|0050", value); // SliceThickness
+	itk::EncapsulateMetaData<std::string>(dict, "0018|0088", '-' + value); // SpacingBetweenSlices
+	// value_double = ; //requires for-loop
+	// itk::EncapsulateMetaData<double>(dict, "0020, 1041", value_double); // SliceLocation
+	
+	// gdcm::UIDGenerator seruid;
+	// std::string seriesUID = seruid.Generate();
+	// gdcm::UIDGenerator fuid;
+	// std::string frameOfReferenceUID = fuid.Generate();
+	gdcm::UIDGenerator stduid;
+	std::string studyUID = stduid.Generate();
+	std::cout << studyUID << std::endl;
+	itk::EncapsulateMetaData<std::string>(dict, "0020|000d", studyUID);
+	
+
+	NamesGeneratorType::Pointer namesGenerator = NamesGeneratorType::New();
+	namesGenerator->SetStartIndex(start[2]);
+	namesGenerator->SetEndIndex(start[2] + size[2] - 1);
+	namesGenerator->SetIncrementIndex(1);
+	namesGenerator->SetSeriesFormat(newDirPath.toStdString() + "/CT." + studyUID + ".%d.dcm");
+	
+
+	typedef itk::ImageSeriesWriter<ShortImageType, OutputImageType> SeriesWriterType;
+	SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+	seriesWriter->SetInput(spShortImg);
+	seriesWriter->SetImageIO(gdcmIO);
+	seriesWriter->SetFileNames(namesGenerator->GetFileNames());
+
+	try
+	{
+		seriesWriter->Update();
+	}
+	catch (itk::ExceptionObject & excp)
+	{
+		std::cerr << "Exception thrown while writing the series " << std::endl;
+		std::cerr << excp << std::endl;
+		return EXIT_FAILURE;
+	}
+	std::cerr << "Alledgedly writing the series was successful to dir: " << newDirPath.toStdString() << std::endl;
+	return newDirPath.toLocal8Bit().constData();
+}
 
 #if USE_GPMC
 void DlgRegistration::SLT_gPMCrecalc()
@@ -3549,9 +3656,9 @@ void DlgRegistration::SLT_gPMCrecalc()
 
 	QString fixed_dcm_dir, moving_dcm_dir = "";
 	// Export fixed and moving as DCM
-	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
+	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
 	if (m_spFixed != m_spMoving)
-		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
+		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
 
 	/* Load spots from dcm rtplan and write a rst-like file.
     QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
