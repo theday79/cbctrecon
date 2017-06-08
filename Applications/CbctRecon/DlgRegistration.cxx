@@ -3608,13 +3608,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 	std::cout << "slice spacing: " + value << std::endl;
 	itk::EncapsulateMetaData<std::string>(dict, "0018|0050", value); // SliceThickness
 	itk::EncapsulateMetaData<std::string>(dict, "0018|0088", '-' + value); // SpacingBetweenSlices
-	// value_double = ; //requires for-loop
-	// itk::EncapsulateMetaData<double>(dict, "0020, 1041", value_double); // SliceLocation
 	
-	// gdcm::UIDGenerator seruid;
-	// std::string seriesUID = seruid.Generate();
-	// gdcm::UIDGenerator fuid;
-	// std::string frameOfReferenceUID = fuid.Generate();
 	gdcm::UIDGenerator stduid;
 	std::string studyUID = stduid.Generate();
 	std::cout << studyUID << std::endl;
@@ -3648,7 +3642,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 	return newDirPath.toLocal8Bit().constData();
 }
 
-#if USE_GPMC
+
 void DlgRegistration::SLT_gPMCrecalc()
 {
 	if (!m_spFixed)
@@ -3660,9 +3654,9 @@ void DlgRegistration::SLT_gPMCrecalc()
 	if (m_spFixed != m_spMoving)
 		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
 
-	/* Load spots from dcm rtplan and write a rst-like file.
-    QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
-    // below is probably definitely not good enough.. you need to do the same as for Lauras project.
+	// Load spots from dcm rtplan and write a rst-like file.
+    QString plan_filepath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+    /* below is probably definitely not good enough.. you need to do the same as for Lauras project.
     LoadRTPlan(filePath);
     Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
 	*/
@@ -3684,6 +3678,16 @@ void DlgRegistration::SLT_gPMCrecalc()
 		.arg(m_spFixed->GetSpacing()[0])
 		.arg(m_spFixed->GetSpacing()[1])
 		.arg(m_spFixed->GetSpacing()[2]);
+	QString str_fixedDirection = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
+		.arg(m_spFixed->GetDirection()[0][0])
+		.arg(m_spFixed->GetDirection()[0][1])
+		.arg(m_spFixed->GetDirection()[0][2])
+		.arg(m_spFixed->GetDirection()[1][0])
+		.arg(m_spFixed->GetDirection()[1][1])
+		.arg(m_spFixed->GetDirection()[1][2])
+		.arg(m_spFixed->GetDirection()[2][0])
+		.arg(m_spFixed->GetDirection()[2][1])
+		.arg(m_spFixed->GetDirection()[2][2]);
 
 	QString gPMC_device;
 #if USE_CUDA
@@ -3700,7 +3704,9 @@ void DlgRegistration::SLT_gPMCrecalc()
 		" --origin " + str_fixedOrigin +
 		" --spacing " + str_fixedSpacing +
 		" --dimension " + str_fixedDimension +
-		" --hardware " + gPMC_device;
+		" --direction " + str_fixedDirection +
+		" --hardware " + gPMC_device +
+		" --plan " + plan_filepath;
 	if (QProcess::execute(gPMC_command_str) < 0)
 		qDebug() << "Failed to run (fixed mc recalc)";
 
@@ -3718,6 +3724,16 @@ void DlgRegistration::SLT_gPMCrecalc()
 			.arg(m_spFixed->GetSpacing()[0])
 			.arg(m_spFixed->GetSpacing()[1])
 			.arg(m_spFixed->GetSpacing()[2]);
+		QString str_movingDirection = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
+			.arg(m_spFixed->GetDirection()[0][0])
+			.arg(m_spFixed->GetDirection()[0][1])
+			.arg(m_spFixed->GetDirection()[0][2])
+			.arg(m_spFixed->GetDirection()[1][0])
+			.arg(m_spFixed->GetDirection()[1][1])
+			.arg(m_spFixed->GetDirection()[1][2])
+			.arg(m_spFixed->GetDirection()[2][0])
+			.arg(m_spFixed->GetDirection()[2][1])
+			.arg(m_spFixed->GetDirection()[2][2]);
 
 		gPMC_command_str = QString("gPMC.exe") +
 			" --path " + moving_dcm_dir +
@@ -3725,6 +3741,7 @@ void DlgRegistration::SLT_gPMCrecalc()
 			" --origin " + str_movingOrigin +
 			" --spacing " + str_movingSpacing +
 			" --dimension " + str_movingDimension +
+			" --direction " + str_movingDirection +
 			" --hardware " + gPMC_device;
 		if (QProcess::execute(gPMC_command_str) < 0)
 			qDebug() << "Failed to run (moving mc recalc)";
@@ -3738,12 +3755,6 @@ void DlgRegistration::SLT_gPMCrecalc()
     // Free whatever needs to be freed
 
 }
-#else // if not USE_GPMC
-void DlgRegistration::SLT_gPMCrecalc()
-{
-	std::cout << "You didn't compile with gPMC option" << std::endl;
-}
-#endif // USE_GPMC
 
 void DlgRegistration::SLT_DoRegistrationGradient()
 {

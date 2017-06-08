@@ -64,7 +64,7 @@
 #include "proj_matrix.h"
 #include "ray_data.h"
 
-#if (OPENMP_FOUND)
+#ifdef USE_OPENMP
 #include <omp.h>
 #endif
 #include <thread>

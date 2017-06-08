@@ -22,6 +22,7 @@ ENDIF(USE_BZIP2)
 
 OPTION(USE_CUDA "Toggle CUDA on or off" ON)
 OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # OFF because currently broken
+OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_GPMC "Toggle gPMC on or off" ON)
 
 include(ProcessorCount)
@@ -45,6 +46,12 @@ IF(USE_OPENCL)
   message (STATUS "Compiling with OPENCL option")
   ADD_DEFINITIONS(-DUSE_OPENCL=TRUE)
 ENDIF(USE_OPENCL)
+
+IF(USE_OPENMP)
+  FIND_PACKAGE(OpenMP REQUIRED)
+  message (STATUS "Compiling with OPENMP option")
+  ADD_DEFINITIONS(-DUSE_OPENMP=TRUE)
+ENDIF(USE_OPENMP)
 
 ############## Qt start wrapping ##############
 

@@ -40,6 +40,7 @@ namespace goPMC{
 		MCEngine();
 		virtual ~MCEngine();
 
+		void __autoclassinit2(unsigned __int64); // added by AGA for hacks
 		void initializeComputation(cl::Platform &, cl::Device &);
 		void initializePhysics(const std::string & dir = "input");
 		void initializePhantom(const std::string & dicomDir);
@@ -57,9 +58,9 @@ namespace goPMC{
 		std::clock_t start;
 
 		static const std::map<std::string, cl_int> types;
-		std::string quantity;
+		std::string quantity = "DOSE2WATER";
 		cl_uint nPaths;
-		cl_double totalWeight;
+		cl_double totalWeight = 100000.0;
 	};
 
 }

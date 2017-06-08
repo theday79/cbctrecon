@@ -1,0 +1,309 @@
+Microsoft (R) COFF/PE Dumper Version 14.00.24215.1
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file goPMC.lib
+
+File Type: LIBRARY
+
+FILE HEADER VALUES
+            8664 machine (x64)
+               3 number of sections
+        57E19A35 time date stamp Tue Sep 20 16:21:09 2016
+             107 file pointer to symbol table
+               8 number of symbols
+               0 size of optional header
+               0 characteristics
+
+SECTION HEADER #1
+.debug$S name
+       0 physical address
+       0 virtual address
+      3F size of raw data
+      8C file pointer to raw data (0000008C to 000000CA)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+42100040 flags
+         Initialized Data
+         Discardable
+         1 byte align
+         Read Only
+
+SECTION HEADER #2
+.idata$2 name
+       0 physical address
+       0 virtual address
+      14 size of raw data
+      CB file pointer to raw data (000000CB to 000000DE)
+      DF file pointer to relocation table
+       0 file pointer to line numbers
+       3 number of relocations
+       0 number of line numbers
+C0300040 flags
+         Initialized Data
+         4 byte align
+         Read Write
+
+SECTION HEADER #3
+.idata$6 name
+       0 physical address
+       0 virtual address
+       A size of raw data
+      FD file pointer to raw data (000000FD to 00000106)
+      DF file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+C0200040 flags
+         Initialized Data
+         2 byte align
+         Read Write
+
+FILE HEADER VALUES
+            8664 machine (x64)
+               2 number of sections
+        57E19A35 time date stamp Tue Sep 20 16:21:09 2016
+              B7 file pointer to symbol table
+               2 number of symbols
+               0 size of optional header
+               0 characteristics
+
+SECTION HEADER #1
+.debug$S name
+       0 physical address
+       0 virtual address
+      3F size of raw data
+      64 file pointer to raw data (00000064 to 000000A2)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+42100040 flags
+         Initialized Data
+         Discardable
+         1 byte align
+         Read Only
+
+SECTION HEADER #2
+.idata$3 name
+       0 physical address
+       0 virtual address
+      14 size of raw data
+      A3 file pointer to raw data (000000A3 to 000000B6)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+C0300040 flags
+         Initialized Data
+         4 byte align
+         Read Write
+
+FILE HEADER VALUES
+            8664 machine (x64)
+               3 number of sections
+        57E19A35 time date stamp Tue Sep 20 16:21:09 2016
+              DB file pointer to symbol table
+               2 number of symbols
+               0 size of optional header
+               0 characteristics
+
+SECTION HEADER #1
+.debug$S name
+       0 physical address
+       0 virtual address
+      3F size of raw data
+      8C file pointer to raw data (0000008C to 000000CA)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+42100040 flags
+         Initialized Data
+         Discardable
+         1 byte align
+         Read Only
+
+SECTION HEADER #2
+.idata$5 name
+       0 physical address
+       0 virtual address
+       8 size of raw data
+      CB file pointer to raw data (000000CB to 000000D2)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+C0400040 flags
+         Initialized Data
+         8 byte align
+         Read Write
+
+SECTION HEADER #3
+.idata$4 name
+       0 physical address
+       0 virtual address
+       8 size of raw data
+      D3 file pointer to raw data (000000D3 to 000000DA)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+C0400040 flags
+         Initialized Data
+         8 byte align
+         Read Write
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 0000002C
+  DLL name     : goPMC.dll
+  Symbol name  : ??0MCEngine@goPMC@@QEAA@AEBV01@@Z (public: __cdecl goPMC::MCEngine::MCEngine(class goPMC::MCEngine const &))
+  Type         : code
+  Name type    : name
+  Hint         : 0
+  Name         : ??0MCEngine@goPMC@@QEAA@AEBV01@@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000025
+  DLL name     : goPMC.dll
+  Symbol name  : ??0MCEngine@goPMC@@QEAA@XZ (public: __cdecl goPMC::MCEngine::MCEngine(void))
+  Type         : code
+  Name type    : name
+  Hint         : 1
+  Name         : ??0MCEngine@goPMC@@QEAA@XZ
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000025
+  DLL name     : goPMC.dll
+  Symbol name  : ??1MCEngine@goPMC@@UEAA@XZ (public: virtual __cdecl goPMC::MCEngine::~MCEngine(void))
+  Type         : code
+  Name type    : name
+  Hint         : 2
+  Name         : ??1MCEngine@goPMC@@UEAA@XZ
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000032
+  DLL name     : goPMC.dll
+  Symbol name  : ??4MCEngine@goPMC@@QEAAAEAV01@AEBV01@@Z (public: class goPMC::MCEngine & __cdecl goPMC::MCEngine::operator=(class goPMC::MCEngine const &))
+  Type         : code
+  Name type    : name
+  Hint         : 3
+  Name         : ??4MCEngine@goPMC@@QEAAAEAV01@AEBV01@@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000022
+  DLL name     : goPMC.dll
+  Symbol name  : ??_7MCEngine@goPMC@@6B@ (const goPMC::MCEngine::`vftable')
+  Type         : data
+  Name type    : name
+  Hint         : 4
+  Name         : ??_7MCEngine@goPMC@@6B@
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000036
+  DLL name     : goPMC.dll
+  Symbol name  : ?__autoclassinit2@MCEngine@goPMC@@QEAAX_K@Z (public: void __cdecl goPMC::MCEngine::__autoclassinit2(unsigned __int64))
+  Type         : code
+  Name type    : name
+  Hint         : 5
+  Name         : ?__autoclassinit2@MCEngine@goPMC@@QEAAX_K@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000030
+  DLL name     : goPMC.dll
+  Symbol name  : ?clearCounter@MCEngine@goPMC@@QEAAXXZ (public: void __cdecl goPMC::MCEngine::clearCounter(void))
+  Type         : code
+  Name type    : name
+  Hint         : 6
+  Name         : ?clearCounter@MCEngine@goPMC@@QEAAXXZ
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000056
+  DLL name     : goPMC.dll
+  Symbol name  : ?getResult@MCEngine@goPMC@@QEAAXAEAV?$vector@MV?$allocator@M@std@@@std@@0@Z (public: void __cdecl goPMC::MCEngine::getResult(class std::vector<float,class std::allocator<float> > &,class std::vector<float,class std::allocator<float> > &))
+  Type         : code
+  Name type    : name
+  Hint         : 7
+  Name         : ?getResult@MCEngine@goPMC@@QEAAXAEAV?$vector@MV?$allocator@M@std@@@std@@0@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000057
+  DLL name     : goPMC.dll
+  Symbol name  : ?initializeComputation@MCEngine@goPMC@@QEAAXAEAVPlatform@cl@@AEAVDevice@4@@Z (public: void __cdecl goPMC::MCEngine::initializeComputation(class cl::Platform &,class cl::Device &))
+  Type         : code
+  Name type    : name
+  Hint         : 8
+  Name         : ?initializeComputation@MCEngine@goPMC@@QEAAXAEAVPlatform@cl@@AEAVDevice@4@@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000076
+  DLL name     : goPMC.dll
+  Symbol name  : ?initializePhantom@MCEngine@goPMC@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z (public: void __cdecl goPMC::MCEngine::initializePhantom(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &))
+  Type         : code
+  Name type    : name
+  Hint         : 9
+  Name         : ?initializePhantom@MCEngine@goPMC@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000076
+  DLL name     : goPMC.dll
+  Symbol name  : ?initializePhysics@MCEngine@goPMC@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z (public: void __cdecl goPMC::MCEngine::initializePhysics(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &))
+  Type         : code
+  Name type    : name
+  Hint         : 10
+  Name         : ?initializePhysics@MCEngine@goPMC@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 00000083
+  DLL name     : goPMC.dll
+  Symbol name  : ?simulate@MCEngine@goPMC@@QEAAXPEAMPEATcl_float4@@10IAEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z (public: void __cdecl goPMC::MCEngine::simulate(float *,union cl_float4 *,union cl_float4 *,float *,unsigned int,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &))
+  Type         : code
+  Name type    : name
+  Hint         : 11
+  Name         : ?simulate@MCEngine@goPMC@@QEAAXPEAMPEATcl_float4@@10IAEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
+
+  Version      : 0
+  Machine      : 8664 (x64)
+  TimeDateStamp: 57E19A35 Tue Sep 20 16:21:09 2016
+  SizeOfData   : 0000011A
+  DLL name     : goPMC.dll
+  Symbol name  : ?types@MCEngine@goPMC@@0V?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@HU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@std@@@2@@std@@B (private: static class std::map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,int,struct std::less<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,int> > > const goPMC::MCEngine::types)
+  Type         : data
+  Name type    : name
+  Hint         : 12
+  Name         : ?types@MCEngine@goPMC@@0V?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@HU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@std@@@2@@std@@B
+
+  Summary
+
+          BD .debug$S
+          14 .idata$2
+          14 .idata$3
+           8 .idata$4
+           8 .idata$5
+           A .idata$6
