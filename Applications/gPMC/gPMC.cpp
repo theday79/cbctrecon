@@ -193,9 +193,9 @@ void initSourceFromDicom(const char * dicom_path, cl_float * T, cl_float3 * pos,
 			isocenter[2] - direction[2] * sid
 			);
 
-		std::cout << "Beam# " << ++i_beam << " Distance to Rng Shifter: " << sid;
-		std::cout << " Gantry,Couch: " << gantry << ", " << couch;
-		std::cout << " Direction: (" << direction[0] << ", " << direction[1] << ", " << direction[2] << ") " << std::endl;
+		// std::cout << "Beam# " << ++i_beam << " Distance to Rng Shifter: " << sid;
+		// std::cout << " Gantry,Couch: " << gantry << ", " << couch;
+		// std::cout << " Direction: (" << direction[0] << ", " << direction[1] << ", " << direction[2] << ") " << std::endl;
 
 		do { // LOOPING-CONTROL POINTS, assumes there are at least one control point per beam.
 			gdcm::Attribute<0x300a, 0x114> at_nom_beam_energy;
@@ -301,24 +301,20 @@ int main(int argc, char * argv[])
 {
 	GGO(gPMC, args_info);
 
-	const std::string stdout_file = std::string(args_info.path_arg) + "\\..\\gPMCstdout.txt";
-	const std::string stderr_file = std::string(args_info.path_arg) + "\\..\\gPMCstderr.txt";
-	//FILE *stream;
-	//if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
-	//	exit(-1);
-	//FILE *stream_err;
-	//if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
-	//	exit(-1);
 	// Get OpenCL platform and device.
 	cl::Platform platform;
 	cl::Platform::get(&platform);
-	std::cout << "Using platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+	
+	if (args_info.verbose_flag)
+		std::cout << "Using platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+	
 	std::vector<cl::Device> devs;
+	
 	if (!strcmp(args_info.hardware_arg, "gpu"))
-	  std::cout << "Getting device GPU returned: " << platform.getDevices(CL_DEVICE_TYPE_GPU, &devs) << std::endl;
+		std::cout << "Getting device GPU returned: " << platform.getDevices(CL_DEVICE_TYPE_GPU, &devs) << std::endl;
 	else if (!strcmp(args_info.hardware_arg, "cpu"))
 		std::cout << "Getting devices CPU returned: " << platform.getDevices(CL_DEVICE_TYPE_CPU, &devs) << std::endl;
-    else if (!strcmp(args_info.hardware_arg, "acc"))
+	else if (!strcmp(args_info.hardware_arg, "acc"))
 		std::cout << "Getting devices ACCELERATOR returned: " << platform.getDevices(CL_DEVICE_TYPE_ACCELERATOR, &devs) << std::endl;
 
 	cl::Device device;
@@ -337,12 +333,18 @@ int main(int argc, char * argv[])
 	// mcEngine.__autoclassinit2(651384); // just for hacks
 
 	mcEngine.initializeComputation(platform, device);
-    std::cout << "Context created! Initialising physics... " << std::endl;
+	
+	if (args_info.verbose_flag){
+		std::cout << "Context created! Initialising physics... " << std::endl;
 
-	std::cout << "Using LookUpTable path: " << (!args_info.lut_arg ? "../lut" : std::string(args_info.lut_arg)) << std::endl;
+		std::cout << "Using LookUpTable path: " << (!args_info.lut_arg ? "../lut" : std::string(args_info.lut_arg)) << std::endl;
+	}
 	// Read and process physics data.
 	mcEngine.initializePhysics(!args_info.lut_arg ? "../lut" : std::string(args_info.lut_arg)); // Look Up Tables path, relative path accepted
-	std::cout << "Physics initialised! Now reading dicom... " << std::endl;
+	
+	if (args_info.verbose_flag)
+		std::cout << "Physics initialised! Now reading dicom... " << std::endl;
+	
 	// Read and process patient Dicom CT data. ITK has origin at upper left
 	std::string dicom_path = args_info.path_arg; // to help debugging
 
@@ -355,16 +357,19 @@ int main(int argc, char * argv[])
 		std::cout << "Ususally means the implemented writer didn't give a compatible dicom image!" << std::endl;
 		return -1;
 	}
-	
-	std::cout << "Dicom images read!";
-	std::cout << (!args_info.plan_arg ? "" : "Reading dicom RT plan...") << std::endl;
-
+	if (args_info.verbose_flag){
+		std::cout << "Dicom images read!";
+		std::cout << (!args_info.plan_arg ? "" : "Reading dicom RT plan...") << std::endl;
+	}
 	// Initialize source protons with arrays of energy (T), position (pos), direction (dir) and weight (weight) of each proton.
 	// Position and direction should be defined in Dicom CT coordinate.
 
 	const size_t N_dicom = GetNFromDicom(args_info.plan_arg);
 	if (N_dicom == 69) return -1; // yes, 69 is a joke, but 69 is a highly improbable and specific number of spots.
-	std::cout << " Dicom plan readable! " << N_dicom << " spots will be simulated." << std::endl;
+	
+	if (args_info.verbose_flag)
+		std::cout << " Dicom plan readable! " << N_dicom << " spots will be simulated." << std::endl;
+	
 	cl_float * T;
 	cl_float3 * pos;
 	cl_float3 * dir;
@@ -378,7 +383,8 @@ int main(int argc, char * argv[])
 		weight = new cl_float[N];//Weight      = [1.0, ..., 1.0]
 
 		initSource(T, pos, dir, weight);
-		std::cout << "Source initialised, now simulating... ";
+		if (args_info.verbose_flag)
+			std::cout << "Source initialised, now simulating... ";
 	}
 	else 
 	{
@@ -415,25 +421,35 @@ int main(int argc, char * argv[])
 
 	// Run simulation.
 	mcEngine.simulate(T, pos, dir, weight, (!args_info.plan_arg ? N : N_dicom), quantity);
-	std::cout << "Simulation complete! Now getting results..." << std::endl;
+
+	if (args_info.verbose_flag)
+		std::cout << "Simulation complete! Now getting results..." << std::endl;
 	// Get simulation results.
 	std::vector<cl_float> doseMean, doseStd;
 	mcEngine.getResult(doseMean, doseStd);
 
 	// Do something with doseMean and doseStd //
-	std::cout << "doseMean size: " << doseMean.size();
+	if (args_info.verbose_flag)
+		std::cout << "doseMean size: " << doseMean.size();
+
 	cl_float mean = 0;
 	for (std::vector<cl_float>::iterator it = doseMean.begin(); it != doseMean.end(); ++it)
 		mean += *it;
-	std::cout << " sum: " << mean;
-	std::cout << " mean: " << mean / doseMean.size() << std::endl;
 
-	std::cout << "doseStd size: " << doseStd.size();
+	if (args_info.verbose_flag){
+		std::cout << " sum: " << mean;
+		std::cout << " mean: " << mean / doseMean.size() << std::endl;
+
+		std::cout << "doseStd size: " << doseStd.size();
+	}
 	mean = 0;
 	for (std::vector<cl_float>::iterator it = doseStd.begin(); it != doseStd.end(); ++it)
 		mean += *it;
-	std::cout << " sum: " << mean;
-	std::cout << " mean: " << mean / doseStd.size() << std::endl;
+	
+	if (args_info.verbose_flag){
+		std::cout << " sum: " << mean;
+		std::cout << " mean: " << mean / doseStd.size() << std::endl;
+	}
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% //
 	typedef itk::Image<float, 3> ImageType;
 	ImageType::Pointer doseImage = ImageType::New();
@@ -478,8 +494,8 @@ int main(int argc, char * argv[])
 		++imIter;
 		++i;
 	}
-
-	std::cout << "Writing output... " << std::endl;
+	if (args_info.verbose_flag)
+		std::cout << "Writing output... " << std::endl;
 	typedef  itk::ImageFileWriter<ImageType> WriterType;
 	WriterType::Pointer outputWriter = WriterType::New();
 	outputWriter->SetFileName(args_info.output_arg);
@@ -493,10 +509,6 @@ int main(int argc, char * argv[])
 	delete[] pos;
 	delete[] dir;
 	delete[] weight;
-	// "Real" classes has destructors?
-	//doseImage->Delete();
 
-	//stream = freopen("CON", "w", stdout);
-	//stream_err = freopen("CON", "w", stderr);
 	return 0;
 }
