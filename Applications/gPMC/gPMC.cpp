@@ -404,6 +404,14 @@ int main(int argc, char * argv[])
 	// Scoring quantity could be one of {DOSE2MEDIUM, DOSE2WATER, FLUENCE, LETD}.
 	// LETD is dose weighted LET, to get dose averaged LET, divide it by DOSE2MEDIUM from another simulation run.
 	std::string quantity("DOSE2WATER");
+	if (!strcmp(args_info.metric_arg, "dose2water"))
+		quantity = "DOSE2WATER";
+	else if (!strcmp(args_info.metric_arg, "dose2medium"))
+		quantity = "DOSE2MEDIUM";
+	else if (!strcmp(args_info.metric_arg, "let"))
+		quantity = "LETD";
+	else if (!strcmp(args_info.metric_arg, "fluence"))
+		quantity = "FLUENCE";
 
 	// Run simulation.
 	mcEngine.simulate(T, pos, dir, weight, (!args_info.plan_arg ? N : N_dicom), quantity);
@@ -447,7 +455,7 @@ int main(int argc, char * argv[])
 	im_dim[2] = args_info.dimension_arg[2];
 	ImageType::RegionType region(im_org, im_dim);
 	doseImage->SetRegions(region);
-	if (args_info.direction_arg[0] && args_info.direction_arg[8]){
+	if (args_info.direction_arg){
 		ImageType::DirectionType ImDirection;
 		ImDirection[0][0] = args_info.direction_arg[0];
 		ImDirection[0][1] = args_info.direction_arg[1];

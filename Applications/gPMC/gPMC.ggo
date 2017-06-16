@@ -1,13 +1,14 @@
 package "gPMC"
-purpose "Computes proton dose from already existing beams on dicom image [Xun Jia et al. 2012, Nan Qin et al. 2016]. (NYI=Not Yet Implemented)"
+purpose "Computes proton dose from already existing beams on dicom image [Xun Jia et al. 2012, Nan Qin et al. 2016]. (NYI=Not Yet Implemented).  LETD is dose weighted LET, to get dose averaged LET, divide it by DOSE2MEDIUM from another simulation run"
 
-option "verbose"    v "Verbose execution (NYI)"                                           flag                         off
-option "config"     - "Config file"                                                       string                       no
-option "path"       p "path containing DICOM images"                                      string                       yes
-option "plan"       - "filepath to DICOM proton plan"                                     string                       no
-option "lut"        - "path to Look Up Tables"                                            string                       no
-option "output"     o "Output file name"                                                  string                       yes
-option "hardware"   - "Hardware used for computation"                                     values="cpu","gpu","acc"     no   default="cpu"
+option "verbose"    v "Verbose execution (NYI)"                         flag                                              off
+option "config"     - "Config file"                                     string                                            no
+option "path"       p "path containing DICOM images"                    string                                            yes
+option "plan"       - "filepath to DICOM proton plan"                   string                                            no
+option "lut"        - "path to Look Up Tables"                          string                                            no
+option "output"     o "Output file name"                                string                                            yes
+option "hardware"   - "Hardware used for computation"                   values="cpu","gpu","acc"                          no   default="cpu"
+option "metric"     - "What metric(Dose/LETD) of output du you want?"   values="dose2water","letd","dose2medium","fluence" no   default="dose2water"
 
 section "Beam input described in DlgRegistration::SLT_gPMCrecalc"
-option "rst"       - "Beam file name (rst-like) (NYI)"                                    string                       no
+option "rst"       - "Beam file name (rst-like) (NYI)"                  string                                            no
