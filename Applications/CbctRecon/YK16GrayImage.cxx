@@ -265,7 +265,8 @@ bool YK16GrayImage::FillPixMap(int winMid, int winWidth) //0-65535 Сп window lev
 
 	int size = m_iWidth*m_iHeight;
 
-	uchar* tmpData = new uchar [size*3];//RGB
+	//uchar* tmpData = new uchar [size*3];//RGB
+	quint32* tmpData = new quint32[size]; // rgb represented as 0xffRRGGBB
 	unsigned short uppVal = (int)(winMid + winWidth/2.0);
 	unsigned short lowVal = (int)(winMid - winWidth/2.0);	        
 
@@ -275,7 +276,7 @@ bool YK16GrayImage::FillPixMap(int winMid, int winWidth) //0-65535 Сп window lev
 	{
 		for (int j = 0 ; j<m_iWidth ; j++)
 		{
-			int tmpIdx = 3*(i*m_iWidth+j);
+			int tmpIdx = (i*m_iWidth+j); // *3
 
 
 			if (!m_bShowInvert)
@@ -283,63 +284,50 @@ bool YK16GrayImage::FillPixMap(int winMid, int winWidth) //0-65535 Сп window lev
 
 				if (m_pData[i*m_iWidth+j] >= uppVal)
 				{
-					//QRgb rgbVal = qRgb(255, 255, 255);
-					//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-					tmpData[tmpIdx+0] = 255;
-					tmpData[tmpIdx+1] = 255;
-					tmpData[tmpIdx+2] = 255;
+					tmpData[tmpIdx] = 0xffffffff;
 
 				}
 				else if (m_pData[i*m_iWidth+j] <= lowVal)
-				{			  
-					tmpData[tmpIdx+0] = 0;
-					tmpData[tmpIdx+1] = 0;
-					tmpData[tmpIdx+2] = 0;
-					//QRgb rgbVal = qRgb(0, 0, 0);
-					//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
+				{
+					tmpData[tmpIdx] = 0xff000000;
 				}
 				else
 				{
-					tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
-					tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
-					tmpData[tmpIdx+2] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success				
+					tmpData[tmpIdx] = qRgba(
+						(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+						(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+						(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+						255);
 				}
 			}
 			else
 			{
 				if (m_pData[i*m_iWidth+j] >= uppVal)
 				{
-					//QRgb rgbVal = qRgb(255, 255, 255);
-					//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-					tmpData[tmpIdx+0] = 0;
-					tmpData[tmpIdx+1] = 0;
-					tmpData[tmpIdx+2] = 0;
+					tmpData[tmpIdx] = 0xff000000;
 
 				}
 				else if (m_pData[i*m_iWidth+j] <= lowVal)
 				{
-					tmpData[tmpIdx+0] = 255;
-					tmpData[tmpIdx+1] = 255;
-					tmpData[tmpIdx+2] = 255;
-					//QRgb rgbVal = qRgb(0, 0, 0);
-					//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
+					tmpData[tmpIdx] = 0xffffffff;
 				}
 				else
 				{
-					tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
-					tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
-					tmpData[tmpIdx+2] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success				
+					tmpData[tmpIdx] = qRgba(
+						255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+						255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+						255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+						255);
 				}
 			}
 		}		
 	}	
 	///m_QImage.save("C:\\FromFillPixmap.png");//it works well
 
-	int iBytesPerLine = m_iWidth*3;        
+	//int iBytesPerLine = m_iWidth*3;        
 
-	QImage tmpQImage = QImage((unsigned char*)tmpData,m_iWidth, m_iHeight,iBytesPerLine, QImage::Format_RGB888); //not deep copy!
+	// QImage tmpQImage = QImage((unsigned char*)tmpData,m_iWidth, m_iHeight,iBytesPerLine, QImage::Format_RGB32); //not deep copy!
+	QImage tmpQImage = QImage(reinterpret_cast<unsigned char*>(tmpData), m_iWidth, m_iHeight, 4 * m_iWidth, QImage::Format_ARGB32); //not deep copy!
 
 
 	//image ratio (width / height) should be kept constant.
@@ -544,7 +532,7 @@ double YK16GrayImage::CalcAveragePixelDiff(YK16GrayImage& other)
 	return tmpSum / (double)totalPixCnt;
 }
 
-//bool YK16GrayImage::DoPixelReplacement(vector<BADPIXELMAP>& vPixelMapping )
+//bool YK16GrayImage::DoPixelReplacement(std::vector<BADPIXELMAP>& vPixelMapping )
 //{
 //	if (vPixelMapping.empty())
 //		return false;		
@@ -702,7 +690,7 @@ void YK16GrayImage::CopyHisHeader( const char *hisFilePath )
 	std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
 
 	if ( file.fail() )
-		cout << "Fail to open" << "	" << hisFilePath << endl;		
+		cout << "Fail to open" << "	" << hisFilePath << std::endl;		
 
 	// read header
 	if (m_pElektaHisHeader != NULL)
@@ -1224,6 +1212,83 @@ void YK16GrayImage::EditImage_Mirror()
   return;
 }
 
+inline void fill_index(size_t i, size_t j, size_t m_iWidth, size_t uppVal, size_t lowVal, bool m_bShowInvert, const unsigned short * m_pData, quint32* tmpData, int winWidth) {
+
+	int tmpIdx = (i*m_iWidth + j); // *3
+
+
+	if (!m_bShowInvert)
+	{
+
+		if (m_pData[i*m_iWidth + j] >= uppVal)
+		{
+			//QRgb rgbVal = qRgb(255, 255, 255);
+			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
+			tmpData[tmpIdx] = 0xffffffff;
+			/*tmpData[tmpIdx+0] = 255;
+			tmpData[tmpIdx+1] = 255;
+			tmpData[tmpIdx+2] = 255;*/
+
+		}
+		else if (m_pData[i*m_iWidth + j] <= lowVal)
+		{
+			tmpData[tmpIdx] = 0xff000000;
+			/*tmpData[tmpIdx+0] = 0;
+			tmpData[tmpIdx+1] = 0;
+			tmpData[tmpIdx+2] = 0;*/
+			//QRgb rgbVal = qRgb(0, 0, 0);
+			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
+		}
+		else
+		{
+			tmpData[tmpIdx] = qRgba(
+				(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				255);
+			/*tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
+			tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
+			tmpData[tmpIdx+2] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
+			*/
+		}
+	}
+	else
+	{
+		if (m_pData[i*m_iWidth + j] >= uppVal)
+		{
+			//QRgb rgbVal = qRgb(255, 255, 255);
+			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
+
+			tmpData[tmpIdx] = 0xff000000;
+			/*tmpData[tmpIdx+0] = 0;
+			tmpData[tmpIdx+1] = 0;
+			tmpData[tmpIdx+2] = 0;*/
+
+		}
+		else if (m_pData[i*m_iWidth + j] <= lowVal)
+		{
+			tmpData[tmpIdx] = 0xffffffff;
+			/*tmpData[tmpIdx+0] = 255;
+			tmpData[tmpIdx+1] = 255;
+			tmpData[tmpIdx+2] = 255;*/
+			//QRgb rgbVal = qRgb(0, 0, 0);
+			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
+		}
+		else
+		{
+			tmpData[tmpIdx] = qRgba(
+				255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				255);
+			/*tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
+			tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
+			tmpData[tmpIdx+2] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
+			*/
+		}
+	}
+}
+
 bool YK16GrayImage::FillPixMapDual( int winMid1, int winMid2,int winWidth1, int winWidth2 )
 {
   if (m_pData == NULL)
@@ -1239,7 +1304,8 @@ bool YK16GrayImage::FillPixMapDual( int winMid1, int winMid2,int winWidth1, int 
 	//8 bit gray buffer preparing
 	int size = m_iWidth*m_iHeight;
 
-	uchar* tmpData = new uchar [size*3];//RGB
+	//uchar* tmpData = new uchar [size*3];//RGB
+	quint32* tmpData = new quint32[size];//RGB
 
 	int uppVal1 = (int)(winMid1 + winWidth1/2.0);
 	int lowVal1 = (int)(winMid1 - winWidth1/2.0);	        
@@ -1269,266 +1335,43 @@ bool YK16GrayImage::FillPixMapDual( int winMid1, int winMid2,int winWidth1, int 
 
 
 	//1/4 sector
-	for (int i = 0 ; i<splitY ; i++) //So long time....
+	for (int i = 0; i < splitY; i++) //So long time....
 	{
-		for (int j = 0 ; j< splitX ; j++)
+		for (int j = 0; j < splitX; j++)
 		{
-			int tmpIdx = 3*(i*m_iWidth+j);
-
-			if (!m_bShowInvert)
-			{
-				if (m_pData[i*m_iWidth+j] >= uppVal1)
-				{
-					//QRgb rgbVal = qRgb(255, 255, 255);
-					//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-					tmpData[tmpIdx+0] = 255;
-					tmpData[tmpIdx+1] = 255;
-					tmpData[tmpIdx+2] = 255;
-
-				}
-				else if (m_pData[i*m_iWidth+j] <= lowVal1)
-				{
-					tmpData[tmpIdx+0] = 0;
-					tmpData[tmpIdx+1] = 0;
-					tmpData[tmpIdx+2] = 0;
-					//QRgb rgbVal = qRgb(0, 0, 0);
-					//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-				}
-				else
-				{
-					tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-					tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-					tmpData[tmpIdx+2] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success				
-				}
-			}
-			else
-			{
-				if (m_pData[i*m_iWidth+j] >= uppVal1)
-				{
-					//QRgb rgbVal = qRgb(255, 255, 255);
-					//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-					tmpData[tmpIdx+0] = 0;
-					tmpData[tmpIdx+1] = 0;
-					tmpData[tmpIdx+2] = 0;
-
-				}
-				else if (m_pData[i*m_iWidth+j] <= lowVal1)
-				{
-					tmpData[tmpIdx+0] = 255;
-					tmpData[tmpIdx+1] = 255;
-					tmpData[tmpIdx+2] = 255;
-					//QRgb rgbVal = qRgb(0, 0, 0);
-					//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-				}
-				else
-				{
-					tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-					tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-					tmpData[tmpIdx+2] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success				
-				}
-			}
-		}		
+			fill_index(i, j, m_iWidth, uppVal1, lowVal1, m_bShowInvert, m_pData, tmpData, winWidth1);
+		}
 	}
 
 	//2/4 sector
-	for (int i = 0 ; i<splitY ; i++) //So long time....
+	for (int i = 0; i < splitY; i++) //So long time....
 	{
-	  for (int j = splitX ; j< m_iWidth ; j++)
-	  {
-		int tmpIdx = 3*(i*m_iWidth+j);
-
-		if (!m_bShowInvert)
+		for (int j = splitX; j < m_iWidth; j++)
 		{
-
-		  if (m_pData[i*m_iWidth+j] >= uppVal2)
-		  {
-			//QRgb rgbVal = qRgb(255, 255, 255);
-			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-			tmpData[tmpIdx+0] = 255;
-			tmpData[tmpIdx+1] = 255;
-			tmpData[tmpIdx+2] = 255;
-
-		  }
-		  else if (m_pData[i*m_iWidth+j] <= lowVal2)
-		  {
-			tmpData[tmpIdx+0] = 0;
-			tmpData[tmpIdx+1] = 0;
-			tmpData[tmpIdx+2] = 0;
-			//QRgb rgbVal = qRgb(0, 0, 0);
-			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-		  }
-		  else
-		  {
-			tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+2] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success				
-		  }
+			fill_index(i, j, m_iWidth, uppVal2, lowVal2, m_bShowInvert, m_pData, tmpData, winWidth2);
 		}
-		else
-		{
-		  if (m_pData[i*m_iWidth+j] >= uppVal2)
-		  {
-			//QRgb rgbVal = qRgb(255, 255, 255);
-			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-			tmpData[tmpIdx+0] = 0;
-			tmpData[tmpIdx+1] = 0;
-			tmpData[tmpIdx+2] = 0;
-
-		  }
-		  else if (m_pData[i*m_iWidth+j] <= lowVal2)
-		  {
-			tmpData[tmpIdx+0] = 255;
-			tmpData[tmpIdx+1] = 255;
-			tmpData[tmpIdx+2] = 255;
-			//QRgb rgbVal = qRgb(0, 0, 0);
-			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-		  }
-		  else
-		  {
-			tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+2] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success				
-		  }
-		}
-	  }		
 	}
 
 	//3/4 sector
-	for (int i = splitY ; i<m_iHeight ; i++) //So long time....
+	for (int i = splitY; i < m_iHeight; i++) //So long time....
 	{
-	  for (int j = 0 ; j< splitX ; j++)
-	  {
-		int tmpIdx = 3*(i*m_iWidth+j);
-
-		if (!m_bShowInvert)
+		for (int j = 0; j < splitX; j++)
 		{
-
-		  if (m_pData[i*m_iWidth+j] >= uppVal2)
-		  {
-			//QRgb rgbVal = qRgb(255, 255, 255);
-			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-			tmpData[tmpIdx+0] = 255;
-			tmpData[tmpIdx+1] = 255;
-			tmpData[tmpIdx+2] = 255;
-
-		  }
-		  else if (m_pData[i*m_iWidth+j] <= lowVal2)
-		  {
-			tmpData[tmpIdx+0] = 0;
-			tmpData[tmpIdx+1] = 0;
-			tmpData[tmpIdx+2] = 0;
-			//QRgb rgbVal = qRgb(0, 0, 0);
-			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-		  }
-		  else
-		  {
-			tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+2] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success				
-		  }
+			fill_index(i, j, m_iWidth, uppVal2, lowVal2, m_bShowInvert, m_pData, tmpData, winWidth2);
 		}
-		else
-		{
-		  if (m_pData[i*m_iWidth+j] >= uppVal2)
-		  {
-			//QRgb rgbVal = qRgb(255, 255, 255);
-			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-			tmpData[tmpIdx+0] = 0;
-			tmpData[tmpIdx+1] = 0;
-			tmpData[tmpIdx+2] = 0;
-
-		  }
-		  else if (m_pData[i*m_iWidth+j] <= lowVal2)
-		  {
-			tmpData[tmpIdx+0] = 255;
-			tmpData[tmpIdx+1] = 255;
-			tmpData[tmpIdx+2] = 255;
-			//QRgb rgbVal = qRgb(0, 0, 0);
-			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-		  }
-		  else
-		  {
-			tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success
-			tmpData[tmpIdx+2] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal2)/(double)winWidth2 * 255.0); //success				
-		  }
-		}
-	  }		
 	}
 
 	//4/4 sector
-	for (int i = splitY ; i<m_iHeight ; i++) //So long time....
+	for (int i = splitY; i < m_iHeight; i++) //So long time....
 	{
-	  for (int j = splitX ; j< m_iWidth ; j++)
-	  {
-		int tmpIdx = 3*(i*m_iWidth+j);
-
-		if (!m_bShowInvert)
+		for (int j = splitX; j < m_iWidth; j++)
 		{
-
-		  if (m_pData[i*m_iWidth+j] >= uppVal1)
-		  {
-			//QRgb rgbVal = qRgb(255, 255, 255);
-			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-			tmpData[tmpIdx+0] = 255;
-			tmpData[tmpIdx+1] = 255;
-			tmpData[tmpIdx+2] = 255;
-
-		  }
-		  else if (m_pData[i*m_iWidth+j] <= lowVal1)
-		  {
-			tmpData[tmpIdx+0] = 0;
-			tmpData[tmpIdx+1] = 0;
-			tmpData[tmpIdx+2] = 0;
-			//QRgb rgbVal = qRgb(0, 0, 0);
-			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-		  }
-		  else
-		  {
-			tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-			tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-			tmpData[tmpIdx+2] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success				
-		  }
+			fill_index(i, j, m_iWidth, uppVal1, lowVal1, m_bShowInvert, m_pData, tmpData, winWidth1);
 		}
-		else
-		{
-		  if (m_pData[i*m_iWidth+j] >= uppVal1)
-		  {
-			//QRgb rgbVal = qRgb(255, 255, 255);
-			//m_QImage.setPixel(j,i,qRgb(255, 255, 255));
-
-			tmpData[tmpIdx+0] = 0;
-			tmpData[tmpIdx+1] = 0;
-			tmpData[tmpIdx+2] = 0;
-
-		  }
-		  else if (m_pData[i*m_iWidth+j] <= lowVal1)
-		  {
-			tmpData[tmpIdx+0] = 255;
-			tmpData[tmpIdx+1] = 255;
-			tmpData[tmpIdx+2] = 255;
-			//QRgb rgbVal = qRgb(0, 0, 0);
-			//m_QImage.setPixel(j,i,qRgb(0, 0, 0));
-		  }
-		  else
-		  {
-			tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-			tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success
-			tmpData[tmpIdx+2] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal1)/(double)winWidth1 * 255.0); //success				
-		  }
-		}
-	  }		
 	}
 
-	int iBytesPerLine = m_iWidth*3;        
-	QImage tmpQImage = QImage((unsigned char*)tmpData,m_iWidth, m_iHeight,iBytesPerLine, QImage::Format_RGB888); //not deep copy!
+	// int iBytesPerLine = m_iWidth*3;        
+	QImage tmpQImage = QImage(reinterpret_cast<unsigned char*>(tmpData),m_iWidth, m_iHeight, 4 * m_iWidth, QImage::Format_ARGB32); //not deep copy!
 
 	//Copy only a ROI region. All below are data-point, rather than display points
 	//Outside region wiill be filled with Black by QImage inherent function
@@ -1582,7 +1425,7 @@ bool YK16GrayImage::isPtInFirstImage(int dataX, int dataY)
 { 
   if (dataX < 0 || dataX >= m_iWidth || dataY < 0  || dataY >= m_iHeight)
   {
-	cout << "Fatal error in isPtInFirstImage! Given point is out of image point" << endl;
+	cout << "Fatal error in isPtInFirstImage! Given point is out of image point" << std::endl;
 	return false;
   }
 

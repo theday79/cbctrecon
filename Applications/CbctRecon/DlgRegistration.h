@@ -4,6 +4,7 @@
 #include "itkImage.h"
 #include "itk_mask.h"
 #include "YK16GrayImage.h"
+#include "AG17RGBAImage.h"
 #include <QString>
 #include "cbctrecon.h"
 
@@ -46,19 +47,19 @@ enum enRegisterOption{
 
 
 class DlgRegistration : public QDialog,
-    public Ui::DlgRegistrationClass
+	public Ui::DlgRegistrationClass
 {
-    Q_OBJECT
-    ;
+	Q_OBJECT
+		;
 
-public slots:
-    void SLT_CrntPosGo();
-    void SLT_DrawImageWhenSliceChange(); //upper level drawing: big calculation
-    void SLT_DrawImageInFixedSlice();//lower level Drawing func.
+	public slots:
+	void SLT_CrntPosGo();
+	void SLT_DrawImageWhenSliceChange(); //upper level drawing: big calculation
+	void SLT_DrawImageInFixedSlice();//lower level Drawing func.
 
-    void SLT_UpdateSplit1();//lower level Drawing func. //Mouse Move even
-    void SLT_UpdateSplit2();//lower level Drawing func.//Mouse Move even
-    void SLT_UpdateSplit3();//lower level Drawing func.//Mouse Move even
+	void SLT_UpdateSplit1();//lower level Drawing func. //Mouse Move even
+	void SLT_UpdateSplit2();//lower level Drawing func.//Mouse Move even
+	void SLT_UpdateSplit3();//lower level Drawing func.//Mouse Move even
 
 	void SLT_CancelMouseAction();
 
@@ -88,10 +89,10 @@ public slots:
 
 	void SLT_DoRegistrationRigid();
 	void SLT_DoRegistrationDeform();
-        void SLT_DoRegistrationGradient();
-        void SLT_ManualMoveByDCMPlan();
-        void SLT_ManualMoveByDCMPlanOpen();
-		void SLT_gPMCrecalc();
+	void SLT_DoRegistrationGradient();
+	void SLT_ManualMoveByDCMPlan();
+	void SLT_ManualMoveByDCMPlanOpen();
+	void SLT_gPMCrecalc();
 	void SLT_BringFocusToEnableArrow(bool bChecked);
 
 	void SLT_KeyMoving(bool bChecked);
@@ -105,105 +106,109 @@ public slots:
 	void SLT_PreProcessCT();
 
 	void SLT_PassFixedImgForAnalysis();
-	void SLT_PassMovingImgForAnalysis();	
+	void SLT_PassMovingImgForAnalysis();
 
 	void SLT_ExchangeRawRef();
 
-        /* After manual move: this will trigger skin cropping and uncheck the key moving*/
-        void SLT_ConfirmManualRegistration();
-        void SLT_IntensityNormCBCT();
-        void SLT_DoLowerMaskIntensity(); //button
+	/* After manual move: this will trigger skin cropping and uncheck the key moving*/
+	void SLT_ConfirmManualRegistration();
+	void SLT_IntensityNormCBCT();
+	void SLT_DoLowerMaskIntensity(); //button
 
 
 
 public:
-    DlgRegistration();    
-    DlgRegistration(QWidget *parent);
-    ~DlgRegistration();
-     void TestDraw();
-     void whenFixedImgLoaded(); //should be called by comboBox
-     void whenMovingImgLoaded();
-	 void initOverlapWndSize();
-	 void shiftSliceSlider();
-	 void updateSliceLabel();
-	 void UpdateSplit(int viewIdx, qyklabel* pOverlapWnd);
-	 void MousePressedRight(int wndIdx, qyklabel* pWnd);
+	DlgRegistration();
+	DlgRegistration(QWidget *parent);
+	~DlgRegistration();
+	void TestDraw();
+	void whenFixedImgLoaded(); //should be called by comboBox
+	void whenMovingImgLoaded();
+	void initOverlapWndSize();
+	void shiftSliceSlider();
+	void updateSliceLabel();
+	void UpdateSplit(int viewIdx, qyklabel* pOverlapWnd);
+	void MousePressedRight(int wndIdx, qyklabel* pWnd);
 
-	 void childEvent(QChildEvent *event);
-	 bool eventFilter(QObject *target, QEvent *event);
+	void childEvent(QChildEvent *event);
+	bool eventFilter(QObject *target, QEvent *event);
 
-	 void ImageManualMove(int direction, double resol);
-         void ImageManualMoveOneShot(float shiftX, float shiftY, float shiftZ);//DICOM coordinate
+	void ImageManualMove(int direction, double resol);
+	void ImageManualMoveOneShot(float shiftX, float shiftY, float shiftZ);//DICOM coordinate
 
-	// void GenPlastiRegisterCommandFile(QString strPathCommandFile, enRegisterOption regiOption);
-	 /*void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
-	   QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
-	   QString strStageOption1, QString strStageOption2, QString strStageOption3);*/
+// void GenPlastiRegisterCommandFile(QString strPathCommandFile, enRegisterOption regiOption);
+ /*void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
+   QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
+   QString strStageOption1, QString strStageOption2, QString strStageOption3);*/
 
-         void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
-             QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
-             QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask = QString(""));
+	void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
+		QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
+		QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask = QString(""));
 
-         //VEC3D GetShiftValueFromGradientXForm(QString& filePath); //get val mm
-         VEC3D GetShiftValueFromGradientXForm(QString& filePath, bool bInverse = false);
-
-
-	 void AddImageToCombo(int comboIdx, enREGI_IMAGES option); //comboIdx 0: fixed, 1: moving
-	 void LoadImgFromComboBox(int idx, QString& strSelectedComboTxt);
-
-	 void SelectComboExternal(int idx, enREGI_IMAGES iImage);
-
-	 void UpdateListOfComboBox(int idx);
-	 bool PreprocessCT();
-         void LoadRTPlan(QString& strDCMPath);
-
-	 //void plm_dmap_main (Dmap_parms* parms);
-         void plm_dmap_main(QString& img_in_fn, QString& img_out_fn);
-	 //void plm_threshold_main (Pcmd_threshold* parms);
-         //void plm_threshold_main (Pcmd_threshold* parms);
-         //plm_threshold_main(range_string, img_in_fn, img_out_fn);
-         void plm_threshold_main(QString& strRange, QString& img_in_fn, QString& img_out_fn);
-	 //void plm_mask_main (Mask_parms* parms);                  
-         void plm_mask_main(Mask_operation mask_option, QString& input_fn, QString& mask_fn, QString& output_fn, float mask_value);
+	//VEC3D GetShiftValueFromGradientXForm(QString& filePath); //get val mm
+	VEC3D GetShiftValueFromGradientXForm(QString& filePath, bool bInverse = false);
 
 
-	 void plm_expansion_contract_msk(QString& strPath_msk, QString& strPath_msk_exp_cont, double fExpVal);
+	void AddImageToCombo(int comboIdx, enREGI_IMAGES option); //comboIdx 0: fixed, 1: moving
+	void LoadImgFromComboBox(int idx, QString& strSelectedComboTxt);
 
-	 void plm_synth_trans_xf( QString& strPath_fixed, QString& strPath_out_xf, double transX, double transY, double transZ);
-	  void ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT, QString& strPathOutputCBCT, double* manualTrans3d, bool bPrepareMaskOnly = false);
+	void SelectComboExternal(int idx, enREGI_IMAGES iImage);
 
-	 //void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_, QString& strPathOutputCBCT, double* manualTrans3d); 
-          void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly = false);//8 mm skin cut + fill air bubbles inside CBCT
+	void UpdateListOfComboBox(int idx);
+	bool PreprocessCT();
+	void LoadRTPlan(QString& strDCMPath);
 
-	 void SetPlmOutputDir(QString& endFix);
-	 void initDlgRegistration(QString& strDCMUID);
-
-	 void PostSkinRemovingCBCT(UShortImageType::Pointer& spCBCT); //this function will be called from main Dlg.         
-
-	 void CropSkinUsingRS(UShortImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin );
-
-         //void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int threshold);
-
-         void ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw, UShortImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold = 1100);
-
-         void GenShellMask(QString& strPathInputMask, QString& strPathOutputMask, double fInnerMargin, double fOuterMargin);
-
-        VEC3D GetIsocenterDCM_FromRTPlan(QString& strFilePath);
+	//void plm_dmap_main (Dmap_parms* parms);
+	void plm_dmap_main(QString& img_in_fn, QString& img_out_fn);
+	//void plm_threshold_main (Pcmd_threshold* parms);
+		//void plm_threshold_main (Pcmd_threshold* parms);
+		//plm_threshold_main(range_string, img_in_fn, img_out_fn);
+	void plm_threshold_main(QString& strRange, QString& img_in_fn, QString& img_out_fn);
+	//void plm_mask_main (Mask_parms* parms);                  
+	void plm_mask_main(Mask_operation mask_option, QString& input_fn, QString& mask_fn, QString& output_fn, float mask_value);
 
 
+	void plm_expansion_contract_msk(QString& strPath_msk, QString& strPath_msk_exp_cont, double fExpVal);
 
-	 //void keyPressEvent ( QKeyEvent * e );	 
-     //void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage* pOutput2D);
-     //void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& Output2D);
-    
+	void plm_synth_trans_xf(QString& strPath_fixed, QString& strPath_out_xf, double transX, double transY, double transZ);
+	void ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT, QString& strPathOutputCBCT, double* manualTrans3d, bool bPrepareMaskOnly = false);
 
-public: 
-    CbctRecon* m_pParent; //to pull 3D images
-    YK16GrayImage m_YKImgFixed[3]; //CBCT in this study
-    YK16GrayImage m_YKImgMoving[3]; //CBCT in this study
-    YK16GrayImage m_YKDisp[3]; //CBCT in this study
+	//void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_, QString& strPathOutputCBCT, double* manualTrans3d); 
+	void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly = false);//8 mm skin cut + fill air bubbles inside CBCT
+
+	void SetPlmOutputDir(QString& endFix);
+	void initDlgRegistration(QString& strDCMUID);
+
+	void PostSkinRemovingCBCT(UShortImageType::Pointer& spCBCT); //this function will be called from main Dlg.         
+
+	void CropSkinUsingRS(UShortImageType::Pointer& spImgUshort, QString& strPathRS, double cropMargin);
+
+	//void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw, USHORT_ImageType::Pointer& spCBCTcor, int threshold);
+
+	void ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw, UShortImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold = 1100);
+
+	void GenShellMask(QString& strPathInputMask, QString& strPathOutputMask, double fInnerMargin, double fOuterMargin);
+
+	VEC3D GetIsocenterDCM_FromRTPlan(QString& strFilePath);
+
+
+
+	//void keyPressEvent ( QKeyEvent * e );	 
+	//void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage* pOutput2D);
+	//void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& Output2D);
+
+
+public:
+	CbctRecon* m_pParent; //to pull 3D images
+	YK16GrayImage m_YKImgFixed[3]; //CBCT in this study
+	YK16GrayImage m_YKImgMoving[3]; //CBCT in this study
+	YK16GrayImage m_YKDisp[3]; //CBCT in this study
+	AG17RGBAImage m_DoseImgFixed[3]; //CBCT in this study
+	AG17RGBAImage m_DoseImgMoving[3]; //CBCT in this study
+	AG17RGBAImage m_AGDisp_Overlay[3]; //CBCT in this study
+	bool dose_loaded = false;
 	int m_enViewArrange;
-    //YK16GrayImage m_YKImgMoving[3];    //RefCT
+	//YK16GrayImage m_YKImgMoving[3];    //RefCT
 
 	bool m_bPressedLeft[3];//Left Mouse Pressed but not released
 	bool m_bPressedRight[3];
@@ -218,6 +223,8 @@ public:
 	UShortImageType::Pointer m_spFixed;//pointer only, for display
 	UShortImageType::Pointer m_spMoving;//pointer only, for display
 
+	UShortImageType::Pointer m_spFixedDose;//pointer only, for display
+	UShortImageType::Pointer m_spMovingDose;//pointer only, for display
 
 	QString m_strPathPlastimatch;//full path
 	QString m_strPathCTSkin; // shared data among functions
@@ -229,12 +236,12 @@ public:
 
 
 
-        Dcmtk_rt_study* m_pDcmStudyPlan;
+	Dcmtk_rt_study* m_pDcmStudyPlan;
 
-      
+
 
 
 public:
-    Ui::DlgRegistrationClass ui;
-	
+	Ui::DlgRegistrationClass ui;
+
 };

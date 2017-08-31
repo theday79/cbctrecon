@@ -5,17 +5,17 @@
 #include <QMouseEvent>
 #include <QRect>
 #include <vector>
-//#include <QDebug>
-class YK16GrayImage;
 
-using namespace std;
+class YK16GrayImage;
+class AG17RGBAImage;
+
 class qyklabel : public QLabel
 {
 	Q_OBJECT
 
 public:
 	YK16GrayImage* m_pYK16Image;
-	YK16GrayImage* m_pARGBImage;
+	AG17RGBAImage* m_pRGBAImage;
 	QRect m_Rt;
 	std::vector<QPoint> m_vPt;
 	bool m_bDrawPoints;
@@ -44,8 +44,9 @@ public:
 	int x,y;
 
 	void SetBaseImage(YK16GrayImage* pYKImage);
+	void SetOverlayImage(AG17RGBAImage* pRGBAQImage);
 	//void ConvertAndCopyPoints(vector<QPoint>& vSrcPoint);
-	void ConvertAndCopyPoints(vector<QPoint>& vSrcPoint, int iDataWidth, int iDataHeight);
+	void ConvertAndCopyPoints(std::vector<QPoint>& vSrcPoint, int iDataWidth, int iDataHeight);
 
 	QPoint View2Data(QPoint viewPt, int viewWidth, int viewHeight, int dataWidth, int dataHeight);
 	QPoint View2DataExt(QPoint viewPt, int viewWidth, int viewHeight, int dataWidth, int dataHeight, QPoint ptDataOffset, double fUserZoom);

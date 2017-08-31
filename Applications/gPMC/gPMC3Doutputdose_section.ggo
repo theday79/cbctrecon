@@ -1,4 +1,4 @@
-section "Output 3D image properties (NYI)"
+section "Output 3D image properties"
 option "origin"    - "Origin (default=centered)" double multiple no
 option "dimension" - "Dimension"                 int    multiple no  default="256"
 option "spacing"   - "Spacing"                   double multiple no  default="1"

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 
 #include "itkImageFileWriter.h"
 #include "itkRescaleIntensityImageFilter.h"
@@ -97,7 +98,7 @@
 
 #define FIXME_BACKGROUND_MAX (-1200)
 
-using namespace std;
+// using namespace std;
 
 
 //#include "itkImageSliceConstIteratorWithIndex.h"
@@ -176,13 +177,16 @@ DlgRegistration::DlgRegistration(QWidget *parent): QDialog (parent)
 
 DlgRegistration::~DlgRegistration()
 {
-    //cout << "Deleting objects"<< endl;
+    //cout << "Deleting objects"<< std::endl;
 
     for (int i = 0 ; i<3 ; i++)
     {
         m_YKImgFixed[i].ReleaseBuffer();
         m_YKImgMoving[i].ReleaseBuffer();
         m_YKDisp[i].ReleaseBuffer();
+		m_DoseImgFixed[i].ReleaseBuffer();
+		m_DoseImgMoving[i].ReleaseBuffer();
+		m_AGDisp_Overlay[i].ReleaseBuffer();
     }
 
     if (m_pDcmStudyPlan != NULL)
@@ -356,12 +360,22 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed,m_spMoving, PLANE_AXIAL, curPhysPos[0], m_YKImgFixed[0], m_YKImgMoving[0]);
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed, m_spMoving, PLANE_FRONTAL, curPhysPos[1], m_YKImgFixed[1], m_YKImgMoving[1]);
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed, m_spMoving, PLANE_SAGITTAL, curPhysPos[2], m_YKImgFixed[2], m_YKImgMoving[2]);
+	  if (dose_loaded) {
+		  m_pParent->Draw2DFrom3DDouble(m_spFixedDose, m_spMovingDose, PLANE_AXIAL, curPhysPos[0], m_DoseImgFixed[0], m_DoseImgMoving[0]);
+		  m_pParent->Draw2DFrom3DDouble(m_spFixedDose, m_spMovingDose, PLANE_FRONTAL, curPhysPos[1], m_DoseImgFixed[1], m_DoseImgMoving[1]);
+		  m_pParent->Draw2DFrom3DDouble(m_spFixedDose, m_spMovingDose, PLANE_SAGITTAL, curPhysPos[2], m_DoseImgFixed[2], m_DoseImgMoving[2]);
+	  }
 	}
 	else
 	{
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed,m_spFixed, PLANE_AXIAL, curPhysPos[0], m_YKImgFixed[0], m_YKImgMoving[0]);
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed, m_spFixed, PLANE_FRONTAL, curPhysPos[1], m_YKImgFixed[1], m_YKImgMoving[1]);
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed, m_spFixed, PLANE_SAGITTAL, curPhysPos[2], m_YKImgFixed[2], m_YKImgMoving[2]);
+	  if (dose_loaded) {
+		  m_pParent->Draw2DFrom3DDouble(m_spFixedDose, m_spFixedDose, PLANE_AXIAL, curPhysPos[0], m_DoseImgFixed[0], m_DoseImgMoving[0]);
+		  m_pParent->Draw2DFrom3DDouble(m_spFixedDose, m_spFixedDose, PLANE_FRONTAL, curPhysPos[1], m_DoseImgFixed[1], m_DoseImgMoving[1]);
+		  m_pParent->Draw2DFrom3DDouble(m_spFixedDose, m_spFixedDose, PLANE_SAGITTAL, curPhysPos[2], m_DoseImgFixed[2], m_DoseImgMoving[2]);
+	  }
 	}
 
 
@@ -512,7 +526,7 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
             m_YKDisp[i].SetSplitOption(PRI_LEFT_TOP);
             //m_YKDisp[i].SetSplitCenter(QPoint dataPt);//From mouse event
             if (!m_YKDisp[i].ConstituteFromTwo(m_YKImgFixed[i+idxAdd], m_YKImgMoving[i+idxAdd]))
-                std::cout << "Image error " << i+1 << " th view" << endl;
+                std::cout << "Image error " << i+1 << " th view" << std::endl;
         }
     }
     else
@@ -525,20 +539,41 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
 
             //m_YKDisp[i].CreateImage(m_YKImgFixed[i].m_iWidth, m_YKImgFixed[i].m_iHeight, 0);
             //m_YKDisp[i].CopyFromBuffer(m_YKImgFixed[i].m_pData, m_YKImgFixed[i].m_iWidth, m_YKImgFixed[i].m_iHeight);
-            //cout << "width" << m_YKImgFixed[i].m_iWidth << endl;
-            //cout << "height" << m_YKImgFixed[i].m_iHeight << endl;
+            //cout << "width" << m_YKImgFixed[i].m_iWidth << std::endl;
+            //cout << "height" << m_YKImgFixed[i].m_iHeight << std::endl;
             m_YKDisp[i].CloneImage(m_YKImgFixed[i+addedViewIdx]);
         }
     }
 
-    //m_dspDlgRegi1->FillPixMapMinMax(ui.sliderRawMin->value(), ui.sliderRawMax->value());
-    //m_YKDisp[0].FillPixMapMinMax(0, 1200);
-    //m_YKDisp[1].FillPixMapMinMax(0, 1200);
-    //m_YKDisp[2].FillPixMapMinMax(0, 1200);
+	// For dose overlay
+	if (dose_loaded) {
+		if (ui.checkBoxDrawSplit->isChecked())
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				int idxAdd = m_enViewArrange;//m_iViewArrange = 0,1,2
+				if (idxAdd + i >= 3)
+					idxAdd = idxAdd - 3;
 
-    //ui.labelOverlapWnd1->SetBaseImage(&m_YKDisp[0]);
-    //ui.labelOverlapWnd2->SetBaseImage(&m_YKDisp[1]);
-    //ui.labelOverlapWnd3->SetBaseImage(&m_YKDisp[2]);
+				m_AGDisp_Overlay[i].SetSpacing(m_DoseImgFixed[i + idxAdd].m_fSpacingX, m_DoseImgFixed[i + idxAdd].m_fSpacingY);
+
+				m_AGDisp_Overlay[i].SetSplitOption(PRI_LEFT_TOP);
+				if (!m_AGDisp_Overlay[i].ConstituteFromTwo(m_DoseImgFixed[i + idxAdd], m_DoseImgMoving[i + idxAdd]))
+					std::cout << "Dose Image error " << i + 1 << " th view" << std::endl;
+			}
+		}
+		else
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				int addedViewIdx = m_enViewArrange;
+				if (i + addedViewIdx >= 3)
+					addedViewIdx = addedViewIdx - 3;
+
+				m_AGDisp_Overlay[i].CloneImage(m_DoseImgFixed[i + addedViewIdx]);
+			}
+		}
+	}
 
 	int sliderW1 = ui.sliderFixedW->value();
 	int sliderW2 = ui.sliderMovingW->value();
@@ -553,6 +588,17 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
     ui.labelOverlapWnd1->SetBaseImage(&m_YKDisp[0]);
     ui.labelOverlapWnd2->SetBaseImage(&m_YKDisp[1]);
     ui.labelOverlapWnd3->SetBaseImage(&m_YKDisp[2]);
+
+	// here gPMC results could be checked for and displayed, possibly with modification to the qyklabel class /AGA 02/08/2017
+	if (dose_loaded) {
+		m_AGDisp_Overlay[0].FillPixMapDual(sliderL1, sliderL2, sliderW1, sliderW2);
+		m_AGDisp_Overlay[1].FillPixMapDual(sliderL1, sliderL2, sliderW1, sliderW2);
+		m_AGDisp_Overlay[2].FillPixMapDual(sliderL1, sliderL2, sliderW1, sliderW2);
+
+		ui.labelOverlapWnd1->SetOverlayImage(&m_AGDisp_Overlay[0]);
+		ui.labelOverlapWnd2->SetOverlayImage(&m_AGDisp_Overlay[1]);
+		ui.labelOverlapWnd3->SetOverlayImage(&m_AGDisp_Overlay[2]);
+	}
 
     ui.labelOverlapWnd1->update();
     ui.labelOverlapWnd2->update();
@@ -1005,7 +1051,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       bPrepareMaskOnly = true;
 
 
-  std::cout << "1: writing temporary files" << endl;
+  std::cout << "1: writing temporary files" << std::endl;
 
   //Both image type: Unsigned Short
   QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_rigid.mha";
@@ -1035,7 +1081,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   if (ui.checkBoxUseROIForRigid->isChecked())
   {
-      std::cout << "Creating a ROI mask for Rigid registration " << endl;
+      std::cout << "Creating a ROI mask for Rigid registration " << std::endl;
       QString strFOVGeom = ui.lineEditFOVPos->text();
 
       QStringList strListFOV = strFOVGeom.split(",");
@@ -1089,7 +1135,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //if (!finfoFixedProc.exists() && !finfoManMask.exists() && ui.checkBoxCropBkgroundCBCT->isChecked())
   if (!finfoFixedProc.exists() && !finfoManMask.exists())
   {
-      std::cout << "Preprocessing for CBCT is not done. It is being done here before rigid body registration" << endl;
+      std::cout << "Preprocessing for CBCT is not done. It is being done here before rigid body registration" << std::endl;
 
       UShortImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
       UShortImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
@@ -1117,7 +1163,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       }
       else if (finfoSkinFile2.exists())
       {
-          std::cout << "alternative skin file will be used" << endl;
+          std::cout << "alternative skin file will be used" << std::endl;
           strPathOriginalCTSkinMask = strPathAlternateSkin;
           ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
 
@@ -1126,14 +1172,14 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       }
       else
       {
-          std::cout << "CT skin file(msk_skin_CT.mha) is not found. preprocessing will be skipped" << endl;
+          std::cout << "CT skin file(msk_skin_CT.mha) is not found. preprocessing will be skipped" << std::endl;
           filePathFixed_proc = filePathFixed;
       }
 
       QFileInfo fixedProcInfo(filePathFixed_proc);
       if (!fixedProcInfo.exists())
       {
-          std::cout << "Error! proc file doesn't exist!" << endl;
+          std::cout << "Error! proc file doesn't exist!" << std::endl;
           return;
       }
 
@@ -1149,7 +1195,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   if (!finfoFixedProc.exists())
       filePathFixed_proc = filePathFixed; //"fixed_rigid.mha";
 
-  std::cout << "2: Creating a plastimatch command file" << endl;
+  std::cout << "2: Creating a plastimatch command file" << std::endl;
 
   QString fnCmdRegisterRigid = "cmd_register_rigid.txt";
   //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
@@ -1162,7 +1208,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //For Cropped patients, FOV mask is applied.
   if (ui.checkBoxUseROIForRigid->isChecked())
   {
-      std::cout << "2.A:  ROI-based Rigid body registration will be done" << endl;
+      std::cout << "2.A:  ROI-based Rigid body registration will be done" << std::endl;
       GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc, filePathMoving,
           filePathOutput, filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy, filePathROI);
   }
@@ -1182,7 +1228,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
-  std::cout << "3: calling a plastimatch command" << endl;
+  std::cout << "3: calling a plastimatch command" << std::endl;
 
 
   Registration reg;
@@ -1190,11 +1236,11 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 	printf ("Error.  could not load %s as command file.\n",
             str_command_filepath.c_str());
   }
-  //cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;
+  //cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << std::endl;
 
   if (pathCmdRegister.length() < 3)
   {
-      std::cout << "ERROR! pathCmdRegister is too short!" << endl;
+      std::cout << "ERROR! pathCmdRegister is too short!" << std::endl;
       return;
   }
 
@@ -1216,18 +1262,18 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   if (strFixed.length() < 1)
   {
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << "ERROR! no fixed image" << endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << "ERROR! no fixed image" << std::endl;
       //return;
   }
   if (strMoving.length() < 1)
   {
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << "ERROR!no moving image" << endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << "ERROR!no moving image" << std::endl;
       //return;
   }
 
@@ -1237,33 +1283,33 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //if (fin.fail())
   //{
 
-  //    std::cout << endl;
-  //    std::cout << endl;
-  //    std::cout << endl;
+  //    std::cout << std::endl;
+  //    std::cout << std::endl;
+  //    std::cout << std::endl;
 
   //    fin.close();
-  //    std::cout << "fail first.. wait 5 s" << endl;
+  //    std::cout << "fail first.. wait 5 s" << std::endl;
   //    Sleep(5000);
 
   //    fin.open(command_filepath);
   //    if (fin.fail())
   //    {
-  //        std::cout << endl;
-  //        std::cout << endl;
-  //        std::cout << endl;
+  //        std::cout << std::endl;
+  //        std::cout << std::endl;
+  //        std::cout << std::endl;
 
-  //        std::cout << "Second failure! Error! " << endl;
+  //        std::cout << "Second failure! Error! " << std::endl;
   //        fin.close();
   //    }
   //    else
   //    {
-  //        std::cout << "Resolved after a single failure!" << endl;
+  //        std::cout << "Resolved after a single failure!" << std::endl;
   //        fin.close();
   //    }
   //}
   //else
   //{
-  //    std::cout << "File is readable!" << endl;
+  //    std::cout << "File is readable!" << std::endl;
   //    fin.close();
   //}
 
@@ -1271,13 +1317,13 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       printf("Error.  could not load %s as command file.\n",
           command_filepath);
   }
-  std::cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << endl;*/
+  std::cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << std::endl;*/
 
 
   reg.do_registration ();//error occurs here
 
-  std::cout << "4: Registration is done" << endl;
-  std::cout << "5: Reading output image-CT" << endl;
+  std::cout << "4: Registration is done" << std::endl;
+  std::cout << "5: Reading output image-CT" << std::endl;
 
 
   readerType::Pointer reader = readerType::New();
@@ -1290,7 +1336,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   reader2->Update();
   m_pParent->m_spReconImg = reader2->GetOutput();*/
 
-  std::cout << "6: Reading is completed" << endl;
+  std::cout << "6: Reading is completed" << std::endl;
 
   UpdateListOfComboBox(0);//combo selection signalis called
   UpdateListOfComboBox(1);
@@ -1309,8 +1355,8 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 
   //int aa = (int)(event->type());
 
-  //cout << target << endl;
-  //cout <<"Event Type " << aa << endl;
+  //cout << target << std::endl;
+  //cout <<"Event Type " << aa << std::endl;
 
   if (event->type() == QEvent::ShortcutOverride)//51
   {
@@ -1320,7 +1366,7 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 	QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
 
 	int iArrowKey = (int)keyEvent->nativeVirtualKey();
-	//cout << iArrowKey << endl;
+	//cout << iArrowKey << std::endl;
 	double resol = ui.lineEditMovingResol->text().toDouble(); //mm
 
 	switch (iArrowKey)
@@ -1347,17 +1393,17 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 	default:
 	  break;//do nothing
 	}
-	//cout << keyEvent->->nativeVirtualKey() << endl;
+	//cout << keyEvent->->nativeVirtualKey() << std::endl;
 	//event->accept();
 	return true; //No more event transfering?
   }
   /*else if (event->type() == QEvent::KeyPress)
   {
-	cout << "key pressed" << endl;
+	cout << "key pressed" << std::endl;
   }
   else if (event->type() == QEvent::KeyRelease)
   {
-	cout << "key Released" << endl;
+	cout << "key Released" << std::endl;
   }*/
 
   //return true;
@@ -1366,7 +1412,7 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 
 void DlgRegistration::childEvent( QChildEvent *event )
 {
-  //cout << "childEvent Called" << endl;
+  //cout << "childEvent Called" << std::endl;
   if (event->added()) {
 	event->child()->installEventFilter(this);
   }
@@ -1409,8 +1455,8 @@ void DlgRegistration::ImageManualMove( int direction, double resol )
 	(double)(imgOrigin[2]- imgOriginRef[2]));
   ui.lineEditOriginChanged->setText(strDelta);
 
-  //cout << "direction  " << direction << endl;
-  //cout << "resolution " << resol << endl;
+  //cout << "direction  " << direction << std::endl;
+  //cout << "resolution " << resol << std::endl;
 }
 
 //change origin of moving image by shift value acquired from gradient registration
@@ -1470,23 +1516,30 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
 
   if (fout.fail())
   {
-      std::cout << "File writing error! " << endl;
+      std::cout << "File writing error! " << std::endl;
       return;
   }
 
-  fout << "# command_file.txt" << endl;
-  fout << "[GLOBAL]" << endl;
-  fout << "fixed=" << strPathFixedImg.toLocal8Bit().constData() << endl;
-  fout << "moving=" << strPathMovingImg.toLocal8Bit().constData() << endl;
+  fout << "# command_file.txt" << std::endl;
+  fout << "[GLOBAL]" << std::endl;
+  fout << "fixed=" << strPathFixedImg.toLocal8Bit().constData() << std::endl;
+  fout << "moving=" << strPathMovingImg.toLocal8Bit().constData() << std::endl;
 
   if (strPathFixedMask.length() > 1)
   {
-      fout << "fixed_roi=" << strPathFixedMask.toLocal8Bit().constData() << endl;
+      fout << "fixed_roi=" << strPathFixedMask.toLocal8Bit().constData() << std::endl;
   }
 
-  fout << "img_out=" << strPathOutImg.toLocal8Bit().constData() << endl;
-  fout << "xform_out=" << strPathXformOut.toLocal8Bit().constData() << endl;
-  fout << endl;
+  fout << "img_out=" << strPathOutImg.toLocal8Bit().constData() << std::endl;
+  fout << "xform_out=" << strPathXformOut.toLocal8Bit().constData() << std::endl;
+  if (regiOption == PLAST_GRADIENT)
+	fout << "logfile=" << "gradient_log.txt" << std::endl;
+  else if (regiOption == PLAST_RIGID)
+	  fout << "logfile=" << "rigid_log.txt" << std::endl;
+  else if (regiOption == PLAST_BSPLINE)
+	  fout << "logfile=" << "bspline_log.txt" << std::endl;
+
+  fout << std::endl;
 
   //QString strOptim = ui.comboBoxDeformOption->currentText();
   QString strOptim;
@@ -1506,115 +1559,134 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
   switch (regiOption)
   {
   case PLAST_RIGID:
-	fout << "[STAGE]" << endl;
-	fout << "xform=" << "rigid" << endl;
-	//fout << "xform=" << "affine" << endl;
-	fout << "optim=" << "versor" << endl;
-	//fout << "max_step=" << "0.05" << endl;
-	//fout << "optim=" << "amoeba" << endl;
-	//fout << "optim=" << "rsg" << endl;
-	//fout << "optim=" << "amoeba" << endl;
-	//fout << "impl=" << "plastimatch" << endl;
-	//fout << "metric=" << "mi" << endl; //added
-	//fout << "impl=" << "itk" << endl;
+	fout << "[STAGE]" << std::endl;
+	fout << "xform=" << "rigid" << std::endl;
+	//fout << "xform=" << "affine" << std::endl;
+	fout << "optim=" << "versor" << std::endl;
+	//fout << "max_step=" << "0.05" << std::endl;
+	//fout << "optim=" << "amoeba" << std::endl;
+	//fout << "optim=" << "rsg" << std::endl;
+	//fout << "optim=" << "amoeba" << std::endl;
+	//fout << "impl=" << "plastimatch" << std::endl;
+	//fout << "metric=" << "mi" << std::endl; //added
+	//fout << "impl=" << "itk" << std::endl;
 
-	fout << "impl=" << "itk" << endl;
-	fout << "threading=" << "openmp" << endl;
-	//fout << "background_val=" << "0" << endl;
-	fout << "background_val=" << "500" << endl; //-600 in HU //added
-	fout << "max_its=" << "70" << endl;
+	fout << "impl=" << "itk" << std::endl;
+	if (m_pParent->ui.radioButton_UseCPU->isChecked())
+		fout << "threading=" << "openmp" << std::endl;
+	else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+		fout << "threading=" << "cuda" << std::endl;
+	else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+		fout << "threading=" << "opencl" << std::endl;
+
+	//fout << "background_val=" << "0" << std::endl;
+	fout << "background_val=" << "500" << std::endl; //-600 in HU //added
+	fout << "max_its=" << "70" << std::endl;
 
 	break;
   case PLAST_GRADIENT:
-      fout << "#For gradient-based searching, moving image should be smaller than fixed image. So, CBCT image might move rather than CT" << endl;
+      fout << "#For gradient-based searching, moving image should be smaller than fixed image. So, CBCT image might move rather than CT" << std::endl;
 
       optionStr = ui.lineEditGradOption->text();
       optionList = optionStr.split(",");
 
-      fout << "[PROCESS]" << endl;
-      fout << "action=adjust" << endl;
-      fout << "# only consider within this  intensity values" << endl;
-      fout << "parms=-inf,0,-1000,-1000,4000,4000,inf,0" << endl;
-      fout << "images=fixed,moving" << endl;
-      fout << endl;
-      fout << "[STAGE]" << endl;
-      fout << "metric=gm" << endl;
-      fout << "xform=translation" << endl;
-      fout << "optim=grid_search" << endl;
+      fout << "[PROCESS]" << std::endl;
+      fout << "action=adjust" << std::endl;
+      fout << "# only consider within this  intensity values" << std::endl;
+      fout << "parms=-inf,0,-1000,-1000,4000,4000,inf,0" << std::endl;
+      fout << "images=fixed,moving" << std::endl;
+      fout << std::endl;
+      fout << "[STAGE]" << std::endl;
+      fout << "metric=gm" << std::endl;
+      fout << "xform=translation" << std::endl;
+      fout << "optim=grid_search" << std::endl;
       fout << "gridsearch_min_overlap=" << optionList.at(0).toDouble() << " "
           << optionList.at(1).toDouble() << " "
-          << optionList.at(2).toDouble() << endl;
+          << optionList.at(2).toDouble() << std::endl;
 
-      fout << "num_substages=5" << endl;
-      fout << "debug_dir=" << m_strPathPlastimatch.toLocal8Bit().constData() << endl;
+      fout << "num_substages=5" << std::endl;
+      fout << "debug_dir=" << m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
       break;
 
   case PLAST_BSPLINE:
 	if (strListOption1.count() == 8)
 	{
-	  fout << "[STAGE]" << endl;
-	  fout << "xform=" << "bspline" << endl;
-	  fout << "impl=" << "plastimatch" << endl;
-	  //fout <<"threading=" << "openmp" << endl;
-	  //fout << "threading=" << "cuda" << endl;
-	  fout << "threading=" << "openmp" << endl;
+	  fout << "[STAGE]" << std::endl;
+	  fout << "xform=" << "bspline" << std::endl;
+	  fout << "impl=" << "plastimatch" << std::endl;
+	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
+		  fout << "threading=" << "openmp" << std::endl;
+	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+		  fout << "threading=" << "cuda" << std::endl;
+	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+		  fout << "threading=" << "opencl" << std::endl;
 
-	  fout << "regularization_lambda=" << strListOption1.at(4).toDouble() << endl;
+	  fout << "regularization_lambda=" << strListOption1.at(4).toDouble() << std::endl;
 
 	  if (strOptim.length() < 1)
-		fout << "metric=" << "mi" << endl;
+		fout << "metric=" << "mi" << std::endl;
 	  else
-		fout << "metric=" << strOptim.toLocal8Bit().constData() << endl;
+		fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
 
-	  fout << "max_its=" << strListOption1.at(6).toInt() << endl;
-	  fout << "grid_spac=" << strListOption1.at(3).toInt() << " " << strListOption1.at(3).toInt() << " " << strListOption1.at(3).toInt() << endl;//20 20 20 --> minimum
-	  fout << "res=" << strListOption1.at(0).toInt() << " " << strListOption1.at(1).toInt() << " " << strListOption1.at(2).toInt() << endl;
-	  fout << "background_val=" << "700" << endl; //-600 in HU //added
+	  fout << "max_its=" << strListOption1.at(6).toInt() << std::endl;
+	  fout << "grid_spac=" << strListOption1.at(3).toInt() << " " << strListOption1.at(3).toInt() << " " << strListOption1.at(3).toInt() << std::endl;//20 20 20 --> minimum
+	  fout << "res=" << strListOption1.at(0).toInt() << " " << strListOption1.at(1).toInt() << " " << strListOption1.at(2).toInt() << std::endl;
+	  fout << "background_val=" << "700" << std::endl; //-600 in HU //added
 
-	  fout << "img_out=" <<strListOption1.at(7).toLocal8Bit().constData() << endl;
-	  fout << endl;
+	  fout << "img_out=" <<strListOption1.at(7).toLocal8Bit().constData() << std::endl;
+	  fout << std::endl;
 	}
 	if (strListOption2.count() == 8)
 	{
-	  fout << "[STAGE]" << endl;
-	  fout << "xform=" << "bspline" << endl;
-	  fout << "impl=" << "plastimatch" << endl;
-	  fout <<"threading=" << "openmp" << endl;
+	  fout << "[STAGE]" << std::endl;
+	  fout << "xform=" << "bspline" << std::endl;
+	  fout << "impl=" << "plastimatch" << std::endl;
+	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
+		  fout << "threading=" << "openmp" << std::endl;
+	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+		  fout << "threading=" << "cuda" << std::endl;
+	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+		  fout << "threading=" << "opencl" << std::endl;
 
-	  fout << "regularization_lambda=" << strListOption2.at(4).toDouble() << endl;
+	  fout << "regularization_lambda=" << strListOption2.at(4).toDouble() << std::endl;
 
 	  if (strOptim.length() < 1)
-		fout << "metric=" << "mi" << endl;
+		fout << "metric=" << "mi" << std::endl;
 	  else
-		fout << "metric=" << strOptim.toLocal8Bit().constData() << endl;
+		fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
 
-	  fout << "max_its=" << strListOption2.at(6).toInt() << endl;
-	  fout << "grid_spac=" << strListOption2.at(3).toInt() << " " << strListOption2.at(3).toInt() << " " << strListOption2.at(3).toInt() << endl;//20 20 20 --> minimum
-	  fout << "res=" << strListOption2.at(0).toInt() << " " << strListOption2.at(1).toInt() << " " << strListOption2.at(2).toInt() << endl;
+	  fout << "max_its=" << strListOption2.at(6).toInt() << std::endl;
+	  fout << "grid_spac=" << strListOption2.at(3).toInt() << " " << strListOption2.at(3).toInt() << " " << strListOption2.at(3).toInt() << std::endl;//20 20 20 --> minimum
+	  fout << "res=" << strListOption2.at(0).toInt() << " " << strListOption2.at(1).toInt() << " " << strListOption2.at(2).toInt() << std::endl;
 
-	  fout << "img_out=" <<strListOption2.at(7).toLocal8Bit().constData() << endl;
-	  fout << endl;
+	  fout << "img_out=" <<strListOption2.at(7).toLocal8Bit().constData() << std::endl;
+	  fout << std::endl;
 	}
 	if (strListOption3.count() == 8)
 	{
-	  fout << "[STAGE]" << endl;
-	  fout << "xform=" << "bspline" << endl;
-	  fout << "impl=" << "plastimatch" << endl;
-	  fout <<"threading=" << "openmp" << endl;
+	  fout << "[STAGE]" << std::endl;
+	  fout << "xform=" << "bspline" << std::endl;
+	  fout << "impl=" << "plastimatch" << std::endl;
+	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
+		  fout << "threading=" << "openmp" << std::endl;
+	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+		  fout << "threading=" << "cuda" << std::endl;
+	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+		  fout << "threading=" << "opencl" << std::endl;
 
-	  fout << "regularization_lambda=" << strListOption3.at(4).toDouble() << endl;
+	  fout << "regularization_lambda=" << strListOption3.at(4).toDouble() << std::endl;
 
 	  if (strOptim.length() < 1)
-		fout << "metric=" << "mi" << endl;
+		fout << "metric=" << "mi" << std::endl;
 	  else
-		fout << "metric=" << strOptim.toLocal8Bit().constData() << endl;
+		fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
 
-	  fout << "max_its=" << strListOption3.at(6).toInt() << endl;
-	  fout << "grid_spac=" << strListOption3.at(3).toInt() << " " << strListOption3.at(3).toInt() << " " << strListOption3.at(3).toInt() << endl;//20 20 20 --> minimum
-	  fout << "res=" << strListOption3.at(0).toInt() << " " << strListOption3.at(1).toInt() << " " << strListOption3.at(2).toInt() << endl;
+	  fout << "max_its=" << strListOption3.at(6).toInt() << std::endl;
+	  fout << "grid_spac=" << strListOption3.at(3).toInt() << " " << strListOption3.at(3).toInt() << " " << strListOption3.at(3).toInt() << std::endl;//20 20 20 --> minimum
+	  fout << "res=" << strListOption3.at(0).toInt() << " " << strListOption3.at(1).toInt() << " " << strListOption3.at(2).toInt() << std::endl;
 
-	  fout << "img_out=" <<strListOption3.at(7).toLocal8Bit().constData() << endl;
-	  fout << endl;
+	  fout << "img_out=" <<strListOption3.at(7).toLocal8Bit().constData() << std::endl;
+	  fout << std::endl;
 	}
 
 	break;
@@ -1755,7 +1827,7 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage)
 	   findIndx = crntCombo->findText("COR_CBCT");
 	   break;
   }
-  //cout << "setCurrentIndx " << findIndx << endl;
+  //cout << "setCurrentIndx " << findIndx << std::endl;
 
   if (findIndx < 0) //-1 if not found
 	return;
@@ -1781,14 +1853,14 @@ void DlgRegistration::SLT_FixedImageSelected(QString selText)
 void DlgRegistration::SLT_MovingImageSelected(QString selText)
 {
   //QString strCrntText = ui.comboBoxImgMoving->currentText();
-  //cout << "SLT_MovingImageSelected" << endl;
+  //cout << "SLT_MovingImageSelected" << std::endl;
   LoadImgFromComboBox(1, selText);
 }
 
 
 void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)// -->when fixed image loaded will be called here!
 {
-  //cout << "LoadImgFromComboBox " << "index " << idx << "text " << strSelectedComboTxt.toLocal8Bit().constData() << endl;
+  //cout << "LoadImgFromComboBox " << "index " << idx << "text " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
 
   UShortImageType::Pointer spTmpImg;
   if (strSelectedComboTxt.compare(QString("RAW_CBCT"), Qt::CaseSensitive) == 0)
@@ -1830,7 +1902,7 @@ void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)
 
   if (!spTmpImg)
   {
-	//cout << "Selected image is not ready: " << strSelectedComboTxt.toLocal8Bit().constData() << endl;
+	//cout << "Selected image is not ready: " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
 	return;
   }
 
@@ -1843,7 +1915,7 @@ void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)
   else if (idx ==1)
   {
 	m_spMoving = spTmpImg;
-	//cout << "idx: " << idx << "m_spMoving"  << m_spMoving << endl;
+	//cout << "idx: " << idx << "m_spMoving"  << m_spMoving << std::endl;
 	whenMovingImgLoaded();
   }
 
@@ -1914,7 +1986,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
 
 
- std::cout << "1: DoRegistrationDeform: writing temporary files" << endl;
+ std::cout << "1: DoRegistrationDeform: writing temporary files" << std::endl;
 
   //Both image type: Unsigned Short
   QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_deform.mha";
@@ -1950,7 +2022,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   if (ui.checkBoxUseROIForDIR->isChecked())
   {
-      std::cout << "Creating a ROI mask for DIR.. " << endl;
+      std::cout << "Creating a ROI mask for DIR.. " << std::endl;
       QString strFOVGeom = ui.lineEditFOVPos->text();
 
       QStringList strListFOV = strFOVGeom.split(",");
@@ -1977,15 +2049,15 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   QString filePathFixed_proc = filePathFixed;
 
-  std::cout << "2: DoRegistrationDeform: CBCT pre-processing before deformable registration" << endl;
-  //cout << "Air region and bubble will be removed" << endl;
+  std::cout << "2: DoRegistrationDeform: CBCT pre-processing before deformable registration" << std::endl;
+  //cout << "Air region and bubble will be removed" << std::endl;
 
   QFileInfo info1(m_strPathCTSkin_manRegi);
   QFileInfo info2(m_strPathXFAutoRigid);
 
   if (!info1.exists() || !info2.exists())
   {
-      std::cout << "Fatal error! no CT skin is found or no XF auto file found. Preprocessing will not be done. Proceeding." << endl;
+      std::cout << "Fatal error! no CT skin is found or no XF auto file found. Preprocessing will not be done. Proceeding." << std::endl;
   }
   else
   {
@@ -1999,7 +2071,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   }
 
 
-  std::cout << "3: DoRegistrationDeform: Creating a plastimatch command file" << endl;
+  std::cout << "3: DoRegistrationDeform: Creating a plastimatch command file" << std::endl;
 
   QString fnCmdRegisterRigid = "cmd_register_deform.txt";
   //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
@@ -2035,33 +2107,33 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   //if (fin.fail())
   //{
 
-  //    std::cout << endl;
-  //    std::cout << endl;
-  //    std::cout << endl;
+  //    std::cout << std::endl;
+  //    std::cout << std::endl;
+  //    std::cout << std::endl;
 
   //    fin.close();
-  //    std::cout << "fail first.. wait 5 s" << endl;
+  //    std::cout << "fail first.. wait 5 s" << std::endl;
   //    Sleep(5000);
 
   //    fin.open(pathCmdRegister.toLocal8Bit().constData());
   //    if (fin.fail())
   //    {
-  //        std::cout << endl;
-  //        std::cout << endl;
-  //        std::cout << endl;
+  //        std::cout << std::endl;
+  //        std::cout << std::endl;
+  //        std::cout << std::endl;
 
-  //        std::cout << "Second failure! Error! " << endl;
+  //        std::cout << "Second failure! Error! " << std::endl;
   //        fin.close();
   //    }
   //    else
   //    {
-  //        std::cout << "Resolved after a single failure!" << endl;
+  //        std::cout << "Resolved after a single failure!" << std::endl;
   //        fin.close();
   //    }
   //}
   //else
   //{
-  //    std::cout << "File is readable!" << endl;
+  //    std::cout << "File is readable!" << std::endl;
   //    fin.close();
   //}
 
@@ -2069,7 +2141,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
-  std::cout << "4: DoRegistrationDeform: calling a plastimatch command" << endl;
+  std::cout << "4: DoRegistrationDeform: calling a plastimatch command" << std::endl;
 
 
   Registration reg;
@@ -2096,17 +2168,17 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   if (strFixed.length() < 1)
   {
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << "ERROR! no fixed image" << endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << "ERROR! no fixed image" << std::endl;
   }
   if (strMoving.length() < 1)
   {
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << endl;
-      std::cout << "ERROR!no moving image" << endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << "ERROR!no moving image" << std::endl;
   }
 
 
@@ -2116,13 +2188,13 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
  // Registration_parms *regp = new Registration_parms();
  // if (regp->parse_command_file (command_filepath) < 0) {
-	//cout << "wrong use of command file" << endl;
+	//cout << "wrong use of command file" << std::endl;
  // }
  // do_registration (regp);
  // delete regp;
 
-  std::cout << "5: DoRegistrationDeform: Registration is done" << endl;
-  std::cout << "6: DoRegistrationDeform: Reading output image" << endl;
+  std::cout << "5: DoRegistrationDeform: Registration is done" << std::endl;
+  std::cout << "6: DoRegistrationDeform: Reading output image" << std::endl;
 
   typedef itk::ImageFileReader<UShortImageType> readerType;
   QFileInfo tmpFileInfo;
@@ -2162,11 +2234,11 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	readerFinCBCT->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
 	readerFinCBCT->Update();
 	m_pParent->m_spRawReconImg = readerFinCBCT->GetOutput();
-	//cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << endl;
+	//cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << std::endl;
   }
   else
   {
-	cout << "No filePathFixed_proc is available. Exit the function" << endl;
+	cout << "No filePathFixed_proc is available. Exit the function" << std::endl;
 	return;
   }
 
@@ -2178,7 +2250,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   if (ui.checkBoxFillBubbleCBCT->isChecked() && tmpBubFileInfo.exists())
   {
-	cout << "6B: final puncturing according to the CBCT bubble" << endl;
+	cout << "6B: final puncturing according to the CBCT bubble" << std::endl;
 
         /*Mask_parms parms_fill;
         strPathDeformCTFinal = m_strPathPlastimatch + "/deformCTpuncFin.mha";
@@ -2212,11 +2284,11 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   }
   else
   {
-	cout << "No final output is available. Exit the function" << endl;
+	cout << "No final output is available. Exit the function" << std::endl;
 	return;
   }
 
-  std::cout << "7: DoRegistrationDeform: Reading is completed" << endl;
+  std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
   UpdateListOfComboBox(0);//combo selection signalis called
   UpdateListOfComboBox(1);
@@ -2225,7 +2297,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   SelectComboExternal(1, REGISTER_DEFORM_FINAL );
 
 
-  std::cout << "FINISHED!: Deformable image registration. Proceed to scatter correction" << endl;
+  std::cout << "FINISHED!: Deformable image registration. Proceed to scatter correction" << std::endl;
 }
 
 bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, then show the registration DLG
@@ -2233,13 +2305,13 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 
   if (!ui.checkBoxCropBkgroundCT->isChecked())
   {
-	cout << "Preprocessing is not selected." << endl;
+	cout << "Preprocessing is not selected." << std::endl;
 	return true;
   }
 
   if (m_pParent->m_strPathPlanCTDir.length() < 3)
   {
-	cout << "Reference CT DIR should be specified" << endl;
+	cout << "Reference CT DIR should be specified" << std::endl;
         return false;
   }
 
@@ -2294,7 +2366,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 
   parms.input_fn = m_pParent->m_strPathRS.toLocal8Bit().constData();
   parms.referenced_dicom_dir = m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData();
-  std::cout << m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData() << endl;
+  std::cout << m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData() << std::endl;
 
   QString ssimg_path_all = m_strPathPlastimatch + "/ssimg_all.mha";
   QString sslist_path_all = m_strPathPlastimatch + "/sslist_all.txt";
@@ -2344,7 +2416,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 	//third one is the organ name
 	if (strList.length() != 3)
 	{
-	  std::cout << "abnormal file expression." << endl;
+	  std::cout << "abnormal file expression." << std::endl;
 	  break;
 	}
 	QString organName = strList.at(2);
@@ -2360,7 +2432,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
         if (organName.compare(strRSName,Qt::CaseInsensitive) == 0)
         {
             strLineSkin = strLine;
-            std::cout << "Structure for cropping was found: " << strLineSkin.toLocal8Bit().constData() << endl;
+            std::cout << "Structure for cropping was found: " << strLineSkin.toLocal8Bit().constData() << std::endl;
         }
   }
   fin.close();
@@ -2373,13 +2445,13 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 	sslist_path_skin.replace("all", "skin");
 	fout.open(sslist_path_skin.toLocal8Bit().constData());
 
-	fout << strLineSkin.toLocal8Bit().constData() << endl;
+	fout << strLineSkin.toLocal8Bit().constData() << std::endl;
 
 	fout.close();
   }
   else
   {
-      std::cout << "Error: no " << strRSName.toLocal8Bit().constData() <<" RS structure is found in DICOM RS file. " << endl;
+      std::cout << "Error: no " << strRSName.toLocal8Bit().constData() <<" RS structure is found in DICOM RS file. " << std::endl;
       return false;
   }
   /* End of [3]Read outputss-list.txt and leave skin only*/
@@ -2489,7 +2561,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, REGISTER_MANUAL_RIGID );
 
-  std::cout << "FINISHED!: Pre-processing of CT image" << endl;
+  std::cout << "FINISHED!: Pre-processing of CT image" << std::endl;
 
 
 
@@ -2510,7 +2582,7 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
 {
     if (strDCMPath.length() < 1)
     {
-        std::cout << "No dicom  file is found" << endl;
+        std::cout << "No dicom  file is found" << std::endl;
         return;
     }
 
@@ -2522,18 +2594,18 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
 
     m_pDcmStudyPlan = new Dcmtk_rt_study();
 
-    //cout << "Before plm_file_format_deduce" << endl;
+    //cout << "Before plm_file_format_deduce" << std::endl;
     Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strDCMPath.toLocal8Bit().constData());
-    //cout << "After plm_file_format_deduce" << endl;
+    //cout << "After plm_file_format_deduce" << std::endl;
 
     if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
     {
-        std::cout << "PLM_FILE_FMT_DICOM_RTPLAN " << "is found" << endl;
+        std::cout << "PLM_FILE_FMT_DICOM_RTPLAN " << "is found" << std::endl;
         m_pDcmStudyPlan->load(strDCMPath.toLocal8Bit().constData());
     }
     else
     {
-        std::cout << "Found file is not RTPLAN. Skipping dcm plan." << endl;
+        std::cout << "Found file is not RTPLAN. Skipping dcm plan." << std::endl;
         return;
     }
 
@@ -2592,7 +2664,7 @@ void DlgRegistration::plm_threshold_main(QString& strRange, QString& img_in_fn, 
 	//}
 	//pli.save_image (img_out_fn);
  // }
-  std::cout << "contracted skin mask is ready" << endl;
+  std::cout << "contracted skin mask is ready" << std::endl;
 }
 
 //void DlgRegistration::plm_mask_main(Mask_parms* parms)
@@ -2731,7 +2803,7 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   //file_type = plm_file_format_deduce ((const char*) parms.input_fn);
   file_type = PLM_FILE_FMT_IMG;
 
-  std::cout << "Entering plm rt_study_warp..." << endl;
+  std::cout << "Entering plm rt_study_warp..." << std::endl;
 
   rt_study_warp(&rtds, file_type, &parms);
   printf ("Warping_rigid_trans Finished!\n");
@@ -2751,7 +2823,7 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   //4) eliminate the air region (temporarily)
   //plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha  --mask-value 0 --mask E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_exp.mha --output E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
 
-  //cout << "bPrepareMaskOnly=" << bPrepareMaskOnly << endl;
+  //cout << "bPrepareMaskOnly=" << bPrepareMaskOnly << std::endl;
 
   int bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); //0
 
@@ -2768,17 +2840,17 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
 
   if (!bPrepareMaskOnly) //actual cropping is controled by checkBoxCropBkgroundCBCT. But mask files are always prepared.
   {
-      std::cout << "Entering plm_mask_main to crop the skin image." << endl;
+      std::cout << "Entering plm_mask_main to crop the skin image." << std::endl;
       plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
   }
   else
   {
-      std::cout << "bPrepareMaskOnly flag is on. Skipping plm_mask_main.. " << endl;
+      std::cout << "bPrepareMaskOnly flag is on. Skipping plm_mask_main.. " << std::endl;
       strPathOutputCBCT = "";
   }
 
   m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; //for further use
-  std::cout << "CBCT preprocessing is done! " << endl;
+  std::cout << "CBCT preprocessing is done! " << std::endl;
 
   //Delete temporary file (~450 MB)
   QFile::remove(strPath_outputXF_manualTrans);
@@ -2927,13 +2999,13 @@ void DlgRegistration::SLT_PreProcessCT()
 {
      if (!PreprocessCT())
      {
-     std::cout << "Error in PreprocessCT!!!scatter correction would not work out." << endl;
+     std::cout << "Error in PreprocessCT!!!scatter correction would not work out." << std::endl;
      m_pParent->m_bMacroContinue = false;
      }
     ////Load DICOM plan
     if (m_pParent->m_strPathPlan.isEmpty())
     {
-        std::cout << "No DCM plan file was found. Skipping dcm plan." << endl;
+        std::cout << "No DCM plan file was found. Skipping dcm plan." << std::endl;
         return;
     }
     //QString dcmplanPath = m_pParent->m_strPathPlan;
@@ -2996,7 +3068,7 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
 {
   if (!spCBCT)
   {
-      std::cout << "Error! No CBCT image is available" << endl;
+      std::cout << "Error! No CBCT image is available" << std::endl;
       return;
   }
 
@@ -3015,7 +3087,7 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
   }
   else
   {
-      std::cout << "Mask file of auto-registration is not prepared. Use manual regi-mask instead" << endl;
+      std::cout << "Mask file of auto-registration is not prepared. Use manual regi-mask instead" << std::endl;
 
       if (maskInfoManual.exists())
       {
@@ -3023,16 +3095,16 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
       }
       else
       {
-          std::cout << "Mask file of manual registration is not prepared. Skip skin removal!" << endl;
+          std::cout << "Mask file of manual registration is not prepared. Skip skin removal!" << std::endl;
           return;
       }
   }
 
-  //cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << endl;
+  //cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
 
   if (m_strPathPlastimatch.length() < 1)
   {
-	  std::cout << "NO plastimatch Dir was defined. CorrCBCT will not be saved automatically" << endl;
+	  std::cout << "NO plastimatch Dir was defined. CorrCBCT will not be saved automatically" << std::endl;
 	  return;
   }
   //1) Export current CBCT file
@@ -3045,18 +3117,18 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
   writer->SetUseCompression(true);
   writer->SetInput(spCBCT);
 
-  std::cout << "Writing the CBCT file" << endl;
+  std::cout << "Writing the CBCT file" << std::endl;
   writer->Update();
 
   QFileInfo CBCTInfo(filePathCBCT);
   if (!CBCTInfo.exists())
   {
-	  std::cout << "No CBCT file to read. Maybe prior writing failed" << endl;
+	  std::cout << "No CBCT file to read. Maybe prior writing failed" << std::endl;
 	  return;
   }
 
   //ERROR HERE! delete the temporry folder.
-  std::cout << "Delete the temporary folder if it crashes" << endl;
+  std::cout << "Delete the temporary folder if it crashes" << std::endl;
 
    //4) eliminate the air region (temporarily)
   //Mask_parms parms_msk;
@@ -3077,13 +3149,13 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
   if (tmpFileInfo.exists())
   {
 	readerCBCT->SetFileName(filePathCBCT_noSkin.toLocal8Bit().constData());
-	cout << "Reading the corrected file" << endl;
+	cout << "Reading the corrected file" << std::endl;
 	readerCBCT->Update();
 	spCBCT = readerCBCT->GetOutput();
   }
   else
   {
-	cout << "Error! No skin-removed file is available for reading" << endl;
+	cout << "Error! No skin-removed file is available for reading" << std::endl;
 	return;
   }
 }
@@ -3092,7 +3164,7 @@ void DlgRegistration::SLT_DoLowerMaskIntensity()
 {
     if (!ui.checkBoxRemoveMaskAfterCor->isChecked())
     {
-        std::cout << "Error. this function is not enabled" << endl;
+        std::cout << "Error. this function is not enabled" << std::endl;
         return;
     }
 
@@ -3103,7 +3175,7 @@ void DlgRegistration::SLT_DoLowerMaskIntensity()
     /*if (!m_pParent->m_spScatCorrReconImg || !m_pParent->m_spRawReconImg)
     {
 
-        std::cout << "You need both raw and corr CBCT images" << endl;
+        std::cout << "You need both raw and corr CBCT images" << std::endl;
         return;
     }*/
     ThermoMaskRemovingCBCT(m_spFixed, m_spMoving, iDiffThreshold, iNoTouchThreshold);
@@ -3118,7 +3190,7 @@ void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw
 {
     if (!spCBCTraw || !spCBCTcor)
     {
-        std::cout << "You need both raw and corr CBCT images" << endl;
+        std::cout << "You need both raw and corr CBCT images" << std::endl;
         return;
     }
 
@@ -3143,7 +3215,7 @@ void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw
     }
     else
     {
-        std::cout << "Error! no available mask exist" << endl;
+        std::cout << "Error! no available mask exist" << std::endl;
         return;
     }
     strPathOutputMask = m_strPathPlastimatch + "/msk_skin_CT_shell.mha";
@@ -3155,7 +3227,7 @@ void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw
 
     if (!fInfoOutput.exists())
     {
-        std::cout << "error! GenShellMask DIDN'T WORK WELL" << endl;
+        std::cout << "error! GenShellMask DIDN'T WORK WELL" << std::endl;
         return;
     }
 
@@ -3176,7 +3248,7 @@ void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw
 
     if (size1[0] != size3[0] || size1[1] != size3[1] || size1[2] != size3[2])
     {
-        std::cout << "Error! size is different." << "  " << size3 << endl;
+        std::cout << "Error! size is different." << "  " << size3 << std::endl;
         return;
     }
 
@@ -3228,7 +3300,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 {
   if (cropMargin != 0.0)
   {
-	cout << "margin has not been implemented yet. regarded as 0.0 in this version" << endl;
+	cout << "margin has not been implemented yet. regarded as 0.0 in this version" << std::endl;
   }
   if (!spImgUshort)
 	return;
@@ -3247,7 +3319,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   writer->SetFileName(filePathCurImg.toLocal8Bit().constData());
   writer->SetUseCompression(true);
   writer->SetInput(spImgUshort);
-  std::cout << "Writing the current image file" << endl;
+  std::cout << "Writing the current image file" << std::endl;
   writer->Update();
 
 
@@ -3296,7 +3368,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 	//third one is the organ name
 	if (strList.length() != 3)
 	{
-	  std::cout << "abnormal file expression." << endl;
+	  std::cout << "abnormal file expression." << std::endl;
 	  break;
 	}
 	QString organName = strList.at(2);
@@ -3325,13 +3397,13 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 	sslist_path_skin.replace("all", "skin");
 	fout.open(sslist_path_skin.toLocal8Bit().constData());
 
-	fout << strLineSkin.toLocal8Bit().constData() << endl;
+	fout << strLineSkin.toLocal8Bit().constData() << std::endl;
 
 	fout.close();
   }
   else
   {
-	cout << "Error: no skin contour is found in DICOM RS file. " << endl;
+	cout << "Error: no skin contour is found in DICOM RS file. " << std::endl;
 	return;
   }
   /* End of [3]Read outputss-list.txt and leave skin only*/
@@ -3387,11 +3459,11 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 	reader->Update();
 
 	spImgUshort = reader->GetOutput();
-	//cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << endl;
+	//cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << std::endl;
   }
   else
   {
-	cout << "No strPathSkinRemovedCT is available. Exit the function" << endl;
+	cout << "No strPathSkinRemovedCT is available. Exit the function" << std::endl;
 	return;
   }
 }
@@ -3413,7 +3485,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
 
     if (m_pDcmStudyPlan == NULL)
     {
-        std::cout << "Error! no dcmRTStudy is loaded" << endl;
+        std::cout << "Error! no dcmRTStudy is loaded" << std::endl;
         return;
     }
 
@@ -3421,14 +3493,14 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
 
     if (!rtplan)
     {
-        std::cout << "Error! no dcm plan is loaded" << endl;
+        std::cout << "Error! no dcm plan is loaded" << std::endl;
         return;
     }
 	int iCntBeam = rtplan->beamlist.size(); //->num_beams;
 
     if (iCntBeam < 1)
     {
-        std::cout << "Error! no beam is found" << endl;
+        std::cout << "Error! no beam is found" << std::endl;
         return;
     }
 
@@ -3446,7 +3518,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
             float* cur_iso_pos = curBeam->cplist[j]->get_isocenter();
 			//                ID                id                               ID
             std::cout << "Beam Gantry: " << curBeam->gantry_angle << ", Control point rate: " << curBeam->cplist[j]->meterset_rate << //control_pt_no <<
-                ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << endl;
+                ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << std::endl;
 
             if (i == 0 && j == 0)
                 final_iso_pos = curBeam->cplist[j]->get_isocenter();
@@ -3456,7 +3528,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
 
     if (final_iso_pos == NULL)
     {
-        std::cout << "Error!  No isocenter position was found. " << endl;
+        std::cout << "Error!  No isocenter position was found. " << std::endl;
         return;
     }
 
@@ -3487,11 +3559,11 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
         planIso.y == 0.0 &&
         planIso.z == 0.0)
     {
-        std::cout << "Warning!!!! Plan iso is 0 0 0. Most likely not processed properly" << endl;
+        std::cout << "Warning!!!! Plan iso is 0 0 0. Most likely not processed properly" << std::endl;
     }
     else
     {
-        std::cout << "isocenter was found: " << planIso.x << ", " << planIso.y << ", " << planIso.z << endl;
+        std::cout << "isocenter was found: " << planIso.x << ", " << planIso.y << ", " << planIso.z << std::endl;
     }
 
     if (!m_spFixed || !m_spMoving)
@@ -3642,30 +3714,8 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 	return newDirPath.toLocal8Bit().constData();
 }
 
+QString get_output_options(UShortImageType::Pointer m_spFixed){
 
-void DlgRegistration::SLT_gPMCrecalc()
-{
-	if (!m_spFixed)
-		return;
-
-	QString fixed_dcm_dir, moving_dcm_dir = "";
-	// Export fixed and moving as DCM
-	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
-	if (m_spFixed != m_spMoving)
-		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
-
-	// Load spots from dcm rtplan and write a rst-like file.
-    QString plan_filepath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
-    /* below is probably definitely not good enough.. you need to do the same as for Lauras project.
-    LoadRTPlan(filePath);
-    Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
-	*/
-
-	/* Below MUST be done externally, through command line - due to incompatibilities with compilers and library versions..
-	 * Pytrip-style but with somewhat better control.. (hacks to private members might be possible as well: http://stackoverflow.com/questions/424104/can-i-access-private-members-from-outside-the-class-without-using-friends)
-	 */
-
-	// Create gPMC command line
 	QString str_fixedOrigin = QString("%1,%2,%3") // done per image because CT might be different from reconstructed CBCT
 		.arg(m_spFixed->GetOrigin()[0])
 		.arg(m_spFixed->GetOrigin()[1])
@@ -3689,6 +3739,47 @@ void DlgRegistration::SLT_gPMCrecalc()
 		.arg(m_spFixed->GetDirection()[2][1])
 		.arg(m_spFixed->GetDirection()[2][2]);
 
+	return QString(" --origin %1 --spacing %2 --dimension %3 --direction %4")
+		.arg(str_fixedOrigin)
+		.arg(str_fixedSpacing)
+		.arg(str_fixedDimension)
+		.arg(str_fixedDirection);
+}
+
+void DlgRegistration::SLT_gPMCrecalc()
+{
+	if (!m_spFixed)
+		return;
+
+	QString fixed_dcm_dir, moving_dcm_dir = "";
+	// Export fixed and moving as DCM
+	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
+	if (m_spFixed != m_spMoving)
+		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
+
+	QString plan_filepath = "";
+	// Load dcm rtplan.
+	if (ui.spinBox_NdcmPlans->value() == 1) {
+		plan_filepath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", 
+			m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+	}
+	else
+	{
+		plan_filepath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file",
+			m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+		for (size_t i = 1; i < ui.spinBox_NdcmPlans->value(); i++) {
+			plan_filepath = QString("%1,%2").arg(plan_filepath)
+				.arg(QFileDialog::getOpenFileName(this, "Open DCMRT Plan file",
+					m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0));
+		}
+	}
+
+	/* Below MUST be done externally, through command line - due to incompatibilities with compilers and library versions..
+	 * Pytrip-style but with somewhat better control.. (hacks to private members might be possible as well: http://stackoverflow.com/questions/424104/can-i-access-private-members-from-outside-the-class-without-using-friends)
+	 */
+
+	// Create gPMC command line
+
 	QString gPMC_device;
 #if USE_CUDA
 	gPMC_device = "gpu";
@@ -3697,63 +3788,115 @@ void DlgRegistration::SLT_gPMCrecalc()
 #else
 	gPMC_device = "cpu";
 #endif
+
+	if (m_pParent->ui.radioButton_UseCPU->isChecked())
+		gPMC_device = "cpu";
+
+	QString image_independent_string = QString(" --hardware %1 --plan \"%2\" -n %3 -b %4 --verbose")
+		.arg(gPMC_device)
+		.arg(plan_filepath)
+		.arg(ui.spinBox_NdcmPlans->value())
+		.arg(ui.spinBox_Nsims->value());
+
 	QString gPMC_command_str = "";
 	gPMC_command_str = QString("gPMC.exe") +  // casting this seems to cast the whole string
-		" --path " + fixed_dcm_dir +
-		" --output " + fixed_dcm_dir + "dose_fixed.mha" +
-		" --origin " + str_fixedOrigin +
-		" --spacing " + str_fixedSpacing +
-		" --dimension " + str_fixedDimension +
-		" --direction " + str_fixedDirection +
-		" --hardware " + gPMC_device +
-		" --plan " + plan_filepath;
+		" --dir \"" + fixed_dcm_dir + "\"" +
+		" --output \"" + fixed_dcm_dir + "/dose_fixed.mha" + "\"" +
+		get_output_options(m_spFixed) +
+		image_independent_string;
+	// std::cout << gPMC_command_str.toStdString() << std::endl;
 	if (QProcess::execute(gPMC_command_str) < 0)
 		qDebug() << "Failed to run (fixed mc recalc)";
 
 	if (moving_dcm_dir != "")
 	{
-		QString str_movingOrigin = QString("%1,%2,%3") // done per image because CT might be different from reconstructed CBCT
-			.arg(m_spFixed->GetOrigin()[0])
-			.arg(m_spFixed->GetOrigin()[1])
-			.arg(m_spFixed->GetOrigin()[2]);
-		QString str_movingDimension = QString("%1,%2,%3")
-			.arg(m_spFixed->GetBufferedRegion().GetSize()[0])
-			.arg(m_spFixed->GetBufferedRegion().GetSize()[1])
-			.arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
-		QString str_movingSpacing = QString("%1,%2,%3")
-			.arg(m_spFixed->GetSpacing()[0])
-			.arg(m_spFixed->GetSpacing()[1])
-			.arg(m_spFixed->GetSpacing()[2]);
-		QString str_movingDirection = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
-			.arg(m_spFixed->GetDirection()[0][0])
-			.arg(m_spFixed->GetDirection()[0][1])
-			.arg(m_spFixed->GetDirection()[0][2])
-			.arg(m_spFixed->GetDirection()[1][0])
-			.arg(m_spFixed->GetDirection()[1][1])
-			.arg(m_spFixed->GetDirection()[1][2])
-			.arg(m_spFixed->GetDirection()[2][0])
-			.arg(m_spFixed->GetDirection()[2][1])
-			.arg(m_spFixed->GetDirection()[2][2]);
-
 		gPMC_command_str = QString("gPMC.exe") +
-			" --path " + moving_dcm_dir +
-			" --output " + moving_dcm_dir + "dose_moving.mha" +
-			" --origin " + str_movingOrigin +
-			" --spacing " + str_movingSpacing +
-			" --dimension " + str_movingDimension +
-			" --direction " + str_movingDirection +
-			" --hardware " + gPMC_device;
+			" --dir " + moving_dcm_dir +
+			" --output " + moving_dcm_dir + "/dose_moving.mha" +
+			get_output_options(m_spMoving) +
+			image_independent_string;
+
 		if (QProcess::execute(gPMC_command_str) < 0)
 			qDebug() << "Failed to run (moving mc recalc)";
 	}
-	// Run gPMC externally
+	// Run gPMC externally ^
 
     // Translate gPMC output (preferably .mha) to ITK image
+	typedef itk::ImageFileReader<FloatImageType> ImageReaderType;
+	typedef itk::MinimumMaximumImageFilter<FloatImageType> MinMaxFindType;
+	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType> MultiplyImageFilterType;
+	typedef itk::CastImageFilter< FloatImageType, UShortImageType > CastFilterType;
 
+	QString fixedDosePath = fixed_dcm_dir + "/dose_fixed.mha";
+	QFileInfo finfofixedDosePath = QFileInfo(fixedDosePath);
+
+	if (finfofixedDosePath.exists()) {
+		ImageReaderType::Pointer FixedDoseReader = ImageReaderType::New();
+		FixedDoseReader->SetFileName(fixedDosePath.toStdString());
+
+		MinMaxFindType::Pointer MinMaxFilter = MinMaxFindType::New();
+		MinMaxFilter->SetInput(FixedDoseReader->GetOutput());
+		MinMaxFilter->Update();
+													  //Multiply: Scale to USHORT
+		MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
+		multiplyImageFilter->SetInput(FixedDoseReader->GetOutput());
+		multiplyImageFilter->SetConstant(65535.0f / MinMaxFilter->GetMaximum());
+
+		CastFilterType::Pointer castFilter = CastFilterType::New();
+		castFilter->SetInput(multiplyImageFilter->GetOutput());
+
+		castFilter->Update();
+		m_spFixedDose = castFilter->GetOutput();
+
+		if (!m_spFixedDose)
+			std::cout << "Dose failed to load for fixed Image!!" << std::endl;
+		else
+			std::cout << "Dose loaded for fixed Image" << std::endl;
+
+		UShortImageType::SizeType imgDim = m_spFixedDose->GetBufferedRegion().GetSize();
+		UShortImageType::SpacingType spacing = m_spFixedDose->GetSpacing();
+
+		cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << std::endl;
+		cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << std::endl;
+	}
+
+	if (moving_dcm_dir != "")
+	{
+		QString movingDosePath = moving_dcm_dir + "/dose_moving.mha";
+		QFileInfo finfomovingDosePath = QFileInfo(movingDosePath);
+
+		if (finfomovingDosePath.exists()) {
+			ImageReaderType::Pointer MovingDoseReader = ImageReaderType::New();
+			MovingDoseReader->SetFileName(movingDosePath.toStdString());
+
+			MinMaxFindType::Pointer MinMaxFilter = MinMaxFindType::New();
+			MinMaxFilter->SetInput(MovingDoseReader->GetOutput());
+			MinMaxFilter->Update();
+			//Multiply: Scale to USHORT
+			MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
+			multiplyImageFilter->SetInput(MovingDoseReader->GetOutput());
+			multiplyImageFilter->SetConstant(65535.0f / MinMaxFilter->GetMaximum());
+
+			CastFilterType::Pointer castFilter = CastFilterType::New();
+			castFilter->SetInput(multiplyImageFilter->GetOutput());
+
+			castFilter->Update();
+			m_spMovingDose = castFilter->GetOutput();
+			std::cout << "Dose loaded for moving Image" << std::endl;
+		}
+	}
+	else
+	{
+		if (!m_spFixedDose.IsNull())
+			m_spMovingDose = m_spFixedDose;
+	}
     // Display dose as colorwash on top of fixed and moving in all three plots
+	if (!m_spFixedDose && !m_spMovingDose)
+		dose_loaded = false;
+	else
+		dose_loaded = true;
 
-    // Free whatever needs to be freed
-
+	SLT_DrawImageWhenSliceChange();
 }
 
 void DlgRegistration::SLT_DoRegistrationGradient()
@@ -3765,8 +3908,8 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
         return;
 
-    std::cout << "1: writing temporary files" << endl;
-
+    std::cout << "1: writing temporary files" << std::endl;
+	ui.progressBar->setValue(5);
     //Both image type: Unsigned Short
     QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_gradient.mha";
     QString filePathMoving = m_strPathPlastimatch + "/" + "moving_gradient.mha";
@@ -3792,7 +3935,8 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     //2) move CT-based skin mask on CBCT based on manual shift
     //  if (m_strPathCTSkin)
 
-   std::cout << "2: Creating a plastimatch command file" << endl;
+   std::cout << "2: Creating a plastimatch command file" << std::endl;
+   ui.progressBar->setValue(10);
 
     QString fnCmdRegisterGradient = "cmd_register_gradient.txt";
     //QString fnCmdRegisterDeform = "cmd_register_deform.txt";
@@ -3801,7 +3945,7 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     /*GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed, filePathMoving,
         filePathOutput, filePathXform, PLAST_GRADIENT, "", "", "");    */
 
-    std::cout << "For Gradient searching only, CBCT image is a moving image, CT image is fixed image" << endl;
+    std::cout << "For Gradient searching only, CBCT image is a moving image, CT image is fixed image" << std::endl;
     GenPlastiRegisterCommandFile(pathCmdRegister, filePathMoving, filePathFixed,
          filePathOutput, filePathXform, PLAST_GRADIENT, "", "", "");
 
@@ -3812,29 +3956,40 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
     std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
-    std::cout << "3: calling a plastimatch command" << endl;
+    std::cout << "3: calling a plastimatch command" << std::endl;
+	ui.progressBar->setValue(15);
 
     Registration reg;
     if (reg.set_command_file(str_command_filepath) < 0) {
         printf("Error.  could not load %s as command file.\n",
             str_command_filepath.c_str());
     }
-    reg.do_registration();
-    std::cout << "4: Registration is done" << endl;
+	// reg.get_registration_parms()->log_fn = "gradient_log.txt";
+	reg.load_global_inputs();
+	
+	Xform::Pointer xform = reg.do_registration_pure(); //changed from do_registration() without return value
+	std::cout << "4: Registration is done" << std::endl;
+	ui.progressBar->setValue(99); // good ol' 99%
 
-    std::cout << "5: Load shift values" << endl;
+	itk::Vector<double, 3U> trn = xform->get_trn()->GetOffset();
+	ImageManualMoveOneShot(-trn[0], -trn[1], -trn[2]);
+	/*
+    std::cout << "5: Load shift values" << std::endl;
 
     VEC3D shiftVal = GetShiftValueFromGradientXForm(filePathXform, true); //true: inverse trans should be applied if CBCT was moving image //in mm
 
     ImageManualMoveOneShot(shiftVal.x, shiftVal.y, shiftVal.z);
-
-    std::cout << "6: Reading is completed" << endl;
+	*/
+    std::cout << "6: Reading is completed" << std::endl;
+	ui.progressBar->setValue(100);
 
     UpdateListOfComboBox(0);//combo selection signalis called
     UpdateListOfComboBox(1);
 
     SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
     SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+
+	ui.progressBar->setValue(0);
 }
 
 VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bInverse)
@@ -3866,7 +4021,7 @@ VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bI
     QStringList strList = tmpStr.split(" ");
     if (strList.count() < 4)
     {
-        std::cout << "error: not enough shift information" << endl;
+        std::cout << "error: not enough shift information" << std::endl;
         return resVal;
     }
 
@@ -3907,7 +4062,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         SLT_KeyMoving(false); // uncheck macro
 
     //Apply post processing for raw CBCT image and generate
-    std::cout << "Preprocessing for CBCT" << endl;
+    std::cout << "Preprocessing for CBCT" << std::endl;
 
     bool bPrepareMaskOnly = false;
 
@@ -3924,7 +4079,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     fShift[1] = (double)(originBefore[1] - originAfter[1]);
     fShift[2] = (double)(originBefore[2] - originAfter[2]);
 
-    std::cout << "1: writing temporary files" << endl;
+    std::cout << "1: writing temporary files" << std::endl;
 
     //Both image type: Unsigned Short
     QString filePathFixed = m_strPathPlastimatch + "/" + "fixed_rigid.mha"; //CBCT image //redundant
@@ -3939,7 +4094,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     writer->Update();
 
 
-    std::cout << "1.A: Writing temporary files is done" << endl;
+    std::cout << "1.A: Writing temporary files is done" << std::endl;
 
     QFileInfo finfoSkinFile1 = QFileInfo(m_strPathCTSkin);
     QString strPathAlternateSkin = m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
@@ -3958,7 +4113,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     }
     else if (finfoSkinFile2.exists())
     {
-        std::cout << "alternative skin file will be used" << endl;
+        std::cout << "alternative skin file will be used" << std::endl;
         strPathOriginalCTSkinMask = strPathAlternateSkin;
         ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
 
@@ -3971,7 +4126,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     if (fInfo.exists() && !bPrepareMaskOnly) //if fixed_rigid_proc.mha is generated successfully.
     {
 
-        std::cout << "Trying to read file: filePathFixed_proc" << endl;
+        std::cout << "Trying to read file: filePathFixed_proc" << std::endl;
         //Update RawReconImg
         typedef itk::ImageFileReader<UShortImageType> readerType;
         readerType::Pointer reader = readerType::New();
@@ -3982,7 +4137,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         double tmpSkinMargin = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
         m_pParent->UpdateReconImage(m_pParent->m_spRawReconImg, QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin));
 
-        std::cout << "Reading is completed" << endl;
+        std::cout << "Reading is completed" << std::endl;
 
         UpdateListOfComboBox(0);//combo selection signalis called
         UpdateListOfComboBox(1);
@@ -3996,14 +4151,14 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
     ofstream fout;
     fout.open(filePathXform.toLocal8Bit().constData());
-    fout << "#Custom Transform" << endl;
-    fout << "#Transform: Translation_only" << endl;
-    fout << "Parameters: " << fShift[0] << " " << fShift[1] << " " << fShift[2] << endl;
-    //fout << "FixedParameters: 0 0 0" << endl;
+    fout << "#Custom Transform" << std::endl;
+    fout << "#Transform: Translation_only" << std::endl;
+    fout << "Parameters: " << fShift[0] << " " << fShift[1] << " " << fShift[2] << std::endl;
+    //fout << "FixedParameters: 0 0 0" << std::endl;
 
     fout.close();
 
-    std::cout << "Writing manual registration transform info is done." << endl;
+    std::cout << "Writing manual registration transform info is done." << std::endl;
 }
 
 void DlgRegistration::SLT_IntensityNormCBCT()
@@ -4011,22 +4166,22 @@ void DlgRegistration::SLT_IntensityNormCBCT()
     float fROI_Radius = ui.lineEditNormRoiRadius->text().toFloat();
 
 
-    std::cout << "Intensity is being analyzed...Please wait." << endl;
+    std::cout << "Intensity is being analyzed...Please wait." << std::endl;
 
     float intensitySDFix =0.0;
     float intensitySDMov = 0.0;
     float meanIntensityFix = m_pParent->GetMeanIntensity(m_spFixed, fROI_Radius, &intensitySDFix);
     float meanIntensityMov = m_pParent->GetMeanIntensity(m_spMoving, fROI_Radius, &intensitySDMov);
 
-    std::cout << "Mean/SD for Fixed = " << meanIntensityFix << "/" << intensitySDFix << endl;
-    std::cout << "Mean/SD for Moving = " << meanIntensityMov << "/" << intensitySDMov << endl;
+    std::cout << "Mean/SD for Fixed = " << meanIntensityFix << "/" << intensitySDFix << std::endl;
+    std::cout << "Mean/SD for Moving = " << meanIntensityMov << "/" << intensitySDMov << std::endl;
 
     //m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));
 
     m_pParent->AddConstHU(m_spFixed, (int)(meanIntensityMov - meanIntensityFix));
     //SLT_PassMovingImgForAnalysis();
 
-    std::cout << "Intensity shifting is done! Added value = " << (int)(meanIntensityMov - meanIntensityFix) << endl;
+    std::cout << "Intensity shifting is done! Added value = " << (int)(meanIntensityMov - meanIntensityFix) << std::endl;
 
     m_pParent->UpdateReconImage(m_spFixed, QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix)));
     SelectComboExternal(0, REGISTER_RAW_CBCT);
@@ -4041,25 +4196,25 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     Dcmtk_rt_study* pRTstudyRP; //iso center info
     pRTstudyRP = new Dcmtk_rt_study();
 
-    //cout << "Before plm_file_format_deduce" << endl;
+    //cout << "Before plm_file_format_deduce" << std::endl;
     Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strFilePath.toLocal8Bit().constData());
-    //cout << "After plm_file_format_deduce" << endl;
+    //cout << "After plm_file_format_deduce" << std::endl;
 
     if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
     {
-        std::cout << "PLM_FILE_FMT_DICOM_RTPLAN " << "is found" << endl;
+        std::cout << "PLM_FILE_FMT_DICOM_RTPLAN " << "is found" << std::endl;
         pRTstudyRP->load(strFilePath.toLocal8Bit().constData());
     }
     else
     {
-        std::cout << "Found file is not RTPLAN. Skipping dcm plan." << endl;
+        std::cout << "Found file is not RTPLAN. Skipping dcm plan." << std::endl;
         return resultPtDcm;
     }
     Rtplan::Pointer rtplan = pRTstudyRP->get_rtplan();
 
     if (!rtplan)
     {
-        std::cout << "Error! no dcm plan is loaded" << endl;
+        std::cout << "Error! no dcm plan is loaded" << std::endl;
         return resultPtDcm;
     }
 
@@ -4067,7 +4222,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
 
     if (iCntBeam < 1)
     {
-        std::cout << "Error! no beam is found" << endl;
+        std::cout << "Error! no beam is found" << std::endl;
         return resultPtDcm;
     }
 
@@ -4084,7 +4239,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
             float* cur_iso_pos = curBeam->cplist[j]->get_isocenter();
 			//                ID                id                               ID
 			cout << "Beam Gantry: " << curBeam->gantry_angle << ", Control point rate: " << curBeam->cplist[j]->meterset_rate << //control_pt_no <<
-                ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << endl;
+                ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << std::endl;
 
             if (i == 0 && j == 0) //choose first beam's isocenter
                 final_iso_pos = curBeam->cplist[j]->get_isocenter();
@@ -4094,7 +4249,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
 
     if (final_iso_pos == NULL)
     {
-        std::cout << "Error!  No isocenter position was found. " << endl;
+        std::cout << "Error!  No isocenter position was found. " << std::endl;
         return resultPtDcm;
     }
 

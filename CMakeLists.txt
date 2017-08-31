@@ -3,14 +3,12 @@ CMAKE_MINIMUM_REQUIRED (VERSION 3.8) # Yes, less won't do.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-if(POLICY CMP0020)
-  cmake_policy(SET CMP0020 OLD)
-endif()
 
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 OPTION(USE_CUDA "Toggle CUDA on or off" ON) # OFF by default for multiple reasons
 OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # ON by default for multiple reasons
+OPTION(USE_CLFFT "Toggle CLFFT on or off" OFF) # ON by default for multiple reasons
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON)
 IF(USE_CUDA)
@@ -32,6 +30,11 @@ project(CbctRecon)
 FIND_PACKAGE(Git REQUIRED) # We superbuild now.
 
 FIND_PACKAGE(OpenCL REQUIRED)
+FIND_PACKAGE(FFTW)
+set(TBB_ROOT "" CACHE PATH "Root dir of intel TBB, (one level up from lib)")
+FIND_PACKAGE(TBB)
+FIND_PACKAGE(clFFT)
+
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 
 SET(CbctRecon_APPLICATIONS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Applications)

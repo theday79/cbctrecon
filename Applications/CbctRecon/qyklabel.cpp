@@ -1,6 +1,7 @@
 #include "qyklabel.h"
 #include <QPainter>
 #include "YK16GrayImage.h"
+#include "AG17RGBAImage.h"
 
 using namespace std;
 
@@ -8,6 +9,7 @@ qyklabel::qyklabel(QWidget *parent)
 	: QLabel(parent)
 {
 	m_pYK16Image = NULL;
+	m_pRGBAImage = NULL;
 	//this->width();
 	//m_Rt = this->rect();
 
@@ -56,7 +58,7 @@ void qyklabel::mouseReleaseEvent( QMouseEvent *ev )
   if (m_pYK16Image == NULL)
 	return;
 
-  //cout << "Mouse Released from qlabel" << endl;//it worked
+  //cout << "Mouse Released from qlabel" << std::endl;//it worked
 
   if (ev->button() == Qt::LeftButton)
   {	
@@ -104,113 +106,105 @@ void qyklabel::leaveEvent( QEvent * )
 //
 //void qyklabel::focusInEvent( QFocusEvent * )
 //{
-//  cout <<"focus in" << endl;
+//  std::cout <<"focus in" << std::endl;
 //  emit FocusIn();  
 //}
 //
 //void qyklabel::focusOutEvent( QFocusEvent * )
 //{
-//  cout <<"focus out" << endl;
+//  std::cout <<"focus out" << std::endl;
 //  emit FocusOut();  
 //}
 
-void qyklabel::paintEvent( QPaintEvent * )
+QImage* compose_image_with_overlay(QRect* rect, QImage* src, QImage* overlay) {
+	QPainter painter(src);
+	painter.drawImage(*rect, *overlay, *rect, Qt::AutoColor);
+	return src;
+}
+
+void qyklabel::paintEvent(QPaintEvent *)
 {
 	QPainter painter(this);
-
-	painter.setPen( QPen(Qt::black, 2));
-	QRect TargetRt = this->rect();	
+	painter.setPen(QPen(Qt::black, 2));
+	QRect TargetRt = this->rect();
 	painter.drawRect(TargetRt);
 
 	if (m_pYK16Image == NULL)
 		return;
 
-	if (m_pYK16Image->m_iWidth < 1 || m_pYK16Image->m_iHeight<1)
+	if (m_pYK16Image->m_iWidth < 1 || m_pYK16Image->m_iHeight < 1)
 		return;
 
-        double VH_ratio = 0.0; //if horizontal is longer than vertical        
+	double VH_ratio = 0.0; //if horizontal is longer than vertical        
 
-        bool bHorLonger = false;
+	bool bHorLonger = false;
 
-        double physHor = 0.0;
-        double physVer = 0.0;
+	double physHor = 0.0;
+	double physVer = 0.0;
 
-        int labelNewFixedWidth = 0;
-        int labelNewFixedHeight = 0;
-        
+	int labelNewFixedWidth = 0;
+	int labelNewFixedHeight = 0;
 
-        if (m_pYK16Image->m_fSpacingX*m_pYK16Image->m_fSpacingY == 0)
-        {         
-            physHor = (double)m_pYK16Image->m_iWidth;
-            physVer = (double)m_pYK16Image->m_iHeight;
-        }
-        else
-        {
-            physHor = m_pYK16Image->m_iWidth * m_pYK16Image->m_fSpacingX;
-            physVer = m_pYK16Image->m_iHeight* m_pYK16Image->m_fSpacingY;
-        }
 
-        VH_ratio = physVer / physHor;
+	if (m_pYK16Image->m_fSpacingX*m_pYK16Image->m_fSpacingY == 0)
+	{
+		physHor = (double)m_pYK16Image->m_iWidth;
+		physVer = (double)m_pYK16Image->m_iHeight;
+	}
+	else
+	{
+		physHor = m_pYK16Image->m_iWidth * m_pYK16Image->m_fSpacingX;
+		physVer = m_pYK16Image->m_iHeight* m_pYK16Image->m_fSpacingY;
+	}
 
-        if (physHor > physVer)            
-        {
-            bHorLonger = true;           
-            int newFixedHeight = qRound(this->width() * VH_ratio);
-            this->setFixedHeight(newFixedHeight);
-        }
-        else
-        {
-            bHorLonger = false;           
-            int newFixedWidth = qRound(this->height() / VH_ratio);
-            this->setFixedWidth(newFixedWidth);
-        }            
+	VH_ratio = physVer / physHor;
+
+	if (physHor > physVer)
+	{
+		bHorLonger = true;
+		int newFixedHeight = qRound(this->width() * VH_ratio);
+		this->setFixedHeight(newFixedHeight);
+	}
+	else
+	{
+		bHorLonger = false;
+		int newFixedWidth = qRound(this->height() / VH_ratio);
+		this->setFixedWidth(newFixedWidth);
+	}
 
 
 	//Calculate ver / hor ratio.
 	/*VH_ratio = m_pYK16Image->m_iHeight / (double) m_pYK16Image->m_iWidth;
 	int newFixedHeight = qRound(this->width() * VH_ratio);
 	this->setFixedHeight(newFixedHeight);*/
-
-	if (m_pYK16Image != NULL)
-	{
-		//QRect imgSrcRect;
-		//imgSrcRect.setRect(0,0,m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
-		//painter.drawImage(rect(), m_pYK16Image->m_QImage,imgSrcRect,);
-
-		//int width =  m_pYK16Image->m_QImage.width();
-		//int height =  m_pYK16Image->m_QImage.height();
-
-		//m_pYK16Image->m_QImage.save("C:\\111.png");
-
-		//QImage tmpQImage = QImage("C:\\FromFillPixmap.png");
-
-		//QImage tmpQImage = m_pYK16Image->m_QImage;
-	
-		//painter.drawImage(TargetRt, m_pYK16Image->m_QImage, imgSrcRect, QT::RGB888);
-		//painter.drawImage(TargetRt, m_pYK16Image->m_QImage, imgSrcRect);
-		//painter.drawImage(TargetRt, m_pYK16Image->m_QImage); //it Works!YKTEMP
-                painter.drawImage(TargetRt, m_pYK16Image->m_QImage); //it Works!YKTEMP
+	if (m_pRGBAImage != NULL && m_pYK16Image != NULL) {
+		painter.setCompositionMode(QPainter::CompositionMode_Source);
+		painter.fillRect(TargetRt, Qt::transparent);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		painter.drawImage(TargetRt, m_pYK16Image->m_QImage.convertToFormat(QImage::Format_ARGB32));
+		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		painter.drawImage(TargetRt, m_pRGBAImage->m_QImage.convertToFormat(QImage::Format_ARGB32));
+		if (m_pRGBAImage->m_QImage.allGray())
+			std::cout << "RGBA was grayscale!?" << std::endl;
 	}
+	else if (m_pYK16Image != NULL)
+		painter.drawImage(TargetRt, m_pYK16Image->m_QImage); //it Works!YKTEMP
 
-    // if (m_pARGBImage != NULL)
-	// {
-    //     painter.drawImage(TargetRt, m_pARGBImage->m_QImage); //QT::ARGB THIS WILL PROBABLY DEFINITELY CREATE PROBLEMS!
-	// }
-	
+
 	if (m_bDrawPoints)
 	{
-		painter.setPen( QPen(Qt::red, 2));
+		painter.setPen(QPen(Qt::red, 2));
 		vector<QPoint>::iterator it;
-		for (it = m_vPt.begin() ; it != m_vPt.end() ; it++)
+		for (it = m_vPt.begin(); it != m_vPt.end(); it++)
 		{
-			painter.drawPoint((*it).x(),(*it).y());
+			painter.drawPoint((*it).x(), (*it).y());
 		}
-	}	
+	}
 
 	if (m_pYK16Image->m_bDrawROI)
 	{
-		painter.setPen( QPen(Qt::red, 2));
-		QRect rtDraw; 
+		painter.setPen(QPen(Qt::red, 2));
+		QRect rtDraw;
 		rtDraw.setTopLeft(Data2View(QPoint(m_pYK16Image->m_rtROI.left(), m_pYK16Image->m_rtROI.top()), this->width(), this->height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight));
 		rtDraw.setBottomRight(Data2View(QPoint(m_pYK16Image->m_rtROI.right(), m_pYK16Image->m_rtROI.bottom()), this->width(), this->height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight));
 
@@ -220,49 +214,49 @@ void qyklabel::paintEvent( QPaintEvent * )
 	if (m_pYK16Image->m_bDrawProfileX)
 	{
 		QPoint crntViewPt = Data2View(m_pYK16Image->m_ptProfileProbe, this->width(), this->height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
-		painter.setPen( QPen(Qt::red, 1, Qt::DotLine));		
-		painter.drawLine(0, crntViewPt.y(), this->width()-1, crntViewPt.y());
-		
+		painter.setPen(QPen(Qt::red, 1, Qt::DotLine));
+		painter.drawLine(0, crntViewPt.y(), this->width() - 1, crntViewPt.y());
+
 	}
 	if (m_pYK16Image->m_bDrawProfileY)
 	{
 		QPoint crntViewPt = Data2View(m_pYK16Image->m_ptProfileProbe, this->width(), this->height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
-		painter.setPen( QPen(Qt::red, 1, Qt::DotLine));
-		painter.drawLine(crntViewPt.x(), 0 ,crntViewPt.x(), this->height()-1);
+		painter.setPen(QPen(Qt::red, 1, Qt::DotLine));
+		painter.drawLine(crntViewPt.x(), 0, crntViewPt.x(), this->height() - 1);
 	}
 
 	if (m_pYK16Image->m_bDrawFOVCircle)
 	{
-		painter.setPen( QPen(Qt::yellow, 1, Qt::SolidLine));
-		QPoint crntCenterPt = Data2View(m_pYK16Image->m_ptFOVCenter, this->width(), this->height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);		
+		painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
+		QPoint crntCenterPt = Data2View(m_pYK16Image->m_ptFOVCenter, this->width(), this->height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
 		int crntRadius = (int)(m_pYK16Image->m_iFOVRadius / (double)m_pYK16Image->m_iWidth * this->width());
-		painter.drawEllipse(crntCenterPt,crntRadius, crntRadius);
+		painter.drawEllipse(crntCenterPt, crntRadius, crntRadius);
 	}
 
 	if (m_pYK16Image->m_bDrawTableLine)
 	{
-		painter.setPen( QPen(Qt::yellow, 1, Qt::SolidLine));
+		painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
 		int crntTablePosY = (int)(m_pYK16Image->m_iTableTopPos / (double)m_pYK16Image->m_iHeight * this->height());
 		//int crntRadius = (int)(m_pYK16Image->m_iFOVRadius / (double)m_pYK16Image->m_iWidth * this->width());
-		painter.drawLine(0, crntTablePosY ,this->width()-1, crntTablePosY);
+		painter.drawLine(0, crntTablePosY, this->width() - 1, crntTablePosY);
 		//painter.drawEllipse(crntCenterPt,crntRadius, crntRadius);
 	}
 
 	if (m_pYK16Image->m_bDrawCrosshair) //objects should be addressed one by one
 	{
-	  painter.setPen( QPen(Qt::yellow, 1, Qt::SolidLine));
-	  //QPoint crosshair;
+		painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
+		//QPoint crosshair;
 
-	  int dispCrossX = (int)(m_pYK16Image->m_ptCrosshair.x() / (double)m_pYK16Image->m_iWidth * this->width());
-	  int dispCrossY = (int)(m_pYK16Image->m_ptCrosshair.y() / (double)m_pYK16Image->m_iHeight * this->height());
+		int dispCrossX = (int)(m_pYK16Image->m_ptCrosshair.x() / (double)m_pYK16Image->m_iWidth * this->width());
+		int dispCrossY = (int)(m_pYK16Image->m_ptCrosshair.y() / (double)m_pYK16Image->m_iHeight * this->height());
 
-	  QPoint ptDispCrosshair = GetViewPtFromDataPt(m_pYK16Image->m_ptCrosshair.x(), m_pYK16Image->m_ptCrosshair.y());
+		QPoint ptDispCrosshair = GetViewPtFromDataPt(m_pYK16Image->m_ptCrosshair.x(), m_pYK16Image->m_ptCrosshair.y());
 		//crosshair.setX(crossX);
 		//crosshair.setY(crossY);
 
 		//int crntRadius = (int)(m_pYK16Image->m_iFOVRadius / (double)m_pYK16Image->m_iWidth * this->width());
-	  painter.drawLine(0, ptDispCrosshair.y() ,this->width()-1, ptDispCrosshair.y());
-	  painter.drawLine(ptDispCrosshair.x(), 0, ptDispCrosshair.x(), this->height()-1);
+		painter.drawLine(0, ptDispCrosshair.y(), this->width() - 1, ptDispCrosshair.y());
+		painter.drawLine(ptDispCrosshair.x(), 0, ptDispCrosshair.x(), this->height() - 1);
 	}
 }
 
@@ -270,6 +264,12 @@ void qyklabel::SetBaseImage( YK16GrayImage* pYKImage )
 {
 	if (pYKImage->m_pData != NULL && !pYKImage->m_QImage.isNull()) //YKTEMP
 		m_pYK16Image = pYKImage;
+}
+
+void qyklabel::SetOverlayImage(AG17RGBAImage* pRGBAImage)
+{
+	if (pRGBAImage->m_pData != NULL && !pRGBAImage->m_QImage.isNull())
+		m_pRGBAImage = pRGBAImage;
 }
 
 void qyklabel::ConvertAndCopyPoints(vector<QPoint>& vSrcPoint, int iDataWidth, int iDataHeight)
@@ -426,7 +426,7 @@ QPoint qyklabel::Data2ViewExt( QPoint dataPt, int viewWidth, int viewHeight, int
 //  else if (ev->key() == Qt::Key_PageUp)
 //	enMovingKey = 5;
 //
-//  cout << enMovingKey << endl;
+//  std::cout << enMovingKey << std::endl;
 //
 //  emit ArrowPressed(enMovingKey);
 //}

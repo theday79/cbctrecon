@@ -10,34 +10,6 @@
 #include "itk_image_type.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
-//#include "DlgRegistration.h"
-//#include "itkDerivativeImageFilter.h"
-//#include "itkSmoothingRecursiveGaussianImageFilter.h"
-//#include "itkIntensityWindowingImageFilter.h"
-//#include "itkMedianImageFilter.h"
-//
-////class YK16GrayImage;
-////
-////#define BLACK_VALUE 0
-////#define NORMAL_VALUE 1000
-////#define WHITE_VALUE 4095
-////#define CENTERLINE_VALUE 30000
-////
-////#define DEFAULT_CROSSHAIR_MARGIN 20
-////#define DEFAULT_SAMPLING_PIXELS 3
-////#define DEFAULT_ROI_RATIO_X 0.5
-////#define DEFAULT_ROI_RATIO_Y 0.5
-//#define DEFAULT_PERCENT_BADPIX_ON_COLUMN 30
-//#define DEFAULT_PERCENT_BADPIX_ON_ROW 30
-//
-//typedef itk::Image<float,2> FloatImageType;
-//typedef itk::Image<unsigned short, 2> UnsignedShortImageType;
-//typedef itk::ImageFileReader<UnsignedShortImageType> readerType;
-//typedef itk::DerivativeImageFilter<UnsignedShortImageType, FloatImageType> DerivativeFilterType;
-//typedef itk::SmoothingRecursiveGaussianImageFilter<UnsignedShortImageType, UnsignedShortImageType>  SmoothingFilterType;
-//typedef itk::IntensityWindowingImageFilter<UnsignedShortImageType, UnsignedShortImageType>  WindowingFilterType;
-//typedef itk::MedianImageFilter<UnsignedShortImageType,UnsignedShortImageType> MedianFilterType;
-
 
 // RTK includes
 #include <rtkHndImageIO.h>
@@ -177,11 +149,12 @@ struct FLEXDATA{
 class QStandardItemModel;
 
 class DlgRegistration;
+class DlgHistogram;
 class DlgExternalCommand;
 class QTimer;
 class QXmlStreamReader;
 
-using namespace std;
+// using namespace std;
 
 class CbctRecon : public QMainWindow
 {
@@ -189,13 +162,13 @@ class CbctRecon : public QMainWindow
 
 public:
 	CbctRecon(QWidget *parent = 0, Qt::WindowFlags flags = 0);
-	~CbctRecon();			
+	~CbctRecon();
 	//void DoRecon();
 	void ReleaseMemory();
 	void RenameFromHexToDecimal(QStringList& filenameList);
 	QString HexStr2IntStr(QString& strHex);
 
-	QString CorrectSingleFile(const char* filePath);	
+	QString CorrectSingleFile(const char* filePath);
 	void CorrectSingleFile(YK16GrayImage* pYKRawImg);
 
 	void LoadBadPixelMap(const char* filePath);
@@ -208,24 +181,27 @@ public:
 	void GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW, vector<int>& vExcludingIdx);
 
 	void SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
-	void GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage);
+	double GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage, const double theoreticalMin);
 
 	double GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, FloatImageType::Pointer& sp3DFloatImage);
 	double GetValueFrom3DImageUshort(int reqX, int reqY, int reqZ, UShortImageType::Pointer& sp3DUshortImage);
 
 	bool IsFileNameOrderCorrect(vector<string>& vFileNames);
 
+	std::tuple<bool, bool> probeUser(QString guessDir);
+
 	void PostApplyFOVDispParam();
 
 	//void ExportDICOM_SHORT(SHORT_ImageType::Pointer& sp3DshortImage);//NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
-	void CopyDictionary (itk::MetaDataDictionary &fromDict, itk::MetaDataDictionary &toDict);//NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
+	void CopyDictionary(itk::MetaDataDictionary &fromDict, itk::MetaDataDictionary &toDict);//NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
 
 	void DoBeamHardeningCorrection();
 
 	void Draw2DFrom3D(UShortImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& pOutput2D);
 	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE direction, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving);
+	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE direction, double pos, AG17RGBAImage& YKFixed, AG17RGBAImage& YKMoving);
 
-	void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);	
+	void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);
 
 	//plastimatch skin / bubble-remover
 	//QString getPathCTDir(enMachineType enType);//DICOM Dir
@@ -240,7 +216,11 @@ public:
 	void init_DlgRegistration(QString& strDCM_UID);
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
-	void ForwardProjection (UShortImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, UShortImageType::Pointer& spProjCT3D, bool bSave);
+	void ForwardProjection(UShortImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, UShortImageType::Pointer& spProjCT3D, bool bSave);
+	void CPU_ForwardProjection(UShortImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, UShortImageType::Pointer& spProjCT3D, bool bSave);
+#ifdef USE_CUDA
+	void CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, GeometryType::Pointer& spGeometry, UShortImageType::Pointer& spProjCT3D, bool bSave);
+#endif
 	//to be implemented: Save projection3D to *.his files	
 	//void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, bool bSave);	//void GenScatterMap2D_PriorCT()
 	//void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D, USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer& spProjScat3D, double resF2D, double medianRadius, double gaussianSigma, bool bSave);
@@ -251,41 +231,43 @@ public:
 
 	//His file export from 3D proj file
 	void SaveProjImageAsHIS(UShortImageType::Pointer& m_spProj3D, YK16GrayImage* arrYKImage, QString& strSavingFolder, int iCnt, double resampleF); //arrYKImage include HIS header and original file name	
-	
-	void ConvertLineInt2Intensity( FloatImageType::Pointer& spProjLineInt3D, UShortImageType::Pointer& spProjIntensity3D, int bkIntensity );
+
+	void ConvertLineInt2Intensity(FloatImageType::Pointer& spProjLineInt3D, UShortImageType::Pointer& spProjIntensity3D, int bkIntensity);
 	void ConvertIntensity2LineInt(UShortImageType::Pointer& spProjIntensity3D, FloatImageType::Pointer& spProjLineInt3D, int bkIntensity);
-	
-	void Get2DFrom3D( UShortImageType::Pointer& spSrcImg3D, FloatImage2DType::Pointer& spTargetImg2D, int idx, enPLANE iDirection);	
-	void Set2DTo3D( FloatImage2DType::Pointer& spSrcImg2D, UShortImageType::Pointer& spTargetImg3D, int idx, enPLANE iDirection);	
-	
-	void AllocateByRef( UShortImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D );
+
+	void Get2DFrom3D(UShortImageType::Pointer& spSrcImg3D, FloatImage2DType::Pointer& spTargetImg2D, int idx, enPLANE iDirection);
+	void Set2DTo3D(FloatImage2DType::Pointer& spSrcImg2D, UShortImageType::Pointer& spTargetImg3D, int idx, enPLANE iDirection);
+
+	void AllocateByRef(UShortImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D);
 	void AllocateByRef(FloatImage2DType::Pointer& spRefImg2D, FloatImage2DType::Pointer& spTarImg2D);
-	void AllocateByRef( FloatImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D );
+	void AllocateByRef(FloatImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D);
 	void AllocateByRef(UShortImageType::Pointer& spRefImg3D, FloatImageType::Pointer& spTarImg3D);
 	void AllocateByRef(FloatImageType::Pointer& spRefImg3D, UShortImageType::Pointer& spTarImg3D);
 
 	//void ResampleItkImage(OutputImageType::Pointer& spImgFloat, double resampleF);
 	//Resample proj images
-	void ResampleItkImage( FloatImageType::Pointer& spSrcImg, FloatImageType::Pointer& spTarImg, double resampleF );
-	void ResampleItkImage( UShortImageType::Pointer& spSrcImg, UShortImageType::Pointer& spTarImg, double resFactor );
+	void ResampleItkImage(FloatImageType::Pointer& spSrcImg, FloatImageType::Pointer& spTarImg, double resampleF);
+	void ResampleItkImage(UShortImageType::Pointer& spSrcImg, UShortImageType::Pointer& spTarImg, double resFactor);
 	void ResampleItkImage2D(FloatImage2DType::Pointer& spSrcImg2D, FloatImage2DType::Pointer& spTarImg2D, double resFactor); //using slice iterator
 
 	void DoReconstructionFDK(enREGI_IMAGES target);
 	void CudaDoReconstructionFDK(enREGI_IMAGES target);
+	void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
 	void UpdateReconImage(UShortImageType::Pointer& spNewImg, QString& fileName);
 
 	//void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName);//ushort image --> short image --> 
-	void SaveUSHORTAsSHORT_DICOM( UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir);       
+	void SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir);
 
 	void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort);
 
+	void CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D);
 	double GetRawIntensityScaleFactor();
 
 	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
-	void GetAngularWEPL_SinglePoint( UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend );
+	void GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);
 	void GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
 
-//	void UpdateUIAfterLoading(QString& imgName);
+	//	void UpdateUIAfterLoading(QString& imgName);
 
 	void LoadExternalFloatImage(QString& strPath, bool bConversion);
 	void TransformationRTK2IEC(FloatImageType::Pointer& spSrc);
@@ -300,15 +282,15 @@ public:
 	FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader& xml);
 	QString XML_GetSingleItemString(QXmlStreamReader& xml);
 
-        bool GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, float& ms);
+	bool GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, float& ms);
 
-        void SetProjDir(QString& strProjPath);
+	void SetProjDir(QString& strProjPath);
 
-        bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false, bool bCBCT_IntensityShift = false);
+	bool FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon, bool bExportImages = false, bool bCBCT_IntensityShift = false);
 
-        void ExportAngularWEPL_byFile(QString& strPathOutput);
+	void ExportAngularWEPL_byFile(QString& strPathOutput);
 
-        void ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString& outputFilePath);
+	void ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString& outputFilePath);
 	/*Temporary implementation for XVI5 xml*/
 
 
@@ -319,172 +301,173 @@ public:
 
 	//void AuditMemory();
 
-        void CropSupInf(UShortImageType::Pointer& sp_Img, float physPosInfCut, float physPosSupCut);
-        void CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
+	void CropSupInf(UShortImageType::Pointer& sp_Img, float physPosInfCut, float physPosSupCut);
+	void CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, float physPosY, float physRadius, float physTablePosY);
 
 
-        void GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
+	void GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
 
-        float GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
+	float GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
 
-        void AddConstHU(UShortImageType::Pointer& spImg, int HUval);
+	void AddConstHU(UShortImageType::Pointer& spImg, int HUval);
 
 
-        bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
+	bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
 
-        void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin=5);
+	void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin = 5);
 
-        void LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget);
-        //Read long INIXVI text file and read couch shift values. apply cm -> mm conversion (multiply 10). NO sign changes.
-        bool GetCouchShiftFromINIXVI(QString& strPathINI, VEC3D* pTrans, VEC3D* pRot);
+	void LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget);
+	//Read long INIXVI text file and read couch shift values. apply cm -> mm conversion (multiply 10). NO sign changes.
+	bool GetCouchShiftFromINIXVI(QString& strPathINI, VEC3D* pTrans, VEC3D* pRot);
 
-        //This function came from the tracking project. trans values are all in mm, DICOM x, y, z 
-        void ImageTransformUsingCouchCorrection(UShortImageType::Pointer& spUshortInput, UShortImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot);
+	//This function came from the tracking project. trans values are all in mm, DICOM x, y, z 
+	void ImageTransformUsingCouchCorrection(UShortImageType::Pointer& spUshortInput, UShortImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot);
 
-        void GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL);
+	void GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL);
 
-        
-        void SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
-            UShortImageType::Pointer& spProjImg3D, int iSliceIdx);
-        
-        bool LoadShortImageDirOrFile(QString& strPathDir, ShortImageType::Pointer& spOutputShortImg);
-        void ConvertShort2Ushort(ShortImageType::Pointer& spInputImgShort, UShortImageType::Pointer& spOutputImgUshort);
 
-        void RotateImgBeforeFwd(UShortImageType::Pointer& spInputImgUS, UShortImageType::Pointer& spOutputImgUS);
-        void ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, FloatImageType::Pointer& spAttImgFloat);
+	void SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
+		UShortImageType::Pointer& spProjImg3D, int iSliceIdx);
 
-        bool SaveCurrentSetting(QString& strPathConfigFile);
-        bool LoadCurrentSetting(QString& strPathConfigFile);        
-		void LoadRawHndImages();
-		void LoadRawXimImages();
-		void LoadRawHisImages();
+	bool LoadShortImageDirOrFile(QString& strPathDir, ShortImageType::Pointer& spOutputShortImg);
+	void ConvertShort2Ushort(ShortImageType::Pointer& spInputImgShort, UShortImageType::Pointer& spOutputImgUshort);
+
+	void RotateImgBeforeFwd(UShortImageType::Pointer& spInputImgUS, UShortImageType::Pointer& spOutputImgUS);
+	void ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, FloatImageType::Pointer& spAttImgFloat);
+
+	bool SaveCurrentSetting(QString& strPathConfigFile);
+	bool LoadCurrentSetting(QString& strPathConfigFile);
+	void LoadRawHndImages();
+	void LoadRawXimImages();
+	void LoadRawHisImages();
 
 	//using RTK forward projection algorithm, generate 2D projection image files (as line integral, mu_t)
-	public slots:			
-		void SLT_LoadRawImages(); //independent 2d projection files //not used in clinical case
-		void SLT_Load3DImage(); //indenepndent 3D mha file. UshortFormat. Do reconstruction is an antoher way to make m_spReconImg
-		void SLT_Load3DImageShort();
-                void SLT_LoadPlanCT_mha();
-                void SLT_LoadPlanCT_USHORT();
-                void SLT_LoadCBCTcorrMHA();
-                void SLT_LoadCTrigidMHA();
-                void SLT_LoadCTdeformMHA(); 
+	public slots:
+	void SLT_LoadRawImages(); //independent 2d projection files //not used in clinical case
+	void SLT_Load3DImage(); //indenepndent 3D mha file. UshortFormat. Do reconstruction is an antoher way to make m_spReconImg
+	void SLT_Load3DImageShort();
+	void SLT_LoadPlanCT_mha();
+	void SLT_LoadPlanCT_USHORT();
+	void SLT_LoadCBCTcorrMHA();
+	void SLT_LoadCTrigidMHA();
+	void SLT_LoadCTdeformMHA();
 
-		void SLT_LoadNKIImage();
-		void SLT_LoadSelectedProjFiles(); //based on presetting values on GUI, including geometry files
-		void SLT_ExportHis();
-		
-		void SLT_LoadImageFloat3D();  //Dose file
-		void SLTM_LoadDICOMdir(); 
-		void SLTM_LoadRTKoutput();
+	void SLT_LoadNKIImage();
+	void SLT_LoadSelectedProjFiles(); //based on presetting values on GUI, including geometry files
+	void SLT_ExportHis();
 
-		void SLT_DrawRawImages(); //external *.his images
-		void SLT_DrawProjImages(); // draw images from HIS FILE READER or filtered image before going into recon.
-		void SLT_DrawReconImage();
+	void SLT_LoadImageFloat3D();  //Dose file
+	void SLTM_LoadDICOMdir();
+	void SLTM_LoadRTKoutput();
 
-		//tools
-		void SLT_FileNameHex2Dec();	
-		void SLT_MakeElektaXML();		
-		
-		//Gain/ Offset correction
-		void SLT_OpenOffsetFile();
-		void SLT_OpenGainFile();
-		void SLT_OpenBadpixelFile();
-		void SLT_ApplyCalibration();
+	void SLT_DrawRawImages(); //external *.his images
+	void SLT_DrawProjImages(); // draw images from HIS FILE READER or filtered image before going into recon.
+	void SLT_DrawReconImage();
 
-		//Gain/ Offset correction
-		void SLT_SetHisDir();
-		void SLT_OpenElektaGeomFile();
+	//tools
+	void SLT_FileNameHex2Dec();
+	void SLT_MakeElektaXML();
 
-		void SLT_SetOutputPath();
-		void SLT_DoReconstruction();
+	//Gain/ Offset correction
+	void SLT_OpenOffsetFile();
+	void SLT_OpenGainFile();
+	void SLT_OpenBadpixelFile();
+	void SLT_ApplyCalibration();
 
-		//Profile table
-		//void SLT_GetProjectionProfile();
-		//void SLT_GetReconImgProfile();
-		void SLT_CopyTableToClipBoard();
+	//Gain/ Offset correction
+	void SLT_SetHisDir();
+	void SLT_OpenElektaGeomFile();
 
-		void SLT_DataProbeProj();
-		void SLT_DataProbeRecon();
-		void SLT_DrawGraph();
+	void SLT_SetOutputPath();
+	void SLT_DoReconstruction();
 
-		void SLT_InitializeGraphLim();
-		void SLT_UpdateTable();
+	//Profile table
+	//void SLT_GetProjectionProfile();
+	//void SLT_GetReconImgProfile();
+	void SLT_CopyTableToClipBoard();
 
-		void SLT_CalculateROI_Recon();
-		void SLT_CalculateROI_Proj();
-		void SLT_GoForcedProbePos();
+	void SLT_DataProbeProj();
+	void SLT_DataProbeRecon();
+	void SLT_DrawGraph();
 
-		void SLT_PostApplyFOVDispParam();
-		void SLT_DoPostProcessing(); //cropping Circle
-                void SLT_PostProcCropInv();
+	void SLT_InitializeGraphLim();
+	void SLT_UpdateTable();
 
+	void SLT_CalculateROI_Recon();
+	void SLT_CalculateROI_Proj();
+	void SLT_GoForcedProbePos();
 
-		void SLT_ExportReconUSHORT();
-		void SLT_ExportReconSHORT_HU();
-		void SLT_DoBHC();
-		void SLT_DoBowtieCorrection();
-
-		void SLT_Export2DDose_TIF();
-		void SLTM_Export2DDoseMapAsMHA();
+	void SLT_PostApplyFOVDispParam();
+	void SLT_DoPostProcessing(); //cropping Circle
+	void SLT_PostProcCropInv();
 
 
-                void SLT_ViewRegistration();
+	void SLT_ExportReconUSHORT();
+	void SLT_ExportReconSHORT_HU();
+	void SLT_DoBHC();
+	void SLT_DoBowtieCorrection();
 
-		void SLT_DoScatterCorrection_APRIORI();
-
-		void SLT_TempAudit();
-
-		void SLT_CalcAndSaveAngularWEPL();
-
-		void SLT_DoScatterCorrectionUniform();
-
-		void SLT_FileExportShortDICOM_CurrentImg();
-
-		void SLT_AddConstHUToCurImg();
-
-		void SLT_SetCBCTSkinRSPath();
-		void SLT_CropSkinUsingRS();
-		void SLT_CropSkinUsingThreshold();
-
-		void SLT_ExportAngularWEPL_byFile();
-		void SLT_GeneratePOIData();
-		void SLT_LoadPOIData();
-
-		void SLT_StartSyncFromSharedMem();
-		void SLT_StopSyncFromSharedMem();
-
-		void SLT_TimerEvent();
-
-		void SLTM_ViewExternalCommand();
-
-		void SLT_MedianFilterDoNow();
-		void SLTM_ExportProjGeometryTXT();
-
-                void SLTM_ForwardProjection();
-
-                void SLTM_FineResolScatterCorrectrionMacro();//projection: full, scatter map:512x512
-
-                void SLTM_FullScatterCorrectionMacroAP();
-
-                void SLTM_BatchScatterCorrectionMacroAP();
-
-                void SLT_OpenPhaseData(); //fill lineEdit_PhaseTxtPath
-                void SLT_Export4DCBCT(); //phase resorting
-
-                void SLT_DoCouchCorrection();
-                void SLTM_WELPCalcMultipleFiles();
-
-                void SLTM_ScatterCorPerProjRef();
-                void SLTM_LoadPerProjRefList();
-                void SLTM_CropMaskBatch();
-
-                void SLT_SaveCurrentSetting();
-
-                void SLT_CropSupInf();
+	void SLT_Export2DDose_TIF();
+	void SLTM_Export2DDoseMapAsMHA();
 
 
-                
+	void SLT_ViewRegistration();
+	void SLT_ViewHistogram();
+
+	void SLT_DoScatterCorrection_APRIORI();
+
+	void SLT_TempAudit();
+
+	void SLT_CalcAndSaveAngularWEPL();
+
+	void SLT_DoScatterCorrectionUniform();
+
+	void SLT_FileExportShortDICOM_CurrentImg();
+
+	void SLT_AddConstHUToCurImg();
+
+	void SLT_SetCBCTSkinRSPath();
+	void SLT_CropSkinUsingRS();
+	void SLT_CropSkinUsingThreshold();
+
+	void SLT_ExportAngularWEPL_byFile();
+	void SLT_GeneratePOIData();
+	void SLT_LoadPOIData();
+
+	void SLT_StartSyncFromSharedMem();
+	void SLT_StopSyncFromSharedMem();
+
+	void SLT_TimerEvent();
+
+	void SLTM_ViewExternalCommand();
+
+	void SLT_MedianFilterDoNow();
+	void SLTM_ExportProjGeometryTXT();
+
+	void SLTM_ForwardProjection();
+
+	void SLTM_FineResolScatterCorrectrionMacro();//projection: full, scatter map:512x512
+
+	void SLTM_FullScatterCorrectionMacroAP();
+
+	void SLTM_BatchScatterCorrectionMacroAP();
+
+	void SLT_OpenPhaseData(); //fill lineEdit_PhaseTxtPath
+	void SLT_Export4DCBCT(); //phase resorting
+
+	void SLT_DoCouchCorrection();
+	void SLTM_WELPCalcMultipleFiles();
+
+	void SLTM_ScatterCorPerProjRef();
+	void SLTM_LoadPerProjRefList();
+	void SLTM_CropMaskBatch();
+
+	void SLT_SaveCurrentSetting();
+
+	void SLT_CropSupInf();
+
+
+
 
 public:
 
@@ -500,7 +483,7 @@ public:
 	YK16GrayImage* m_pImgOffset;
 	YK16GrayImage* m_pImgGain;
 	//Badpixmap;
-	vector<BADPIXELMAP> m_vPixelReplMap;	
+	vector<BADPIXELMAP> m_vPixelReplMap;
 
 	//RTK recon
 	GeometryType::Pointer m_spFullGeometry; //sp = smart pointer
@@ -516,12 +499,12 @@ public:
 	UShortImageType::Pointer m_spProjImgCT3D;//1.5G // release this after Scatter Generation
 	UShortImageType::Pointer m_spProjImgScat3D; //scatter map proj file using any scatter-estimation method//1.5G //release this after Cor gen
 	UShortImageType::Pointer m_spProjImgCorr3D; //proj file-scatter corrected one using either priori CT or any other method//1.5G
-	
+
 	UShortImageType::Pointer m_spCrntReconImg; //fixed image // ID: RawCBCT
 	UShortImageType::Pointer m_spRawReconImg; //just added --> when file is loaded
 	UShortImageType::Pointer m_spScatCorrReconImg;//just added --> after scatter correction
 
-    UShortImageType::Pointer m_spRefCTImg;//filled by SLT_LoadPlanCT_mha(); ID: RefCT_Original
+	UShortImageType::Pointer m_spRefCTImg;//filled by SLT_LoadPlanCT_mha(); ID: RefCT_Original
 	UShortImageType::Pointer m_spManualRigidCT;//copied from RefCTImg; ID: RefCT --> Moving Img, cloned
 	UShortImageType::Pointer m_spAutoRigidCT; // ID: AutoRigidCT    
 	UShortImageType::Pointer m_spDeformedCT1; //Deformmation will be carried out based on Moving IMage of GUI //AutoDeformCT1
@@ -536,10 +519,11 @@ public:
 	double m_fProjImgValueMax; //value of float image
 	double m_fProjImgValueMin;
 
-        double m_multiplyFactor;
-        QStandardItemModel *m_pTableModel;
-        DlgRegistration* m_pDlgRegistration;
-        DlgExternalCommand* m_pDlgExternalCommand;
+	double m_multiplyFactor;
+	QStandardItemModel *m_pTableModel;
+	DlgRegistration* m_pDlgRegistration;
+	DlgHistogram* m_pDlgHistogram;
+	DlgExternalCommand* m_pDlgExternalCommand;
 
 	//Automatically detected relavant file/Dir path when load the projection files (SLT_SetHisDir)
 
@@ -555,12 +539,12 @@ public:
 	QString m_strPathGeomXML; //after Generation of the XML from DBF files
 	QString m_strPathPlanCTDir;
 	QString m_strPathRS; //for body and lung contours
-        QString m_strPathPlan; //for isocenter position
+	QString m_strPathPlan; //for isocenter position
 	QString m_strPathDirDefault; //QFileDialog default starting point
 	QString m_strPathRS_CBCT; //QFileDialog default starting point
-        QString m_strPathElektaINI; //for mAs values
-        QString m_strPathIMAGES;//upper folder of projection files (His)
-        QString m_strPathElektaINIXVI2; //this includes couch shift values. longer INI.XVI file
+	QString m_strPathElektaINI; //for mAs values
+	QString m_strPathIMAGES;//upper folder of projection files (His)
+	QString m_strPathElektaINIXVI2; //this includes couch shift values. longer INI.XVI file
 
 	int m_iFixedOffset_ScatterMap;//fixed! allows negative value of scatter
 	double m_fResampleF; //typically 0.5. this is updated during LoadSelectedProj image and ui.lineEdit_DownResolFactor.//also affects all other scatter correction method
@@ -572,19 +556,19 @@ public:
 	QTimer* m_Timer;
 	bool m_busyTimer;
 
-        vector<string> m_vSelectedFileNames;
+	vector<string> m_vSelectedFileNames;
 
-        bool m_bMacroContinue;
+	bool m_bMacroContinue;
 
-        vector<float> m_vPhaseFloat;
+	vector<float> m_vPhaseFloat;
 
 
-        QStringList m_strListPerProjRefVol;
+	QStringList m_strListPerProjRefVol;
 
-        QString m_strPathDefaultConfigFile;
+	QString m_strPathDefaultConfigFile;
 
-        vector<int> m_vExcludeProjIdx;//if kVON (exposed_ tag is false
-	
+	vector<int> m_vExcludeProjIdx;//if kVON (exposed_ tag is false
+
 
 //private:
 public:

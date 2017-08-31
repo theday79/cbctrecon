@@ -86,7 +86,7 @@ public:
 	bool CalcImageInfo ();
 	double CalcAveragePixelDiff(YK16GrayImage& other);
 
-	bool DoPixelReplacement(std::vector<BADPIXELMAP>& vPixelMapping); //based on pixel mapping information, some bad pixels will be replaced with median pixel value near by
+	// bool DoPixelReplacement(std::vector<BADPIXELMAP>& vPixelMapping); //based on pixel mapping information, some bad pixels will be replaced with median pixel value near by
 
 	static void CopyYKImage2ItkImage(YK16GrayImage* pYKImage, UnsignedShortImageType::Pointer& spTarImage);
 	static void CopyItkImage2YKImage(UnsignedShortImageType::Pointer& spSrcImage, YK16GrayImage* pYKImage);

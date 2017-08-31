@@ -1,17 +1,15 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.8) # Yes, less won't do.
 
 PROJECT(CbctReconApp)
-set(CMAKE_AUTOMOC ON)
+# set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-if(POLICY CMP0020)
-  cmake_policy(SET CMP0020 OLD)
-endif()
 
 FIND_PACKAGE(DCMTK)
 FIND_PACKAGE(ITK)
 FIND_PACKAGE(RTK)
 FIND_PACKAGE(Plastimatch)
+FIND_PACKAGE(TBB)
 
 # Find BZIP2 (required for Varian HNC)
 OPTION(USE_BZIP2 "RTK has enabled hnc" OFF) # Hnc not implemented yet
@@ -46,6 +44,18 @@ IF(USE_OPENCL)
   message (STATUS "Compiling with OPENCL option")
   ADD_DEFINITIONS(-DUSE_OPENCL=TRUE)
 ENDIF(USE_OPENCL)
+IF(USE_CLFFT)
+  message (STATUS "Compiling with clFFT option")
+  ADD_DEFINITIONS(-DUSE_CLFFT=TRUE)
+ENDIF(USE_CLFFT)
+
+IF (OpenCL_FOUND)
+  ADD_DEFINITIONS(-DUSE_OPENCL_PLM=TRUE)
+  ADD_DEFINITIONS(-DUSE_OPENCL_RTK=TRUE)
+  IF(USE_CLFFT)
+    FIND_PACKAGE(clFFT REQUIRED)
+  ENDIF(USE_CLFFT)
+ENDIF (OpenCL_FOUND)
 
 IF(USE_OPENMP)
   FIND_PACKAGE(OpenMP REQUIRED)
@@ -59,22 +69,40 @@ SET(CbctRecon_SOURCES
 	main.cpp
 	cbctrecon.cpp
 	YK16GrayImage.cxx
+	AG17RGBAImage.cxx
 	qyklabel.cpp
 	qcustomplot.cpp
 	DlgRegistration.cxx
+	DlgHistogram.cxx
 	DlgExternalCommand.cxx
+    rtkOpenCLUtilities.cxx
+    rtkOpenCLFDKBackProjectionImageFilter.cxx
+	OpenCLFFTFilter.cxx
+	CMakeSetup.rc
 )
 SET(CbctRecon_HEADERS
 	cbctrecon.h
 	YK16GrayImage.h
+	AG17RGBAImage.h
 	qyklabel.h
 	qcustomplot.h
 	DlgRegistration.h
+	DlgHistogram.h
 	DlgExternalCommand.h
+	rtkOpenCLFDKConeBeamReconstructionFilter.h
+	rtkOpenCLFDKConeBeamReconstructionFilter.hxx
+	rtkOpenCLFDKBackProjectionImageFilter.h
+	rtkOpenCLFFTRampImageFilter.h
+	rtkOpenCLFFTConvolutionImageFilter.h
+	rtkOpenCLFFTConvolutionImageFilter.hxx
+	itkOpenCLImageToImageFilter.h
+	itkOpenCLImageToImageFilter.hxx
+	OpenCLFFTFilter.h
 )
 SET(CbctRecon_FORMS
 	cbctrecon.ui
 	DlgRegistration.ui
+	DlgHistogram.ui
 	DlgExternalCommand.ui
 )
 QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
@@ -123,6 +151,8 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_SRC}/src/plastimatch/sys"
     "${Plastimatch_SRC}/src/plastimatch/base"
     "${Plastimatch_SRC}/src/plastimatch/register"
+    "${Plastimatch_SRC}/src/plastimatch/reconstruct"
+    "${Plastimatch_SRC}/src/plastimatch/opencl"
     "${Plastimatch_SRC}/src/plastimatch/segment"
     "${Plastimatch_BUILD_DIR}/")
 
@@ -133,12 +163,18 @@ INCLUDE_DIRECTORIES(
   ${PLASTIMATCH_INCLUDE_DIRS}
   ${DCMTK_INCLUDE_DIR}
 )
+IF(USE_CLFFT)
+  INCLUDE_DIRECTORIES(${CLFFT_INCLUDE_DIRS})
+ELSE()
+  SET(CLFFT_LIBRARIES "")
+ENDIF()
 
 message (STATUS "ITK_LIBRARY_DIRS = ${ITK_LIBRARIES}")
 message (STATUS "RTK_LIBRARY_DIRS = ${RTK_LIBRARIES}")
 message (STATUS "DCMTK_LIBRARY_DIRS = ${DCMTK_LIBRARIES}")
 message (STATUS "PLAS_LIBRARY_DIRS = ${PLASTIMATCH_LIBRARIES}")
 message (STATUS "BZIP_LIBRARY_DIRS = ${BZIP2_LIBRARIES}")
+message (STATUS "CLFFT_LIBRARY_DIRS = ${CLFFT_LIBRARIES}")
 
 
 #this is for "Linker->Additional dependencies"
@@ -149,6 +185,8 @@ ${RTK_LIBS_FULLPATH}
 ${DCMTK_LIBRARIES}
 ${PLASTIMATCH_LIBRARIES}
 ${BZIP2_LIBRARIES}
+${CLFFT_LIBRARIES}
+${TBB_LIBRARIES}
 OpenCL::OpenCL
 Qt5::Core
 Qt5::Gui
@@ -182,7 +220,18 @@ add_custom_command(
     $<TARGET_FILE:Qt5::Gui>
     $<TARGET_FILE:Qt5::Core>
     $<TARGET_FILE:Qt5::PrintSupport>
-    ${CMAKE_CURRENT_BINARY_DIR}/../bin #$<TARGET_FILE_DIR:CbctRecon>
+    ${CLFFT_ROOT_DIR}/bin/clFFT.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl
+    ${CMAKE_CURRENT_BINARY_DIR}/../bin
 )
+
+IF(USE_CLFFT)
+add_custom_command(
+  TARGET CbctRecon POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CLFFT_ROOT_DIR}/bin/clFFT.dll
+    ${CMAKE_CURRENT_BINARY_DIR}/../bin
+)
+ENDIF(USE_CLFFT)
 
 INSTALL( TARGETS CbctRecon DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../bin )

@@ -48,7 +48,7 @@ void DlgExternalCommand::SetRTKBinPath(QString& strDirPath)
 
 	if (!dirInfo.exists())
 	{
-		cout << "ERROR! " << strDirPath.toLocal8Bit().constData() << " doesn't exist." << endl;
+		cout << "ERROR! " << strDirPath.toLocal8Bit().constData() << " doesn't exist." << std::endl;
 		return;
 	}
 
@@ -71,8 +71,8 @@ void DlgExternalCommand::SetRTKBinPath(QString& strDirPath)
 		tmpStrPath = m_strDirRTKBin;
 		tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
 
-		cout << m_strDirRTKBin.toLocal8Bit().constData() << endl;
-		cout << tmpStrPath.toLocal8Bit().constData() << endl;
+		cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
+		cout << tmpStrPath.toLocal8Bit().constData() << std::endl;
 
 		QFileInfo fInfo = QFileInfo(tmpStrPath);
 		if (fInfo.exists()) //add combo
@@ -114,7 +114,7 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 	QString str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
 
 	if (str_mainGeometry.length() < 1)
-		cout << "Command will not be valid. set geometry file path in the main UI first." << endl;
+		cout << "Command will not be valid. set geometry file path in the main UI first." << std::endl;
 
 	QString str_mainHardware;
 	if (m_pParent->ui.radioButton_UseCPU->isChecked())
@@ -151,7 +151,7 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 	
 	if (!tmpPlmDir.exists())
 	{
-		cout << "Error! No tmp plm path is available." << tmpPlmDir.absolutePath().toLocal8Bit().constData() << endl;		
+		cout << "Error! No tmp plm path is available." << tmpPlmDir.absolutePath().toLocal8Bit().constData() << std::endl;		
 		return;
 	}
 
@@ -303,8 +303,8 @@ void DlgExternalCommand::SLT_RunRTKCommand()
 	if (QProcess::execute(strFinalExternalCommand) < 0)
 		qDebug() << "Failed to run";
 
-	cout << "External RTK reconstruction is done" << endl;
-	cout << "File is being loaded" << endl;
+	cout << "External RTK reconstruction is done" << std::endl;
+	cout << "File is being loaded" << std::endl;
 
 	m_pParent->LoadExternalFloatImage(m_strRecentOutputPath, true); //true: conversion (float, direction
 	
