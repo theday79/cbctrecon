@@ -134,6 +134,113 @@ color: white;
           <string/>
          </property>
          <layout class="QGridLayout" name="gridLayout_7">
+          <item row="1" column="5">
+           <widget class="QSpinBox" name="spinBox_overrideValue">
+            <property name="minimum">
+             <number>-1024</number>
+            </property>
+            <property name="maximum">
+             <number>1024</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLineEdit" name="lineEditCurPosX"/>
+          </item>
+          <item row="3" column="3">
+           <widget class="QLineEdit" name="lineEditCurPosZ"/>
+          </item>
+          <item row="0" column="0" colspan="2">
+           <widget class="QLabel" name="label_12">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Current Position (DICOM)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QLabel" name="label_22">
+            <property name="text">
+             <string>Z (mm)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="label_21">
+            <property name="text">
+             <string>Y (mm)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="6">
+           <widget class="QSpinBox" name="spinBox_Nsims">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="checkBoxPan">
+            <property name="text">
+             <string>Pan</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_20">
+            <property name="text">
+             <string>X (mm)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="10">
+           <widget class="QPushButton" name="pushButtonRestoreAll">
+            <property name="text">
+             <string>Restore all</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="7">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string># of Simulations</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QCheckBox" name="checkBoxDrawSplit">
+            <property name="text">
+             <string>SplitView</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLineEdit" name="lineEditCurPosY"/>
+          </item>
+          <item row="0" column="10">
+           <widget class="QPushButton" name="pushButtonRestoreSingle">
+            <property name="text">
+             <string>Restore single</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="10">
+           <widget class="QPushButton" name="pushButtonCurPosGo">
+            <property name="text">
+             <string>GO</string>
+            </property>
+           </widget>
+          </item>
           <item row="3" column="1">
            <widget class="QCheckBox" name="checkBoxZoom">
             <property name="text">
@@ -154,121 +261,72 @@ color: white;
             </property>
            </widget>
           </item>
-          <item row="3" column="8">
-           <widget class="QPushButton" name="pushButtonCurPosGo">
-            <property name="text">
-             <string>GO</string>
+          <item row="1" column="4">
+           <widget class="QSpinBox" name="spinBox_overrideRadius">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>10</number>
+            </property>
+            <property name="value">
+             <number>1</number>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QLabel" name="label_21">
+          <item row="0" column="4">
+           <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>Y (mm)</string>
+             <string>Radius[voxel]</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="2">
-           <widget class="QLabel" name="label_22">
+          <item row="0" column="5">
+           <widget class="QLabel" name="label_5">
             <property name="text">
-             <string>Z (mm)</string>
+             <string>Value [HU]</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="3">
-           <widget class="QLineEdit" name="lineEditCurPosZ"/>
-          </item>
-          <item row="3" column="0">
-           <widget class="QCheckBox" name="checkBoxPan">
+          <item row="3" column="5">
+           <widget class="QPushButton" name="pushButton_override">
             <property name="text">
-             <string>Pan</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
+             <string>Override!</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QCheckBox" name="checkBoxDrawSplit">
-            <property name="text">
-             <string>SplitView</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
+          <item row="3" column="4">
+           <widget class="QComboBox" name="comboBox_imToOverride">
+            <item>
+             <property name="text">
+              <string>Moving</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Fixed</string>
+             </property>
+            </item>
            </widget>
           </item>
-          <item row="1" column="3">
-           <widget class="QLineEdit" name="lineEditCurPosY"/>
-          </item>
-          <item row="1" column="8">
-           <widget class="QPushButton" name="pushButtonRestoreAll">
-            <property name="text">
-             <string>Restore all</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QLabel" name="label_20">
-            <property name="text">
-             <string>X (mm)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0" colspan="2">
-           <widget class="QLabel" name="label_12">
-            <property name="font">
-             <font>
-              <pointsize>10</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>Current Position (DICOM)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="8">
-           <widget class="QPushButton" name="pushButtonRestoreSingle">
-            <property name="text">
-             <string>Restore single</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QLineEdit" name="lineEditCurPosX"/>
-          </item>
-          <item row="0" column="4" colspan="2">
+          <item row="0" column="6" colspan="2">
            <widget class="QPushButton" name="pushButton_recalcDose">
             <property name="text">
              <string>gPMC - recalc</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="4">
+          <item row="1" column="6">
            <widget class="QSpinBox" name="spinBox_NdcmPlans">
-            <property name="value">
+            <property name="minimum">
              <number>1</number>
             </property>
            </widget>
           </item>
-          <item row="1" column="5">
+          <item row="1" column="7">
            <widget class="QLabel" name="label_3">
             <property name="text">
              <string># of DCM plans</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="5">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string># of Simulations</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="4">
-           <widget class="QSpinBox" name="spinBox_Nsims">
-            <property name="minimum">
-             <number>1</number>
             </property>
            </widget>
           </item>
@@ -2110,9 +2168,27 @@ color: white;
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButton_override</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_Override()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>380</x>
+     <y>559</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>453</x>
+     <y>362</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_CrntPosGo()</slot>
+  <slot>SLT_gPMCrecalc()</slot>
+  <slot>SLT_Override()</slot>
   <slot>SLT_DrawImageWhenSliceChange()</slot>
   <slot>SLT_DrawImageInFixedSlice()</slot>
   <slot>SLT_ChangeView()</slot>

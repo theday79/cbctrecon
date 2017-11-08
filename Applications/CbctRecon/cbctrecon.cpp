@@ -1,9 +1,14 @@
 ﻿#include "cbctrecon.h"
+#define USE_AVX false
+#if USE_AVX
+#include <immintrin.h>
+#endif
 #include "YK16GrayImage.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPainter>
 #include <algorithm>
+#include <functional>
 #include <fstream>
 #include <QInputDialog>
 
@@ -53,6 +58,11 @@
 #include "plm_image.h"
 #include "rt_study_metadata.h"
 
+// New pytrip WEPL
+#include "volume_adjust.h"
+#include <array>
+
+// plastiWEPL
 #include "aperture.h"
 #include "Rt_beam.h"
 #include "Rt_plan.h"
@@ -106,6 +116,8 @@
 #include "rtkJosephForwardProjectionImageFilter.h"
 #if USE_CUDA
 # include "rtkCudaForwardProjectionImageFilter.h"
+# include "rtkSARTConeBeamReconstructionFilter.h"
+# include "rtkConjugateGradientConeBeamReconstructionFilter.h"
 #endif
 #ifdef USE_OPENCL_RTK
 # include "rtkOpenCLFDKConeBeamReconstructionFilter.h" // local
@@ -144,7 +156,6 @@ double vectorSum(const vector<double>& vDouble);
 CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 : QMainWindow(parent, flags)
 {
-    int aaa = 5;
     ui.setupUi(this);
 
     //m_iWidth = 2304;
@@ -210,7 +221,7 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 #endif
     m_pTableModel = NULL;
     m_pDlgRegistration = new DlgRegistration(this);
-	m_pDlgHistogram = new DlgHistogram(this);
+	// m_pDlgHistogram = new DlgHistogram(this);
     m_pDlgExternalCommand = new DlgExternalCommand(this);
 
 
@@ -228,8 +239,8 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
     m_strPathDirDefault = QDir::currentPath();
     std::cout << "Current Default Dir: " << m_strPathDirDefault.toLocal8Bit().constData() << std::endl;
-
-    init_DlgRegistration(QString("tmp"));//to Setup plastimatch folder. this is useful if registration will be only done
+	QString tmp_folder("tmp");
+    init_DlgRegistration(tmp_folder);//to Setup plastimatch folder. this is useful if registration will be only done
 
     //shell test
     //QString strCurFolder = "H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release";
@@ -265,7 +276,7 @@ CbctRecon::~CbctRecon()
     delete m_pDlgRegistration;
     delete m_Timer;
     delete m_pDlgExternalCommand;
-	delete m_pDlgHistogram;
+	// delete m_pDlgHistogram;
 }
 
 void CbctRecon::ReleaseMemory()
@@ -929,7 +940,7 @@ QString CbctRecon::HexStr2IntStr(QString& strHex)
     int len = strHex.length();
 
     int tmpDecimal = 0;
-    int cnt = 0;
+    //int cnt = 0;
     int i = 0;
 
     for (i = len - 1; i >= 0; i--)
@@ -1845,6 +1856,7 @@ void CbctRecon::SLT_SetOutputPath()
 
     ui.lineEdit_OutputFilePath->setText(strPath);
 }
+
 #if USE_CUDA
 void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 {
@@ -1856,14 +1868,14 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	if (!cuda_spProjImg3DFloat)
 	{
-		cout << "processed Projection image is not ready yet" << std::endl;
+		std::cout << "processed Projection image is not ready yet" << std::endl;
 		return;
 	}
 
 #if USE_CUDA
-	cout << "CUDA method will be used..." << std::endl;
+	std::cout << "CUDA method will be used..." << std::endl;
 #else
-	cout << "Not compiled with CUDA option..." << std::endl;
+	std::cout << "Not compiled with CUDA option..." << std::endl;
 	return;
 #endif
 	//Resampling first --> to save the recon time. 1024 --> 512
@@ -1892,7 +1904,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		ddf->SetInput(spCurImg);
 		//ddf->SetGeometry( geometryReader->GetOutputObject() );
 		ddf->SetGeometry(m_spCustomGeometry);
-		cout << "DDF was set in pipeline" << std::endl;
+		std::cout << "DDF was set in pipeline" << std::endl;
 
 		if (ui.checkBox_UpdateAfterFiltering->isChecked())
 			ddf->Update();//no mememory increas: InPlace Filter
@@ -1929,10 +1941,10 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
 		typedef itk::ImageDuplicator< CUDAFloatImageType > DuplicatorType;
-		DuplicatorType::Pointer duplicator = DuplicatorType::New();
-		duplicator->SetInputImage(spCurImg);
-		duplicator->Update();
-		m_spProjImg3DFloat = duplicator->GetOutput();
+		DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
+		ImDuplicator->SetInputImage(spCurImg);
+		ImDuplicator->Update();
+		m_spProjImg3DFloat = ImDuplicator->GetOutput();
 
 		SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
 		SLT_DrawProjImages();
@@ -1972,27 +1984,17 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
 	{
-		cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << std::endl;
+		std::cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << std::endl;
 		fTruncCorFactor = 0.0;
 	}
 
 	//YKTEMP
-	cout << "fTruncCorFactor =" << fTruncCorFactor << std::endl;
+	std::cout << "fTruncCorFactor =" << fTruncCorFactor << std::endl;
 	// This macro sets options for fdk filter which I can not see how to do better
 	// because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
-	/*
-	#define SET_FELDKAMP_OPTIONS(f) \
-	f->SetInput( 0, constantImageSource->GetOutput() ); \
-	f->SetInput( 1, spCurImg ); \
-	f->SetGeometry( m_spCustomGeometry ); \
-	f->GetRampFilter()->SetTruncationCorrection(fTruncCorFactor); \
-	f->GetRampFilter()->SetHannCutFrequency(fHannCut); \
-	f->GetRampFilter()->SetCosineCutFrequency(fCosineCut); \
-	f->GetRampFilter()->SetHammingFrequency(fHamming); \
-	f->GetRampFilter()->SetHannCutFrequencyY(fHannCutY);
-	*/
 
 
+	typedef itk::StreamingImageFilter <CUDAFloatImageType, CUDAFloatImageType> StreamerType;
 	// FDK reconstruction filtering
 	// itk::ImageToImageFilter<CUDAFloatImageType, CUDAFloatImageType>::Pointer CUDAfeldkamp;
 	typedef rtk::CudaFDKConeBeamReconstructionFilter FDKCUDAType;
@@ -2008,6 +2010,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	CUDAfeldkamp->GetRampFilter()->SetCosineCutFrequency(fCosineCut);
 	CUDAfeldkamp->GetRampFilter()->SetHammingFrequency(fHamming);
 	CUDAfeldkamp->GetRampFilter()->SetHannCutFrequencyY(fHannCutY);
+
 	// SET_CUDA_FELDKAMP_OPTIONS(static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer()));
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
@@ -2016,7 +2019,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 
 
-	cout << "Cone beam reconstruction pipeline is ready" << std::endl;
+	std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
 
 	// Streaming depending on streaming capability of writer --> not affect the calc. speed
 
@@ -2024,9 +2027,9 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	StreamerType::Pointer streamerBP = StreamerType::New();
 
 	streamerBP->SetInput(CUDAfeldkamp->GetOutput());
-	streamerBP->SetNumberOfStreamDivisions(1); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
+	streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from "rtkfdk" //AG: stated in test: 4 for ITK MAJOR >= 4
 
-	cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << std::endl;
+	std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << std::endl;
 
 	/* RTK-produced 3D Volume should be changed in coordination of itk */
 	/* Coordination transformation using Euler 3D transformation */
@@ -2091,8 +2094,8 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	transform->SetParameters(param);
 	transform->SetFixedParameters(fixedParam); //Center of the Transform
 
-	cout << "Transform matrix:" << "	" << std::endl;
-	cout << transform->GetMatrix() << std::endl;
+	std::cout << "Transform matrix:" << "	" << std::endl;
+	std::cout << transform->GetMatrix() << std::endl;
 
 	typedef itk::ResampleImageFilter <CUDAFloatImageType, CUDAFloatImageType> ResampleFilterType;
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
@@ -2108,7 +2111,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	//LR flip
 
-	cout << "Flip filter is being applied" << std::endl;
+	std::cout << "Flip filter is being applied" << std::endl;
 	typedef itk::FlipImageFilter< FloatImageType >  FilterType;
 	FilterType::Pointer flipFilter = FilterType::New();
 	typedef FilterType::FlipAxesArrayType FlipAxesArrayType;
@@ -2140,7 +2143,20 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	CastFilterType::Pointer castFilter = CastFilterType::New();
 	/*Total Variation Filter*/
 	castFilter->SetInput(multiplyImageFilter->GetOutput());
-	castFilter->Update(); //YK20150109
+	try
+	{
+		castFilter->Update(); //YK20150109
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "std::exception thrown: " << e.what() << std::endl;
+		return;
+	}
+	catch (const itk::ExceptionObject& e)
+	{
+		std::cerr << "itk::exception thrown: " << e.what() << std::endl;
+		return;
+	}
 
 	UShortImageType::Pointer tmpReconImg;
 	//if all 0 0 0 don't do the median filtering
@@ -2148,16 +2164,16 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	itk::TimeProbe reconTimeProbe;
 	reconTimeProbe.Start();
 
-	cout << "Reconstructing the image.. please wait..." << std::endl;
+	std::cout << "Reconstructing the image.. please wait..." << std::endl;
 	UShortImageType::SizeType indexRadius;
 	indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
 	indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
 	indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
 	if (ui.checkBox_PostMedianOn->isChecked() && (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0))
 	{
-		typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  FilterType; //TODO: CUDA THIS!!
+		typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  MedianFilterType; //TODO: CUDA THIS!!
 
-		FilterType::Pointer medFilter = FilterType::New();
+		MedianFilterType::Pointer medFilter = MedianFilterType::New();
 
 		//YKTEMP20141218 S
 		// typedef itk::MeanImageFilter<UShortImageType, UShortImageType >  FilterType;
@@ -2165,18 +2181,18 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		//YKTEMP20141218 E
 
 		//this is radius. 1 --> median window 3
-		cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << std::endl;
+		std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << std::endl;
 
 		medFilter->SetRadius(indexRadius);
 		medFilter->SetInput(castFilter->GetOutput());
 		medFilter->Update(); //Error here!g
 
 		tmpReconImg = medFilter->GetOutput();
-		cout << "median filtering has been done" << std::endl;
+		std::cout << "median filtering has been done" << std::endl;
 	}
 	else
 	{
-		cout << "No post median filtering is used" << std::endl;
+		std::cout << "No post median filtering is used" << std::endl;
 		castFilter->Update();
 		tmpReconImg = castFilter->GetOutput();
 	}
@@ -2194,7 +2210,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	thresholdFilterBelow->Update();
 	tmpReconImg = thresholdFilterBelow->GetOutput();
 
-	cout << "After Filtering" << std::endl;
+	std::cout << "After Filtering" << std::endl;
 
 	reconTimeProbe.Stop();
 	std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
@@ -2246,7 +2262,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		std::cout << "Output generation was succeeded" << std::endl;
 	}
 
-	static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer())->PrintTiming(std::cout);
+	CUDAfeldkamp->PrintTiming(std::cout);
 
 
 	m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
@@ -2269,7 +2285,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	castBackType::Pointer castBack = castBackType::New();
 	castBack->SetInput(cuda_spProjImg3DFloat);
 	castBack->Update();
-	FloatImageType::Pointer m_spProjImg3DFloat = castBack->GetOutput();
+	m_spProjImg3DFloat = castBack->GetOutput();
 
 	cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
 	//if not found, just skip
@@ -2625,10 +2641,10 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	if (ui.checkBox_UpdateAfterFiltering->isChecked())
 	{
 		typedef itk::ImageDuplicator< FloatImageType > DuplicatorType;
-		DuplicatorType::Pointer duplicator = DuplicatorType::New();
-		duplicator->SetInputImage(spCurImg);
-		duplicator->Update();
-		m_spProjImg3DFloat = duplicator->GetOutput();
+		DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
+		ImDuplicator->SetInputImage(spCurImg);
+		ImDuplicator->Update();
+		m_spProjImg3DFloat = ImDuplicator->GetOutput();
 
 		SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
 		SLT_DrawProjImages();
@@ -2795,9 +2811,9 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
 	if (ui.checkBox_PostMedianOn->isChecked() && (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0))
 	{
-		typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  FilterType; //TODO: CUDA THIS!!
+		typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  MedianFilterType; //TODO: CUDA THIS!!
 
-		FilterType::Pointer medFilter = FilterType::New();
+		MedianFilterType::Pointer medFilter = MedianFilterType::New();
 
 		//YKTEMP20141218 S
 		// typedef itk::MeanImageFilter<UShortImageType, UShortImageType >  FilterType;
@@ -3354,7 +3370,7 @@ void CbctRecon::SLT_InitializeGraphLim()
         if (m_iImgCnt > 0) //if indep raw his images are loaded
         {
             int horLen = m_dspYKImgProj->m_iWidth;
-            int verLen = m_dspYKImgProj->m_iHeight;
+            //int verLen = m_dspYKImgProj->m_iHeight;
 
             //set edit maxium min
             QString strXMin;
@@ -3375,7 +3391,7 @@ void CbctRecon::SLT_InitializeGraphLim()
             return;
 
         int horLen = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0];
-        int verLen = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1];
+        //int verLen = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1];
 
         //set edit maxium min
         QString strXMin;
@@ -3396,7 +3412,7 @@ void CbctRecon::SLT_InitializeGraphLim()
             return;
 
         int horLen = m_spCrntReconImg->GetBufferedRegion().GetSize()[0];
-        int verLen = m_spCrntReconImg->GetBufferedRegion().GetSize()[1];
+        //int verLen = m_spCrntReconImg->GetBufferedRegion().GetSize()[1];
 
         //set edit maxium min
         QString strXMax;
@@ -3536,11 +3552,11 @@ std::tuple<bool, bool> CbctRecon::probeUser(QString guessDir) {
 			//Figure out whether this is NKI
 			typedef itk::MinimumMaximumImageCalculator <ShortImageType> ImageCalculatorFilterType;
 			ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
-			imageCalculatorFilter->SetImage(spShortImg);
-			imageCalculatorFilter->Compute();
+			//imageCalculatorFilter->SetImage(spShortImg);
+			//imageCalculatorFilter->Compute();
 
-			double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
-			double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());
+			//double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
+			//double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());
 
 
 			//Thresholding
@@ -4106,8 +4122,14 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     //ui.lineEdit_scaGaussian->setText(QString("%1").arg(defaultScaGaussian));
     //ui.lineEdit_scaPostMedian->setText(QString("%1").arg(defaultScaPostProjMedian));
 
-	if (m_fResampleF != 1)
+	if (m_fResampleF != 1.0)
 		ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat, m_fResampleF); // was! BROKEN AF for .his where input size != 1024 (tested with 1016) -> outputs offset -inputoffset/refactor^2 and 4 pixels too few in x and y
+
+	if (!hisIsUsed && !ximIsUsed) { // -> hnd
+		std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
+		SLT_DoBowtieCorrection();
+	}
+
     ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);      // if X not 1024 == input size: out_offset = in_offset + (1024*res_f - X*res_f)*out_spacing     <- will still break down at fw_projection
 
     FloatImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
@@ -4137,7 +4159,6 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     //addImageFilter->Update();
     //m_spProjImg3D = addImageFilter->GetOutput();
     //Error occurss. tmpe inactivated
-
     //std::cout << vSelectedFileNames.size() << std::endl;
     std::cout << "Projection reading succeeded." << m_vSelectedFileNames.size() << " files were read" << std::endl;
 
@@ -5414,8 +5435,8 @@ void CbctRecon::PostApplyFOVDispParam()
 
     int pixRadius = qRound(physRadius / (double)spacing[0]);
 
-    int pixWidth = qRound((qreal) size[0]);
-    int pixHeight = qRound((qreal) size[1]);
+    //int pixWidth = qRound((qreal) size[0]);
+    //int pixHeight = qRound((qreal) size[1]);
 
     int pixTableY = qRound((physTablePosY - (double)origin[1]) / (double)spacing[1]);
 
@@ -5546,8 +5567,8 @@ void CbctRecon::CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, floa
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
     UShortImageType::SizeType imgSize = sp_Img->GetBufferedRegion().GetSize(); //1016x1016 x z
 
-    int width = imgSize[0];
-    int height = imgSize[1];
+    //int width = imgSize[0];
+    //int height = imgSize[1];
 
     it.SetFirstDirection(0); //x?
     it.SetSecondDirection(1); //y?
@@ -5557,8 +5578,8 @@ void CbctRecon::CropFOV3D(UShortImageType::Pointer& sp_Img, float physPosX, floa
     int iPosX = 0;
     int iPosY = 0;
 
-    int i = 0;//height
-    int j = 0; // width
+    //int i = 0;//height
+    //int j = 0; // width
 
     double crntPhysX = 0.0;
     double crntPhysY = 0.0;
@@ -5630,7 +5651,7 @@ void CbctRecon::SLT_PostProcCropInv()
     double physPosY = ui.lineEdit_PostFOV_Y->text().toDouble();
 
     double physRadius = ui.lineEdit_PostFOV_R->text().toDouble();
-    double physTablePosY = ui.lineEdit_PostTablePosY->text().toDouble();
+    //double physTablePosY = ui.lineEdit_PostTablePosY->text().toDouble();
 
     UShortImageType::PointType origin = m_spCrntReconImg->GetOrigin();
     UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
@@ -5642,8 +5663,8 @@ void CbctRecon::SLT_PostProcCropInv()
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
     UShortImageType::SizeType imgSize = m_spCrntReconImg->GetRequestedRegion().GetSize(); //1016x1016 x z
 
-    int width = imgSize[0];
-    int height = imgSize[1];
+    //int width = imgSize[0];
+    //int height = imgSize[1];
 
     it.SetFirstDirection(0); //x?
     it.SetSecondDirection(1); //y?
@@ -5653,8 +5674,8 @@ void CbctRecon::SLT_PostProcCropInv()
     int iPosX = 0;
     int iPosY = 0;
 
-    int i = 0;//height
-    int j = 0; // width
+    //int i = 0;//height
+    //int j = 0; // width
 
     double crntPhysX = 0.0;
     double crntPhysY = 0.0;
@@ -5743,12 +5764,12 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString
     UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
     ShortImageType::Pointer clonedReconImageSHORT;
 
-    int tissueCBCT = 0;
-    int tissueCT_USHORT = 0;
-    int HighDensityCBCT = 0;
-    int HighDensityHU = 0;
-    bool bCBCT2HU_mapping = false;
-    int crntTissueVal = 0;
+    //int tissueCBCT = 0;
+    //int tissueCT_USHORT = 0;
+    //int HighDensityCBCT = 0;
+    //int HighDensityHU = 0;
+    //bool bCBCT2HU_mapping = false;
+    //int crntTissueVal = 0;
 
     typedef itk::ThresholdImageFilter <UShortImageType> ThresholdImageFilterType;
     ThresholdImageFilterType::Pointer thresholdFilterAbove = ThresholdImageFilterType::New();
@@ -5818,16 +5839,16 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString
     addImageFilter->Update();
     //m_spReconImg = spRescaleFilter->GetOutput();
 
-    typedef itk::MinimumMaximumImageCalculator <ShortImageType>
-        ImageCalculatorFilterType2;
+    //typedef itk::MinimumMaximumImageCalculator <ShortImageType>
+    //    ImageCalculatorFilterType2;
 
-    ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
-        = ImageCalculatorFilterType2::New();
-    imageCalculatorFilter2->SetImage(addImageFilter->GetOutput());
-    imageCalculatorFilter2->Compute();
+    //ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
+    //    = ImageCalculatorFilterType2::New();
+    //imageCalculatorFilter2->SetImage(addImageFilter->GetOutput());
+    //imageCalculatorFilter2->Compute();
 
-    double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
-    double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
+    //double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
+    //double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
 
     //cout << "Short image Min and Max Values are	" << minVal2 << "	" << maxVal2 << std::endl;
 
@@ -6583,6 +6604,7 @@ void CbctRecon::SLT_ViewRegistration() //default showing function
 
 void CbctRecon::SLT_ViewHistogram() //default showing function
 {
+	/*
 	m_pDlgHistogram->show();
 
 	if (m_pDlgRegistration->m_spMoving) {
@@ -6590,7 +6612,7 @@ void CbctRecon::SLT_ViewHistogram() //default showing function
 	}
 
 	m_pDlgHistogram->SLT_DrawGraph();
-
+	*/
 }
 
 void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE enPlane, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving)
@@ -7565,12 +7587,12 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
 	}
 
 #ifndef USE_CUDA
-	CPU_ForwardProjection(m_pDlgRegistration->m_spMoving, m_spCustomGeometry, m_spProjImgCT3D, false); //final moving image
+	CPU_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, false); //final moving image
 #else
 	if (ui.radioButton_UseCUDA->isChecked())
-		CUDA_ForwardProjection(m_pDlgRegistration->m_spMoving, m_spCustomGeometry, m_spProjImgCT3D, false); //final moving image
+		CUDA_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, false); //final moving image
 	else
-		CPU_ForwardProjection(m_pDlgRegistration->m_spMoving, m_spCustomGeometry, m_spProjImgCT3D, false); //final moving image
+		CPU_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, false); //final moving image
 #endif // !USE_CUDA
 
 }
@@ -8248,7 +8270,8 @@ void CbctRecon::CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer&
 }
 
 //spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value (0-65535)
-void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D, UShortImageType::Pointer& spProjScat3D, double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave)
+void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D, UShortImageType::Pointer& spProjScat3D,
+	double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave)
 {
     //Scatter map: should be 2D to use 2D median, Gaussian filters
     if (m_iCntSelectedProj < 1)
@@ -8343,10 +8366,10 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
         itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src2(spImg2DPrim, spImg2DPrim->GetRequestedRegion());
         itk::ImageRegionIteratorWithIndex<FloatImage2DType> it_Tar(spImg2DScat, spImg2DScat->GetRequestedRegion());
 
-        int cnt1 = 0; int cnt2 = 0;
+        //int cnt1 = 0; int cnt2 = 0;
         for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd(); ++it_Src1, ++it_Src2, ++it_Tar)
         {
-            float intensityValScat = it_Src1.Get()*mAs_correctionFactor - it_Src2.Get(); //raw intensity * mAs_CF - primary intensity (
+            float intensityValScat = it_Src1.Get()*mAs_correctionFactor - it_Src2.Get(); //raw intensity * mAs_CF - primary intensity
             it_Tar.Set(intensityValScat);//float 	  //allow minus value
         }
 
@@ -8391,30 +8414,13 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
 		//gaussianFilter->Update();
 		//spImg2DScat = gaussianFilter->GetOutput();
 		
-		//cl_float2 sc_min_max = OpenCL_min_max_2D(
-		//	reinterpret_cast<cl_float*>(spImg2DScat->GetBufferPointer()),
-		//	spImg2DScat->GetRequestedRegion().GetSize());
-		/*
-		typedef itk::MinimumMaximumImageCalculator<FloatImage2DType> MinMaxCalcType;
-		MinMaxCalcType::Pointer MinMaxCalc = MinMaxCalcType::New();
-		MinMaxCalc->SetImage(spImg2DScat);
-		MinMaxCalc->ComputeMinimum();
-
-		OpenCL_AddConst_InPlace_2D(
-			reinterpret_cast<cl_float*>(spImg2DScat->GetBufferPointer()),
-			spImg2DScat->GetRequestedRegion().GetSize(),
-			MinMaxCalc->GetMinimum());
-			*/
-
-        //spImg2DScat = gaussianFilter->GetOutput();
-		
         typedef itk::AddImageFilter<FloatImage2DType, FloatImage2DType, FloatImage2DType> AddImageFilterType;
         AddImageFilterType::Pointer addFilter = AddImageFilterType::New();
         addFilter->SetInput1(gaussianFilter->GetOutput());
         addFilter->SetConstant2((float)nonNegativeScatOffset);
         addFilter->Update();
         spImg2DScat = addFilter->GetOutput(); //even after the offset applied, - value is still possible
-		
+
         //float to unsigned short
         Set2DTo3D(spImg2DScat, spProjScat3D, i, PLANE_AXIAL); //input/Output: 0-65535 intensity valuesno mu_t to intensity converion is involved
 
@@ -8543,18 +8549,16 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer& spProjRaw3D, USho
         itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src2(spImg2DScat, spImg2DScat->GetRequestedRegion());
         itk::ImageRegionIteratorWithIndex<FloatImage2DType> it_Tar(spImg2DCorr, spImg2DCorr->GetRequestedRegion());
 
-        float rawVal, scatVal, corrVal;
-
         for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin(); !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd(); ++it_Src1, ++it_Src2, ++it_Tar)
         {
-            rawVal = it_Src1.Get()*mAs_correctionFactor;
-            scatVal = it_Src2.Get() - nonNegativeScatOffset;
-            corrVal = rawVal - scatVal;
+            float rawVal = it_Src1.Get()*mAs_correctionFactor;
+			float scatVal = it_Src2.Get() - nonNegativeScatOffset;
+            float corrVal = rawVal - scatVal;
 
             if (corrVal < 1.0)
-                corrVal = 1.0;
+                corrVal = 1.0f; //Overflow control
             if (corrVal > 65534.0) //65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
-                corrVal = 65534.0;
+                corrVal = 65534.0f;
 
             it_Tar.Set(corrVal);//float // later, add customSPR
             //corrVal = (float)(rawVal - customSPR*scatterVal);
@@ -8676,8 +8680,8 @@ void CbctRecon::Get2DFrom3D(UShortImageType::Pointer& spSrcImg3D, FloatImage2DTy
     UShortImageType::SpacingType spacing = spSrcImg3D->GetSpacing();
     UShortImageType::PointType origin = spSrcImg3D->GetOrigin();
 
-    int width = imgDim[idxHor];
-    int height = imgDim[idxVer];
+    //int width = imgDim[idxHor];
+    //int height = imgDim[idxVer];
     int zSize = imgDim[idxZ];
     //cout << "Get2DFrom3D zSize = " << zSize << std::endl;
 
@@ -8853,11 +8857,11 @@ void CbctRecon::Set2DTo3D(FloatImage2DType::Pointer& spSrcImg2D, UShortImageType
                     fVal2D = it_2D.Get();
 
                     if (fVal2D < 0.0)
-                        outputVal = 0;
+                        outputVal = 0U;
                     else if (fVal2D > 65535.0)
-                        outputVal = 65535;
+                        outputVal = 65535U;
                     else
-                        outputVal = (unsigned short)qRound(fVal2D);
+                        outputVal = static_cast<unsigned short>(qRound(fVal2D));
 
                     it_3D.Set(outputVal);
                     //float tmpVal = (float)(it_3D.Get()); //in proj image case, this is intensity
@@ -8919,12 +8923,12 @@ void CbctRecon::ConvertIntensity2LineInt(UShortImageType::Pointer& spProjIntensi
     itk::ImageRegionConstIteratorWithIndex<UShortImageType> it_Src(spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());
     itk::ImageRegionIteratorWithIndex<FloatImageType> it_Tar(spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());
 
-
+	const double background_intensity = static_cast<double>(bkIntensity);
 
     for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd(); ++it_Src, ++it_Tar)
     {
         //mu = ln(I_0/I) OR mu = ln(I/I0)
-        float mu_t_val = log((double)bkIntensity / (double)it_Src.Get());
+        float mu_t_val = log(background_intensity / (double)it_Src.Get());
         it_Tar.Set(mu_t_val);
     }
 }
@@ -9223,7 +9227,7 @@ void CbctRecon::AfterScatCorrectionMacro()
 {
     //Original projection file can be replaced by the corrected one
     //Current projection map (float) used for the reconstruction is: m_spProjImg3DFloat and this is resampled one
-    ConvertIntensity2LineInt(m_spProjImgCorr3D, m_spProjImg3DFloat, 65535);
+    ConvertIntensity2LineInt(m_spProjImgCorr3D, m_spProjImg3DFloat, 65535U);
 
     int iSizeZ = m_spProjImg3DFloat->GetRequestedRegion().GetSize()[2];
 
@@ -9654,16 +9658,14 @@ void CbctRecon::SLT_CropSkinUsingThreshold()
 	typedef itk::ImageRegionIteratorWithIndex<UShortImageType> iteratorType;
 	iteratorType it(spCrntImgMask, spCrntImgMask->GetRequestedRegion());
 	UShortImageType::SizeType imgDims = spCrntImgMask->GetBufferedRegion().GetSize();
-	double crntVal = 0.0;
-	int z_idx;
+	
 	it.GoToBegin();
 	while (!it.IsAtEnd())
 	{
-		crntVal = (double)(it.Get());
-		z_idx = it.GetIndex()[2];
+		int z_idx = it.GetIndex()[2];
 		if (z_idx == imgDims[2] - 10 || z_idx == 10)
 		{
-			it.Set((float)(1));
+			it.Set(1.0f);
 		}
 		++it;
 	}
@@ -9896,58 +9898,53 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 	{
 		cout << "Warning: no DeformedCT is found" << std::endl;
 	}
-	int sizePOI = m_vPOI_DCM.size();
-
+	
 	vector<WEPLData> vOutputWEPL_manual;
 	vector<WEPLData> vOutputWEPL_auto_rigid;
 	vector<WEPLData> vOutputWEPL_deform;
 	vector<WEPLData> vOutputWEPL_rawCBCT;
 	vector<WEPLData> vOutputWEPL_corCBCT;
 
-	GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
+	GetAngularWEPL_window(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
 	cout << "Done: (RAW)";
 	if (m_spScatCorrReconImg)
 	{
 		try {
-			GetAngularWEPL_MultiPoint(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
+			GetAngularWEPL_window(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
 			cout << " (COR)";
 		}
 		catch (exception e) {
 			cout << " (COR) failed!!: e=" << e.what() << std::endl;
-			vOutputWEPL_corCBCT.~vector();
 		}
 	}
 	if (m_spManualRigidCT)
 	{
 		try {
-			GetAngularWEPL_MultiPoint(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
+			GetAngularWEPL_window(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
 			cout << " (MAN)";
 		}
 		catch (exception e) {
 			cout << " (MAN) failed!!: e=" << e.what() << std::endl;
-			vOutputWEPL_manual.~vector();
 		}
 	}
 	if (m_spAutoRigidCT)
 	{
 		try {
-			GetAngularWEPL_MultiPoint(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
+			GetAngularWEPL_window(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
 			cout << " (AUT)";
 		}
 		catch (exception e) {
 			cout << " (AUT) failed!!: e=" << e.what() << std::endl;
-			vOutputWEPL_auto_rigid.~vector();
 		}
 	}
 	if (m_spDeformedCT_Final)
 	{
 		try {
-			GetAngularWEPL_MultiPoint(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
+			GetAngularWEPL_window(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
 			cout << " (DEF)";
 		}
 		catch (exception e) {
 			cout << " (DEF) failed!!: e=" << e.what() << std::endl;
-			vOutputWEPL_deform.~vector();
 		}
 	}
 	cout << std::endl;
@@ -10002,6 +9999,360 @@ void CbctRecon::SLT_ExportAngularWEPL_byFile()
     ExportAngularWEPL_byFile(filePath);
 }
 
+/*
+double plastimatchWEPL() {
+	Rt_beam* newBeam = scene->append_beam();
+	newBeam->get_aperture()->set_distance(ap_distance);
+	// newBeam->get_aperture()->set_distance(ap_distance); is there a reason YK did this twice?
+	newBeam->get_aperture()->set_spacing(ap_spacing);
+	newBeam->get_aperture()->set_dim(ap_dim);
+	newBeam->get_aperture()->set_center(ap_center);
+
+	newBeam->set_step_length(ray_step);
+	newBeam->set_isocenter_position(isoTarget);
+	newBeam->set_source_position(srcProton);
+
+	//scene.prepare_beam_for_calc(newBeam);
+	//scene->create_patient_psp(); // hu to stopping power //not necessary when practically copied below
+	//std::string flavor("b");
+	//newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
+	//scene->compute_dose(newBeam);
+
+
+	newBeam->prepare_for_calc(ct_hu, patient_psp, newBeam->get_target());
+	// ONLY way to call prepare_for_calc from the "outside" (without ugly tricks)
+	// newBeam->prepare_for_calc(ct_vol, newBeam->get_ct_psp(), newBeam->get_target());
+
+	//wed_ct_compute in wed_main
+	Rpl_volume* rpl_vol = newBeam->rsp_accum_vol; //rpl_vol;
+
+	Proj_volume *proj_vol = rpl_vol->get_proj_volume();
+
+	const double *src = proj_vol->get_src();
+	const double *iso = proj_vol->get_iso();
+	const double sid_length = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
+	double src_iso_vec[3];
+	vec3_sub3(src_iso_vec, src, iso);
+	const double src_iso_distance = vec3_len(src_iso_vec);
+	const double ap_iso_distance = src_iso_distance - sid_length;
+
+	double base_rg_dist = ap_iso_distance - rpl_vol->get_front_clipping_plane();
+
+	const double base_dist = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
+
+															   //const plm_long *ires = proj_vol->get_image_dim();
+
+															   //int ap_ij[2]; //ray index of rvol
+	plm_long ap_idx = 0;  //ray number always 0 here
+
+	Ray_data *ray_data;
+	double ray_ap[3]; //vector from src to ray intersection with ap plane
+	double ray_ap_length; //length of vector from src to ray intersection with ap plane
+	double rglength; //length that we insert into get_rgdepth for each ray
+
+	rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose for some flavors of beam
+	ray_data = rpl_vol->get_ray_data();
+
+	Ray_data *ray_data_single = &ray_data[ap_idx];
+
+	//Coordinate of ray intersection with aperture plane
+	double *ap_xyz = ray_data_single->p2;
+	vec3_sub3(ray_ap, ap_xyz, src);
+	ray_ap_length = vec3_len(ray_ap);
+	rglength = base_rg_dist*(ray_ap_length / base_dist);
+
+	plm_long ap_idx_default[2] = { 0, 0 };
+
+	double WEPL = rpl_vol->get_value(ap_idx_default, rglength);
+
+	// This should be in the Rt_beam destructor, but it isn't
+	delete newBeam->rsp_accum_vol;
+	delete newBeam->hu_samp_vol;
+	delete newBeam->sigma_vol;
+	delete newBeam->rpl_vol_lg;
+	delete newBeam->rpl_vol_samp_lg;
+	delete newBeam->sigma_vol_lg;
+	delete newBeam->dose_rv; //rpl_dose_vol;
+
+	delete newBeam;
+
+	return WEPL;
+}
+*/
+
+#if USE_AVX
+double WEPL_from_point(const double cur_point[3],
+	const std::array<double, 3> vec_basis,
+	const double vec_cubesize[3], const size_t cubedim[3],
+	const float *vec_wepl_cube) {
+	const __m256d step =
+		_mm256_set_pd(vec_basis[0], vec_basis[1], vec_basis[2], 0.0); // AVX
+
+	const __m256d cubedim_rev = _mm256_set_pd(
+		static_cast<double>(cubedim[0]), static_cast<double>(cubedim[1]),
+		static_cast<double>(cubedim[2]), 1.0); // 2->0 for convienience
+	const __m256d inv_cubesize = _mm256_set_pd(
+		1.0 / vec_cubesize[0], 1.0 / vec_cubesize[1], 1.0 / vec_cubesize[2], 0.0);
+	const __m256d zeros = _mm256_set1_pd(0.0);
+
+	const __m128i point_id_to_cube_ids = _mm_set_epi32( // SSE2
+		static_cast<int>(cubedim[2] * cubedim[1]), static_cast<int>(cubedim[2]),
+		1, 0);
+
+	__m256d point = _mm256_set_pd(cur_point[0], cur_point[1], cur_point[2], 0.0);
+
+	double out = 0.0;
+
+	while (true)
+	{
+		// point_id = point / cube_size
+		const __m256d point_id = _mm256_mul_pd(point, inv_cubesize);
+
+		// point_id < 0.0
+		const __m256d LessThan_Zero = _mm256_cmp_pd(point_id, zeros, _CMP_LT_OQ); // extra variable are optimized away by compiler
+
+																				  // point_id[0:2] >= cubedim[2:0]
+		const __m256d LargerThan_cdim = _mm256_cmp_pd(point_id, cubedim_rev, _CMP_GE_OQ); // extra variable are optimized away by compiler
+
+																						  // point_id[0:2] < 0.0 || point_id[0:2] >= cubedim[2:0]
+		const __m256d any_true = _mm256_or_pd(LargerThan_cdim, LessThan_Zero);
+
+		// Break if outside cube // 4th element is always False, so if an AVX "OR" instruction returning int exists, it should be used here
+#ifdef _WIN32
+		if ((any_true.m256d_f64[0] != 0.0) ||
+			(any_true.m256d_f64[1] != 0.0) ||
+			(any_true.m256d_f64[2] != 0.0)) {
+			break;
+		}
+#else
+		if ((any_true[0] != 0.0) ||
+			(any_true[1] != 0.0) ||
+			(any_true[2] != 0.0)) {
+			break;
+		}
+#endif
+		// convert point_id to cube_ids
+		const __m128i cube_id = _mm_mul_epi32(_mm256_cvtpd_epi32(point_id), point_id_to_cube_ids);
+#ifdef _WIN32
+		out += vec_wepl_cube[static_cast<size_t>(cube_id.m128i_i32[0] +
+			cube_id.m128i_i32[1] +
+			cube_id.m128i_i32[2])];
+#else
+		out += vec_wepl_cube[(size_t)(cube_id[0] + cube_id[1] + cube_id[2])];
+#endif
+		// point = point - step
+		point = _mm256_sub_pd(point, step);
+	}
+
+	return out;
+}
+#else
+double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
+	const std::array<double, 3> vec_basis,
+	const double vec_cubesize[3], const size_t cubedim[3],
+	const FloatImageType::Pointer& vec_wepl_cube)
+{
+	const double step_length = 0.1;
+	const std::array<double, 3> step = { { 
+			vec_basis[0] * step_length, 
+			vec_basis[1] * step_length, 
+			vec_basis[2] * step_length
+		} };
+
+	const std::array<double, 3> inv_cubesize = { {
+		1.0 / vec_cubesize[0], 1.0 / vec_cubesize[1], 1.0 / vec_cubesize[2] } };
+
+	std::array<double, 3> point = { {
+		static_cast<double>(cur_point_id[0]) * vec_cubesize[0],
+		static_cast<double>(cur_point_id[1]) * vec_cubesize[1],
+		static_cast<double>(cur_point_id[2]) * vec_cubesize[2]
+		} };
+
+	double out = 0.0;
+
+	while (true)
+	{
+		// point_id = point / cube_size
+		const std::array<int, 3> point_id = { { 
+				static_cast<int>(round(point[0] * inv_cubesize[0])),
+				static_cast<int>(round(point[1] * inv_cubesize[1])),
+				static_cast<int>(round(point[2] * inv_cubesize[2]))
+			} };
+
+		if (point_id[0] < 0.0 || point_id[0] >= cubedim[0] ||
+			point_id[1] < 0.0 || point_id[1] >= cubedim[1] ||
+			point_id[2] < 0.0 || point_id[2] >= cubedim[2]) {
+			break;
+		}
+
+		// get nearest neighbors:
+		const std::array<double, 3> point_id_pos = { {
+				point[0] * inv_cubesize[0],
+				point[1] * inv_cubesize[1],
+				point[2] * inv_cubesize[2]
+			} };
+
+		int idx_2 = -1;
+		if (point_id[0] < (point_id_pos[0]))
+			idx_2 = 1;
+		
+		int idy_2 = -1;
+		if (point_id[1] < (point_id_pos[1]))
+			idx_2 = 1;
+
+		int idz_2 = -1;
+		if (point_id[2] < (point_id_pos[2]))
+			idz_2 = 1;
+
+		if ((point_id[0] + idx_2) < 0.0 || (point_id[0] + idx_2) >= cubedim[0] ||
+			(point_id[1] + idy_2) < 0.0 || (point_id[1] + idy_2) >= cubedim[1] ||
+			(point_id[2] + idz_2) < 0.0 || (point_id[2] + idz_2) >= cubedim[2])
+			break;
+
+		double weights[8];
+		// x                 xyz
+		weights[0] = sqrt(// 000 =
+			pow(point_id[0] - point_id_pos[0], 2) +
+			pow(point_id[1] - point_id_pos[1], 2) +
+			pow(point_id[2] - point_id_pos[2], 2));
+		weights[1] = sqrt(// 100 =
+			pow(point_id[0] + idx_2 - point_id_pos[0], 2) +
+			pow(point_id[1] - point_id_pos[1], 2) +
+			pow(point_id[2] - point_id_pos[2], 2));
+		// y
+		weights[2] = sqrt(// 010 =
+			pow(point_id[0] - point_id_pos[0], 2) +
+			pow(point_id[1] + idy_2 - point_id_pos[1], 2) +
+			pow(point_id[2] - point_id_pos[2], 2));
+		weights[3] = sqrt(// 110 =
+			pow(point_id[0] + idx_2 - point_id_pos[0], 2) +
+			pow(point_id[1] + idy_2 - point_id_pos[1], 2) +
+			pow(point_id[2] - point_id_pos[2], 2));
+		// z
+		weights[4] = sqrt(// 001 =
+			pow(point_id[0] - point_id_pos[0], 2) +
+			pow(point_id[1] - point_id_pos[1], 2) +
+			pow(point_id[2] + idz_2 - point_id_pos[2], 2));
+		weights[5] = sqrt(// 101 =
+			pow(point_id[0] + idx_2 - point_id_pos[0], 2) +
+			pow(point_id[1] - point_id_pos[1], 2) +
+			pow(point_id[2] + idz_2 - point_id_pos[2], 2));
+		weights[6] = sqrt(// 011 =
+			pow(point_id[0] - point_id_pos[0], 2) +
+			pow(point_id[1] + idy_2 - point_id_pos[1], 2) +
+			pow(point_id[2] + idz_2 - point_id_pos[2], 2));
+		weights[7] = sqrt(// 111 =
+			pow(point_id[0] + idx_2 - point_id_pos[0], 2) +
+			pow(point_id[1] + idy_2 - point_id_pos[1], 2) +
+			pow(point_id[2] + idz_2 - point_id_pos[2], 2));
+
+		double sum_weights = 0.0;
+		for (int i = 0; i < 8; i++)
+			sum_weights += weights[i];
+		for (int i = 0; i < 8; i++)
+			weights[i] /= sum_weights;
+
+		for (int i = 0; i < 8; i++) {
+			// convert point_id to cube_ids
+			FloatImageType::IndexType cube_id;
+			cube_id[0] = point_id[0] + (idx_2 * (i % 2));       // x= 0,1,0,1,0,1,0,1
+			cube_id[1] = point_id[1] + (idy_2 * ((i / 2) % 2)); // y= 0,0,1,1,0,0,1,1
+			cube_id[2] = point_id[2] + (idz_2 * (i / 4));       // z= 0,0,0,0,1,1,1,1
+			
+			out += vec_wepl_cube->GetPixel(cube_id) * weights[i];
+		}
+		
+
+		// point = point - step
+		point[0] -= step[0];
+		point[1] -= step[1];
+		point[2] -= step[2];
+	}
+
+	return out * step_length;
+}
+#endif
+
+std::array<double, 3> get_basis_from_angles(double gantry, double couch)
+{
+	gantry += 180.0;
+	gantry *= M_PI / 180.0;
+	couch *= M_PI / 180.0;
+
+	std::array<double, 3> basis = { {
+		sin(gantry) * cos(couch),
+		-cos(gantry),
+		sin(couch) * sin(gantry)
+	} };
+	return basis;
+}
+
+
+void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, std::vector<WEPLData>& vOutputWEPLData, bool bAppend)
+{
+	if (!spUshortImage)
+		return;
+
+	if (fAngleGap <= 0)
+		return;
+
+	FloatImageType::Pointer wepl_image = ConvertUshort2WeplFloat(spUshortImage);
+
+	const double fullAngle = fAngleEnd - fAngleStart;
+	const int sizeAngles = qRound(fullAngle / fAngleGap);
+	
+	const double pixel_size[] = {
+		spUshortImage->GetSpacing()[0],
+		spUshortImage->GetSpacing()[1],
+		spUshortImage->GetSpacing()[2]
+	};
+	const size_t cubedim[] = {
+		spUshortImage->GetLargestPossibleRegion().GetSize()[0],
+		spUshortImage->GetLargestPossibleRegion().GetSize()[1],
+		spUshortImage->GetLargestPossibleRegion().GetSize()[2]
+	};
+
+	const double couch = 0.0;
+	std::vector<WEPLData> wepl_vec(m_vPOI_DCM.size() * sizeAngles);
+
+#pragma omp parallel for
+	for (int i = 0; i < sizeAngles; i++)
+	{
+		const double gantry = fAngleStart + i * fAngleGap;
+		const std::array<double, 3> basis = get_basis_from_angles(gantry, couch);
+
+		auto poi_it = m_vPOI_DCM.begin();
+		while (poi_it < m_vPOI_DCM.end())
+		{
+			UShortImageType::PointType cur_point;
+			cur_point[0] = poi_it->x;
+			cur_point[1] = poi_it->y;
+			cur_point[2] = poi_it->z;
+
+			UShortImageType::IndexType cur_idx;
+			spUshortImage->TransformPhysicalPointToIndex(cur_point, cur_idx);
+			const std::array<size_t, 3> point_id = { {
+					static_cast<size_t>(cur_idx[0]),
+					static_cast<size_t>(cur_idx[1]),
+					static_cast<size_t>(cur_idx[2])
+				} };
+
+			const auto idx = static_cast<size_t>(i * (poi_it - m_vPOI_DCM.begin()));
+			wepl_vec[idx].fWEPL = WEPL_from_point(point_id, basis,
+				pixel_size, cubedim, wepl_image);
+			wepl_vec[idx].ptIndex = poi_it - m_vPOI_DCM.begin();
+			wepl_vec[idx].fGanAngle = gantry;
+
+			poi_it++;
+		}
+	}
+
+	if (!bAppend)
+		vOutputWEPLData.clear();
+
+	std::copy(wepl_vec.begin(), wepl_vec.end(), std::back_inserter(vOutputWEPLData));
+};
+
 void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend)
 {
     if (!spUshortImage)
@@ -10010,56 +10361,29 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
     if (fAngleGap <= 0)
         return;
 
-    ShortImageType::Pointer spShortImg;
-    ConvertUshort2Short(spUshortImage, spShortImg);
+	FloatImageType::Pointer wepl_image = ConvertUshort2WeplFloat(spUshortImage);
 
-    typedef itk::CastImageFilter< ShortImageType, FloatImageType > CastFilterType;
-    CastFilterType::Pointer castFilter = CastFilterType::New();
-    castFilter->SetInput(spShortImg);
-    castFilter->Update();
-    Plm_image::Pointer ct_vol = Plm_image::New(castFilter->GetOutput());
+    const double fullAngle = fAngleEnd - fAngleStart;
+    const auto sizeAngles = static_cast<size_t>( qRound(fullAngle / fAngleGap));
 
-    double fullAngle = fAngleEnd - fAngleStart;
-    int sizeAngles = qRound(fullAngle / fAngleGap);
+	UShortImageType::PointType calc_point;
+	calc_point[0] = calcPt.x;
+	calc_point[1] = calcPt.y;
+	calc_point[2] = calcPt.z;
+	UShortImageType::IndexType calc_idx;
+
+	if (!spUshortImage->TransformPhysicalPointToIndex(calc_point, calc_idx))
+		std::cerr << "Point was outside image!" << std::endl;
 
     //1) Generate parms according to the angle e.g 360 parms
-    double isoTarget[3];
-    isoTarget[0] = calcPt.x;
-    isoTarget[1] = calcPt.y;
-    isoTarget[2] = calcPt.z;
+	const std::array<size_t, 3> isoTarget = { {
+			static_cast<size_t>(calc_idx[0]),
+			static_cast<size_t>(calc_idx[1]),
+			static_cast<size_t>(calc_idx[2])
+	} };
 
-	itk::Point<double, 3U> itk_isoTarget;
-	itk_isoTarget[0] = calcPt.x;
-	itk_isoTarget[1] = calcPt.y;
-	itk_isoTarget[2] = calcPt.z;
-
-	UCharImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
-
-	UCharImageType::Pointer target_bool = UCharImageType::New();
-	target_bool->SetRegions(region);
-	target_bool->SetDirection(spShortImg->GetDirection());
-	target_bool->SetSpacing(spShortImg->GetSpacing());
-	target_bool->SetOrigin(spShortImg->GetOrigin());
-	target_bool->Allocate();
-	UCharImageType::IndexType pixelIndex;
-	target_bool->TransformPhysicalPointToIndex(itk_isoTarget, pixelIndex);
-	target_bool->SetPixel(pixelIndex, 255);
-
-    float srcDistance = 2200.0; //in mm, 2.2 m
-    float srcProton[3] = { 0.0, 0.0, 0.0 };
-
-    float ap_distance = 1900.0; // 300 mm from the target //offset from the source
-
-    float ap_spacing[] = { 1.0, 1.0 };  //resolution
-    const plm_long ap_dim[] = { 1, 1 };
-    float ap_center[] = { 1, 1 };
-
-    float ray_step = 1.0;            //mm
-
-    WEPLData* stArrWEPL = new WEPLData[sizeAngles];
-
-    double curAngle = 0.0;
-
+	std::cout << "Target: ( " << isoTarget[0] << ", " << isoTarget[1] << ", " << isoTarget[2] << " ), sizeAngles: " << sizeAngles << std::endl;
+	
 	const std::string stdout_file = "WEPL_stdout.txt";
 	const std::string stderr_file = "WEPL_stderr.txt";
 	FILE *stream;
@@ -10069,94 +10393,27 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
 	if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
 		exit(-1);
 
-	int i;
-	
-#pragma omp parallel for private(curAngle) shared(stArrWEPL) num_threads(N_THREADS)
-    for (i = (fAngleStart / fAngleGap); i < sizeAngles; i++)
+	const double pixel_size[] = { wepl_image->GetSpacing()[0], wepl_image->GetSpacing()[1], wepl_image->GetSpacing()[2] };
+
+	FloatImageType::RegionType region = wepl_image->GetLargestPossibleRegion();
+	const size_t cube_dim[] = { region.GetSize()[0], region.GetSize()[1], region.GetSize()[2] };
+
+	WEPLData* stArrWEPL = new WEPLData[sizeAngles];
+    for (int i = 0; i < sizeAngles; i++)
     {
         //YKTEMP Should be updated according to recent update of plastimatch
-        curAngle = i * fAngleGap;
+        const float curAngle = fAngleStart + i * fAngleGap;
 
-        srcProton[0] = isoTarget[0] + (srcDistance * sin(curAngle * M_PI / 180.0));
-        srcProton[1] = isoTarget[1] - (srcDistance*cos(curAngle * M_PI / 180.0));
-        srcProton[2] = isoTarget[2];
 
-        Rt_plan* scene = new Rt_plan;
+		const std::array<double, 3> basis = get_basis_from_angles(curAngle, 0.0);
+		printf("%.2f, [%.2f, %.2f, %.2f]: ", curAngle, basis[0], basis[1], basis[2]);
 
-        Rt_beam* newBeam = scene->append_beam();
-        scene->set_patient(ct_vol);
-        newBeam->get_aperture()->set_distance(ap_distance);
-        // newBeam->get_aperture()->set_distance(ap_distance); is there a reason YK did this twice?
-        newBeam->get_aperture()->set_spacing(ap_spacing);
-        newBeam->get_aperture()->set_dim(ap_dim);
-        newBeam->get_aperture()->set_center(ap_center);
-
-        newBeam->set_step_length(ray_step);
-        newBeam->set_isocenter_position(isoTarget);
-        newBeam->set_source_position(srcProton);
-
-        //scene.prepare_beam_for_calc(newBeam);
-		scene->create_patient_psp(); // hu to stopping power
-		scene->set_target(target_bool);
-		std::string flavor("b");
-		newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
-		scene->compute_dose(newBeam); // ONLY way to call prepare_for_calc from the "outside" (without ugly tricks)
-		// newBeam->prepare_for_calc(ct_vol, newBeam->get_ct_psp(), newBeam->get_target());
-
-        //wed_ct_compute in wed_main
-		Rpl_volume* rpl_vol = newBeam->rsp_accum_vol; //rpl_vol;
-
-        Proj_volume *proj_vol = rpl_vol->get_proj_volume();
-
-        const double *src = proj_vol->get_src();
-        const double *iso = proj_vol->get_iso();
-        const double sid_length = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
-        double src_iso_vec[3];
-        vec3_sub3(src_iso_vec, src, iso);
-        const double src_iso_distance = vec3_len(src_iso_vec);
-        const double ap_iso_distance = src_iso_distance - sid_length;
-
-        double base_rg_dist = ap_iso_distance - rpl_vol->get_front_clipping_plane();
-
-        const double base_dist = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
-
-        const plm_long *ires = proj_vol->get_image_dim();
-
-        //int ap_ij[2]; //ray index of rvol
-        plm_long ap_idx = 0;  //ray number always 0 here
-
-        Ray_data *ray_data;
-        double ray_ap[3]; //vector from src to ray intersection with ap plane
-        double ray_ap_length; //length of vector from src to ray intersection with ap plane
-        double rglength; //length that we insert into get_rgdepth for each ray
-
-		rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose for some flavors of beam
-        ray_data = rpl_vol->get_ray_data();
-
-        Ray_data *ray_data_single = &ray_data[ap_idx];
-
-        /* Coordinate of ray intersection with aperture plane */
-        double *ap_xyz = ray_data_single->p2;
-        vec3_sub3(ray_ap, ap_xyz, src);
-        ray_ap_length = vec3_len(ray_ap);
-        rglength = base_rg_dist*(ray_ap_length / base_dist);
-
-        plm_long ap_idx_default[2] = { 0, 0 };
-        stArrWEPL[i].fWEPL = (float)(rpl_vol->get_value(ap_idx_default, rglength)); // get_rgdepth
+		stArrWEPL[i].fWEPL = WEPL_from_point(isoTarget, basis, pixel_size, cube_dim,
+			wepl_image); // get_rgdepth
         stArrWEPL[i].fGanAngle = curAngle;
         stArrWEPL[i].ptIndex = curPtIdx;
+		printf("%.4f\n", stArrWEPL[i].fWEPL);
 
-		// This should be in the Rt_beam destructor, but it isn't
-		delete newBeam->rsp_accum_vol;
-		delete newBeam->hu_samp_vol;
-		delete newBeam->sigma_vol;
-		delete newBeam->rpl_vol_lg;
-		delete newBeam->rpl_vol_samp_lg;
-		delete newBeam->sigma_vol_lg;
-		delete newBeam->dose_rv; //rpl_dose_vol;
-
-        delete newBeam;
-		delete scene;
     }
 
     if (!bAppend)
@@ -10168,8 +10425,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
     }
 
     delete[] stArrWEPL;
-	ct_vol->free();
-
+	
 	stream = freopen("CON", "w", stdout);
 	stream_err = freopen("CON", "w", stderr);
 }
@@ -10218,7 +10474,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 	double curAngle = 0.0;
 	VEC3D curPOI;
 
-	int sizePOI = m_vPOI_DCM.size();
+	size_t sizePOI = m_vPOI_DCM.size();
 	WEPLData* stArrWEPL = new WEPLData[sizePOI * sizeAngles];
 
 	// std::cout << "Everything is OK!? Let's calculate WEPL...\n" << std::endl;
@@ -10234,7 +10490,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 		exit(-1);
 
 #pragma omp parallel for
-	for (int p = 0; p < sizePOI; p++)
+	for (int p = 0; p < (int)sizePOI; p++)
 	{
 		curPOI = m_vPOI_DCM.at(p);
 		isoTarget[0] = curPOI.x;  // Sorry, might do better later..
@@ -10290,11 +10546,33 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 
 			//cout << "\nPrep beam.." << std::endl;
             //scene.prepare_beam_for_calc(newBeam);
-			scene->create_patient_psp(); // hu to stopping power
+
 			scene->set_target(target_bool);
-			std::string flavor("b");
-			newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
-			scene->compute_dose(newBeam); // ONLY way to call prepare_for_calc from the "outside" (without ugly tricks)
+			//std::string flavor("b");
+			//newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
+			//scene->compute_dose(newBeam);
+
+			std::shared_ptr<Plm_image> ct_hu = Plm_image::New();
+			ct_hu->set_volume(scene->get_patient_volume());
+
+			typedef std::list< std::pair< float, float > > Float_pair_list;
+			Float_pair_list lookup;
+			lookup.push_back(std::pair<float, float>(NLMIN(float), 0));
+			lookup.push_back(std::pair<float, float>(-1000, 0.00106));
+			lookup.push_back(std::pair<float, float>(0, 1.0));
+			lookup.push_back(std::pair<float, float>(41.46, 1.048674));
+			lookup.push_back(std::pair<float, float>(NLMAX(float), 0.005011));
+
+			Volume::Pointer psp = volume_adjust(
+				ct_hu->get_volume(), lookup);
+			std::shared_ptr<Plm_image> patient_psp = Plm_image::New(psp);
+
+			newBeam->prepare_for_calc(ct_hu, patient_psp, newBeam->get_target());
+
+			//scene->create_patient_psp(); // hu to stopping power
+			//std::string flavor("b");
+			//newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
+			//scene->compute_dose(newBeam); // ONLY way to call prepare_for_calc from the "outside" (without ugly tricks)
 			// newBeam->prepare_for_calc(ct_vol, newBeam->get_ct_psp(), newBeam->get_target());
 			//wed_ct_compute in wed_main
 
@@ -10318,7 +10596,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 
 			const double base_dist = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
 
-			const plm_long *ires = proj_vol->get_image_dim();
+			//const plm_long *ires = proj_vol->get_image_dim();
 
 			//int ap_ij[2]; //ray index of rvol
 			plm_long ap_idx = 0;  //ray number always 0 here
@@ -10766,11 +11044,11 @@ void CbctRecon::SLTM_LoadDICOMdir()
     //Figure out whether this is NKI
     typedef itk::MinimumMaximumImageCalculator <ShortImageType> ImageCalculatorFilterType;
     ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
-    imageCalculatorFilter->SetImage(spShortImg);
-    imageCalculatorFilter->Compute();
+    //imageCalculatorFilter->SetImage(spShortImg);
+    //imageCalculatorFilter->Compute();
 
-    double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
-    double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());
+    //double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
+    //double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());
 
 
     //Thresholding
@@ -11156,7 +11434,7 @@ FLEXDATA CbctRecon::XML_parseFrameForXVI5(QXmlStreamReader& xml)
         xml.name() == "Frame")) {
         QStringRef tmpXmlName = (xml.name());
         QString strTmpXMLName = QString(tmpXmlName.toLocal8Bit().constData());
-        int tmpType = (int)(xml.tokenType());
+        //int tmpType = (int)(xml.tokenType());
 
         QString tmpStr;
         if (xml.tokenType() == QXmlStreamReader::StartElement) {
@@ -11587,7 +11865,7 @@ bool CbctRecon::FullScatterCorrectionMacroSingle(QString& outputDirPath, enREGI_
     //Load Pushbutton
     SLT_LoadSelectedProjFiles();
 
-    float fOldValTruncation = ui.lineEdit_Ramp_TruncationCorrection->text().toFloat();;
+    //float fOldValTruncation = ui.lineEdit_Ramp_TruncationCorrection->text().toFloat();;
 
 
     SLT_DoReconstruction();
@@ -11880,8 +12158,8 @@ void CbctRecon::GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, floa
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
     UShortImageType::SizeType imgSize = spImgCanvas->GetRequestedRegion().GetSize(); //1016x1016 x z
 
-    int width = imgSize[0];
-    int height = imgSize[1];
+    //int width = imgSize[0];
+    //int height = imgSize[1];
 
     it.SetFirstDirection(0); //x?
     it.SetSecondDirection(1); //y?
@@ -11891,8 +12169,8 @@ void CbctRecon::GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, floa
     int iPosX = 0;
     int iPosY = 0;
 
-    int i = 0;//height
-    int j = 0; // width
+    //int i = 0;//height
+    //int j = 0; // width
 
     double crntPhysX = 0.0;
     double crntPhysY = 0.0;
@@ -11947,8 +12225,8 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR
     itk::ImageSliceIteratorWithIndex<UShortImageType> it(spImg, spImg->GetRequestedRegion());
     UShortImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize(); //1016x1016 x z
 
-    int width = imgSize[0];
-    int height = imgSize[1];
+    //int width = imgSize[0];
+    //int height = imgSize[1];
 
     it.SetFirstDirection(0); //x?
     it.SetSecondDirection(1); //y?
@@ -11958,9 +12236,7 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR
     int iPosX = 0;
     int iPosY = 0;
 
-    int i = 0;//height
-    int j = 0; // width
-
+    
     double crntPhysX = 0.0;
     double crntPhysY = 0.0;
     double crntPhysZ = 0.0;
@@ -12014,9 +12290,7 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR
     iPosX = 0;
     iPosY = 0;
 
-    i = 0;//height
-    j = 0; // width
-
+    
     crntPhysX = 0.0;
     crntPhysY = 0.0;
     crntPhysZ = 0.0;
@@ -13610,7 +13884,7 @@ bool SaveDoseGrayImage(const char* filePath, int width, int height, double spaci
 
 
     //쓰기용 버퍼 생성
-    unsigned short* writeBuf = new unsigned short[imgSize];
+    //unsigned short* writeBuf = new unsigned short[imgSize];
 
     //for (int i = 0 ; i<imgSize ; i++)
     //{
@@ -13859,6 +14133,78 @@ void CbctRecon::ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, Fl
     spAttImgFloat = multiplyImageFilter->GetOutput();
 }
 
+
+FloatImageType::Pointer CbctRecon::ConvertUshort2WeplFloat(UShortImageType::Pointer& spImgUshort)
+{
+	ShortImageType::Pointer hu_image_tmp;
+	ConvertUshort2Short(spImgUshort, hu_image_tmp);
+
+	typedef itk::CastImageFilter< ShortImageType, FloatImageType> CastFilterType;
+	CastFilterType::Pointer castFilter = CastFilterType::New();
+	castFilter->SetInput(hu_image_tmp);
+	castFilter->Update();
+
+	typedef std::array< std::pair< float, double >, 16> double_pair_list;
+	const double_pair_list lookup = { // Data from TRiP: 19990218.hlut
+		std::pair<double, double>(NLMIN(float), 0),
+		std::pair<double, double>(-1000.0, 0.041),
+		std::pair<double, double>(-798.0, 0.244),
+		std::pair<double, double>(-750.0, 0.297),
+		std::pair<double, double>(-108.0, 0.943),
+		std::pair<double, double>(-75.0, 0.977),
+		std::pair<double, double>(0.0, 1.0),
+		std::pair<double, double>(40.0, 1.042),
+		std::pair<double, double>(55.0, 1.049),
+		std::pair<double, double>(67.0, 1.065),
+		std::pair<double, double>(262.0, 1.095),
+		std::pair<double, double>(1033.0, 1.468),
+		std::pair<double, double>(1432.0, 1.634),
+		std::pair<double, double>(1974.0, 1.778),
+		std::pair<double, double>(3000.0, 2.051),
+		std::pair<double, double>(NLMAX(float), 2.051)
+	};
+	/*{ // plastimatch data:
+		std::pair<double, double>(NLMIN(float), 0),
+			std::pair<double, double>(-1000, 0.00106),
+			std::pair<double, double>(0, 1.0),
+			std::pair<double, double>(41.46, 1.048674),
+			std::pair<double, double>(NLMAX(float), 0.005011) // wtf?
+	};*/
+
+	// Linear interpolator (as first class function)
+	std::function<float(float)> hu_to_dEdx = [&lookup](float val)
+	{
+		// Find first index in lookup that satisfies "val < lookup[i].first" :
+		auto lookup_upper_ptr = std::find_if(lookup.begin(), lookup.end(),
+			[val](std::pair<double,  double> cur_pair) {	return val < cur_pair.first; });
+		const auto lookup_upper = *lookup_upper_ptr;
+
+		// Get the previous index:
+		const auto lookup_lower = lookup[(lookup_upper_ptr - lookup.begin()) - 1]; 
+
+		// Do linear interpolation between upper and lower data point:
+		const double a = (lookup_upper.second - lookup_lower.second) / (lookup_upper.first - lookup_lower.first);
+		const double b = lookup_upper.second - a * lookup_upper.first;
+
+		return a * val + b;
+	};
+
+	FloatImageType::Pointer wepl_image = castFilter->GetOutput();
+	
+	itk::ImageRegionIterator<FloatImageType> it(wepl_image, wepl_image->GetLargestPossibleRegion());
+	
+	// std::for_each(it.Begin(), it.End(), hu_to_dEdx); //ITK iterators doesn't support <algorithm> (yet?)
+	for (it = it.Begin(); !it.IsAtEnd(); ++it)
+		it.Set(hu_to_dEdx(it.Get()));
+
+	auto writer = itk::ImageFileWriter<FloatImageType>::New();
+	writer->SetInput(wepl_image);
+	writer->SetFileName("wepl_image.mha");
+	writer->Update();
+
+	return wepl_image;
+}
+
 void CbctRecon::SLTM_CropMaskBatch()
 {
     //Specify mask file (USHORT)
@@ -14074,7 +14420,7 @@ bool CbctRecon::LoadCurrentSetting(QString& strPathConfigFile)
     if (fin.fail())
         return false;
 
-    int cnt = 0;
+    //int cnt = 0;
     while (!fin.eof())
     {
         memset(str, 0, MAX_LINE_LENGTH);

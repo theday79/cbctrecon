@@ -114,7 +114,7 @@ class DlgRegistration : public QDialog,
 	void SLT_ConfirmManualRegistration();
 	void SLT_IntensityNormCBCT();
 	void SLT_DoLowerMaskIntensity(); //button
-
+	void SLT_Override();
 
 
 public:
@@ -175,7 +175,7 @@ public:
 
 	//void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_, QString& strPathOutputCBCT, double* manualTrans3d); 
 	void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly = false);//8 mm skin cut + fill air bubbles inside CBCT
-
+	void autoPreprocessCT();
 	void SetPlmOutputDir(QString& endFix);
 	void initDlgRegistration(QString& strDCMUID);
 

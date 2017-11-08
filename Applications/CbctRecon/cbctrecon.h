@@ -5,6 +5,7 @@
 //#include <QTimer>
 #include "ui_cbctrecon.h"
 #include "YK16GrayImage.h"
+#include "StructureSet.h"
 
 //#include "itkImage.h"
 #include "itk_image_type.h"
@@ -65,8 +66,8 @@ typedef itk::CudaImage< FloatPixelType, 3 > CUDAFloatImageType;
 #endif // CUDA_FOUND
 
 
-typedef itk::ImageFileReader< FloatImageType > ReaderType;
-typedef itk::ImageFileWriter< FloatImageType > WriterType;
+typedef itk::ImageFileReader< FloatImageType > FloatReaderType;
+typedef itk::ImageFileWriter< FloatImageType > FloatWriterType;
 
 typedef rtk::ThreeDCircularProjectionGeometry GeometryType;
 
@@ -149,7 +150,7 @@ struct FLEXDATA{
 class QStandardItemModel;
 
 class DlgRegistration;
-class DlgHistogram;
+// class DlgHistogram;
 class DlgExternalCommand;
 class QTimer;
 class QXmlStreamReader;
@@ -266,6 +267,7 @@ public:
 	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
 	void GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);
 	void GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
+	void GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
 
 	//	void UpdateUIAfterLoading(QString& imgName);
 
@@ -334,6 +336,7 @@ public:
 
 	void RotateImgBeforeFwd(UShortImageType::Pointer& spInputImgUS, UShortImageType::Pointer& spOutputImgUS);
 	void ConvertUshort2AttFloat(UShortImageType::Pointer& spImgUshort, FloatImageType::Pointer& spAttImgFloat);
+	FloatImageType::Pointer ConvertUshort2WeplFloat(UShortImageType::Pointer& spImgUshort);
 
 	bool SaveCurrentSetting(QString& strPathConfigFile);
 	bool LoadCurrentSetting(QString& strPathConfigFile);
@@ -473,7 +476,7 @@ public:
 
 	//ReaderType::Pointer m_reader;
 	//WriterType::Pointer m_writer;
-
+	StructureSet* m_structures;
 	YK16GrayImage* m_arrYKImage; //independent raw images
 	int m_iImgCnt; //for independent raw images --> no relation to Directroy based projections
 
@@ -522,7 +525,7 @@ public:
 	double m_multiplyFactor;
 	QStandardItemModel *m_pTableModel;
 	DlgRegistration* m_pDlgRegistration;
-	DlgHistogram* m_pDlgHistogram;
+	// DlgHistogram* m_pDlgHistogram;
 	DlgExternalCommand* m_pDlgExternalCommand;
 
 	//Automatically detected relavant file/Dir path when load the projection files (SLT_SetHisDir)

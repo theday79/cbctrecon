@@ -31,6 +31,7 @@ else()
   set(N_THREADS 4 CACHE STRING "Number of available threads including hyperthreads")
 endif()
 ADD_DEFINITIONS(-DN_THREADS=${N_THREADS})
+add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 IF(USE_GPMC)
   message (STATUS "Compiling with GPMC option")
@@ -73,7 +74,7 @@ SET(CbctRecon_SOURCES
 	qyklabel.cpp
 	qcustomplot.cpp
 	DlgRegistration.cxx
-	DlgHistogram.cxx
+	StructureSet.cxx
 	DlgExternalCommand.cxx
     rtkOpenCLUtilities.cxx
     rtkOpenCLFDKBackProjectionImageFilter.cxx
@@ -87,7 +88,7 @@ SET(CbctRecon_HEADERS
 	qyklabel.h
 	qcustomplot.h
 	DlgRegistration.h
-	DlgHistogram.h
+	StructureSet.h
 	DlgExternalCommand.h
 	rtkOpenCLFDKConeBeamReconstructionFilter.h
 	rtkOpenCLFDKConeBeamReconstructionFilter.hxx

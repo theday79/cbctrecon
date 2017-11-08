@@ -11,6 +11,7 @@ OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # ON by default for multiple re
 OPTION(USE_CLFFT "Toggle CLFFT on or off" OFF) # ON by default for multiple reasons
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON)
+OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code
 IF(USE_CUDA)
   message (STATUS "Compiling with CUDA option")
 ENDIF(USE_CUDA)
@@ -30,9 +31,10 @@ project(CbctRecon)
 FIND_PACKAGE(Git REQUIRED) # We superbuild now.
 
 FIND_PACKAGE(OpenCL REQUIRED)
+FIND_PACKAGE(CUDA_wrap 8.0 EXACT)
 FIND_PACKAGE(FFTW)
-set(TBB_ROOT "" CACHE PATH "Root dir of intel TBB, (one level up from lib)")
-FIND_PACKAGE(TBB)
+# set(TBB_ROOT "" CACHE PATH "Root dir of intel TBB, (one level up from lib)")
+# FIND_PACKAGE(TBB) ## The world is not ready for this yet
 FIND_PACKAGE(clFFT)
 
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)

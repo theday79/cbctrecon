@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <thread>
+#include <array>
 
 #include "itkImageFileWriter.h"
 #include "itkRescaleIntensityImageFilter.h"
@@ -1616,8 +1617,13 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
 	  fout << "impl=" << "plastimatch" << std::endl;
 	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
 		  fout << "threading=" << "openmp" << std::endl;
-	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
 		  fout << "threading=" << "cuda" << std::endl;
+		  if (ui.radioButton_mse->isChecked())
+			  fout << "alg_flavor=" << "j" <<std::endl;
+		  else
+			  fout << "alg_flavor=" << "a" << std::endl;
+	  }
 	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
 		  fout << "threading=" << "opencl" << std::endl;
 
@@ -2102,44 +2108,6 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
 	QString strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
-  //ifstream fin;
-  //fin.open(pathCmdRegister.toLocal8Bit().constData());
-  //if (fin.fail())
-  //{
-
-  //    std::cout << std::endl;
-  //    std::cout << std::endl;
-  //    std::cout << std::endl;
-
-  //    fin.close();
-  //    std::cout << "fail first.. wait 5 s" << std::endl;
-  //    Sleep(5000);
-
-  //    fin.open(pathCmdRegister.toLocal8Bit().constData());
-  //    if (fin.fail())
-  //    {
-  //        std::cout << std::endl;
-  //        std::cout << std::endl;
-  //        std::cout << std::endl;
-
-  //        std::cout << "Second failure! Error! " << std::endl;
-  //        fin.close();
-  //    }
-  //    else
-  //    {
-  //        std::cout << "Resolved after a single failure!" << std::endl;
-  //        fin.close();
-  //    }
-  //}
-  //else
-  //{
-  //    std::cout << "File is readable!" << std::endl;
-  //    fin.close();
-  //}
-
-
-
-  //const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
   std::cout << "4: DoRegistrationDeform: calling a plastimatch command" << std::endl;
 
@@ -2300,6 +2268,69 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   std::cout << "FINISHED!: Deformable image registration. Proceed to scatter correction" << std::endl;
 }
 
+void DlgRegistration::autoPreprocessCT() {
+	if (!m_spMoving || !m_spFixed) {
+		return;
+	}
+	if (m_spFixed->GetLargestPossibleRegion().GetSize()[0] != m_spMoving->GetLargestPossibleRegion().GetSize()[0] ||
+		m_spFixed->GetLargestPossibleRegion().GetSize()[1] != m_spMoving->GetLargestPossibleRegion().GetSize()[1] ||
+		m_spFixed->GetLargestPossibleRegion().GetSize()[2] != m_spMoving->GetLargestPossibleRegion().GetSize()[2])
+	{
+		std::cout << "Fixed and moving image is not the same size, consider using a platimatch registration to solve this." << std::endl;
+		return;
+	}
+	unsigned short air_thresh = 1024 + ui.lineEditBkDetectCT->text().toInt();
+	typedef itk::BinaryThresholdImageFilter <UShortImageType, ShortImageType> threshFilterType;
+	threshFilterType::Pointer threshFilter_CT = threshFilterType::New();
+	threshFilter_CT->SetInput(m_spMoving);
+
+	threshFilter_CT->SetOutsideValue(0);
+	threshFilter_CT->SetInsideValue(1);
+	threshFilter_CT->SetLowerThreshold(air_thresh); // -600 HU
+	//threshFilter_CT->Update();
+
+	threshFilterType::Pointer threshFilter_CBCT = threshFilterType::New();
+	threshFilter_CBCT->SetInput(m_spFixed);
+
+	threshFilter_CBCT->SetOutsideValue(0);
+	threshFilter_CBCT->SetInsideValue(1);
+	threshFilter_CBCT->SetLowerThreshold(air_thresh); // -600 HU
+	//threshFilter_CBCT->Update();
+
+	typedef itk::SubtractImageFilter<ShortImageType, ShortImageType, ShortImageType> subFilterType;
+	subFilterType::Pointer subFilter = subFilterType::New();
+	subFilter->SetInput1(threshFilter_CT->GetOutput());
+	subFilter->SetInput2(threshFilter_CBCT->GetOutput());
+	subFilter->Update();
+	// -1 -> should be filled
+	// +1 -> should be cropped
+
+	typedef itk::ImageRegionIterator<ShortImageType> iteratorType;
+	iteratorType it(subFilter->GetOutput(), subFilter->GetOutput()->GetLargestPossibleRegion());
+
+	typedef itk::ImageRegionIterator<UShortImageType> CTiteratorType;
+	CTiteratorType CT_it(m_spMoving, m_spMoving->GetLargestPossibleRegion());
+
+	it.GoToBegin();
+	while (!it.IsAtEnd())
+	{
+		int val = it.Get();
+		if (val == -1)
+		{
+			CT_it.Set(1024); //water
+		}
+		else if (val == 1)
+		{
+			CT_it.Set(0); // air
+		}
+		++it;
+		++CT_it;
+	}
+
+
+	return;
+}
+
 bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, then show the registration DLG
 {
 
@@ -2311,8 +2342,18 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 
   if (m_pParent->m_strPathPlanCTDir.length() < 3)
   {
-	cout << "Reference CT DIR should be specified" << std::endl;
-        return false;
+	cout << "Reference CT DIR should be specified for structure based cropping" << std::endl;
+	QMessageBox::StandardButton reply;
+	reply = QMessageBox::question(this,
+		"No reference structures found!",
+		"Do you wan't to attempt an auto correction of air and excessive circumference?",
+		QMessageBox::Yes | QMessageBox::No);
+	if (reply == QMessageBox::Yes) {
+		std::cout << "Attempting automatic air filling and skin cropping..." << std::endl;
+		autoPreprocessCT();
+		return true;
+	}
+	else { return false; };
   }
 
 
@@ -3744,6 +3785,95 @@ QString get_output_options(UShortImageType::Pointer m_spFixed){
 		.arg(str_fixedSpacing)
 		.arg(str_fixedDimension)
 		.arg(str_fixedDirection);
+}
+void DlgRegistration::SLT_Override()
+{
+	bool isFixed = false;
+	if (!ui.comboBox_imToOverride->currentText().compare(QString("Moving")))
+		isFixed = true;
+	if ((isFixed && !m_spFixed) || (!isFixed && !m_spMoving)) {
+		std::cout << "The image you try to override is not loaded!" << std::endl;
+		return;
+	}
+
+	int sliderPosIdxZ, sliderPosIdxY, sliderPosIdxX;
+
+	switch (m_enViewArrange)
+	{
+	case AXIAL_FRONTAL_SAGITTAL:
+		sliderPosIdxZ = ui.sliderPosDisp1->value();   // Z corresponds to axial, Y to frontal, X to sagittal
+		sliderPosIdxY = ui.sliderPosDisp2->value();
+		sliderPosIdxX = ui.sliderPosDisp3->value();
+		break;
+	case FRONTAL_SAGITTAL_AXIAL:
+		sliderPosIdxY = ui.sliderPosDisp1->value();
+		sliderPosIdxX = ui.sliderPosDisp2->value();
+		sliderPosIdxZ = ui.sliderPosDisp3->value();
+
+		break;
+	case SAGITTAL_AXIAL_FRONTAL:
+		sliderPosIdxX = ui.sliderPosDisp1->value();
+		sliderPosIdxZ = ui.sliderPosDisp2->value();
+		sliderPosIdxY = ui.sliderPosDisp3->value();
+		break;
+	default:
+		sliderPosIdxZ = ui.sliderPosDisp1->value();   // Z corresponds to axial, Y to frontal, X to sagittal
+		sliderPosIdxY = ui.sliderPosDisp2->value();
+		sliderPosIdxX = ui.sliderPosDisp3->value();
+		break;
+	}
+
+	UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
+	UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
+	UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
+	if (!isFixed){
+		imgSize = m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
+		imgOrigin = m_spMoving->GetOrigin();
+		imgSpacing = m_spMoving->GetSpacing();
+	}
+
+	UShortImageType::PointType curPhysPos;
+	curPhysPos[0] = imgOrigin[0] + sliderPosIdxX*imgSpacing[0]; //Z
+	curPhysPos[1] = imgOrigin[1] + sliderPosIdxY*imgSpacing[1]; //Y
+	curPhysPos[2] = imgOrigin[2] + sliderPosIdxZ*imgSpacing[2]; //Z in default setting
+
+
+	UShortImageType::IndexType centerIdx;
+	if (!isFixed) {
+		m_spMoving->TransformPhysicalPointToIndex(curPhysPos, centerIdx);
+	}
+	else {
+		m_spFixed->TransformPhysicalPointToIndex(curPhysPos, centerIdx);
+	}
+
+	const int radius = ui.spinBox_overrideRadius->value();
+	const unsigned int value = static_cast<unsigned int>(ui.spinBox_overrideValue->value() + 1024);
+	size_t i = 0;
+	UShortImageType::IndexType curIdx;
+	for (int curRadiusX = -radius; curRadiusX <= radius; curRadiusX++) {
+		curIdx[0] = centerIdx[0] + curRadiusX;
+		for (int curRadiusY = -radius; curRadiusY <= radius; curRadiusY++) {
+			curIdx[1] = centerIdx[1] + curRadiusY;
+			for (int curRadiusZ = -radius; curRadiusZ <= radius; curRadiusZ++) {
+				curIdx[2] = centerIdx[2] + curRadiusZ;
+				if (radius >= sqrt(pow(curRadiusX, 2) +
+					               pow(curRadiusY, 2) +
+				                   pow(curRadiusZ, 2))
+					) 
+				{
+					if (!isFixed) {
+						m_spMoving->SetPixel(curIdx, value);
+						i++;
+					}
+					else {
+						m_spFixed->SetPixel(curIdx, value);
+						i++;
+					}
+				}
+			}
+		}
+	}
+	std::cout << i << " pixels were overridden." << std::endl;
 }
 
 void DlgRegistration::SLT_gPMCrecalc()
