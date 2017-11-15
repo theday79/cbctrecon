@@ -79,7 +79,7 @@ OpenCL_padding(
 
 
 	cl_mem devicePaddedVolume = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, pv_buffer_size, hostPaddedVolume, &err);
-	// err = clEnqueueWriteBuffer(queue, devicePaddedVolume, CL_TRUE, 0, pv_buffer_size, hostPaddedVolume, 0, NULL, NULL);
+
 	if (err != CL_SUCCESS)
 		std::cout << "PAD::Could not write OpenCL devicePaddedVolume buffer, error code: " << err << std::endl;
 
@@ -162,7 +162,7 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 
 	/* FFT library realted declarations */
 	clfftPlanHandle planHandle;
-	clfftDim dim = CLFFT_3D;
+	clfftDim dim = CLFFT_3D; // Should be 2D TODO: FIXME: change pls
 
 	const size_t memorySizeProjection = inputDimension.x  * inputDimension.y  * inputDimension.z * sizeof(float);
 	std::tuple<cl_platform_id, cl_device_id> dev_tuple =
@@ -188,15 +188,16 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	const size_t memorySizeProjectionFFT = fftDimension.x    * fftDimension.y    * fftDimension.z * sizeof(cl_float2);
 	//std::cout << "Creating buffers..." << std::endl;
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceProjection = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeProjection, NULL, &err);
-	deviceProjectionFFT = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, memorySizeProjectionFFT, NULL, &err);
+	deviceProjection = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeProjection, hostProjection, &err);
+
+	cl_float2* hostProjectionFFT = new cl_float2[memorySizeProjectionFFT];
+	deviceProjectionFFT = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeProjectionFFT, hostProjectionFFT, &err);
 
 	// we don't have any data to put into deviceProjectionFFT, so we fill it with zeros:
-	cl_float2* hostProjectionFFT = new cl_float2[memorySizeProjectionFFT];
-
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceProjection, CL_TRUE, 0, memorySizeProjection, hostProjection, 0, NULL, NULL);
 	err |= clEnqueueWriteBuffer(queue, deviceProjectionFFT, CL_TRUE, 0, memorySizeProjectionFFT, hostProjectionFFT, 0, NULL, NULL);
-
+	*/
 	if (err != CL_SUCCESS)
 		std::cout << "FWD::Could not create OpenCL buffers, error code: " << err << std::endl;
 
@@ -234,9 +235,10 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	/* Prepare OpenCL memory objects and place data inside them. */
 	cl_mem deviceKernelFFT = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeKernelFFT, NULL, &err);
 
+	/* why should this be necessary?
 	err = clEnqueueWriteBuffer(queue, deviceProjectionFFT, CL_TRUE, 0, memorySizeProjectionFFT, hostProjectionFFT, 0, NULL, NULL);
 	err |= clEnqueueWriteBuffer(queue, deviceKernelFFT, CL_TRUE, 0, memorySizeKernelFFT, hostKernelFFT, 0, NULL, NULL);
-
+	*/
 	if (err != CL_SUCCESS)
 		std::cout << "MUL::Could create OpenCL buffers, error code: " << err << std::endl;
 
@@ -336,7 +338,7 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	/* Release OpenCL working objects. */
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
-
+	delete[] hostProjectionFFT;
 	if (err != CL_SUCCESS)
 		std::cout << "BCK::Could not release OpenCL kernel, error code: " << err << std::endl;
 }
@@ -372,12 +374,12 @@ void clFFT_backwards(float* hostProjection, const cl_float2* hostProjectionFFT, 
 	const size_t memorySizeProjectionFFT = fftDimension.x    * fftDimension.y    * fftDimension.z   * sizeof(cl_float2);
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	cl_mem deviceProjectionFFT = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  memorySizeProjectionFFT, NULL, &err);
-	cl_mem deviceProjection    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeProjection, NULL, &err);
-
+	cl_mem deviceProjectionFFT = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,  memorySizeProjectionFFT, (void*)&hostProjectionFFT[0], &err);
+	cl_mem deviceProjection    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeProjection, hostProjection, &err);
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceProjectionFFT, CL_TRUE, 0, memorySizeProjectionFFT, hostProjectionFFT, 0, NULL, NULL);
 	err = clEnqueueWriteBuffer(queue, deviceProjection,    CL_TRUE, 0, memorySizeProjection,    hostProjection, 0, NULL, NULL);
-
+	*/
 	//std::cout << "Buffers created..." << std::endl;
 
 	if (err != CL_SUCCESS)
@@ -493,14 +495,16 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* su
 		std::cout << "SUB::Could not setup OpenCL, error code: " << err << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeInput, NULL, &err);
-	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeSub, NULL, &err);
-
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
+	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
-	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
-
 	if (err != CL_SUCCESS)
-		std::cout << "SUB::Could create OpenCL buffers, error code: " << err << std::endl;
+		std::cout << "SUB::Could not create OpenCL buffers, error code: " << err << std::endl;
+	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
+	if (err != CL_SUCCESS)
+		std::cout << "SUB::Could not write OpenCL buffers, error code: " << err << std::endl;
+		*/
 
 	// Create program
 	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
@@ -631,17 +635,17 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 	// std::cout << "SUB3D::subIm xyz size: " << subSize[0] * subSize[1] * subSize[2] << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeInput, NULL, &err);
-	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeSub, NULL, &err);
-	deviceOutBuffer = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, memorySizeOutput, NULL, &err);
-
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
+	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
+	deviceOutBuffer = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeOutput, (void*)&outImage->GetBufferPointer()[0], &err);
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 	err = clEnqueueWriteBuffer(queue, deviceOutBuffer, CL_TRUE, 0, memorySizeOutput, outImage->GetBufferPointer(), 0, NULL, NULL);
-
+	*/
 	if (err != CL_SUCCESS)
 		std::cout << "SUB3D::Could create OpenCL buffers, error code: " << err << std::endl;
-
+		
 	// Create program
 	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
 
@@ -749,9 +753,9 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 	// std::cout << "ADD::Input xy size: " << inputSize[0] * inputSize[1] << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeInput, NULL, &err);
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
 
-	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
+	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
 		std::cout << "ADD::Could create OpenCL buffers, error code: " << err << std::endl;
@@ -817,6 +821,107 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 
 }
 
+void OpenCL_AddConst_MulConst_InPlace(cl_float* buffer,
+	itk::Image<float, 3U>::SizeType inputSize,
+	const cl_float add_constant,
+	const cl_float mul_constant) {
+
+	cl_context       ctx = 0;
+	cl_command_queue queue = 0;
+	cl_int           err;
+
+	cl_program            m_Program;
+	cl_kernel             m_Kernel;
+	cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
+
+	cl_mem  deviceBuffer;
+
+	const size_t memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
+
+	std::tuple<cl_platform_id, cl_device_id> dev_tuple =
+		getPlatformAndDeviceID(memorySizeInput);
+	cl_platform_id platform = std::get<0>(dev_tuple);
+	cl_device_id device = std::get<1>(dev_tuple);
+
+	props[1] = (cl_context_properties)platform;
+	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	queue = clCreateCommandQueue(ctx, device, 0, &err);
+
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not setup OpenCL, error code: " << err << std::endl;
+
+	/* Prepare OpenCL memory objects and place data inside them. */
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
+
+	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
+
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could create OpenCL buffers, error code: " << err << std::endl;
+
+	// Create program
+	// std::cout << "build subtraction kernel..." << std::endl;
+	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+
+	m_Kernel = clCreateKernel(m_Program, "add_mul_const_kernel", &err);
+
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not create OpenCL kernel, error code: " << err << std::endl;
+
+
+	std::cout << "Kernel created." << std::endl;
+	cl_event events[2];
+	const size_t local_work_size = 128;
+
+	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
+
+	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_float), &add_constant);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_float), &mul_constant);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+
+	// Execute kernel
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+		&global_work_size, &local_work_size,
+		0, NULL, &events[0]);
+
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not run OpenCL kernel, error code: " << err << std::endl;
+
+	err = clWaitForEvents(1, &events[0]);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+	err = clReleaseEvent(events[0]);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not release OpenCL event, error code: " << err << std::endl;
+
+	/* Wait for calculations to be finished. */
+	err = clReleaseKernel(m_Kernel);
+	err |= clReleaseProgram(m_Program);
+	err |= clFinish(queue);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not finish OpenCL queue, error code: " << err << std::endl;
+
+	/* Fetch results of calculations. */
+	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not read OpenCL buffer, error code: " << err << std::endl;
+
+	/* Release OpenCL working objects. */
+	clReleaseMemObject(deviceBuffer);
+
+	clReleaseCommandQueue(queue);
+	clReleaseContext(ctx);
+
+	if (err != CL_SUCCESS)
+		std::cout << "ADDMUL::Could not create OpenCL kernel, error code: " << err << std::endl;
+
+}
+
 void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 	itk::Image<float, 2U>::SizeType inputSize,
 	const cl_float constant) {
@@ -849,9 +954,9 @@ void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 	// std::cout << "ADD::Input xy size: " << inputSize[0] * inputSize[1] << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeInput, NULL, &err);
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
 
-	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
+	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
 		std::cout << "ADD::Could create OpenCL buffers, error code: " << err << std::endl;
@@ -944,8 +1049,8 @@ cl_float2 OpenCL_min_max(
 	//std::cout << "MMM::Input xy size: " << inputSize[0] * inputSize[1] * inputSize[2] << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeInput, NULL, &err);
-	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
+	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 	
 	if (err != CL_SUCCESS)
 		std::cout << "MMM::Could create OpenCL buffers, error code: " << err << std::endl;
@@ -992,8 +1097,8 @@ cl_float2 OpenCL_min_max(
 	//std::cout << "MMM::output xy size: " << outputDim.x * outputDim.y * outputDim.z << std::endl;
 	cl_float2* sub_buffer = new cl_float2[outputDim.x * outputDim.y * outputDim.z];
 	cl_mem  deviceSubBuffer;
-	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeSub, NULL, &err);
-	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
+	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
+	//err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
@@ -1074,15 +1179,15 @@ cl_float2 OpenCL_min_max_2D(
 
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeInput, NULL, &err);
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
 	if (err != CL_SUCCESS)
 		std::cout << "MM2D::Could not create OpenCL mem object, error code: " << err << std::endl;
-
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
 		std::cout << "MM2D::Could not create OpenCL buffers, error code: " << err << std::endl; //-38
-
+		*/
 	// Create program
 	//std::cout << "build min max kernel..." << std::endl;
 	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
@@ -1123,8 +1228,8 @@ cl_float2 OpenCL_min_max_2D(
 	//std::cout << "MMM::output xy size: " << outputDim.x * outputDim.y * outputDim.z << std::endl;
 	cl_float2* sub_buffer = new cl_float2[outputDim.x * outputDim.y];
 	cl_mem  deviceSubBuffer;
-	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeSub, NULL, &err);
-	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
+	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
+	//err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
@@ -1218,15 +1323,15 @@ cl_float2 OpenCL_min_max_recurse(
 	// std::cout << "MMR::Input xy size: " << inputSize << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeInput, NULL, &err);
+	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
 	if (err != CL_SUCCESS)
 		std::cout << "MMR::Could not create OpenCL mem object, error code: " << err << std::endl;
-
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
-		std::cout << "MMR::Could not create OpenCL buffers, error code: " << err << std::endl;
-
+		std::cout << "MMR::Could not create OpenCL buffers of size: " << inputSize << "*sizeof(cl_float2), error code: " << err << std::endl;
+		*/
 
 	cl_uint divider = 128;
 	while (true) {
@@ -1252,12 +1357,15 @@ cl_float2 OpenCL_min_max_recurse(
 	//std::cout << "MMM::output xy size: " << outputDim << std::endl;
 	cl_float2* sub_buffer = new cl_float2[global_work_size];
 	cl_mem  deviceSubBuffer;
-	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, memorySizeSub, NULL, &err);
+	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
+	if (err != CL_SUCCESS)
+		std::cout << "MMR::Could not create OpenCL buffers of size: " << global_work_size << "*sizeof(cl_float2), error code: " << err << std::endl;
+	/*
 	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
-		std::cout << "MMR::Could create OpenCL buffers, error code: " << err << std::endl;
-
+		std::cout << "MMR::Could not write OpenCL buffers of size: " << global_work_size << "*sizeof(cl_float2), error code: " << err << std::endl;
+		*/
 	// Create program
 	//std::cout << "build min max kernel 2..." << std::endl;
 	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);

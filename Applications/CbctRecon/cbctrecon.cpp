@@ -1878,9 +1878,6 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	std::cout << "Not compiled with CUDA option..." << std::endl;
 	return;
 #endif
-	//Resampling first --> to save the recon time. 1024 --> 512
-
-
 
 	typedef itk::ImageDuplicator< CUDAFloatImageType > DuplicatorType;
 	DuplicatorType::Pointer duplicator = DuplicatorType::New();
@@ -1889,20 +1886,12 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	CUDAFloatImageType::Pointer spCurImg = duplicator->GetOutput(); //already down sampled
 
-																	 //FloatImageType::Pointer spCurImg = m_spProjImg3D;
-																	 //spCurImg = duplicator->GetOutput();
-
-																	 //ResampleItkImage(m_spProjImg3DFloat, spCurImg, resampleFactor);
-
-																	 //Displaced detector weighting // set pipeline //inplace filter
-
+	//Displaced detector weighting // set pipeline //inplace filter
 	typedef rtk::CudaDisplacedDetectorImageFilter DDFType;
 	DDFType::Pointer ddf = DDFType::New();
-
 	if (ui.checkBox_UseDDF->isChecked())
 	{
 		ddf->SetInput(spCurImg);
-		//ddf->SetGeometry( geometryReader->GetOutputObject() );
 		ddf->SetGeometry(m_spCustomGeometry);
 		std::cout << "DDF was set in pipeline" << std::endl;
 
@@ -1914,8 +1903,6 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	typedef rtk::CudaParkerShortScanImageFilter PSSFType;
 	PSSFType::Pointer pssf = PSSFType::New();
-
-
 	if (ui.checkBox_UsePSSF->isChecked())
 	{
 		// Short scan image filter
@@ -1944,7 +1931,13 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
 		ImDuplicator->SetInputImage(spCurImg);
 		ImDuplicator->Update();
-		m_spProjImg3DFloat = ImDuplicator->GetOutput();
+
+		typedef itk::CastImageFilter<CUDAFloatImageType, FloatImageType> CastFilterType;
+		CastFilterType::Pointer CastFilter = CastFilterType::New();
+		CastFilter->SetInput(ImDuplicator->GetOutput());
+		CastFilter->Update();
+
+		m_spProjImg3DFloat = CastFilter->GetOutput();
 
 		SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
 		SLT_DrawProjImages();
@@ -1954,18 +1947,17 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	// Generate image sources for cone beam CT reconstruction
 	typedef rtk::ConstantImageSource< CUDAFloatImageType > ConstantImageSourceType;
 
-	ConstantImageSourceType::PointType origin;
-	ConstantImageSourceType::SpacingType spacing;
 	ConstantImageSourceType::SizeType sizeOutput;
-
 	sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); //pixel
 	sizeOutput[1] = ui.lineEdit_outImgDim_SI->text().toInt();  //Caution!: direction is different in NKI SCAN FIle
 	sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
 
+	ConstantImageSourceType::SpacingType spacing;
 	spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
 	spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
 	spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
 
+	ConstantImageSourceType::PointType origin;
 	origin[0] = -0.5*sizeOutput[0] * spacing[0]; //Y in DCM?
 	origin[1] = -0.5*sizeOutput[1] * spacing[1];  //Z in DCM?
 	origin[2] = -0.5*sizeOutput[2] * spacing[2]; //X in DCM?
@@ -1977,31 +1969,23 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	constantImageSource->SetConstant(0.0);  //initial value
 
 	double fTruncCorFactor = ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-	double fHannCut = ui.lineEdit_Ramp_HannCut->text().toDouble();
-	double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
-	double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
-	double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
+	const double fHannCut = ui.lineEdit_Ramp_HannCut->text().toDouble();
+	const double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
+	const double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
+	const double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
 
 	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
 	{
 		std::cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << std::endl;
 		fTruncCorFactor = 0.0;
 	}
-
-	//YKTEMP
-	std::cout << "fTruncCorFactor =" << fTruncCorFactor << std::endl;
-	// This macro sets options for fdk filter which I can not see how to do better
-	// because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
-
-
+	
 	typedef itk::StreamingImageFilter <CUDAFloatImageType, CUDAFloatImageType> StreamerType;
 	// FDK reconstruction filtering
-	// itk::ImageToImageFilter<CUDAFloatImageType, CUDAFloatImageType>::Pointer CUDAfeldkamp;
 	typedef rtk::CudaFDKConeBeamReconstructionFilter FDKCUDAType;
 	FDKCUDAType::Pointer CUDAfeldkamp = FDKCUDAType::New();
 
-	cout << "CUDA will be used for FDK reconstruction" << std::endl;
-	// CUDAfeldkamp = FDKCUDAType::New();
+	std::cout << "CUDA will be used for FDK reconstruction" << std::endl;
 	CUDAfeldkamp->SetInput(0, constantImageSource->GetOutput());
 	CUDAfeldkamp->SetInput(1, spCurImg);
 	CUDAfeldkamp->SetGeometry(m_spCustomGeometry);
@@ -2016,8 +2000,10 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	{
 		CUDAfeldkamp->Update();
 	}
-
-
+	else
+	{
+		CUDAfeldkamp->UpdateOutputInformation();
+	}
 
 	std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
 
@@ -2074,12 +2060,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	TransformType::ParametersType param;
 	param.SetSize(6);
 	//MAXIMUM PARAM NUMBER: 6!!!
-	//if (target == REGISTER_COR_CBCT){
-	//	param.put(0, 0.0);
-	//}
-	//else{
 	param.put(0, 0.0); //rot X // 0.5 = PI/2
-					   //}
 	param.put(1, itk::Math::pi / 2.0);//rot Y
 	param.put(2, itk::Math::pi / -2.0);//rot Z
 	param.put(3, 0.0); // Trans X mm
@@ -2152,11 +2133,6 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		std::cerr << "std::exception thrown: " << e.what() << std::endl;
 		return;
 	}
-	catch (const itk::ExceptionObject& e)
-	{
-		std::cerr << "itk::exception thrown: " << e.what() << std::endl;
-		return;
-	}
 
 	UShortImageType::Pointer tmpReconImg;
 	//if all 0 0 0 don't do the median filtering
@@ -2174,12 +2150,6 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		typedef itk::MedianImageFilter<UShortImageType, UShortImageType >  MedianFilterType; //TODO: CUDA THIS!!
 
 		MedianFilterType::Pointer medFilter = MedianFilterType::New();
-
-		//YKTEMP20141218 S
-		// typedef itk::MeanImageFilter<UShortImageType, UShortImageType >  FilterType;
-		// FilterType::Pointer medFilter = FilterType::New();
-		//YKTEMP20141218 E
-
 		//this is radius. 1 --> median window 3
 		std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << std::endl;
 
@@ -2326,7 +2296,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(FloatImageType::Pointer spCurImg,
 	// Proj_image *proj;
 	// int image_num;
 	// float scale;
-
+	std::cout << "Loading plmopencl..." << std::endl;
 	LOAD_LIBRARY_SAFE(libplmopencl);
 	LOAD_SYMBOL(opencl_open_device, libplmopencl);
 	LOAD_SYMBOL(opencl_load_programs, libplmopencl);
@@ -2337,6 +2307,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(FloatImageType::Pointer spCurImg,
 	LOAD_SYMBOL(opencl_kernel_enqueue, libplmopencl);
 	LOAD_SYMBOL(opencl_buf_read, libplmopencl);
 
+	std::cout << "Start opencl environment and enqueue kernels..." << std::endl;
 	/* Set up devices and kernels */
 	opencl_open_device(&ocl_dev);
 	opencl_load_programs(&ocl_dev, "fdk_opencl.cl");
@@ -2456,9 +2427,9 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(FloatImageType::Pointer spCurImg,
 
 
 		if (image_num % (proj_dim[2] / 10) == 0) {
-			cout << image_num << "::" << angle * 180 * itk::Math::one_over_pi << std::endl;
+			std::cout << image_num << "::" << angle * 180 * itk::Math::one_over_pi << std::endl;
 			proj->stats();
-			cout << "Cam::" << proj->pmat->cam[0] << ", " << proj->pmat->cam[1] << ", " << proj->pmat->cam[2] << std::endl;
+			std::cout << "Cam::" << proj->pmat->cam[0] << ", " << proj->pmat->cam[1] << ", " << proj->pmat->cam[2] << std::endl;
 		}
 
 		/* Apply ramp filter */
@@ -2517,6 +2488,9 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(FloatImageType::Pointer spCurImg,
 		opencl_kernel_enqueue(&ocl_dev, global_work_size, local_work_size);
 		itShiftX++;
 		itShiftY++;
+
+		delete proj->pmat;
+		delete proj;
 	}
 	cout << std::endl;
 	cout << "Reading results..." << std::endl;
@@ -4091,10 +4065,17 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	cout << "Reader Max, Min=" << originalMax << "	" << originalMin << std::endl;
 
 	if (correctionValue != 10.0 && correctionValue != 20.0) { // 10 and 20 are error codes
-		OpenCL_AddConst_InPlace(
-			reinterpret_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
-			reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
-			(cl_float) -correctionValue); // 2048th lowest value (avoiding outliers simply)
+		if ((originalMax - originalMin) > (log(65535.0f) - theoreticalMin))
+			OpenCL_AddConst_MulConst_InPlace(
+				reinterpret_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
+				reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
+				static_cast<cl_float>(-correctionValue), // 2048th lowest value (avoiding outliers simply)
+				static_cast<cl_float>((log(65535.0f) - theoreticalMin) / (originalMax - originalMin)));
+		else
+			OpenCL_AddConst_InPlace(
+				reinterpret_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
+				reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
+				static_cast<cl_float>(-correctionValue)); // 2048th lowest value (avoiding outliers simply)
 		// Reset min max:
 		originalMax = -1.0;
 		originalMin = -1.0;
@@ -4457,7 +4438,6 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, d
 
 	clock_t end_time = std::clock();
 	std::cout << "OpenCL took: " << (end_time - begin) << " clocks to find min: " << minMax.x << " max: " << minMax.y << std::endl;
-	begin = std::clock();
 
 	fProjImgValueMin = minMax.x;
 	fProjImgValueMax = minMax.y;
@@ -5888,6 +5868,87 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString
 
 
 }
+
+void CbctRecon::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL()
+{
+
+	if (!m_spCrntReconImg)
+		return;
+
+	QString dirPath = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
+		m_strPathDirDefault, QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+	if (dirPath.isEmpty())
+		return;
+
+	//Get current folder
+	QDir crntDir(dirPath);
+
+	QInputDialog inputDlg;
+
+	bool ok;
+	QString textInput = QInputDialog::getText(this, "Input Dialog", "Set Patient ID and Name", QLineEdit::Normal, "PatientID_LastName_FirstName", &ok);
+
+	//QString strEndFix = "YKP";
+	QString strPatientID;
+	QString strLastName;
+	QString strFirstName;
+
+	if (ok && !textInput.isEmpty())
+	{
+		QStringList strListPtInfo = textInput.split("_");
+
+		if (strListPtInfo.count() >= 3)
+		{
+			strPatientID = strListPtInfo.at(0);
+			strLastName = strListPtInfo.at(1);
+			strFirstName = strListPtInfo.at(2);
+		}
+		else if (strListPtInfo.count() == 2)
+		{
+			strPatientID = strListPtInfo.at(0);
+			strLastName = strListPtInfo.at(1);
+		}
+		else if (strListPtInfo.count() == 1)
+		{
+			strPatientID = strListPtInfo.at(0);
+		}
+		else
+			strPatientID = m_strDCMUID;
+		//strPatientID = m_strDCMUID + "_" + strEndFix;
+	}
+	else
+	{
+		strPatientID = m_strDCMUID;
+	}
+
+	if (strPatientID.isEmpty())
+		return;
+
+	for (int i = 0; i < m_pDlgRegistration->ui.comboBoxImgFixed->count(); i++) {
+		m_pDlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
+		QString strDirName = m_pDlgRegistration->ui.comboBoxImgFixed->currentText();
+		bool tmpResult = crntDir.mkdir(strDirName); //what if the directory exists?
+		if (!tmpResult)
+		{
+			std::cout << "DICOM dir seems to exist already. Files will be overwritten." << std::endl;
+		}
+
+		QString strSavingFolder = dirPath + "/" + strDirName;
+		QString strFullName = strLastName + ", " + strFirstName;
+		m_pDlgRegistration->LoadImgFromComboBox(0, strDirName);
+
+		SaveUSHORTAsSHORT_DICOM(m_pDlgRegistration->m_spFixed, strPatientID, strFullName, strSavingFolder);
+		QString mhaFileName = strSavingFolder + "/" + strDirName + ".mha";
+		ExportReconSHORT_HU(m_pDlgRegistration->m_spFixed, mhaFileName);
+
+	}
+	SLT_GeneratePOIData();
+	QString angle_end_one("1");
+	ui.lineEdit_AngEnd->setText(angle_end_one);
+	SLT_ExportAngularWEPL_byFile();
+}
+
 void CbctRecon::SLT_ExportReconSHORT_HU()
 {
     /*if (!m_spCrntReconImg)
@@ -6339,19 +6400,19 @@ inline const double XimBeamHardModel(const double val)
 	return 6.0e-08 * pow(val, 3.0) + 9.0e-5 * pow(val, 2.0) + 1.0e-2 * val + 0.8;
 }
 
-void hndBeamHardening(float *pBuffer, const unsigned int nPix) {
+void hndBeamHardening(float *pBuffer, const int nPix) {
 #pragma omp parallel for
 	for (int i = 0; i < nPix; i++) {
 		pBuffer[i] = (float)(((pBuffer[i] < 1.189) ? pBuffer[i] : pBuffer[i] * HndBeamHardModel(pBuffer[i])) + 1.47);
 	}
 }
-void hisBeamHardening(float *pBuffer, const unsigned int nPix) {
+void hisBeamHardening(float *pBuffer, const int nPix) {
 #pragma omp parallel for
 	for (int i = 0; i < nPix; i++) {
 		pBuffer[i] = (float)(((pBuffer[i] < 1.189) ? pBuffer[i] : pBuffer[i] * HisBeamHardModel(pBuffer[i])));
 	}
 }
-void ximBeamHardening(float *pBuffer, const unsigned int nPix) {
+void ximBeamHardening(float *pBuffer, const int nPix) {
 #pragma omp parallel for
 	for (int i = 0; i < nPix; i++) {
 		pBuffer[i] = (float)(((pBuffer[i] < 1.189) ? pBuffer[i] : pBuffer[i] * XimBeamHardModel(pBuffer[i])) - 1.47);
@@ -8555,9 +8616,9 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer& spProjRaw3D, USho
 			float scatVal = it_Src2.Get() - nonNegativeScatOffset;
             float corrVal = rawVal - scatVal;
 
-            if (corrVal < 1.0)
+            if (corrVal < 1.0f)
                 corrVal = 1.0f; //Overflow control
-            if (corrVal > 65534.0) //65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
+            if (corrVal > 65534.0f) //65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
                 corrVal = 65534.0f;
 
             it_Tar.Set(corrVal);//float // later, add customSPR
@@ -8900,7 +8961,7 @@ void CbctRecon::ConvertLineInt2Intensity(FloatImageType::Pointer& spProjLineInt3
 
     for (it_Src.GoToBegin(), it_Tar.GoToBegin(); !it_Src.IsAtEnd() && !it_Tar.IsAtEnd(); ++it_Src, ++it_Tar)
     {
-        float intensityVal = exp((double)it_Src.Get() * (-1.0)) * (double)bkIntensity;
+        float intensityVal = exp(static_cast<double>(it_Src.Get()) * -1.0) * static_cast<double>(bkIntensity);
 
         if (intensityVal <= 1.0)
             intensityVal = 1.0;
@@ -9899,52 +9960,69 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 		cout << "Warning: no DeformedCT is found" << std::endl;
 	}
 	
-	vector<WEPLData> vOutputWEPL_manual;
-	vector<WEPLData> vOutputWEPL_auto_rigid;
-	vector<WEPLData> vOutputWEPL_deform;
-	vector<WEPLData> vOutputWEPL_rawCBCT;
-	vector<WEPLData> vOutputWEPL_corCBCT;
-
-	GetAngularWEPL_window(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
-	cout << "Done: (RAW)";
-	if (m_spScatCorrReconImg)
+	std::vector<WEPLData> vOutputWEPL_manual;
+	std::vector<WEPLData> vOutputWEPL_auto_rigid;
+	std::vector<WEPLData> vOutputWEPL_deform;
+	std::vector<WEPLData> vOutputWEPL_rawCBCT;
+	std::vector<WEPLData> vOutputWEPL_corCBCT;
+#pragma omp parallel sections
 	{
-		try {
-			GetAngularWEPL_window(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
-			cout << " (COR)";
+#pragma omp section
+		{
+			GetAngularWEPL_window(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
+			cout << "Done: (RAW)";
 		}
-		catch (exception e) {
-			cout << " (COR) failed!!: e=" << e.what() << std::endl;
+#pragma omp section
+		{
+			if (m_spScatCorrReconImg)
+			{
+				try {
+					GetAngularWEPL_window(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
+					cout << " (COR)";
+				}
+				catch (exception e) {
+					cout << " (COR) failed!!: e=" << e.what() << std::endl;
+				}
+			}
 		}
-	}
-	if (m_spManualRigidCT)
-	{
-		try {
-			GetAngularWEPL_window(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
-			cout << " (MAN)";
+#pragma omp section
+		{
+			if (m_spManualRigidCT)
+			{
+				try {
+					GetAngularWEPL_window(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
+					cout << " (MAN)";
+				}
+				catch (exception e) {
+					cout << " (MAN) failed!!: e=" << e.what() << std::endl;
+				}
+			}
 		}
-		catch (exception e) {
-			cout << " (MAN) failed!!: e=" << e.what() << std::endl;
+#pragma omp section
+		{
+			if (m_spAutoRigidCT)
+			{
+				try {
+					GetAngularWEPL_window(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
+					cout << " (AUT)";
+				}
+				catch (exception e) {
+					cout << " (AUT) failed!!: e=" << e.what() << std::endl;
+				}
+			}
 		}
-	}
-	if (m_spAutoRigidCT)
-	{
-		try {
-			GetAngularWEPL_window(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
-			cout << " (AUT)";
-		}
-		catch (exception e) {
-			cout << " (AUT) failed!!: e=" << e.what() << std::endl;
-		}
-	}
-	if (m_spDeformedCT_Final)
-	{
-		try {
-			GetAngularWEPL_window(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
-			cout << " (DEF)";
-		}
-		catch (exception e) {
-			cout << " (DEF) failed!!: e=" << e.what() << std::endl;
+#pragma omp section
+		{
+			if (m_spDeformedCT_Final)
+			{
+				try {
+					GetAngularWEPL_window(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
+					cout << " (DEF)";
+				}
+				catch (exception e) {
+					cout << " (DEF) failed!!: e=" << e.what() << std::endl;
+				}
+			}
 		}
 	}
 	cout << std::endl;
@@ -10296,6 +10374,9 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, f
 	if (fAngleGap <= 0)
 		return;
 
+	if (!bAppend)
+		vOutputWEPLData.clear();
+
 	FloatImageType::Pointer wepl_image = ConvertUshort2WeplFloat(spUshortImage);
 
 	const double fullAngle = fAngleEnd - fAngleStart;
@@ -10313,16 +10394,13 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, f
 	};
 
 	const double couch = 0.0;
-	std::vector<WEPLData> wepl_vec(m_vPOI_DCM.size() * sizeAngles);
 
-#pragma omp parallel for
 	for (int i = 0; i < sizeAngles; i++)
 	{
 		const double gantry = fAngleStart + i * fAngleGap;
 		const std::array<double, 3> basis = get_basis_from_angles(gantry, couch);
-
-		auto poi_it = m_vPOI_DCM.begin();
-		while (poi_it < m_vPOI_DCM.end())
+		size_t loop_idx = 0;
+		for (auto poi_it = m_vPOI_DCM.begin(); poi_it < m_vPOI_DCM.end(); poi_it++, loop_idx++)
 		{
 			UShortImageType::PointType cur_point;
 			cur_point[0] = poi_it->x;
@@ -10337,20 +10415,16 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, f
 					static_cast<size_t>(cur_idx[2])
 				} };
 
-			const auto idx = static_cast<size_t>(i * (poi_it - m_vPOI_DCM.begin()));
-			wepl_vec[idx].fWEPL = WEPL_from_point(point_id, basis,
-				pixel_size, cubedim, wepl_image);
-			wepl_vec[idx].ptIndex = poi_it - m_vPOI_DCM.begin();
-			wepl_vec[idx].fGanAngle = gantry;
+			WEPLData wepl_data;
+			wepl_data.fWEPL = WEPL_from_point(
+				point_id, basis, pixel_size, cubedim, wepl_image
+			    );
+			wepl_data.ptIndex = loop_idx;
+			wepl_data.fGanAngle = gantry;
 
-			poi_it++;
+			vOutputWEPLData.push_back(wepl_data);
 		}
 	}
-
-	if (!bAppend)
-		vOutputWEPLData.clear();
-
-	std::copy(wepl_vec.begin(), wepl_vec.end(), std::back_inserter(vOutputWEPLData));
 };
 
 void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend)
@@ -10695,7 +10769,7 @@ void CbctRecon::SLT_GeneratePOIData()//it fills m_vPOI_DCM
 			}
 		}
 	}
-	cout << "POI data generated! last value: [" << fPOI.x << ", " << fPOI.y << ", " << fPOI.z << "]" << std::endl;
+	std::cout << "POI data generated! last value: [" << fPOI.x << ", " << fPOI.y << ", " << fPOI.z << "]" << std::endl;
 
 }
 

@@ -2916,6 +2916,7 @@
     <addaction name="separator"/>
     <addaction name="actionExport_Short_DICOM_for_Current_Img"/>
     <addaction name="actionLoad_POI_data_txt"/>
+    <addaction name="actionExport_all_as_DCM_and_mha_with_AP_WEPL_data"/>
    </widget>
    <widget class="QMenu" name="menuTool">
     <property name="title">
@@ -3149,6 +3150,11 @@
   <action name="actionHistograms">
    <property name="text">
     <string>Histograms</string>
+   </property>
+  </action>
+  <action name="actionExport_all_as_DCM_and_mha_with_AP_WEPL_data">
+   <property name="text">
+    <string>Export all as DCM and mha with AP WEPL data</string>
    </property>
   </action>
  </widget>
@@ -4678,6 +4684,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionExport_all_as_DCM_and_mha_with_AP_WEPL_data</sender>
+   <signal>triggered()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>568</x>
+     <y>390</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_LoadRawImages()</slot>
@@ -4705,6 +4727,7 @@
   <slot>SLT_DoPostProcessing()</slot>
   <slot>SLT_ExportReconUSHORT()</slot>
   <slot>SLT_ExportReconSHORT_HU()</slot>
+  <slot>SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL()</slot>
   <slot>SLT_UpdatePostProcDispObj()</slot>
   <slot>SLT_DoBHC()</slot>
   <slot>SLT_DoBowtieCorrection()</slot>

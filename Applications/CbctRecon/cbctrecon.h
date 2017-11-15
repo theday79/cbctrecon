@@ -407,6 +407,7 @@ public:
 
 	void SLT_ExportReconUSHORT();
 	void SLT_ExportReconSHORT_HU();
+	void SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL();
 	void SLT_DoBHC();
 	void SLT_DoBowtieCorrection();
 

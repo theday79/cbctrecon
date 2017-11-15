@@ -40,6 +40,12 @@ void OpenCL_AddConst_InPlace(
 	itk::Image<float, 3U>::SizeType inputSize,
 	const cl_float constant);
 
+void OpenCL_AddConst_MulConst_InPlace(
+	cl_float* input,
+	itk::Image<float, 3U>::SizeType inputSize,
+	const cl_float add_constant,
+	const cl_float mul_constant);
+
 void OpenCL_AddConst_InPlace_2D(
 	cl_float* input,
 	itk::Image<float, 2U>::SizeType inputSize,

@@ -243,13 +243,42 @@ __kernel void divide_kernel3D_Ushort(
 	output[idx] = mu_in / mu_div;
 }
 
+// Adds value to input or assigns to 0 or ln(65535) if outside bounds.
 __kernel void add_const_kernel(
 	__global float *input,
 	float value)
 {
+	const float short_lim = log(65535.0f);
 	const unsigned int idx = get_global_id(0);
+	const float out_val = input[idx] + value;
 
-	input[idx] += value;
+	if (out_val < 0.0f){ 
+		input[idx] = 0.0f;
+	} else if (out_val > short_lim) {
+		input[idx] = short_lim;
+	} else { 
+		input[idx] = out_val;
+	}
+}
+
+// Adds add_value and then multiplies mul_value to input or assigns to 0 or ln(65535) if result outside bounds.
+__kernel void add_mul_const_kernel(
+	__global float *input,
+	const float add_value,
+	const float mul_value)
+{
+	const float short_lim = log(65535.0f);
+	const unsigned int idx = get_global_id(0);
+	const float out_val = (input[idx] + add_value) * mul_value;
+	if (out_val < 0.0f) {
+		input[idx] = 0.0f;
+	}
+	else if (out_val > short_lim) {
+		input[idx] = short_lim;
+	}
+	else {
+		input[idx] = out_val;
+	}
 }
 
 __kernel void min_max_kernel(
@@ -258,17 +287,19 @@ __kernel void min_max_kernel(
 	const uint divider)
 {
 	const uint idx = get_global_id(0);
-	subImg[idx].x = 65535.0f; //min
-	subImg[idx].y = -9999.0f; //max
 
 	const uint first_idx_in = idx * divider;
 
-	for(uint i = first_idx_in; i<(first_idx_in+divider); i++){ 
-		if (subImg[idx].x > input[i])
-			subImg[idx].x = input[i];
-		if (subImg[idx].y < input[i])
-			subImg[idx].y = input[i];
+	float min_val = 65535.0f;
+	float max_val = -9999.0f;
+	for (uint i = first_idx_in; i < (first_idx_in + divider); i++) {
+		if (min_val > input[i])
+			min_val = input[i];
+		if (max_val < input[i])
+			max_val = input[i];
 	}
+	subImg[idx].x = min_val; //min
+	subImg[idx].y = max_val; //max
 }
 
 __kernel void min_max_kernel2(
@@ -278,18 +309,19 @@ __kernel void min_max_kernel2(
 	const uint end_idx)
 {
 	const uint idx = get_global_id(0);
-	subImg[idx].x = 65535.0f; //min
-	subImg[idx].y = -9999.0f; //max
 
 	const uint first_idx_in = idx * divider;
 	
 	if ((first_idx_in + divider) > end_idx)
 			divider = end_idx - first_idx_in;
-
+	float min_val = 65535.0f;
+	float max_val = -9999.0f;
 	for (uint i = first_idx_in; i < (first_idx_in + divider); i++) {
-		if (subImg[idx].x > input[i].x)
-			subImg[idx].x = input[i].x;
-		if (subImg[idx].y < input[i].y)
-			subImg[idx].y = input[i].y;
+		if (min_val > input[i].x)
+			min_val = input[i].x;
+		if (max_val < input[i].y)
+			max_val = input[i].y;
 	}
+	subImg[idx].x = min_val; //min
+	subImg[idx].y = max_val; //max
 }

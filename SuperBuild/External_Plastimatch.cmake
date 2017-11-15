@@ -57,13 +57,6 @@ if(NOT DEFINED Plastimatch_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     QUIET
     )
 
-  IF (WIN32)
-  SET(PLAST_CXX_FLAGS
-    ${CMAKE_CXX_FLAGS}
-	" /DHAVE_CXX11 "
-    )
-  ENDIF(WIN32)
-
   ExternalProject_Add(${proj}
     ${${proj}_EP_ARGS}
     GIT_REPOSITORY "${${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY}"
