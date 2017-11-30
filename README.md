@@ -4,8 +4,8 @@ CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 **Proton dose calculation on scatter-corrected CBCT image: Feasibility study for adaptive proton therapy**
 http://dx.doi.org/10.1118/1.4923179
 
-For the moment Windows 64bit is supported
-In order to compile the software, you must have installed the following prerequisites and compiled with Visual Studio 2013 (or 2015 with CUDA 8.0 or above) when compilation is needed:
+For the moment Windows 64bit is supported. *Linux (Arch/Manjaro) support is under development*
+In order to compile the software, you must have installed the following prerequisites and a C++ compiler compatible with your version of CUDA.
 
 **Prerequisites**
  - Git</li>
