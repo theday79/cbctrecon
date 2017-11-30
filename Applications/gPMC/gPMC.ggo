@@ -1,0 +1,16 @@
+package "gPMC"
+purpose "Computes proton dose from already existing beams on dicom image [Xun Jia et al. 2012, Nan Qin et al. 2016]. (NYI=Not Yet Implemented).  LETD is dose weighted LET, to get dose averaged LET, divide it by DOSE2MEDIUM from another simulation run"
+
+option "verbose"    v "Verbose execution"                               flag                                              off
+option "batch"      b "# of times to run custom sim. of 1M particles"   int                                               no
+option "config"     - "Config file"                                     string                                            no
+option "dir"        d "Directory containing DICOM images"               string                                            yes
+option "plan"       p "filepath to DICOM proton plan"                   string multiple                                   no
+option "Nplans"     n "# of dicom plans given (required if > 1)"        int                                               no
+option "lut"        - "path to Look Up Tables"                          string                                            no
+option "output"     o "Output file name"                                string                                            yes
+option "hardware"   h "Hardware used for computation"                   values="cpu","gpu","acc"                          no
+option "metric"     - "What metric(Dose/LETD) of output du you want?"   values="dose2water","letd","dose2medium","fluence" no   default="dose2water"
+
+section "Beam input described in DlgRegistration::SLT_gPMCrecalc"
+option "rst"       - "Beam file name (rst-like) (NYI)"                  string                                            no

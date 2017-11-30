@@ -1,0 +1,2217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DlgRegistrationClass</class>
+ <widget class="QDialog" name="DlgRegistrationClass">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>908</width>
+    <height>725</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_9">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_2">
+     <property name="horizontalSpacing">
+      <number>0</number>
+     </property>
+     <item row="0" column="0">
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QFrame" name="frame">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>50</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QFrame {
+background-color: #45629a;
+}
+
+QLabel {
+color: white;
+}</string>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QLabel" name="labelDisp1">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Axial</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSlider" name="sliderPosDisp1">
+            <property name="maximum">
+             <number>65535</number>
+            </property>
+            <property name="singleStep">
+             <number>1</number>
+            </property>
+            <property name="pageStep">
+             <number>10</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="qyklabel" name="labelOverlapWnd1">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::Box</enum>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QGroupBox" name="groupBox_3">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>90</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>100</height>
+          </size>
+         </property>
+         <property name="title">
+          <string/>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="1" column="5">
+           <widget class="QSpinBox" name="spinBox_overrideValue">
+            <property name="minimum">
+             <number>-1024</number>
+            </property>
+            <property name="maximum">
+             <number>1024</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLineEdit" name="lineEditCurPosX"/>
+          </item>
+          <item row="3" column="3">
+           <widget class="QLineEdit" name="lineEditCurPosZ"/>
+          </item>
+          <item row="0" column="0" colspan="2">
+           <widget class="QLabel" name="label_12">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Current Position (DICOM)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QLabel" name="label_22">
+            <property name="text">
+             <string>Z (mm)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="label_21">
+            <property name="text">
+             <string>Y (mm)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="6">
+           <widget class="QSpinBox" name="spinBox_Nsims">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="checkBoxPan">
+            <property name="text">
+             <string>Pan</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_20">
+            <property name="text">
+             <string>X (mm)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="10">
+           <widget class="QPushButton" name="pushButtonRestoreAll">
+            <property name="text">
+             <string>Restore all</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="7">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string># of Simulations</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QCheckBox" name="checkBoxDrawSplit">
+            <property name="text">
+             <string>SplitView</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLineEdit" name="lineEditCurPosY"/>
+          </item>
+          <item row="0" column="10">
+           <widget class="QPushButton" name="pushButtonRestoreSingle">
+            <property name="text">
+             <string>Restore single</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="10">
+           <widget class="QPushButton" name="pushButtonCurPosGo">
+            <property name="text">
+             <string>GO</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QCheckBox" name="checkBoxZoom">
+            <property name="text">
+             <string>Zoom</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="checkBoxDrawCrosshair">
+            <property name="text">
+             <string>Crosshair</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="4">
+           <widget class="QSpinBox" name="spinBox_overrideRadius">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>10</number>
+            </property>
+            <property name="value">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QLabel" name="label_4">
+            <property name="text">
+             <string>Radius[voxel]</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="5">
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Value [HU]</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="5">
+           <widget class="QPushButton" name="pushButton_override">
+            <property name="text">
+             <string>Override!</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="4">
+           <widget class="QComboBox" name="comboBox_imToOverride">
+            <item>
+             <property name="text">
+              <string>Moving</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Fixed</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="0" column="6" colspan="2">
+           <widget class="QPushButton" name="pushButton_recalcDose">
+            <property name="text">
+             <string>gPMC - recalc</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="6">
+           <widget class="QSpinBox" name="spinBox_NdcmPlans">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="7">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string># of DCM plans</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QPushButton" name="pushButtonChangeView">
+         <property name="text">
+          <string>Chage View</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QProgressBar" name="progressBar">
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1" rowspan="4">
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QFrame" name="frame_4">
+           <property name="minimumSize">
+            <size>
+             <width>50</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QFrame" name="frame_6">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>50</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QFrame {
+background-color: #45629a;
+}
+
+QLabel {
+color: white;
+}</string>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_6">
+               <item>
+                <widget class="QLabel" name="labelDisp2">
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Frontal</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSlider" name="sliderPosDisp2">
+                 <property name="maximum">
+                  <number>65535</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                 <property name="pageStep">
+                  <number>10</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="qyklabel" name="labelOverlapWnd2">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
+              <property name="autoFillBackground">
+               <bool>false</bool>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::Box</enum>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_5">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_6">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QFrame" name="frame_7">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>50</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QFrame {
+background-color: #45629a;
+}
+
+QLabel {
+color: white;
+}</string>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_7">
+               <item>
+                <widget class="QLabel" name="labelDisp3">
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Sagittal</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSlider" name="sliderPosDisp3">
+                 <property name="maximum">
+                  <number>65535</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                 <property name="pageStep">
+                  <number>10</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="qyklabel" name="labelOverlapWnd3">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
+              <property name="autoFillBackground">
+               <bool>false</bool>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::Box</enum>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+     <item row="0" column="2">
+      <widget class="QFrame" name="frame_2">
+       <property name="maximumSize">
+        <size>
+         <width>280</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_7">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QGroupBox" name="groupBox_8">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>170</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>200</height>
+           </size>
+          </property>
+          <property name="title">
+           <string>Prepare CBCT</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="checkBoxFillBubbleCBCT">
+             <property name="text">
+              <string>Fill bubble</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="4">
+            <widget class="QLineEdit" name="lineEditBkFillCBCT">
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="4">
+            <widget class="QLineEdit" name="lineEditBubFillCBCT">
+             <property name="text">
+              <string>700</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="checkBoxCropBkgroundCBCT">
+             <property name="text">
+              <string>Crop bkground</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="4">
+            <widget class="QLabel" name="label_36">
+             <property name="text">
+              <string>Fill</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QLabel" name="label_49">
+             <property name="text">
+              <string>Ref. Radius(mm)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_39">
+             <property name="text">
+              <string>Crop skin  bf. regid</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QLineEdit" name="lineEditNormRoiRadius">
+             <property name="text">
+              <string>30</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2" colspan="3">
+            <widget class="QPushButton" name="pushButtonIntensityNormCBCT">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Norm. CBCT</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_48">
+             <property name="text">
+              <string>CBCT intensity shift</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1" colspan="4">
+            <widget class="QLineEdit" name="lineEditFOVPos">
+             <property name="text">
+              <string>0.0,0.0,190.0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="4">
+            <widget class="QLineEdit" name="lineEditCBCTSkinCropBfRegid">
+             <property name="text">
+              <string>10.0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1" colspan="3">
+            <widget class="QLineEdit" name="lineEditBubDetectCBCT">
+             <property name="text">
+              <string>500</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="3">
+            <widget class="QLabel" name="label_38">
+             <property name="text">
+              <string>skin</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="3">
+            <widget class="QLabel" name="label_35">
+             <property name="text">
+              <string>Detect</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0" colspan="4">
+            <widget class="QLabel" name="label_47">
+             <property name="text">
+              <string>FOV Center X,Y, Radius (mm)</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_4">
+          <property name="title">
+           <string>Manual registration</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_4">
+           <item row="0" column="3">
+            <widget class="QPushButton" name="pushButtonMoveFromDCMPlanOpen">
+             <property name="text">
+              <string>OpenRTPlan</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="3">
+            <widget class="QPushButton" name="pushButtonRestoreOriginal">
+             <property name="text">
+              <string>Restore</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="3">
+            <widget class="QPushButton" name="pushButtonConfirmManualRegi">
+             <property name="text">
+              <string>Crop Skin</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QPushButton" name="pushButtonGradSearch">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Gradient</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxKeyMoving">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Keyboard</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_19">
+             <property name="text">
+              <string>Moving origin</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="3">
+            <widget class="QLineEdit" name="lineEditOriginChanged"/>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>Moving resolution</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="lineEditMovingResol">
+             <property name="text">
+              <string>1.0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="2">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>mm</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1" colspan="2">
+            <widget class="QLineEdit" name="lineEditGradOption">
+             <property name="text">
+              <string>0.7,0.7,0.7</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="2">
+            <widget class="QPushButton" name="pushButtonMoveFromDCMPlan">
+             <property name="text">
+              <string>DCM_plan</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_5">
+          <property name="title">
+           <string>Plastimatch- rigid body</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_6">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_41">
+             <property name="text">
+              <string>Crop skin  bf. DIR</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lineEditCBCTSkinCropBfDIR">
+             <property name="text">
+              <string>8.0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="label_42">
+             <property name="text">
+              <string>mm</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="checkBoxUseROIForRigid">
+             <property name="text">
+              <string>Use FOV mask</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QPushButton" name="pushButtonDoRigid">
+             <property name="text">
+              <string>Do registration</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_6">
+          <property name="title">
+           <string>Plastimatch-deformable</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_8">
+           <item row="0" column="4">
+            <widget class="QRadioButton" name="radioButton_mi">
+             <property name="text">
+              <string>MI</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2" colspan="2">
+            <widget class="QRadioButton" name="radioButton_mse">
+             <property name="text">
+              <string>MSE</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_26">
+             <property name="text">
+              <string>Step1</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_25">
+             <property name="text">
+              <string>Optimization</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="4">
+            <widget class="QLineEdit" name="lineEditArgument3">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="4">
+            <widget class="QLineEdit" name="lineEditArgument1">
+             <property name="text">
+              <string>2,2,1,30,0.00001,0.005,30</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="4">
+            <widget class="QLineEdit" name="lineEditArgument2">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_28">
+             <property name="text">
+              <string>Step3</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_27">
+             <property name="text">
+              <string>Step2</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2" colspan="3">
+            <widget class="QPushButton" name="pushButtonDoDeformable">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Do registration</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0" colspan="2">
+            <widget class="QCheckBox" name="checkBoxUseROIForDIR">
+             <property name="text">
+              <string>Use FOV mask</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QFrame" name="frame_3">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>150</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_10">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <property name="spacing">
+         <number>2</number>
+        </property>
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>200</height>
+           </size>
+          </property>
+          <property name="title">
+           <string/>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_10">
+           <item row="2" column="5">
+            <widget class="QLabel" name="label_29">
+             <property name="maximumSize">
+              <size>
+               <width>10</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>W</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QPushButton" name="pushButtonPassFixed">
+             <property name="text">
+              <string>Pass</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="4">
+            <widget class="QSpinBox" name="spinBoxFixedL">
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>1024</number>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="3" colspan="2">
+            <widget class="QLineEdit" name="lineEditOriginFixed"/>
+           </item>
+           <item row="0" column="4">
+            <widget class="QComboBox" name="comboBoxImgFixed"/>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>Origin (DICOM, mm)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="5">
+            <widget class="QLabel" name="label_30">
+             <property name="text">
+              <string>L</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="4">
+            <widget class="QSpinBox" name="spinBoxFixedW">
+             <property name="maximum">
+              <number>10000</number>
+             </property>
+             <property name="singleStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>2000</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="4" column="0">
+            <spacer name="horizontalSpacer_5">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="3" column="0" colspan="4">
+            <widget class="QSlider" name="sliderFixedL">
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="pageStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>1024</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0" colspan="4">
+            <widget class="QSlider" name="sliderFixedW">
+             <property name="maximum">
+              <number>10000</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="pageStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>2000</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_11">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>Fixed Image</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>200</height>
+           </size>
+          </property>
+          <property name="title">
+           <string/>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_11">
+           <item row="4" column="1">
+            <widget class="QLabel" name="label_18">
+             <property name="text">
+              <string>Origin (DICOM, mm)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QPushButton" name="pushButtonPassMoving">
+             <property name="text">
+              <string>Pass</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="4">
+            <widget class="QComboBox" name="comboBoxImgMoving"/>
+           </item>
+           <item row="2" column="4">
+            <widget class="QSpinBox" name="spinBoxMovingW">
+             <property name="maximum">
+              <number>10000</number>
+             </property>
+             <property name="singleStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>2000</number>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="5">
+            <widget class="QLabel" name="label_32">
+             <property name="text">
+              <string>L</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="4">
+            <widget class="QSpinBox" name="spinBoxMovingL">
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>1024</number>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="3" colspan="2">
+            <widget class="QLineEdit" name="lineEditOriginMoving"/>
+           </item>
+           <item row="2" column="5">
+            <widget class="QLabel" name="label_31">
+             <property name="maximumSize">
+              <size>
+               <width>10</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>W</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="3" column="0" colspan="4">
+            <widget class="QSlider" name="sliderMovingL">
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="pageStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>1024</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0" colspan="4">
+            <widget class="QSlider" name="sliderMovingW">
+             <property name="maximum">
+              <number>10000</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="pageStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>2000</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_13">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>Moving Image</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <spacer name="horizontalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="maximumSize">
+           <size>
+            <width>280</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <widget class="QWidget" name="tab">
+           <attribute name="title">
+            <string>Prepare CT</string>
+           </attribute>
+           <layout class="QGridLayout" name="gridLayout_13">
+            <item row="2" column="4">
+             <widget class="QLineEdit" name="lineEditBkFillCT">
+              <property name="text">
+               <string>-1024</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="4">
+             <widget class="QLineEdit" name="lineEditBubFillCT">
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="4">
+             <widget class="QLabel" name="label_34">
+              <property name="text">
+               <string>Fill</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <widget class="QLabel" name="label_33">
+              <property name="text">
+               <string>Detect</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QLabel" name="label_37">
+              <property name="text">
+               <string>skin</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="3">
+             <widget class="QLineEdit" name="lineEditCropContourName">
+              <property name="text">
+               <string>Skin</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="3">
+             <widget class="QLineEdit" name="lineEditBkDetectCT">
+              <property name="text">
+               <string>-600</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="4">
+             <widget class="QPushButton" name="pushButtonProcessCT">
+              <property name="text">
+               <string>Process</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QCheckBox" name="checkBoxFillBubbleCT">
+              <property name="text">
+               <string>Fill bubble</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QCheckBox" name="checkBoxCropBkgroundCT">
+              <property name="text">
+               <string>Crop bkground</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLabel" name="label_43">
+              <property name="text">
+               <string>RS name</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+           <zorder>lineEditBkDetectCT</zorder>
+           <zorder>lineEditBkFillCT</zorder>
+           <zorder>lineEditBubFillCT</zorder>
+           <zorder>label_34</zorder>
+           <zorder>label_33</zorder>
+           <zorder>label_37</zorder>
+           <zorder>lineEditCropContourName</zorder>
+           <zorder>pushButtonProcessCT</zorder>
+           <zorder>checkBoxFillBubbleCT</zorder>
+           <zorder>checkBoxCropBkgroundCT</zorder>
+           <zorder>label_43</zorder>
+          </widget>
+          <widget class="QWidget" name="tab_2">
+           <attribute name="title">
+            <string>Mask Intensity Correction</string>
+           </attribute>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_44">
+              <property name="text">
+               <string>Inner</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="lineEditThermoInner">
+              <property name="text">
+               <string>5.0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="2">
+             <widget class="QLabel" name="label_45">
+              <property name="text">
+               <string>mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_46">
+              <property name="text">
+               <string>Outer</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLineEdit" name="lineEditThermoOuter">
+              <property name="text">
+               <string>10.0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2">
+             <widget class="QLabel" name="label_50">
+              <property name="text">
+               <string>mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="5">
+             <widget class="QLineEdit" name="lineEditiNoTouchThreshold">
+              <property name="text">
+               <string>1100</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0" colspan="4">
+             <widget class="QCheckBox" name="checkBoxRemoveMaskAfterCor">
+              <property name="text">
+               <string>Lower mask intensity</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="4" colspan="2">
+             <widget class="QPushButton" name="pushButtonDoLowerMask">
+              <property name="text">
+               <string>Do now</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="5">
+             <widget class="QLineEdit" name="lineEditRawCorThre">
+              <property name="text">
+               <string>100</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3" colspan="2">
+             <widget class="QLabel" name="label_51">
+              <property name="text">
+               <string>Diff thresh(HU)</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="3" colspan="2">
+             <widget class="QLabel" name="label_52">
+              <property name="text">
+               <string>For value above</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>qyklabel</class>
+   <extends>QLabel</extends>
+   <header>qyklabel.h</header>
+   <slots>
+    <slot>SetDrawPointToggle(bool)</slot>
+   </slots>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>pushButtonCurPosGo</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_CrntPosGo()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>412</x>
+     <y>634</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>555</x>
+     <y>633</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderPosDisp1</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageWhenSliceChange()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>165</x>
+     <y>22</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>118</x>
+     <y>17</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderPosDisp2</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageWhenSliceChange()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>735</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>817</x>
+     <y>22</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderPosDisp3</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageWhenSliceChange()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>695</x>
+     <y>317</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>808</x>
+     <y>305</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMovingW</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageInFixedSlice()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>458</x>
+     <y>696</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>423</x>
+     <y>701</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMovingL</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageInFixedSlice()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>456</x>
+     <y>721</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>420</x>
+     <y>733</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMovingW</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxMovingW</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>655</x>
+     <y>701</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>689</x>
+     <y>699</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMovingL</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxMovingL</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>667</x>
+     <y>722</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>683</x>
+     <y>722</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxMovingL</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sliderMovingL</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>710</x>
+     <y>727</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>647</x>
+     <y>728</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxMovingW</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sliderMovingW</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>686</x>
+     <y>697</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>659</x>
+     <y>697</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonChangeView</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_ChangeView()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>597</x>
+     <y>608</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>638</x>
+     <y>612</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDrawCrosshair</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageWhenSliceChange()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>281</x>
+     <y>584</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>256</x>
+     <y>563</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRestoreSingle</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_RestoreImageSingle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>529</x>
+     <y>585</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>541</x>
+     <y>552</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRestoreAll</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_RestoreImageAll()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>508</x>
+     <y>632</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>648</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDoRigid</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DoRegistrationRigid()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1030</x>
+     <y>490</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>828</x>
+     <y>303</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxKeyMoving</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_BringFocusToEnableArrow(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>900</x>
+     <y>150</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1012</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxKeyMoving</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_KeyMoving(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>900</x>
+     <y>150</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1019</x>
+     <y>69</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxImgMoving</sender>
+   <signal>currentIndexChanged(QString)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_MovingImageSelected(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>780</x>
+     <y>674</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>822</x>
+     <y>721</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRestoreOriginal</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_RestoreMovingImg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>940</x>
+     <y>170</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>968</x>
+     <y>0</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDoDeformable</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DoRegistrationDeform()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>868</x>
+     <y>700</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>951</x>
+     <y>584</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonPassMoving</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_PassMovingImgForAnalysis()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>613</x>
+     <y>670</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>667</x>
+     <y>625</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonGradSearch</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DoRegistrationGradient()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>960</x>
+     <y>189</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1039</x>
+     <y>171</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonMoveFromDCMPlan</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_ManualMoveByDCMPlan()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>993</x>
+     <y>162</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1090</x>
+     <y>182</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonConfirmManualRegi</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_ConfirmManualRegistration()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1048</x>
+     <y>240</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1094</x>
+     <y>237</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonIntensityNormCBCT</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_IntensityNormCBCT()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1061</x>
+     <y>422</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1081</x>
+     <y>425</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDoLowerMask</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DoLowerMaskIntensity()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1060</x>
+     <y>764</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1064</x>
+     <y>791</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonMoveFromDCMPlanOpen</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_ManualMoveByDCMPlanOpen()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1064</x>
+     <y>163</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1108</x>
+     <y>211</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderFixedW</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxFixedW</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>254</x>
+     <y>698</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>284</x>
+     <y>697</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxImgFixed</sender>
+   <signal>currentIndexChanged(QString)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_FixedImageSelected(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>381</x>
+     <y>663</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>387</x>
+     <y>792</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderFixedL</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxFixedL</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>228</x>
+     <y>716</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>297</x>
+     <y>716</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonPassFixed</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_PassFixedImgForAnalysis()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>190</x>
+     <y>672</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>18</x>
+     <y>640</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxFixedW</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sliderFixedW</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>300</x>
+     <y>693</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>240</x>
+     <y>694</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxFixedL</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sliderFixedL</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>296</x>
+     <y>727</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>256</x>
+     <y>728</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderFixedW</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageInFixedSlice()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>46</x>
+     <y>697</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>16</x>
+     <y>697</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderFixedL</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DrawImageInFixedSlice()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>43</x>
+     <y>723</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>14</x>
+     <y>731</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_recalcDose</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_gPMCrecalc()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1234</x>
+     <y>207</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>641</x>
+     <y>422</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonProcessCT</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_PreProcessCT()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>952</x>
+     <y>93</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1008</x>
+     <y>119</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_override</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_Override()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>380</x>
+     <y>559</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>453</x>
+     <y>362</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>SLT_CrntPosGo()</slot>
+  <slot>SLT_gPMCrecalc()</slot>
+  <slot>SLT_Override()</slot>
+  <slot>SLT_DrawImageWhenSliceChange()</slot>
+  <slot>SLT_DrawImageInFixedSlice()</slot>
+  <slot>SLT_ChangeView()</slot>
+  <slot>SLT_RestoreImageSingle()</slot>
+  <slot>SLT_RestoreImageAll()</slot>
+  <slot>SLT_DoRegistrationRigid()</slot>
+  <slot>SLT_BringFocusToEnableArrow(bool)</slot>
+  <slot>SLT_KeyMoving(bool)</slot>
+  <slot>SLT_FixedImageSelected(QString)</slot>
+  <slot>SLT_MovingImageSelected(QString)</slot>
+  <slot>SLT_RestoreMovingImg()</slot>
+  <slot>SLT_DoRegistrationDeform()</slot>
+  <slot>SLT_PreProcessCT()</slot>
+  <slot>SLT_PreProcessCBCT()</slot>
+  <slot>SLT_PassFixedImgForAnalysis()</slot>
+  <slot>SLT_PassMovingImgForAnalysis()</slot>
+  <slot>SLT_Macro()</slot>
+  <slot>SLT_ExchangeRawRef()</slot>
+  <slot>SLT_DoRegistrationGradient()</slot>
+  <slot>SLT_ManualMoveByDCMPlan()</slot>
+  <slot>SLT_ConfirmManualRegistration()</slot>
+  <slot>SLT_IntensityNormCBCT()</slot>
+  <slot>SLT_DoLowerMaskIntensity()</slot>
+  <slot>SLT_ManualMoveByDCMPlanOpen()</slot>
+ </slots>
+</ui>

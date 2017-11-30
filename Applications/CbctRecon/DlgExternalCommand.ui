@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DlgExternalCommandClass</class>
+ <widget class="QDialog" name="DlgExternalCommandClass">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>775</width>
+    <height>416</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout_5">
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="groupBox_5">
+     <property name="title">
+      <string>External RTK reconstruction</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="0" column="0">
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <widget class="QPushButton" name="pushButtonSetRTKPath">
+          <property name="text">
+           <string>Open Path</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1" rowspan="2" colspan="3">
+         <widget class="QPlainTextEdit" name="plainTextRTKPath">
+          <property name="plainText">
+           <string>H:\lib\rtk\NightlyBUILD64\bin\Release</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4" rowspan="5">
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="maximumSize">
+           <size>
+            <width>250</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="title">
+           <string>Additional options</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <layout class="QGridLayout" name="gridLayout">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>Iteration (5)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="lineEditIteration">
+               <property name="text">
+                <string>5</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_3">
+               <property name="text">
+                <string>SART_lamda (0.3)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLineEdit" name="lineEditSARTlamda">
+               <property name="text">
+                <string>0.3</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>SART_positivity (off)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLineEdit" name="lineEditSARTpositivity">
+               <property name="text">
+                <string>off</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>SART_nprojpersubset (1)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLineEdit" name="lineEditSARTsubsetproj">
+               <property name="text">
+                <string>1</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>TV_alpha (0.1)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QLineEdit" name="lineEditTValpha">
+               <property name="text">
+                <string>0.1</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QLabel" name="label_7">
+               <property name="text">
+                <string>TV_beta (1.0)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1">
+              <widget class="QLineEdit" name="lineEditTVbeta">
+               <property name="text">
+                <string>1.0</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0">
+              <widget class="QLabel" name="label_8">
+               <property name="text">
+                <string>TV_CGiter (5)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="1">
+              <widget class="QLineEdit" name="lineEditTVCGiter">
+               <property name="text">
+                <string>5</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>Wavelet_order (3)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1">
+              <widget class="QLineEdit" name="lineEditWVorder">
+               <property name="text">
+                <string>3</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="0">
+              <widget class="QLabel" name="label_10">
+               <property name="text">
+                <string>Wavelet_levels (5)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="1">
+              <widget class="QLineEdit" name="lineEditWVlevel">
+               <property name="text">
+                <string>5</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="pushButtonSetRTKManual">
+          <property name="text">
+           <string>Set Manually</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="2">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Command options</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QComboBox" name="comboBoxRTKOption"/>
+        </item>
+        <item row="2" column="3">
+         <widget class="QPushButton" name="pushButtonGenCommand">
+          <property name="text">
+           <string>Gen. Command</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0" colspan="4">
+         <widget class="QPlainTextEdit" name="plainTextRTKCommandLine">
+          <property name="lineWrapMode">
+           <enum>QPlainTextEdit::WidgetWidth</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="2" colspan="2">
+         <widget class="QPushButton" name="pushButtonRun">
+          <property name="text">
+           <string>Run</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>pushButtonSetRTKPath</sender>
+   <signal>released()</signal>
+   <receiver>DlgExternalCommandClass</receiver>
+   <slot>SLT_SetRTKPath()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>46</x>
+     <y>67</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>48</x>
+     <y>14</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonGenCommand</sender>
+   <signal>released()</signal>
+   <receiver>DlgExternalCommandClass</receiver>
+   <slot>SLT_GenRTKCommand()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>390</x>
+     <y>132</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>538</x>
+     <y>128</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRun</sender>
+   <signal>released()</signal>
+   <receiver>DlgExternalCommandClass</receiver>
+   <slot>SLT_RunRTKCommand()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>484</x>
+     <y>229</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>524</x>
+     <y>229</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSetRTKManual</sender>
+   <signal>released()</signal>
+   <receiver>DlgExternalCommandClass</receiver>
+   <slot>SLT_SetRTKPathManual()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>71</x>
+     <y>83</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>152</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>SLT_SetRTKPath()</slot>
+  <slot>SLT_GenRTKCommand()</slot>
+  <slot>SLT_RunRTKCommand()</slot>
+  <slot>SLT_SetRTKPathManual()</slot>
+ </slots>
+</ui>
