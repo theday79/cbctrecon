@@ -25,10 +25,14 @@ In order to compile the software, you must have installed the following prerequi
 *Before installation consider:
 goPMC binary files and a Visual Studio 2013 Debug Compiler is needed for goPMC support and the goPMC app must be compiled seperately.*
 
-If you want to use Visual Studio 2015, you must use CUDA 8.0 or above due to compiler incompatibilities
+If you want to use Visual Studio 2015, you must use CUDA 8.0 or above due to compiler incompatibilities.
+
 If you want to use Visual Studio 2017, you must use CUDA 9.0 or above AND set `CUDA_HOST_COMPILER="C:/Program Files (x86)/Microsoft Visual Studio/[VS edition]/VC/Tools/MSVC/[cl version]/bin/Hostx64/x64/cl.exe"` due to compiler incompatibilities
 
 If you want to use CUDA without nVidia hardware, then use the PGI compiler (pgc, pgcc) with nvcc from the CUDA SDK and copy the cuda dll's from the pgi bin directory to your working directory.
+
 If you want to use the PGI compiler, remember to match the cuda versions i.e. update to version 16 to use CUDA 8.0
+
 Avoid using HDF5 when compiling dependencies or deal with the compile linking problems yourself.
+
 For older versions of Qt, ITK, CUDA check the RTK and Plastimatch compilation instructions (Good luck).
