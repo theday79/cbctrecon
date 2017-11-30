@@ -60,7 +60,7 @@ namespace rtk
 		RegionType paddedRegion = TParentImageFilter::GetPaddedImageRegion(inputRegion);
 
 		// Create padded image (spacing and origin do not matter)
-		itk::Image<float, 3>::Pointer paddedImage = itk::Image<float, 3>::New();
+		FFTInputImageType::Pointer paddedImage = FFTInputImageType::New();
 		paddedImage->SetRegions(paddedRegion);
 		paddedImage->Allocate();
 
@@ -85,8 +85,7 @@ namespace rtk
 	}
 
 	template<class TParentImageFilter>
-	void
-		OpenCLFFTConvolutionImageFilter<TParentImageFilter>
+	void OpenCLFFTConvolutionImageFilter<TParentImageFilter>
 		::GPUGenerateData()
 	{
 		// Pad image region
@@ -97,21 +96,21 @@ namespace rtk
 		inputDimension.y = paddedImage->GetBufferedRegion().GetSize()[1];
 		inputDimension.z = paddedImage->GetBufferedRegion().GetSize()[2];
 
-		typename Superclass::FFTInputImageType::RegionType inputreg;
+		FFTInputImageType::RegionType inputreg;
 		inputreg.SetSize(paddedImage->GetBufferedRegion().GetSize());
 		inputreg.SetIndex(paddedImage->GetBufferedRegion().GetIndex());
 
 		if (inputDimension.y == 1 && inputDimension.z > 1) // Troubles cuda 3.2 and 4.0
 			std::swap(inputDimension.y, inputDimension.z);
 
-		typename Superclass::FFTOutputImageType::SizeType s = paddedImage->GetLargestPossibleRegion().GetSize();
+		FFTOutputImageType::SizeType s = paddedImage->GetLargestPossibleRegion().GetSize();
 		this->UpdateFFTConvolutionKernel(s);
 		if (this->m_KernelFFTOpenCL.GetPointer() == ITK_NULLPTR ||
 			this->m_KernelFFTOpenCL->GetTimeStamp() < this->m_KernelFFT->GetTimeStamp())
 		{
 
 			// Create the Image holding the kernel
-			typename Superclass::FFTOutputImageType::RegionType kreg = this->m_KernelFFT->GetLargestPossibleRegion();
+			FFTOutputImageType::RegionType kreg = this->m_KernelFFT->GetLargestPossibleRegion();
 
 			this->m_KernelFFTOpenCL = OpenCLFFTOutputImageType::New();
 			this->m_KernelFFTOpenCL->SetRegions(kreg);
@@ -120,8 +119,8 @@ namespace rtk
 			// clFFT scales by the number of element, correct for it in kernel.
 			itk::ImageRegionIterator<typename TParentImageFilter::FFTOutputImageType> itKI(this->m_KernelFFT, kreg);
 			itk::ImageRegionIterator<OpenCLFFTOutputImageType> itKO(this->m_KernelFFTOpenCL, kreg);
-			typename TParentImageFilter::FFTPrecisionType invNPixels;
-			invNPixels = 1 / double(paddedImage->GetBufferedRegion().GetNumberOfPixels());
+			typename FFTInputPixelType invNPixels;
+			invNPixels = 1.0 / static_cast<double>(paddedImage->GetBufferedRegion().GetNumberOfPixels());
 			while (!itKO.IsAtEnd())
 			{
 				itKO.Set(itKI.Get() * invNPixels);
@@ -136,20 +135,25 @@ namespace rtk
 		cl_int2 kernelDimension;
 		kernelDimension.x = this->m_KernelFFT->GetBufferedRegion().GetSize()[0];
 		kernelDimension.y = this->m_KernelFFT->GetBufferedRegion().GetSize()[1];
-		cl_float2* p_KernelFFTOpenCL = reinterpret_cast<cl_float2*>(this->m_KernelFFTOpenCL->GetBufferPointer());
+		std::complex<float>* p_KernelFFTOpenCL = this->m_KernelFFTOpenCL->GetBufferPointer(); //reinterpret_cast<std::complex<float>*>(
 
 		//std::cout << "Before Conv.:: Some proj value: " << paddedImage->GetBufferPointer()[1000] << std::endl;
-
-		OpenCL_fft_convolution(inputDimension,
+		//for (int idz = 0; idz < inputDimension.z; idz++)
+		//{
+		itk::Index<3U> cur_idx = { 0, 0, 0};
+		OpenCL_fft_convolution(
+			inputDimension,
 			kernelDimension,
-			paddedImage->GetBufferPointer(),
+			&paddedImage->GetPixel(cur_idx),
 			p_KernelFFTOpenCL
 		);
+		//}
+		std::cout << std::endl;
 		//std::cout << "After  Conv.:: Some proj value: " << paddedImage->GetBufferPointer()[1000] << std::endl;
 
 
 		// CUDA Cropping and Graft Output
-		typedef itk::CropImageFilter<itk::Image<float, 3U>, itk::Image<float, 3U>> CropFilter;
+		typedef itk::CropImageFilter<FFTInputImageType, itk::Image<float, 3U>> CropFilter;
 		CropFilter::Pointer cf = CropFilter::New();
 		typename Superclass::OutputImageType::SizeType upCropSize, lowCropSize;
 		for (unsigned int i = 0; i < 3; i++)

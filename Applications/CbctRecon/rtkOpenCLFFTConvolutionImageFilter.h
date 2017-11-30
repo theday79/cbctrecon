@@ -59,9 +59,10 @@ namespace rtk
 		/** Some convenient typedefs. */
 		typedef typename TParentImageFilter::RegionType           RegionType;
 		typedef typename TParentImageFilter::FFTInputImagePointer FFTInputImagePointer;
-		typedef itk::Image<float, 3U>                             FloatImageType;
+		typedef typename TParentImageFilter::FFTInputImageType    FFTInputImageType;
+		typedef typename TParentImageFilter::FFTPrecisionType     FFTInputPixelType;
 		
-		typedef itk::Image<std::complex<float>, 3U>               OpenCLFFTOutputImageType;
+		typedef itk::Image<std::complex<FFTInputPixelType>, 3U>   OpenCLFFTOutputImageType;
 		typedef typename OpenCLFFTOutputImageType::Pointer        OpenCLFFTOutputImagePointer;
 
 		/** Runtime information support. */

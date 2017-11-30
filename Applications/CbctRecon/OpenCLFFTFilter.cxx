@@ -43,8 +43,8 @@ OpenCL_padding(
 	const cl_int4 paddingIndex,
 	const cl_uint4 paddingSize,
 	const cl_uint4 inputSize,
-	const cl_float *hostVolume, //input
-	cl_float *hostPaddedVolume, //output
+	const float *hostVolume, //input
+	float *hostPaddedVolume, //output
 	const std::vector<cl_float> mirrorWeights)
 {
 	cl_int           err = CL_SUCCESS;
@@ -53,7 +53,7 @@ OpenCL_padding(
 	cl_program       m_Program;
 	cl_kernel        m_Kernel;
 
-	size_t pv_buffer_size = paddingSize.x * paddingSize.y * paddingSize.z * sizeof(cl_float);
+	size_t pv_buffer_size = paddingSize.x * paddingSize.y * paddingSize.z * sizeof(float);
 	std::tuple<cl_platform_id, cl_device_id> dev_tuple =
 		getPlatformAndDeviceID(pv_buffer_size);
 	cl_platform_id platform = std::get<0>(dev_tuple);
@@ -70,22 +70,22 @@ OpenCL_padding(
 
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	size_t w_buffer_size = mirrorWeights.size() * sizeof(cl_float);
+	size_t w_buffer_size = mirrorWeights.size() * sizeof(float);
 	const cl_uint w_buf_sizeof = mirrorWeights.size(); // just because intellisense couldn't understand it below...
-	cl_mem weights_d = clCreateBuffer(ctx, CL_MEM_READ_ONLY, w_buffer_size, NULL, &err);
-	err = clEnqueueWriteBuffer(queue, weights_d, CL_TRUE, 0, w_buffer_size, &(mirrorWeights[0]), 0, NULL, NULL);
+	cl_mem weights_d = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, w_buffer_size, (void *)&mirrorWeights[0], &err);
+	// err = clEnqueueWriteBuffer(queue, weights_d, CL_TRUE, 0, w_buffer_size, &(mirrorWeights[0]), 0, NULL, NULL);
 	if (err != CL_SUCCESS)
 		std::cout << "PAD::Could not write OpenCL weigths_d buffer, error code: " << err << std::endl;
 
 
-	cl_mem devicePaddedVolume = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, pv_buffer_size, hostPaddedVolume, &err);
+	cl_mem devicePaddedVolume = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, pv_buffer_size, (void *)&hostPaddedVolume[0], &err);
 
 	if (err != CL_SUCCESS)
 		std::cout << "PAD::Could not write OpenCL devicePaddedVolume buffer, error code: " << err << std::endl;
 
 	size_t v_buffer_size = sizeof(hostVolume);
-	cl_mem deviceVolume = clCreateBuffer(ctx, CL_MEM_READ_ONLY, v_buffer_size, NULL, &err);
-	err = clEnqueueWriteBuffer(queue, deviceVolume, CL_TRUE, 0, v_buffer_size, hostVolume, 0, NULL, NULL);
+	cl_mem deviceVolume = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, v_buffer_size, (void *)&hostVolume[0], &err);
+	// err = clEnqueueWriteBuffer(queue, deviceVolume, CL_TRUE, 0, v_buffer_size, hostVolume, 0, NULL, NULL);
 	if (err != CL_SUCCESS)
 		std::cout << "PAD::Could not write OpenCL deviceVolume buffer, error code: " << err << std::endl;
 
@@ -98,7 +98,12 @@ OpenCL_padding(
 	if (err != CL_SUCCESS)
 		std::cout << "PAD::Could not create OpenCL kernel, error code: " << err << std::endl;
 
-	const size_t local_work_size = 128;
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) { // added to all kernels for optimization on my(AGA's) machine. Thanks to Intel's OpenCL SDK for giving "preferred work-group" sizes.
+		local_work_size = 16;
+	}
 
 	const size_t global_work_size = paddingSize.x * paddingSize.y * paddingSize.z;
 
@@ -153,7 +158,12 @@ OpenCL_padding(
 
 }
 
-void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hostKernelFFT, const cl_int4 inputDimension, const cl_int2 kernelDimension) {
+template<typename T>
+void clFFT_Forward_Multiply_Backward(T* hostProjection, const std::complex<T>* hostKernelFFT, const cl_int4 inputDimension, const cl_int2 kernelDimension) 
+{
+	if (!std::is_floating_point<T>::value)
+		throw std::invalid_argument("Projection data is not floating point data");
+
 	cl_int err;
 	cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
 	cl_context ctx = 0;
@@ -162,11 +172,20 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 
 	/* FFT library realted declarations */
 	clfftPlanHandle planHandle;
-	clfftDim dim = CLFFT_3D; // Should be 2D TODO: FIXME: change pls
+	clfftDim dim = CLFFT_3D;
 
-	const size_t memorySizeProjection = inputDimension.x  * inputDimension.y  * inputDimension.z * sizeof(float);
+	const size_t sizeProjection = inputDimension.x  * inputDimension.y * inputDimension.z;
+	const size_t memorySizeProjection = sizeProjection * sizeof(T);
+	cl_int4 fftDimension;
+	fftDimension.x = inputDimension.x / 2 + 1;
+	fftDimension.y = inputDimension.y;
+	fftDimension.z = inputDimension.z;
+	const size_t sizeFFTProjection = fftDimension.x * fftDimension.y *fftDimension.z;
+	const size_t memorySizeFFTProjection = sizeFFTProjection * sizeof(std::complex<T>);
+	std::vector<std::complex<T>> hostProjectionFFT(sizeFFTProjection);
+
 	std::tuple<cl_platform_id, cl_device_id> dev_tuple =
-		getPlatformAndDeviceID(memorySizeProjection);
+		getPlatformAndDeviceID(memorySizeFFTProjection);
 	cl_platform_id platform = std::get<0>(dev_tuple);
 	cl_device_id device = std::get<1>(dev_tuple);
 
@@ -177,31 +196,32 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	/* Setup clFFT. */
 	clfftSetupData fftSetupFwd;
 	err = clfftInitSetupData(&fftSetupFwd);
-	err = clfftSetup(&fftSetupFwd);
+	fftSetupFwd.debugFlags = CLFFT_DUMP_PROGRAMS;
+	err |= clfftSetup(&fftSetupFwd);
 
+	if (err != CL_SUCCESS)
+		std::cout << "FWD::Could not setup clfft, error code: " << err << std::endl;
 	// device pointers
-	cl_mem  deviceProjectionFFT; // outputpointer
 	cl_mem  deviceProjection; // copy of host
-	cl_int4 fftDimension = inputDimension;
-	fftDimension.x = inputDimension.x / 2 + 1;
+	cl_mem  deviceProjectionFFT; // copy of host
+	// cl_int2 fftDimension = inputDimension;
+	//fftDimension.x = inputDimension.x / 2 + 1;
 
-	const size_t memorySizeProjectionFFT = fftDimension.x    * fftDimension.y    * fftDimension.z * sizeof(cl_float2);
+	//const size_t memorySizeProjectionFFT = fftDimension.x * fftDimension.y * sizeof(std::complex<T>);
 	//std::cout << "Creating buffers..." << std::endl;
 	/* Prepare OpenCL memory objects and place data inside them. */
-	deviceProjection = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeProjection, hostProjection, &err);
-
-	cl_float2* hostProjectionFFT = new cl_float2[memorySizeProjectionFFT];
-	deviceProjectionFFT = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeProjectionFFT, hostProjectionFFT, &err);
-
-	// we don't have any data to put into deviceProjectionFFT, so we fill it with zeros:
-	/*
-	err = clEnqueueWriteBuffer(queue, deviceProjection, CL_TRUE, 0, memorySizeProjection, hostProjection, 0, NULL, NULL);
-	err |= clEnqueueWriteBuffer(queue, deviceProjectionFFT, CL_TRUE, 0, memorySizeProjectionFFT, hostProjectionFFT, 0, NULL, NULL);
-	*/
+	deviceProjection = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeProjection, &hostProjection[0], &err);
 	if (err != CL_SUCCESS)
-		std::cout << "FWD::Could not create OpenCL buffers, error code: " << err << std::endl;
+		std::cout << "FWD::Could not create OpenCL buffers 1, error code: " << err << std::endl;
+	/*err = clEnqueueWriteBuffer(queue, deviceProjection, CL_TRUE, 0, memorySizeProjection, &hostProjection[0], 0, NULL, NULL);
+	if (err != CL_SUCCESS)
+		std::cout << "FWD::Could not write OpenCL buffers 1, error code: " << err << std::endl;*/
 
-	size_t clLengths[3] = { (size_t)inputDimension.z, (size_t)inputDimension.y, (size_t)inputDimension.x };
+	deviceProjectionFFT = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeFFTProjection, &hostProjectionFFT[0], &err);
+	if (err != CL_SUCCESS)
+		std::cout << "FWD::Could not create OpenCL buffers 1, error code: " << err << std::endl;
+
+	const size_t clLengths[3] = { static_cast<size_t>(inputDimension.z), static_cast<size_t>(inputDimension.y), static_cast<size_t>(inputDimension.x) };
 
 	/* Create a default plan for a complex FFT. */
 	err = clfftCreateDefaultPlan(&planHandle, ctx, dim, clLengths);
@@ -209,7 +229,13 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 		std::cout << "FWD::Could not create default plan, error code: " << err << std::endl;
 
 	/* Set plan parameters. */
-	err = clfftSetPlanPrecision(planHandle, CLFFT_SINGLE);
+	if (sizeof(T) == sizeof(float))
+		err = clfftSetPlanPrecision(planHandle, CLFFT_SINGLE);
+	else if (sizeof(T) == sizeof(double))
+		err = clfftSetPlanPrecision(planHandle, CLFFT_DOUBLE);
+	else
+		throw std::invalid_argument("Type of input doesn't fit in a standard double or float (long double not possible)");
+
 	err |= clfftSetLayout(planHandle, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);
 	err |= clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
 	if (err != CL_SUCCESS)
@@ -218,8 +244,23 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	/* Bake the plan. */
 	err |= clfftBakePlan(planHandle, 1, &queue, NULL, NULL);
 
+
+	//get the buffersize
+	size_t buffersize = 0;
+	err |= clfftGetTmpBufSize(planHandle, &buffersize);
+
+	//allocate the intermediate buffer
+    cl_mem clMedBuffer = NULL;
+
+	if (buffersize)
+	{
+		clMedBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE, buffersize, 0, &err);
+		if (err != CL_SUCCESS)
+			std::cout << "FWD::Could not create medBuffer, error code: " << err << std::endl;
+	}
+
 	/* Execute the plan. */
-	err |= clfftEnqueueTransform(planHandle, CLFFT_FORWARD, 1, &queue, 0, NULL, NULL, &deviceProjection, &deviceProjectionFFT, NULL);
+	err |= clfftEnqueueTransform(planHandle, CLFFT_FORWARD, 1, &queue, 0, NULL, NULL, &deviceProjection, &deviceProjectionFFT, clMedBuffer);// &deviceProjectionFFT, NULL);
 
 	if (err != CL_SUCCESS)
 		std::cout << "FWD::Could not perform forward fourier transform, error code: " << err << std::endl;
@@ -233,12 +274,11 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	const size_t memorySizeKernelFFT = kernelDimension.x * kernelDimension.y * sizeof(cl_float2);
 
 	/* Prepare OpenCL memory objects and place data inside them. */
-	cl_mem deviceKernelFFT = clCreateBuffer(ctx, CL_MEM_READ_ONLY, memorySizeKernelFFT, NULL, &err);
+	cl_mem deviceKernelFFT = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeKernelFFT, (void *)&hostKernelFFT[0], &err);
 
-	/* why should this be necessary?
-	err = clEnqueueWriteBuffer(queue, deviceProjectionFFT, CL_TRUE, 0, memorySizeProjectionFFT, hostProjectionFFT, 0, NULL, NULL);
-	err |= clEnqueueWriteBuffer(queue, deviceKernelFFT, CL_TRUE, 0, memorySizeKernelFFT, hostKernelFFT, 0, NULL, NULL);
-	*/
+	//err = clEnqueueWriteBuffer(queue, deviceProjectionFFT, CL_TRUE, 0, memorySizeProjectionFFT, &hostProjectionFFT[0], 0, NULL, NULL);
+	//err |= clEnqueueWriteBuffer(queue, deviceKernelFFT, CL_TRUE, 0, memorySizeKernelFFT, &hostKernelFFT[0], 0, NULL, NULL);
+	
 	if (err != CL_SUCCESS)
 		std::cout << "MUL::Could create OpenCL buffers, error code: " << err << std::endl;
 
@@ -256,9 +296,15 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 		std::cout << "MUL::Could not create OpenCL kernel, error code: " << err << std::endl;
 
 	cl_event events[2];
-	const size_t local_work_size = 128;
 
-	const size_t global_work_size = (size_t)(fftDimension.x * fftDimension.y * fftDimension.z);
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 32;
+	}
+
+	const size_t global_work_size = static_cast<size_t>(fftDimension.x * fftDimension.y * fftDimension.z);
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceProjectionFFT);
 	err |= clSetKernelArg(m_Kernel, 1, sizeof(cl_int4), &fftDimension);
@@ -294,7 +340,13 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	err |= clfftCreateDefaultPlan(&planHandle, ctx, dim, clLengths);
 
 	/* Set plan parameters. */
-	err |= clfftSetPlanPrecision(planHandle, CLFFT_SINGLE);
+	if (sizeof(T) == sizeof(float))
+		err = clfftSetPlanPrecision(planHandle, CLFFT_SINGLE);
+	else if (sizeof(T) == sizeof(double))
+		err = clfftSetPlanPrecision(planHandle, CLFFT_DOUBLE);
+	else
+		throw std::invalid_argument("Type of input doesn't fit in a standard double or float (long double not possible)");
+
 	err |= clfftSetLayout(planHandle, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);
 	err |= clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
 
@@ -308,7 +360,7 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 		std::cout << "BCK::Could not bake OpenCL kernel, error code: " << err << std::endl;
 
 	/* Execute the plan. */
-	err = clfftEnqueueTransform(planHandle, CLFFT_BACKWARD, 1, &queue, 0, NULL, NULL, &deviceProjectionFFT, &deviceProjection, NULL);
+	err = clfftEnqueueTransform(planHandle, CLFFT_BACKWARD, 1, &queue, 0, NULL, NULL, &deviceProjectionFFT, &deviceProjection, clMedBuffer);
 
 	if (err != CL_SUCCESS)
 		std::cout << "BCK::Could not create OpenCL kernel, error code: " << err << std::endl;
@@ -319,7 +371,7 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 		std::cout << "BCK::Could not finish OpenCL queue, error code: " << err << std::endl;
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceProjection, CL_TRUE, 0, memorySizeProjection, hostProjection, 0, NULL, NULL);
+	err = clEnqueueReadBuffer(queue, deviceProjection, CL_TRUE, 0, memorySizeProjection, &hostProjection[0], 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
 		std::cout << "BCK::Could not read OpenCL output, error code: " << err << std::endl;
@@ -328,6 +380,8 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	clReleaseMemObject(deviceProjection);
 	clReleaseMemObject(deviceProjectionFFT);
 	clReleaseMemObject(deviceKernelFFT);
+
+	if (clMedBuffer) clReleaseMemObject(clMedBuffer);
 
 	/* Release the plan. */
 	err = clfftDestroyPlan(&planHandle);
@@ -338,7 +392,7 @@ void clFFT_Forward_Multiply_Backward(float *hostProjection, const cl_float2* hos
 	/* Release OpenCL working objects. */
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
-	delete[] hostProjectionFFT;
+
 	if (err != CL_SUCCESS)
 		std::cout << "BCK::Could not release OpenCL kernel, error code: " << err << std::endl;
 }
@@ -448,14 +502,20 @@ void clFFT_backwards(float* hostProjection, const cl_float2* hostProjectionFFT, 
 
 }
 
-void
-OpenCL_fft_convolution(const cl_int4 inputDimension,
+void OpenCL_fft_convolution(
+	const cl_int4 inputDimension,
 	const cl_int2 kernelDimension,
 	float *hostProjection,
-	cl_float2 *hostKernelFFT)
+	std::complex<float>* hostKernelFFT)
 {
 	//std::cout << "Forward projecting..." << std::endl;
-	clFFT_Forward_Multiply_Backward(hostProjection, hostKernelFFT, inputDimension, kernelDimension);
+	try {
+		clFFT_Forward_Multiply_Backward<float>(hostProjection, hostKernelFFT, inputDimension, kernelDimension);
+	}
+	catch (std::exception& e) {
+		std::cerr << "Exception trown: " << e.what() << std::endl;
+	}
+
 
 	//OpenCL_multiply_by_kernel(hostProjectionFFT, hostKernelFFT, inputDimension, kernelDimension);
 
@@ -515,7 +575,13 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* su
 		std::cout << "SUB::Could not create OpenCL kernel, error code: " << err << std::endl;
 
 	cl_event events[2];
-	const size_t local_work_size = 128;
+
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 32;
+	}
 
 	const size_t global_work_size = inputSize[0]* inputSize[1] * inputSize[2]; 
 
@@ -656,7 +722,12 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 
 
 	cl_event events[2];
-	const size_t local_work_size = 128;
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 16;
+	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 	const cl_uint4 inputDim = {
@@ -772,7 +843,12 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 
 	std::cout << "Kernel created." << std::endl;
 	cl_event events[2];
-	const size_t local_work_size = 128;
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 32;
+	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2]; 
 
@@ -870,7 +946,13 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float* buffer,
 
 	std::cout << "Kernel created." << std::endl;
 	cl_event events[2];
-	const size_t local_work_size = 128;
+
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 32;
+	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 
@@ -971,7 +1053,13 @@ void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 
 
 	cl_event events[2];
-	const size_t local_work_size = 128;
+
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 32;
+	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1];
 
@@ -1067,7 +1155,13 @@ cl_float2 OpenCL_min_max(
 
 	//std::cout << "Kernel created." << std::endl;
 	cl_event events[2];
-	const size_t local_work_size = 128;
+	
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 16;
+	}
 
 	cl_uint divider = 128;
 	while (true) {
@@ -1200,7 +1294,13 @@ cl_float2 OpenCL_min_max_2D(
 
 	//std::cout << "Kernel created." << std::endl;
 	cl_event events[2];
-	const size_t local_work_size = 128;
+
+	size_t local_work_size = 128;
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 16;
+	}
 
 	cl_uint divider = 128;
 	while (true) {
@@ -1345,6 +1445,13 @@ cl_float2 OpenCL_min_max_recurse(
 
 	const cl_uint outputDim = (cl_uint)inputSize / divider;
 	size_t local_work_size = 128;
+	
+	char device_name[128];
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
+	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+		local_work_size = 16;
+	}
+
 	while (local_work_size > 32) {
 		if (((outputDim + (outputDim % local_work_size)) / local_work_size) % 2 != 0) // global must be evenly divisable with local work group
 			local_work_size /= 2;

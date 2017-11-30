@@ -1,3 +1,6 @@
+#ifndef OpenCLFFTFilter_H_
+#define OpenCLFFTFilter_H_
+
 #include <itkImage.h>
 #include <vector_types.h>
 // #include <complex>
@@ -8,21 +11,20 @@
 #include <CL/cl.h>
 #endif
 
-#ifndef OpenCLFFTFilter_H_
-#define OpenCLFFTFilter_H_
 
 void OpenCL_padding(
 	const cl_int4 paddingIndex,
 	const cl_uint4 paddingSize,
 	const cl_uint4 inputSize,
-	const cl_float *deviceVolume,
-	cl_float *devicePaddedVolume,
+	const float *deviceVolume,
+	float *devicePaddedVolume,
 	const std::vector<cl_float> mirrorWeights);
 
-void OpenCL_fft_convolution(const cl_int4 inputDimension,
+void OpenCL_fft_convolution(
+	const cl_int4 inputDimension,
 	const cl_int2 kernelDimension,
-	float *hostProjection,
-	cl_float2 *deviceKernelFFT);
+	float* hostProjection,
+	std::complex<float>* deviceKernelFFT);
 
 void OpenCL_subtract3Dfrom2DbySlice_InPlace(
 	cl_float* input, 

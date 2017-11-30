@@ -126,10 +126,10 @@ padding_kernel(__global float *input,
 	int j = w / paddingDim.x;
 	int i = w % paddingDim.x;
 
-	//if (i >= paddingDim.x || j >= paddingDim.y || k >= paddingDim.z) {
-	//	printf("Is it possible to get here? (%d, %d, %d)", i, j, k);
-	//	return;
-	//}
+	/*if (i >= paddingDim.x || j >= paddingDim.y || k >= paddingDim.z) {
+		printf("Is it possible to get here? (%d, %d, %d)", i, j, k);
+		return;
+	}*/
 
 	const unsigned long int out_idx = i + (j + k*paddingDim.y) * paddingDim.x;
 	i -= paddingIdx.x;
@@ -167,7 +167,7 @@ __kernel void multiply_kernel(
 	__global float2 *kernelFFT)
 {
 	const unsigned int idx = get_global_id(0);
-	int k = idx / (fftDimension.x * fftDimension.y);
+	//int k = idx / (fftDimension.x * fftDimension.y);
 
 	const unsigned int w = idx % (fftDimension.x * fftDimension.y);
 	int j = w / fftDimension.x;
@@ -178,7 +178,9 @@ __kernel void multiply_kernel(
 	//	return;
 	//}
 
-	long int proj_idx = i + (j + k * fftDimension.y) * fftDimension.x;
+	// long int proj_idx = i + (j + k * fftDimension.y) * fftDimension.x;
+	long int proj_idx = i + j * fftDimension.x;
+
 
 	float2 result;
 	result.x = projFFT[proj_idx].x * kernelFFT[i].x - projFFT[proj_idx].y * kernelFFT[i].y;
@@ -192,7 +194,7 @@ __kernel void multiply_kernel2D(
 	__global float2 *kernelFFT)
 {
 	const unsigned int idx = get_global_id(0);
-	int k = idx / (fftDimension.x * fftDimension.y);
+	// int k = idx / (fftDimension.x * fftDimension.y);
 
 	const unsigned int w = idx % (fftDimension.x * fftDimension.y);
 	int j = w / fftDimension.x;
@@ -204,7 +206,8 @@ __kernel void multiply_kernel2D(
 	//}
 
 	long int kernel_idx = i + j * fftDimension.x;
-	long int proj_idx = kernel_idx + k * fftDimension.y * fftDimension.x;
+	//long int proj_idx = kernel_idx + k * fftDimension.y * fftDimension.x;
+	long int proj_idx = kernel_idx;
 
 	float2 result;
 	result.x = projFFT[proj_idx].x * kernelFFT[kernel_idx].x - projFFT[proj_idx].y * kernelFFT[kernel_idx].y;
