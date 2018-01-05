@@ -91,6 +91,13 @@ if(NOT DEFINED DCMTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     LABELS "LIBRARY_PATHS_LAUNCHER_BUILD"
     )
 
+	ADD_CUSTOM_COMMAND(
+    TARGET ${proj}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_SOURCE_DIR}/SuperBuild/dcmtk_Win_minmax_patch/oflimits.h
+      ${CMAKE_BINARY_DIR}/${proj}/ofstd/include/dcmtk/ofstd/
+    )
 else()
   ExternalProject_Add_Empty(${proj} DEPENDS ${${proj}_DEPENDENCIES})
 endif()

@@ -40,7 +40,8 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
   # * COMP: Add missing headers in OpenCVImageBridge
   ExternalProject_SetIfNotDefined(
     ${CMAKE_PROJECT_NAME}_${proj}_GIT_TAG
-    "1619816e48b327c4c486b76aef0c229af65b92b2" # CbctRecon-v4.11.0-2017-01-22
+	"d92873e33e8a54e933e445b92151191f02feab42" #"v4.13.0"
+    # "1619816e48b327c4c486b76aef0c229af65b92b2" # CbctRecon-v4.11.0-2017-01-22
     QUIET
     )
 
@@ -82,7 +83,7 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
   ExternalProject_Add(${proj}
     ${${proj}_EP_ARGS}
     GIT_REPOSITORY "${${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY}"
-    # GIT_TAG "${${CMAKE_PROJECT_NAME}_${proj}_GIT_TAG}"
+    GIT_TAG "${${CMAKE_PROJECT_NAME}_${proj}_GIT_TAG}"
     SOURCE_DIR ${proj}
     BINARY_DIR ${proj}-build
     CMAKE_CACHE_ARGS
