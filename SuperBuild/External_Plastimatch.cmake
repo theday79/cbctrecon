@@ -134,6 +134,14 @@ else()
   ExternalProject_Add_Empty(${proj} DEPENDS ${${proj}_DEPENDENCIES})
 endif()
 
+ADD_CUSTOM_COMMAND(
+  TARGET ${proj}
+  PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E remove
+    ${CMAKE_BINARY_DIR}/${proj}/cmake/FindOpenMP.cmake
+  )
+
+
 if(${TBB_FOUND})
   add_custom_command(
     TARGET ${proj} PRE_BUILD

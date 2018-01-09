@@ -5,6 +5,7 @@ CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 http://dx.doi.org/10.1118/1.4923179
 
 For the moment Windows 64bit is supported. *Linux (Arch/Manjaro) support is under development*
+MacOS build support has just been added (CUDA not testet)
 
 In order to compile the software, you must have installed the following prerequisites and a C++ compiler compatible with your version of CUDA.
 

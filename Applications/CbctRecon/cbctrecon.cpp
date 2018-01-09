@@ -1,4 +1,4 @@
-﻿#include "cbctrecon.h"
+#include "cbctrecon.h"
 #define USE_AVX false
 #if USE_AVX
 #include <immintrin.h>
@@ -12,7 +12,9 @@
 #include <fstream>
 #include <QInputDialog>
 
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 #include "itkImageDuplicator.h"
 #include "itkImageSliceConstIteratorWithIndex.h"
@@ -20,7 +22,11 @@
 
 
 #include <QStandardItemModel>
-#include <QClipBoard>
+#ifdef _WIN32
+#include <QClipBoard> // re-check on windows and linux
+#else
+#include <QClipboard>
+#endif
 #include <QVector>
 #include <QDir>
 #include <QFileInfo>
@@ -64,8 +70,8 @@
 
 // plastiWEPL
 #include "aperture.h"
-#include "Rt_beam.h"
-#include "Rt_plan.h"
+#include "rt_beam.h"
+#include "rt_plan.h"
 #include "plm_math.h"
 #include "proj_volume.h"
 #include "ray_trace_probe.h"
@@ -501,8 +507,8 @@ void CbctRecon::RenameFromHexToDecimal(QStringList& filenameList)
         crntFilePath = filenameList.at(i);
         QFileInfo fileInfo = QFileInfo(crntFilePath);
         QDir dir = fileInfo.absoluteDir();
-
-        QString newBaseName = HexStr2IntStr(fileInfo.baseName());
+        QString fileBase = fileInfo.baseName();
+        QString newBaseName = HexStr2IntStr(fileBase);
         QString extStr = fileInfo.completeSuffix();
 
         QString newFileName = newBaseName.append(".").append(extStr);
@@ -857,8 +863,8 @@ void CbctRecon::SLT_DrawProjImages()
     itk::ImageSliceConstIteratorWithIndex<FloatImageType> it(m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
 
     FloatImageType::SizeType imgSize = m_spProjImg3DFloat->GetRequestedRegion().GetSize(); //1016x1016 x z
-    FloatImageType::SizeType imgSizeBuf = m_spProjImg3DFloat->GetBufferedRegion().GetSize(); //1016x1016 x z
-    FloatImageType::SizeType imgSizeLargest = m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
+    //FloatImageType::SizeType imgSizeBuf = m_spProjImg3DFloat->GetBufferedRegion().GetSize(); //1016x1016 x z
+    //FloatImageType::SizeType imgSizeLargest = m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
 
     int width = imgSize[0];
     int height = imgSize[1];
@@ -1195,7 +1201,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
                 if (m_pImgGain->m_pData[i] == 0)
                     corrImg.m_pData[i] = rawImg.m_pData[i];
                 else
-                    corrImg.m_pData[i] = (USHORT)((double)rawImg.m_pData[i] / (double)(m_pImgGain->m_pData[i])*MeanVal);
+                    corrImg.m_pData[i] = (unsigned short)((double)rawImg.m_pData[i] / (double)(m_pImgGain->m_pData[i])*MeanVal);
             }
         }
 
@@ -1275,7 +1281,7 @@ QString CbctRecon::CorrectSingleFile(const char* filePath)
                         if (tmpVal > 65535) //16bit max value
                             iValOutOfRange++;
 
-                        corrImg.m_pData[i] = (USHORT)tmpVal;
+                        corrImg.m_pData[i] = (unsigned short)tmpVal;
                     }
                 }
             }//end of for
@@ -1395,7 +1401,7 @@ void CbctRecon::CorrectSingleFile(YK16GrayImage* pYKRawImg)
                 if (m_pImgGain->m_pData[i] == 0)
                     corrImg.m_pData[i] = pYKRawImg->m_pData[i];
                 else
-                    corrImg.m_pData[i] = (USHORT)((double)pYKRawImg->m_pData[i] / (double)(m_pImgGain->m_pData[i])*MeanVal);
+                    corrImg.m_pData[i] = (unsigned short)((double)pYKRawImg->m_pData[i] / (double)(m_pImgGain->m_pData[i])*MeanVal);
             }
 
         }
@@ -1476,7 +1482,7 @@ void CbctRecon::CorrectSingleFile(YK16GrayImage* pYKRawImg)
                         if (tmpVal > 65535) //16bit max value
                             iValOutOfRange++;
 
-                        corrImg.m_pData[i] = (USHORT)tmpVal;
+                        corrImg.m_pData[i] = (unsigned short)tmpVal;
                     }
                 }
             }//end of for
@@ -2879,11 +2885,13 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 																	  //SLT_ViewRegistration();
 	if (target == REGISTER_COR_CBCT)
 	{
-		UpdateReconImage(m_spCrntReconImg, QString("SCATTER_COR_CBCT"));
+        QString updated_text = QString("SCATTER_COR_CBCT");
+		UpdateReconImage(m_spCrntReconImg, updated_text);
 	}
 	else if (target == REGISTER_RAW_CBCT)
 	{
-		UpdateReconImage(m_spCrntReconImg, QString("RAW_CBCT"));
+        QString updated_text = QString("RAW_CBCT");
+		UpdateReconImage(m_spCrntReconImg, updated_text);
 	}
 
 	cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
@@ -3301,11 +3309,13 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
     //SLT_ViewRegistration();
     if (target == REGISTER_COR_CBCT)
     {
-        UpdateReconImage(m_spCrntReconImg, QString("SCATTER_COR_CBCT"));
+        QString updated_text = QString("SCATTER_COR_CBCT");
+        UpdateReconImage(m_spCrntReconImg, updated_text);
     }
     else if (target == REGISTER_RAW_CBCT)
     {
-        UpdateReconImage(m_spCrntReconImg, QString("RAW_CBCT"));
+        QString updated_text = QString("RAW_CBCT");
+        UpdateReconImage(m_spCrntReconImg, updated_text);
     }
 
     std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
@@ -3960,7 +3970,6 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     ReaderType::Pointer reader = ReaderType::New();
     reader->SetFileNames(m_vSelectedFileNames);
     // TRY_AND_EXIT_ON_ITK_EXCEPTION(
-	
 	std::thread calc_thread(read_projections, reader);
 	// calc_thread.detach();
 
@@ -4909,8 +4918,8 @@ bool CbctRecon::IsFileNameOrderCorrect(vector<string>& vFileNames)
         crntFilePath = vFileNames.at(i).c_str();
         QFileInfo fileInfo = QFileInfo(crntFilePath);
         QDir dir = fileInfo.absoluteDir();
-
-        QString newBaseName = HexStr2IntStr(fileInfo.baseName());
+        QString file_basename = fileInfo.baseName();
+        QString newBaseName = HexStr2IntStr(file_basename);
         arrNum[i] = newBaseName.toInt();
     }
 
@@ -9334,7 +9343,8 @@ void CbctRecon::AfterScatCorrectionMacro()
 
     m_pDlgRegistration->SLT_DoLowerMaskIntensity(); //it will check the check button.
 	cout << "Updating ReconImage..";
-    UpdateReconImage(m_spScatCorrReconImg, QString("Scatter corrected CBCT")); //main GUI update
+    QString updated_text = QString("Scatter corrected CBCT");
+    UpdateReconImage(m_spScatCorrReconImg, updated_text); //main GUI update
 
     //Save Image as DICOM
     if (ui.checkBox_ExportVolDICOM->isChecked())
@@ -9349,7 +9359,8 @@ void CbctRecon::AfterScatCorrectionMacro()
             std::cout << "DICOM dir seems to exist already. Files will be overwritten." << std::endl;
         }
         QString strSavingFolder = strCrntDir + "/" + SubDirName;
-        SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, QString("PriorCT_ScatterCorr"), strSavingFolder);
+        QString updated_text_ct = QString("PriorCT_ScatterCorr");
+        SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, updated_text_ct, strSavingFolder);
         //Export as DICOM (using plastimatch) folder?
     }
 	cout << "Exiting AfterScatCorrectionMacro.";
@@ -9492,8 +9503,8 @@ void CbctRecon::SLT_LoadPlanCT_USHORT()
     reader->Update();
 
     m_spRefCTImg = reader->GetOutput();
-
-    UpdateReconImage(m_spRefCTImg, QString("RefCT"));
+    QString ref_ct = QString("RefCT");
+    UpdateReconImage(m_spRefCTImg, ref_ct);
 
     RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
 }
@@ -9657,7 +9668,8 @@ void CbctRecon::SLT_AddConstHUToCurImg()
         return;
     int addingVal = ui.lineEdit_AddConstHU->text().toInt();
     AddConstHU(m_spCrntReconImg, addingVal);
-    UpdateReconImage(m_spCrntReconImg, QString("Added%1").arg(addingVal));
+    QString updated_text = QString("Added%1").arg(addingVal);
+    UpdateReconImage(m_spCrntReconImg, updated_text);
 }
 
 double CbctRecon::GetRawIntensityScaleFactor()
@@ -9765,27 +9777,27 @@ void CbctRecon::SLT_CropSkinUsingThreshold()
 	MaskFilter->SetMaskingValue(0);
 	cout << "Dilating.. ";
 	MaskFilter->SetMaskImage(binaryDilate->GetOutput());
-
+    QString update_text = QString("Thresh-based skin cropped image");
 	if (m_spCrntReconImg == m_spRawReconImg)
 	{
 		MaskFilter->SetInput(m_spRawReconImg);
 		MaskFilter->Update();
 		m_spRawReconImg = MaskFilter->GetOutput();
-		UpdateReconImage(m_spRawReconImg, QString("Thresh-based skin cropped image"));
+		UpdateReconImage(m_spRawReconImg, update_text);
 	}
 	else if (m_spCrntReconImg == m_spRefCTImg)
 	{
 		MaskFilter->SetInput(m_spRefCTImg);
 		MaskFilter->Update();
 		m_spRefCTImg = MaskFilter->GetOutput();
-		UpdateReconImage(m_spRefCTImg, QString("Thresh-based skin cropped image"));
+		UpdateReconImage(m_spRefCTImg, update_text);
 	}
 	else if (m_spCrntReconImg == m_spScatCorrReconImg)
 	{
 		MaskFilter->SetInput(m_spScatCorrReconImg);
 		MaskFilter->Update();
 		m_spScatCorrReconImg = MaskFilter->GetOutput();
-		UpdateReconImage(m_spScatCorrReconImg, QString("Thresh-based skin cropped image"));
+		UpdateReconImage(m_spScatCorrReconImg, update_text);
 	}
 }
 
@@ -9796,21 +9808,21 @@ void CbctRecon::SLT_CropSkinUsingRS()
         return;
 
     double croppingMargin = ui.lineEdit_SkinMargin->text().toDouble();
-
+    QString update_text = QString("RS-based skin cropped image");
     if (m_spCrntReconImg == m_spRawReconImg)
     {
         m_pDlgRegistration->CropSkinUsingRS(m_spRawReconImg, strPathRS, croppingMargin);
-        UpdateReconImage(m_spRawReconImg, QString("RS-based skin cropped image"));
+        UpdateReconImage(m_spRawReconImg, update_text);
     }
     else if (m_spCrntReconImg == m_spRefCTImg)
     {
         m_pDlgRegistration->CropSkinUsingRS(m_spRefCTImg, strPathRS, croppingMargin);
-        UpdateReconImage(m_spRefCTImg, QString("RS-based skin cropped image"));
+        UpdateReconImage(m_spRefCTImg, update_text);
     }
     else if (m_spCrntReconImg == m_spScatCorrReconImg)
     {
         m_pDlgRegistration->CropSkinUsingRS(m_spScatCorrReconImg, strPathRS, croppingMargin);
-        UpdateReconImage(m_spScatCorrReconImg, QString("RS-based skin cropped image"));
+        UpdateReconImage(m_spScatCorrReconImg, update_text);
     }
 }
 /*
@@ -10852,7 +10864,10 @@ void CbctRecon::SLT_StartSyncFromSharedMem()
 void CbctRecon::SLT_StopSyncFromSharedMem()
 {
     //m_Timer->stop();
-
+#ifndef _WIN32
+    std::cerr << "Function not implemented for non-windows systems!!" << std::endl;
+    return;
+#else
     //HANDLE hSemaphore = OpenSemaphore(SYNCHRONIZE ,FALSE, "YKSemaphore");
     //Option SYNCHRONIZE doesn't work! you cannot release Semaphore due to the access is denied (GetLastError 5)
     HANDLE hSemaphore = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, "YKSemaphore");
@@ -10903,10 +10918,16 @@ void CbctRecon::SLT_StopSyncFromSharedMem()
     }
 
     fout.close();
+#endif
 }
 
 void CbctRecon::SLT_TimerEvent()
 {
+    
+#ifndef _WIN32
+    std::cerr << "Function not implemented for non-windows systems!!" << std::endl;
+    return;
+#else
     if (m_busyTimer)
         return;
 
@@ -10961,6 +10982,7 @@ void CbctRecon::SLT_TimerEvent()
     CloseHandle(handle);
 
     m_busyTimer = false;
+#endif
 }
 
 void CbctRecon::SLTM_ViewExternalCommand()
@@ -11154,8 +11176,8 @@ void CbctRecon::SLTM_LoadDICOMdir()
 
     //m_spRawReconImg = spRescaleFilter->GetOutput();
     m_spRefCTImg = spRescaleFilter->GetOutput();
-
-    UpdateReconImage(m_spRefCTImg, QString("DICOM reference image"));
+    QString update_text = QString("DICOM reference image");
+    UpdateReconImage(m_spRefCTImg, update_text);
 
     RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
 }
@@ -12224,13 +12246,13 @@ void CbctRecon::GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, floa
     //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
     UShortImageType::PointType origin = spImgCanvas->GetOrigin();
     UShortImageType::SpacingType spacing = spImgCanvas->GetSpacing();
-    UShortImageType::SizeType size = spImgCanvas->GetBufferedRegion().GetSize();
+    //UShortImageType::SizeType size = spImgCanvas->GetBufferedRegion().GetSize();
 
     //itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spReconImg, m_spReconImg->GetRequestedRegion());
     itk::ImageSliceIteratorWithIndex<UShortImageType> it(spImgCanvas, spImgCanvas->GetRequestedRegion());
 
     //ImageSliceConstIteratorWithIndex<ImageType> it( image, image->GetRequestedRegion() );
-    UShortImageType::SizeType imgSize = spImgCanvas->GetRequestedRegion().GetSize(); //1016x1016 x z
+    //UShortImageType::SizeType imgSize = spImgCanvas->GetRequestedRegion().GetSize(); //1016x1016 x z
 
     //int width = imgSize[0];
     //int height = imgSize[1];
@@ -12294,10 +12316,10 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR
     //1) region iterator, set 0 for all pixels outside the circle and below the table top, based on physical position
     UShortImageType::PointType origin = spImg->GetOrigin();
     UShortImageType::SpacingType spacing = spImg->GetSpacing();
-    UShortImageType::SizeType size = spImg->GetBufferedRegion().GetSize();
+    //UShortImageType::SizeType size = spImg->GetBufferedRegion().GetSize();
 
     itk::ImageSliceIteratorWithIndex<UShortImageType> it(spImg, spImg->GetRequestedRegion());
-    UShortImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize(); //1016x1016 x z
+    //UShortImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize(); //1016x1016 x z
 
     //int width = imgSize[0];
     //int height = imgSize[1];

@@ -4,12 +4,15 @@ PROJECT(CbctReconApp)
 # set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+IF(APPLE)
+  SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_BINARY_DIR}/../bin)
+ENDIF(APPLE)
 
 FIND_PACKAGE(DCMTK)
 FIND_PACKAGE(ITK)
 FIND_PACKAGE(RTK)
 FIND_PACKAGE(Plastimatch)
-FIND_PACKAGE(TBB)
+# FIND_PACKAGE(TBB)
 
 # Find BZIP2 (required for Varian HNC)
 OPTION(USE_BZIP2 "RTK has enabled hnc" OFF) # Hnc not implemented yet
@@ -59,12 +62,15 @@ IF (OpenCL_FOUND)
 ENDIF (OpenCL_FOUND)
 
 IF(USE_OPENMP)
-  FIND_PACKAGE(OpenMP REQUIRED)
-  message (STATUS "Compiling with OPENMP option")
-  ADD_DEFINITIONS(-DUSE_OPENMP=TRUE)
+  FIND_PACKAGE(OpenMP)
+  IF(OpenMP_FOUND)
+    message (STATUS "Compiling with OPENMP option")
+    ADD_DEFINITIONS(-DUSE_OPENMP=TRUE)
+  ENDIF()
 ENDIF(USE_OPENMP)
 
 ############## Qt start wrapping ##############
+FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 
 SET(CbctRecon_SOURCES
 	main.cpp
@@ -125,23 +131,38 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 INCLUDE(${ITK_USE_FILE})
 INCLUDE(${RTK_USE_FILE})
 
-FUNCTION(PREPEND var prefix)
-  SET(listVar "")
-  FOREACH(f ${ARGN})
-    GET_FILENAME_COMPONENT(extension ${f} EXT)
-    GET_FILENAME_COMPONENT(file_name ${f} NAME)
-    MESSAGE(STATUS ${file_name})
-    IF(${file_name} MATCHES "cudart.lib")
-      MESSAGE(STATUS "cudart.lib was removed from linker")
-    ELSEIF(extension MATCHES ".lib")
-      LIST(APPEND listVar "${f}")
-    ELSE()
-      LIST(APPEND listVar "${prefix}/${f}.lib")
-    ENDIF()
-  ENDFOREACH(f)
-  SET(${var} "${listVar}" PARENT_SCOPE)
-ENDFUNCTION(PREPEND)
+IF(WIN32)
+  FUNCTION(PREPEND var prefix)
+    SET(listVar "")
+    FOREACH(f ${ARGN})
+      GET_FILENAME_COMPONENT(extension ${f} EXT)
+      GET_FILENAME_COMPONENT(file_name ${f} NAME)
+      MESSAGE(STATUS ${file_name})
+      IF(${file_name} MATCHES "cudart.lib")
+        MESSAGE(STATUS "cudart.lib was removed from linker")
+      ELSEIF(extension MATCHES ".lib")
+        LIST(APPEND listVar "${f}")
+      ELSE()
+        LIST(APPEND listVar "${prefix}/${f}.lib")
+      ENDIF()
+    ENDFOREACH(f)
+    SET(${var} "${listVar}" PARENT_SCOPE)
+  ENDFUNCTION(PREPEND)
+ELSE()
+  FUNCTION(PREPEND var prefix)
+    SET(listVar "")
+    FOREACH(f ${ARGN})
+      GET_FILENAME_COMPONENT(extension ${f} EXT)
+      GET_FILENAME_COMPONENT(file_name ${f} NAME)
+      MESSAGE(STATUS ${file_name})
+      LIST(APPEND listVar "${prefix}/lib${f}.a")
+    ENDFOREACH(f)
+    SET(${var} "${listVar}" PARENT_SCOPE)
+  ENDFUNCTION(PREPEND)
+ENDIF()
+
 PREPEND(RTK_LIBS_FULLPATH "${RTK_DIR}/bin/${CMAKE_CFG_INTDIR}" ${RTK_LIBRARIES})
+
 
 set(PLASTIMATCH_INCLUDE_DIRS
     ${PLASTIMATCH_INCLUDE_DIRS}
@@ -177,23 +198,35 @@ message (STATUS "PLAS_LIBRARY_DIRS = ${PLASTIMATCH_LIBRARIES}")
 message (STATUS "BZIP_LIBRARY_DIRS = ${BZIP2_LIBRARIES}")
 message (STATUS "CLFFT_LIBRARY_DIRS = ${CLFFT_LIBRARIES}")
 
+if(WIN32)
+  SET(WIN_LIB netapi32.lib)
+endif(WIN32)
+
+set(QT_LIBRARIES)
+list(APPEND QT_LIBRARIES
+  "Qt5::Core"
+  "Qt5::Gui"
+  "Qt5::OpenGL"
+  "Qt5::PrintSupport"
+  "Qt5::Widgets"
+  )
 
 #this is for "Linker->Additional dependencies"
 TARGET_LINK_LIBRARIES(CbctRecon
-netapi32.lib
+${WIN_LIB}
 ${ITK_LIBRARIES}
 ${RTK_LIBS_FULLPATH}
 ${DCMTK_LIBRARIES}
 ${PLASTIMATCH_LIBRARIES}
 ${BZIP2_LIBRARIES}
 ${CLFFT_LIBRARIES}
-${TBB_LIBRARIES}
-OpenCL::OpenCL
 Qt5::Core
 Qt5::Gui
 Qt5::OpenGL
 Qt5::PrintSupport
 Qt5::Widgets
+${TBB_LIBRARIES}
+OpenCL::OpenCL
 )
 
 ############## INSTALL ##############
@@ -202,11 +235,13 @@ Qt5::Widgets
 if($<CONFIG:Debug>)
   get_target_property(WIDGETDLL Qt5::Widgets      IMPORTED_LOCATION_DEBUG)
   get_target_property(GUIDLL    Qt5::Gui          IMPORTED_LOCATION_DEBUG)
+  get_target_property(OPENGLDLL Qt5::OpenGL       IMPORTED_LOCATION_DEBUG)
   get_target_property(COREDLL   Qt5::Core         IMPORTED_LOCATION_DEBUG)
   get_target_property(COREDLL   Qt5::PrintSupport IMPORTED_LOCATION_DEBUG)
 else($<CONFIG:Debug>)
   get_target_property(WIDGETDLL Qt5::Widgets      IMPORTED_LOCATION_RELEASE)
   get_target_property(GUIDLL    Qt5::Gui          IMPORTED_LOCATION_RELEASE)
+  get_target_property(OPENGLDLL Qt5::OpenGL       IMPORTED_LOCATION_RELEASE)
   get_target_property(COREDLL   Qt5::Core         IMPORTED_LOCATION_RELEASE)
   get_target_property(COREDLL   Qt5::PrintSupport IMPORTED_LOCATION_RELEASE)
 endif($<CONFIG:Debug>)
@@ -214,25 +249,45 @@ endif($<CONFIG:Debug>)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../bin)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../lut)
 
+if(WIN32)
 add_custom_command(
   TARGET CbctRecon POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_FILE:Qt5::Widgets>
     $<TARGET_FILE:Qt5::Gui>
+    $<TARGET_FILE:Qt5::OpenGL>
     $<TARGET_FILE:Qt5::Core>
     $<TARGET_FILE:Qt5::PrintSupport>
-    ${CLFFT_ROOT_DIR}/bin/clFFT.dll
     ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl
     ${CMAKE_CURRENT_BINARY_DIR}/../bin
 )
+elseif(UNIX)
+  foreach(target ${QT_LIBRARIES})
+    get_target_property(type ${target} TYPE)
+    if(NOT type STREQUAL "SHARED_LIBRARY")
+      continue()
+    endif()
+    get_property(location TARGET ${target} PROPERTY LOCATION_RELEASE)
+    # Install .so and versioned .so.x.y
+    get_filename_component(QT_LIB_DIR_tmp ${location} PATH)
+    get_filename_component(QT_LIB_NAME_tmp ${location} NAME)
+    string(REPLACE ".${_qt_version}" "" QT_LIB_NAME_tmp ${QT_LIB_NAME_tmp})
+    message(STATUS "Attmpting installing ${QT_LIB_NAME_tmp} from dir: ${QT_LIB_DIR_tmp}")
+    install(DIRECTORY ${QT_LIB_DIR_tmp}/
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../bin/${QT_LIB_NAME_tmp}.framework/ COMPONENT Runtime
+      FILES_MATCHING PATTERN "${QT_LIB_NAME_tmp}*"
+      PATTERN "${QT_LIB_NAME_tmp}*.debug" EXCLUDE)
+  endforeach()
+endif()
 
-IF(USE_CLFFT)
+IF(USE_CLFFT AND WIN32)
 add_custom_command(
   TARGET CbctRecon POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${CLFFT_ROOT_DIR}/bin/clFFT.dll
     ${CMAKE_CURRENT_BINARY_DIR}/../bin
 )
-ENDIF(USE_CLFFT)
+ENDIF()
+
 
 INSTALL( TARGETS CbctRecon DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../bin )

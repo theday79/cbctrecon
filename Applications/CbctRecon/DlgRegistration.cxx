@@ -456,10 +456,14 @@ void DlgRegistration::whenFixedImgLoaded()
     ui.sliderPosDisp3->setMaximum(imgSize[0]-1);
     int curPosX = imgSize[0]/2;
     ui.sliderPosDisp3->setValue(curPosX);
-
-	m_YKDisp[0].SetSplitCenter(QPoint(imgSize[0]/2, imgSize[1]/2));
-	m_YKDisp[1].SetSplitCenter(QPoint(imgSize[0]/2, imgSize[2]/2));
-	m_YKDisp[2].SetSplitCenter(QPoint(imgSize[1]/2, imgSize[2]/2));
+    
+    QPoint x_split = QPoint(imgSize[0]/2, imgSize[1]/2);
+    QPoint y_split = QPoint(imgSize[0]/2, imgSize[2]/2);
+    QPoint z_split = QPoint(imgSize[1]/2, imgSize[2]/2);
+    
+	m_YKDisp[0].SetSplitCenter(x_split);
+	m_YKDisp[1].SetSplitCenter(y_split);
+	m_YKDisp[2].SetSplitCenter(z_split);
 
 	//Temporarily load the Disp Image to calculate the window level
 	//m_pParent->Draw2DFrom3D(m_pParent->m_spReconImg, PLANE_AXIAL, 0.0, m_YKDisp[0]);
@@ -653,7 +657,8 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel* pOverlapWnd)
   //only works when while the left Mouse is being clicked
   if (m_bPressedLeft[idx])
   {
-	m_YKDisp[idx].SetSplitCenter(QPoint(dataX,dataY));
+    QPoint xy_point = QPoint(dataX,dataY);
+	m_YKDisp[idx].SetSplitCenter(xy_point);
 	SLT_DrawImageInFixedSlice();
   }
   else if (m_bPressedRight[idx] && ui.checkBoxPan->isChecked())
@@ -1190,7 +1195,8 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       m_pParent->m_spRawReconImg = reader2->GetOutput();
 
       double tmpSkinMargin = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-      m_pParent->UpdateReconImage(m_pParent->m_spRawReconImg, QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin));
+      QString update_message = QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
+      m_pParent->UpdateReconImage(m_pParent->m_spRawReconImg, update_message);
   }
 
   if (!finfoFixedProc.exists())
@@ -1252,7 +1258,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   std::map<std::string, Metric_parms>::iterator it;
   for (it = params->metric.begin(); it != params->metric.end(); ++it) {
-	  if (it->first.c_str() != "0")
+	  if (strncmp(it->first.c_str(), "0", 1) != 0)
 		  std::cout << it->first.c_str() << std::endl;
 	  strFixed = it->second.fixed_fn; // fn is just File Name!!
 	  strMoving = it->second.moving_fn;
@@ -2125,7 +2131,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   std::map<std::string, Metric_parms>::iterator it;
   for (it = params->metric.begin(); it != params->metric.end(); ++it) {
-	  if (it->first.c_str() != "0")
+	  if (strncmp(it->first.c_str(), "0", 1) != 0)
 		  std::cout << it->first.c_str() << std::endl;
 	  strFixed = it->second.fixed_fn; // fn is just File Name!!
 	  strMoving = it->second.moving_fn;
@@ -3094,15 +3100,17 @@ void DlgRegistration::initDlgRegistration( QString& strDCMUID )
 
 void DlgRegistration::SLT_PassFixedImgForAnalysis()
 {
+  QString cur_fixed = ui.comboBoxImgFixed->currentText();
   if (m_spFixed)
-	m_pParent->UpdateReconImage(m_spFixed, ui.comboBoxImgFixed->currentText());
+	m_pParent->UpdateReconImage(m_spFixed, cur_fixed);
 
 }
 
 void DlgRegistration::SLT_PassMovingImgForAnalysis()
 {
+  QString cur_moving = ui.comboBoxImgMoving->currentText();
   if (m_spMoving)
-	m_pParent->UpdateReconImage(m_spMoving, ui.comboBoxImgMoving->currentText());
+	m_pParent->UpdateReconImage(m_spMoving, cur_moving);
 }
 
 void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
@@ -3284,7 +3292,7 @@ void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw
     itk::ImageRegionIterator<UShortImageType> itMask(spShellMask, spShellMask->GetBufferedRegion());
 
     UShortImageType::SizeType size1 = spCBCTraw->GetBufferedRegion().GetSize();
-    UShortImageType::SizeType size2 = spCBCTcor->GetBufferedRegion().GetSize();
+    // UShortImageType::SizeType size2 = spCBCTcor->GetBufferedRegion().GetSize();
     UShortImageType::SizeType size3 = spShellMask->GetBufferedRegion().GetSize();
 
     if (size1[0] != size3[0] || size1[1] != size3[1] || size1[2] != size3[2])
@@ -3414,7 +3422,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 	}
 	QString organName = strList.at(2);
 
-	organName.trimmed();
+	organName = organName.trimmed();
 	if (organName == "Skin" || organName == "skin" || organName == "SKIN")
 	{
 	  strLineSkin = strLine;
@@ -3749,7 +3757,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 	{
 		std::cerr << "Exception thrown while writing the series " << std::endl;
 		std::cerr << excp << std::endl;
-		return EXIT_FAILURE;
+        return ""; //EXIT_FAILURE;
 	}
 	std::cerr << "Alledgedly writing the series was successful to dir: " << newDirPath.toStdString() << std::endl;
 	return newDirPath.toLocal8Bit().constData();
@@ -3880,12 +3888,14 @@ void DlgRegistration::SLT_gPMCrecalc()
 {
 	if (!m_spFixed)
 		return;
-
+    QString tmp_str = QString("tmp_");
+    QString fix_str = QString("Fixed");
+    QString mov_str = QString("Moving");
 	QString fixed_dcm_dir, moving_dcm_dir = "";
 	// Export fixed and moving as DCM
-	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spFixed, QString("tmp_"), QString("Fixed"), m_strPathPlastimatch);
+	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spFixed, tmp_str, fix_str, m_strPathPlastimatch);
 	if (m_spFixed != m_spMoving)
-		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, QString("tmp_"), QString("Moving"), m_strPathPlastimatch);
+		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, tmp_str, mov_str, m_strPathPlastimatch);
 
 	QString plan_filepath = "";
 	// Load dcm rtplan.
@@ -4265,7 +4275,8 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         m_pParent->m_spRawReconImg = reader->GetOutput();
 
         double tmpSkinMargin = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-        m_pParent->UpdateReconImage(m_pParent->m_spRawReconImg, QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin));
+        QString update_message = QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
+        m_pParent->UpdateReconImage(m_pParent->m_spRawReconImg, update_message);
 
         std::cout << "Reading is completed" << std::endl;
 
@@ -4312,8 +4323,8 @@ void DlgRegistration::SLT_IntensityNormCBCT()
     //SLT_PassMovingImgForAnalysis();
 
     std::cout << "Intensity shifting is done! Added value = " << (int)(meanIntensityMov - meanIntensityFix) << std::endl;
-
-    m_pParent->UpdateReconImage(m_spFixed, QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix)));
+    QString update_message = QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix));
+    m_pParent->UpdateReconImage(m_spFixed, update_message);
     SelectComboExternal(0, REGISTER_RAW_CBCT);
 }
 

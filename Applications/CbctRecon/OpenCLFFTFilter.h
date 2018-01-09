@@ -2,8 +2,8 @@
 #define OpenCLFFTFilter_H_
 
 #include <itkImage.h>
-#include <vector_types.h>
-// #include <complex>
+#include <vector>
+#include <complex>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -65,4 +65,4 @@ cl_float2 OpenCL_min_max_recurse(
 	const cl_float2* input,
 	const cl_uint inputSize);
 
-#endif OpenCLFFTFilter_H_
+#endif // OpenCLFFTFilter_H_
