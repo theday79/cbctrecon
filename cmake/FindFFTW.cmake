@@ -40,6 +40,20 @@ FIND_LIBRARY(FFTW_LIBRARY_LONG_DOUBLE
   PATHS /usr/lib /usr/local/lib ${FFTW_DIR}
 )
 
+# Treaded version:
+FIND_LIBRARY(FFTW_THREADS_LIBRARY_FLOAT
+  NAMES fftw3f_threads libfftw3f-3_threads
+  PATHS /usr/lib /usr/local/lib ${FFTW_DIR}
+)
+FIND_LIBRARY(FFTW_THREADS_LIBRARY_DOUBLE
+  NAMES fftw3_threads libfftw3-3_threads
+  PATHS /usr/lib /usr/local/lib ${FFTW_DIR}
+)
+FIND_LIBRARY(FFTW_THREADS_LIBRARY_LONG_DOUBLE
+  NAMES fftw3l_threads libfftw3l-3_threads
+  PATHS /usr/lib /usr/local/lib ${FFTW_DIR}
+)
+
 # NOTE: OpenSUSE doesn't provide long double implementation
 IF (FFTW_INCLUDE_DIR AND FFTW_LIBRARY_FLOAT AND FFTW_LIBRARY_DOUBLE)
   SET (FFTW_FOUND TRUE)
