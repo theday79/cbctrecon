@@ -7,10 +7,11 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 OPTION(USE_CUDA "Toggle CUDA on or off" ON) # OFF by default for multiple reasons
-OPTION(USE_OPENCL "Toggle OpenCL (deprecated features) on or off" OFF) # ON by default for multiple reasons
-OPTION(USE_CLFFT "Toggle CLFFT on or off" OFF) # ON by default for multiple reasons
+OPTION(USE_OPENCL "Toggle OpenCL (deprecated features) on or off" OFF) # OFF by default for multiple reasons
+OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
+OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
-OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON)
+OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON) # I have not tried setting it "OFF", tbh
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code
 IF(USE_CUDA)
   message (STATUS "Compiling with CUDA option")
@@ -28,6 +29,9 @@ include(ExternalProjectGenerateProjectDescription)
 
 project(CbctRecon)
 
+SET(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard specification")
+
+
 FIND_PACKAGE(Git REQUIRED) # We superbuild now.
 
 FIND_PACKAGE(OpenCL REQUIRED)
@@ -37,8 +41,12 @@ ENDIF(USE_CUDA)
 FIND_PACKAGE(FFTW)
 # set(TBB_ROOT "" CACHE PATH "Root dir of intel TBB, (one level up from lib)")
 # FIND_PACKAGE(TBB) ## The world is not ready for this yet
-FIND_PACKAGE(OpenMP)
-FIND_PACKAGE(clFFT)
+IF(USE_OPENMP)
+  FIND_PACKAGE(OpenMP)
+ENDIF(USE_OPENMP)
+IF(USE_CLFFT)
+  FIND_PACKAGE(clFFT)
+ENDIF(USE_CLFFT)
 
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 

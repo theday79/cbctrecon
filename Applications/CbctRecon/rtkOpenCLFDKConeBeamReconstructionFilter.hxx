@@ -36,6 +36,7 @@ OpenCLFDKConeBeamReconstructionFilter
   std::cout << "before getoutput" << std::endl;
   //Permanent internal connections
   m_BackProjectionFilter->SetInput( 1, m_RampFilter->GetOutput() ); // m_rampFilter is not performed yet at this point
+  std::cout << "after getoutput" << std::endl;
 
   // Default parameters
   m_BackProjectionFilter->InPlaceOn();
