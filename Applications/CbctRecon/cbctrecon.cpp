@@ -4438,6 +4438,19 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, d
         return 20.0;
     }
 
+	typedef itk::MinimumMaximumImageCalculator<FloatImageType> MinMaxCalcType;
+	MinMaxCalcType::Pointer MinMaxFilter = MinMaxCalcType::New();
+	MinMaxFilter->SetImage(projImage);
+	clock_t begin = std::clock();
+	MinMaxFilter->Compute();
+	fProjImgValueMin = MinMaxFilter->GetMinimum();
+	fProjImgValueMax = MinMaxFilter->GetMaximum();
+	clock_t end_time = std::clock();
+
+	std::cout << "CPU took: " << (end_time - begin) << " clocks to find min: " << fProjImgValueMin << " max: " << fProjImgValueMax << std::endl;
+
+	return fProjImgValueMin;
+	/*
 	cl_float2 minMax = { 65535.0, -9999.0 };
 	clock_t begin = std::clock();
 
@@ -4450,8 +4463,10 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, d
 
 	fProjImgValueMin = minMax.x;
 	fProjImgValueMax = minMax.y;
+	
+	return minMax.x;*/
 
-	return minMax.x;
+
 	//Min and max from below may not be the same, but these are better for what we need and found faster.
 
 	/*
