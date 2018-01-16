@@ -2952,7 +2952,7 @@
      <x>0</x>
      <y>0</y>
      <width>1279</width>
-     <height>27</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -4713,6 +4713,38 @@
     <hint type="destinationlabel">
      <x>568</x>
      <y>390</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_DoRecon</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_DoReconstruction()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>613</x>
+     <y>175</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>425</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_SetOutputPath</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_SetOutputPath()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>651</x>
+     <y>209</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>425</y>
     </hint>
    </hints>
   </connection>

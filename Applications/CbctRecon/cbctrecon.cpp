@@ -4026,8 +4026,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
 	if (bowtiePath.length() > 1 && ximIsUsed) {
 		OpenCL_subtract3Dfrom2DbySlice_InPlace(
-			reinterpret_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
-			reinterpret_cast<cl_float*>(bowtiereader->GetOutput()->GetBufferPointer()),
+			static_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
+			static_cast<cl_float*>(bowtiereader->GetOutput()->GetBufferPointer()),
 			reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
 			bowtiereader->GetOutput()->GetLargestPossibleRegion().GetSize());
 	}
@@ -4076,13 +4076,13 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 	if (correctionValue != 10.0 && correctionValue != 20.0) { // 10 and 20 are error codes
 		if ((originalMax - originalMin) > (log(65535.0f) - theoreticalMin))
 			OpenCL_AddConst_MulConst_InPlace(
-				reinterpret_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
+				static_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
 				reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
 				static_cast<cl_float>(-correctionValue), // 2048th lowest value (avoiding outliers simply)
 				static_cast<cl_float>((log(65535.0f) - theoreticalMin) / (originalMax - originalMin)));
 		else
 			OpenCL_AddConst_InPlace(
-				reinterpret_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
+				static_cast<cl_float*>(reader->GetOutput()->GetBufferPointer()),
 				reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
 				static_cast<cl_float>(-correctionValue)); // 2048th lowest value (avoiding outliers simply)
 		// Reset min max:
@@ -4442,7 +4442,7 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, d
 	clock_t begin = std::clock();
 
 	minMax = OpenCL_min_max(
-		reinterpret_cast<cl_float*>(projImage->GetBufferPointer()),
+		static_cast<cl_float*>(projImage->GetBufferPointer()),
 		projImage->GetLargestPossibleRegion().GetSize());
 
 	clock_t end_time = std::clock();
