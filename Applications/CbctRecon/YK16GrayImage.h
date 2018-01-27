@@ -38,17 +38,17 @@ enum enSplitOption{
     PRI_BOTTOM,	
 };
 
-typedef itk::Image<unsigned short, 2> UnsignedShortImageType;
-typedef itk::Image<float, 2> FloatImageType2D;
+using UnsignedShortImageType = itk::Image<unsigned short, 2>;
+using FloatImageType2D = itk::Image<float, 2>;
 
-using namespace std;
+// using namespace std; please no
 
 class YK16GrayImage
 {	
 public:
-	YK16GrayImage(void);
+	YK16GrayImage();
 	YK16GrayImage(int width, int height);
-	~YK16GrayImage(void);
+	~YK16GrayImage();
 
 	int m_iWidth;
 	int m_iHeight;

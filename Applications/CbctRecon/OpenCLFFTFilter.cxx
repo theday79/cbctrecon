@@ -9,7 +9,10 @@
 #include <CL/cl.h>
 #endif
 
-#include <clFFT.h>
+#ifdef USE_CLFFT
+  #include <clFFT.h>
+#endif // USE_CLFFT
+
 #include "rtkOpenCLUtilities.h"
 
 std::tuple<cl_platform_id, cl_device_id>
@@ -157,6 +160,9 @@ OpenCL_padding(
 	// std::cout << "Did it work? we just don't know..." << std::endl;
 
 }
+
+#ifdef USE_CLFFT
+
 
 template<typename T>
 void clFFT_Forward_Multiply_Backward(T* hostProjection, const std::complex<T>* hostKernelFFT, const cl_int4 inputDimension, const cl_int2 kernelDimension) 
@@ -524,7 +530,7 @@ void OpenCL_fft_convolution(
 	printf(".");
 }
 
-
+#endif // USE_CLFFT
 
 void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* sub_buffer, 
 	itk::Image<float, 3U>::SizeType inputSize, itk::Image<float, 2U>::SizeType subSize) {

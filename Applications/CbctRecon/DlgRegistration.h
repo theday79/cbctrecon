@@ -120,7 +120,7 @@ class DlgRegistration : public QDialog,
 public:
 	DlgRegistration();
 	DlgRegistration(QWidget *parent);
-	~DlgRegistration();
+	~DlgRegistration() override;
 	void TestDraw();
 	void whenFixedImgLoaded(); //should be called by comboBox
 	void whenMovingImgLoaded();
@@ -130,8 +130,8 @@ public:
 	void UpdateSplit(int viewIdx, qyklabel* pOverlapWnd);
 	void MousePressedRight(int wndIdx, qyklabel* pWnd);
 
-	void childEvent(QChildEvent *event);
-	bool eventFilter(QObject *target, QEvent *event);
+	void childEvent(QChildEvent *event) override;
+	bool eventFilter(QObject *target, QEvent *event) override;
 
 	void ImageManualMove(int direction, double resol);
 	void ImageManualMoveOneShot(float shiftX, float shiftY, float shiftZ);//DICOM coordinate

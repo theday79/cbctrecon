@@ -47,15 +47,15 @@ class ITK_EXPORT OpenCLFDKBackProjectionImageFilter :
 {
 public:
   /** Standard class typedefs. */
-  typedef itk::Image<float,3>                                ImageType;
-  typedef OpenCLFDKBackProjectionImageFilter                 Self;
-  typedef FDKBackProjectionImageFilter<ImageType, ImageType> Superclass;
-  typedef itk::SmartPointer<Self>                            Pointer;
-  typedef itk::SmartPointer<const Self>                      ConstPointer;
+  using ImageType = itk::Image<float,3>;
+  using Self = OpenCLFDKBackProjectionImageFilter;
+  using SuperClass = FDKBackProjectionImageFilter<ImageType, ImageType>;
+  using Pointer = itk::SmartPointer<Self>;
+  using ConstPointer = itk::SmartPointer<const Self>;
 
-  typedef ImageType::RegionType        OutputImageRegionType;
-  typedef itk::Image<float, 2>         ProjectionImageType;
-  typedef ProjectionImageType::Pointer ProjectionImagePointer;
+  using OutputImageRegionType = ImageType::RegionType;
+  using ProjectionImageType = itk::Image<float, 2>;
+  using ProjectionImagePointer = ProjectionImageType::Pointer;
 
   /** Method for creation through the object factory. */
   itkNewMacro(Self);
@@ -71,9 +71,9 @@ public:
 
 protected:
   OpenCLFDKBackProjectionImageFilter();
-  virtual ~OpenCLFDKBackProjectionImageFilter() {}
+  ~OpenCLFDKBackProjectionImageFilter() override = default;
 
-  void GenerateData();
+  void GenerateData() override;
 
 private:
   OpenCLFDKBackProjectionImageFilter(const Self&); //purposely not implemented

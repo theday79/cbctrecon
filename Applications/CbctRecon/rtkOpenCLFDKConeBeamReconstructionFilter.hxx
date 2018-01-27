@@ -47,7 +47,7 @@ void
 OpenCLFDKConeBeamReconstructionFilter
 ::GenerateData()
 {
-  BackProjectionFilterType* openclbp = dynamic_cast<BackProjectionFilterType*>( m_BackProjectionFilter.GetPointer() );
+  auto* openclbp = dynamic_cast<BackProjectionFilterType*>( m_BackProjectionFilter.GetPointer() );
 
   // Init GPU memory
   openclbp->InitDevice();

@@ -30,3 +30,6 @@
 
 # Binary input files
 *.bin
+
+# Windows generated files
+*.TMP

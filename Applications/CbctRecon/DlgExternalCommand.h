@@ -23,7 +23,7 @@ void SLT_SetRTKPathManual();
 public:
 	DlgExternalCommand();
 	DlgExternalCommand(QWidget *parent);
-	~DlgExternalCommand();
+	~DlgExternalCommand() override;
 
 	int BuildRTKCommandFilter(); //pull predefined command names that you want. From some preset option file
 	

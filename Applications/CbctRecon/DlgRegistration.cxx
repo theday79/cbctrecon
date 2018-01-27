@@ -1518,7 +1518,7 @@ void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, Q
 												   QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
 												   QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask)
 {
-  ofstream fout;
+  std::ofstream fout;
   fout.open(strPathCommandFile.toLocal8Bit().constData());
 
   if (fout.fail())
@@ -2212,7 +2212,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   }
   else
   {
-	cout << "No filePathFixed_proc is available. Exit the function" << std::endl;
+	  std::cout << "No filePathFixed_proc is available. Exit the function" << std::endl;
 	return;
   }
 
@@ -2224,7 +2224,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   if (ui.checkBoxFillBubbleCBCT->isChecked() && tmpBubFileInfo.exists())
   {
-	cout << "6B: final puncturing according to the CBCT bubble" << std::endl;
+	  std::cout << "6B: final puncturing according to the CBCT bubble" << std::endl;
 
         /*Mask_parms parms_fill;
         strPathDeformCTFinal = m_strPathPlastimatch + "/deformCTpuncFin.mha";
@@ -2258,7 +2258,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   }
   else
   {
-	cout << "No final output is available. Exit the function" << std::endl;
+	  std::cout << "No final output is available. Exit the function" << std::endl;
 	return;
   }
 
@@ -2342,13 +2342,13 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 
   if (!ui.checkBoxCropBkgroundCT->isChecked())
   {
-	cout << "Preprocessing is not selected." << std::endl;
+	  std::cout << "Preprocessing is not selected." << std::endl;
 	return true;
   }
 
   if (m_pParent->m_strPathPlanCTDir.length() < 3)
   {
-	cout << "Reference CT DIR should be specified for structure based cropping" << std::endl;
+	  std::cout << "Reference CT DIR should be specified for structure based cropping" << std::endl;
 	QMessageBox::StandardButton reply;
 	reply = QMessageBox::question(this,
 		"No reference structures found!",
@@ -2437,8 +2437,8 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   //return;
 
   /* [3]Read outputss-list.txt and leave skin only*/
-  ifstream fin;
-  fin.open(sslist_path_all.toLocal8Bit().constData(), ios::in);
+  std::ifstream fin;
+  fin.open(sslist_path_all.toLocal8Bit().constData(), std::ios::in);
   if (fin.fail())
 	return false;
 
@@ -2487,7 +2487,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   QString sslist_path_skin;
   if (strLineSkin.length() > 1)
   {
-	ofstream fout;
+	  std::ofstream fout;
 	sslist_path_skin = sslist_path_all;
 	sslist_path_skin.replace("all", "skin");
 	fout.open(sslist_path_skin.toLocal8Bit().constData());
@@ -3198,13 +3198,13 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
   if (tmpFileInfo.exists())
   {
 	readerCBCT->SetFileName(filePathCBCT_noSkin.toLocal8Bit().constData());
-	cout << "Reading the corrected file" << std::endl;
+	std::cout << "Reading the corrected file" << std::endl;
 	readerCBCT->Update();
 	spCBCT = readerCBCT->GetOutput();
   }
   else
   {
-	cout << "Error! No skin-removed file is available for reading" << std::endl;
+	  std::cout << "Error! No skin-removed file is available for reading" << std::endl;
 	return;
   }
 }
@@ -3349,7 +3349,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 {
   if (cropMargin != 0.0)
   {
-	cout << "margin has not been implemented yet. regarded as 0.0 in this version" << std::endl;
+	  std::cout << "margin has not been implemented yet. regarded as 0.0 in this version" << std::endl;
   }
   if (!spImgUshort)
 	return;
@@ -3397,8 +3397,8 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   //return;
 
   /* [3]Read outputss-list.txt and leave skin only*/
-  ifstream fin;
-  fin.open(sslist_path_all.toLocal8Bit().constData(), ios::in);
+  std::ifstream fin;
+  fin.open(sslist_path_all.toLocal8Bit().constData(), std::ios::in);
   if (fin.fail())
 	return;
 
@@ -3441,7 +3441,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   QString sslist_path_skin;
   if (strLineSkin.length() > 1)
   {
-	ofstream fout;
+	  std::ofstream fout;
 	sslist_path_skin = sslist_path_all;
 	sslist_path_skin.replace("all", "skin");
 	fout.open(sslist_path_skin.toLocal8Bit().constData());
@@ -3452,7 +3452,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   }
   else
   {
-	cout << "Error: no skin contour is found in DICOM RS file. " << std::endl;
+	  std::cout << "Error: no skin contour is found in DICOM RS file. " << std::endl;
 	return;
   }
   /* End of [3]Read outputss-list.txt and leave skin only*/
@@ -3512,7 +3512,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   }
   else
   {
-	cout << "No strPathSkinRemovedCT is available. Exit the function" << std::endl;
+	  std::cout << "No strPathSkinRemovedCT is available. Exit the function" << std::endl;
 	return;
   }
 }
@@ -3996,8 +3996,8 @@ void DlgRegistration::SLT_gPMCrecalc()
 		UShortImageType::SizeType imgDim = m_spFixedDose->GetBufferedRegion().GetSize();
 		UShortImageType::SpacingType spacing = m_spFixedDose->GetSpacing();
 
-		cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << std::endl;
-		cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << std::endl;
+		std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1] << "	" << imgDim[2] << std::endl;
+		std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1] << "	" << spacing[2] << std::endl;
 	}
 
 	if (moving_dcm_dir != "")
@@ -4139,7 +4139,7 @@ VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bI
     resVal.y = 0.0;
     resVal.z = 0.0;
 
-    ifstream fin;
+	std::ifstream fin;
     fin.open(filePath.toLocal8Bit().constData());
 
     if (fin.fail())
@@ -4290,7 +4290,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     //Export final xform file
     QString filePathXform = m_strPathPlastimatch + "/" + "xform_manual.txt";
 
-    ofstream fout;
+	std::ofstream fout;
     fout.open(filePathXform.toLocal8Bit().constData());
     fout << "#Custom Transform" << std::endl;
     fout << "#Transform: Translation_only" << std::endl;
@@ -4379,7 +4379,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
         {
             float* cur_iso_pos = curBeam->cplist[j]->get_isocenter();
 			//                ID                id                               ID
-			cout << "Beam Gantry: " << curBeam->gantry_angle << ", Control point rate: " << curBeam->cplist[j]->meterset_rate << //control_pt_no <<
+			std::cout << "Beam Gantry: " << curBeam->gantry_angle << ", Control point rate: " << curBeam->cplist[j]->meterset_rate << //control_pt_no <<
                 ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << std::endl;
 
             if (i == 0 && j == 0) //choose first beam's isocenter

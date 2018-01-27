@@ -58,26 +58,26 @@
 #include "itkBinaryFillholeImageFilter.h"
 #include "itkMaskImageFilter.h"
 
-typedef float FloatPixelType;
+using FloatPixelType = float;
 //typedef itk::Image< FloatPixelType, 3 > FloatImageType;
 //typedef itk::Image< FloatPixelType, 2 > FloatImage2DType;
 #if USE_CUDA
-typedef itk::CudaImage< FloatPixelType, 3 > CUDAFloatImageType;
+using CUDAFloatImageType = itk::CudaImage< FloatPixelType, 3 >;
 #endif // CUDA_FOUND
 
 
-typedef itk::ImageFileReader< FloatImageType > FloatReaderType;
-typedef itk::ImageFileWriter< FloatImageType > FloatWriterType;
+using FloatReaderType = itk::ImageFileReader<FloatImageType>;
+using FloatWriterType = itk::ImageFileWriter<FloatImageType>;
 
-typedef rtk::ThreeDCircularProjectionGeometry GeometryType;
+using GeometryType = rtk::ThreeDCircularProjectionGeometry;
 
 
-typedef unsigned short USHORT_PixelType;
+using USHORT_PixelType = unsigned short;
 //typedef itk::Image< USHORT_PixelType, 3 > UShortImageType;
 //typedef itk::Image< USHORT_PixelType, 2 > UShortImage2DType;
 
 
-typedef signed short SHORT_PixelType;
+using SHORT_PixelType = short;
 //typedef itk::Image< SHORT_PixelType, 3 > ShortImageType;
 //typedef itk::Image< SHORT_PixelType, 2 > ShortImage2DType;
 
@@ -162,8 +162,8 @@ class CbctRecon : public QMainWindow
 	Q_OBJECT
 
 public:
-	CbctRecon(QWidget *parent = 0, Qt::WindowFlags flags = 0);
-	~CbctRecon();
+	CbctRecon(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
+	~CbctRecon() override;
 	//void DoRecon();
 	void ReleaseMemory();
 	void RenameFromHexToDecimal(QStringList& filenameList);
@@ -178,16 +178,16 @@ public:
 	void LoadRTKGeometryFile(const char* filePath);
 
 	//void GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW);
-	void GetExcludeIndexByNames(QString outlierListPath, vector<string>& vProjFileFullPath, vector<int>& vExcludeIdx);
-	void GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW, vector<int>& vExcludingIdx);
+	void GetExcludeIndexByNames(QString outlierListPath, std::vector<std::string>& vProjFileFullPath, std::vector<int>& vExcludeIdx);
+	void GetSelectedIndices(const std::vector<double>& vFullAngles, std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW, std::vector<int>& vExcludingIdx);
 
 	void SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
-	double GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage, const double theoreticalMin);
+	double GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage, double theoreticalMin);
 
 	double GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, FloatImageType::Pointer& sp3DFloatImage);
 	double GetValueFrom3DImageUshort(int reqX, int reqY, int reqZ, UShortImageType::Pointer& sp3DUshortImage);
 
-	bool IsFileNameOrderCorrect(vector<string>& vFileNames);
+	bool IsFileNameOrderCorrect(std::vector<std::string>& vFileNames);
 
 	std::tuple<bool, bool> probeUser(QString guessDir);
 
@@ -198,9 +198,9 @@ public:
 
 	void DoBeamHardeningCorrection();
 
-	void Draw2DFrom3D(UShortImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& pOutput2D);
-	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE direction, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving);
-	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE direction, double pos, AG17RGBAImage& YKFixed, AG17RGBAImage& YKMoving);
+	void Draw2DFrom3D(UShortImageType::Pointer& pImg, enPLANE direction, double pos, YK16GrayImage& Output2D);
+	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE enPlane, double pos, YK16GrayImage& YKFixed, YK16GrayImage& YKMoving);
+	void Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortImageType::Pointer& spMovingImg, enPLANE enPlane, double pos, AG17RGBAImage& YKFixed, AG17RGBAImage& YKMoving);
 
 	void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);
 
@@ -231,7 +231,7 @@ public:
 	void AfterScatCorrectionMacro();
 
 	//His file export from 3D proj file
-	void SaveProjImageAsHIS(UShortImageType::Pointer& m_spProj3D, YK16GrayImage* arrYKImage, QString& strSavingFolder, int iCnt, double resampleF); //arrYKImage include HIS header and original file name	
+	void SaveProjImageAsHIS(UShortImageType::Pointer& spProj3D, std::vector<YK16GrayImage> arrYKImage, QString& strSavingFolder, double resampleF); //arrYKImage include HIS header and original file name	
 
 	void ConvertLineInt2Intensity(FloatImageType::Pointer& spProjLineInt3D, UShortImageType::Pointer& spProjIntensity3D, int bkIntensity);
 	void ConvertIntensity2LineInt(UShortImageType::Pointer& spProjIntensity3D, FloatImageType::Pointer& spProjLineInt3D, int bkIntensity);
@@ -247,7 +247,7 @@ public:
 
 	//void ResampleItkImage(OutputImageType::Pointer& spImgFloat, double resampleF);
 	//Resample proj images
-	void ResampleItkImage(FloatImageType::Pointer& spSrcImg, FloatImageType::Pointer& spTarImg, double resampleF);
+	void ResampleItkImage(FloatImageType::Pointer& spSrcImg, FloatImageType::Pointer& spTarImg, double resFactor);
 	void ResampleItkImage(UShortImageType::Pointer& spSrcImg, UShortImageType::Pointer& spTarImg, double resFactor);
 	void ResampleItkImage2D(FloatImage2DType::Pointer& spSrcImg2D, FloatImage2DType::Pointer& spTarImg2D, double resFactor); //using slice iterator
 
@@ -265,14 +265,14 @@ public:
 	double GetRawIntensityScaleFactor();
 
 	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
-	void GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);
-	void GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
-	void GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend);
+	void GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);
+	void GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);
+	void GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);
 
 	//	void UpdateUIAfterLoading(QString& imgName);
 
 	void LoadExternalFloatImage(QString& strPath, bool bConversion);
-	void TransformationRTK2IEC(FloatImageType::Pointer& spSrc);
+	void TransformationRTK2IEC(FloatImageType::Pointer& spSrcTarg);
 
 	void MedianFilterByGUI(); //params are given at the UI
 	void FileExportByGUI();//params are given at the UI
@@ -309,23 +309,23 @@ public:
 
 	void GenerateCylinderMask(UShortImageType::Pointer& spImgCanvas, float fDcmPosX, float fDcmPosY, float fRadius);
 
-	float GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR, float* sdIntensity = NULL);
+	float GetMeanIntensity(UShortImageType::Pointer& spImg, float sphereR, float* sdIntensity = nullptr);
 
 	void AddConstHU(UShortImageType::Pointer& spImg, int HUval);
 
 
-	bool ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull);
+	bool ResortCBCTProjection(std::vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, std::vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, std::vector<std::string>& vProjPathsFull);
 
-	void AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin = 5);
+	void AppendInPhaseIndex(int iPhase, std::vector<float>& vFloatPhaseFull, std::vector<int>& vOutputIndex, int margin = 5);
 
 	void LoadShort3DImage(QString& filePath, enREGI_IMAGES enTarget);
 	//Read long INIXVI text file and read couch shift values. apply cm -> mm conversion (multiply 10). NO sign changes.
-	bool GetCouchShiftFromINIXVI(QString& strPathINI, VEC3D* pTrans, VEC3D* pRot);
+	bool GetCouchShiftFromINIXVI(QString& strPathINIXVI, VEC3D* pTrans, VEC3D* pRot);
 
 	//This function came from the tracking project. trans values are all in mm, DICOM x, y, z 
 	void ImageTransformUsingCouchCorrection(UShortImageType::Pointer& spUshortInput, UShortImageType::Pointer& spUshortOutput, VEC3D couch_trans, VEC3D couch_rot);
 
-	void GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL);
+	void GetWEPLDataFromSingleFile(const QString& filePath, std::vector<VEC3D>& vPOI, std::vector<WEPLData>& vOutputWEPL);
 
 
 	void SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, float fMVGanAngle, float panelOffsetX, float panelOffsetY,
@@ -477,17 +477,19 @@ public:
 
 	//ReaderType::Pointer m_reader;
 	//WriterType::Pointer m_writer;
-	StructureSet* m_structures;
-	YK16GrayImage* m_arrYKImage; //independent raw images
-	int m_iImgCnt; //for independent raw images --> no relation to Directroy based projections
+	StructureSet* m_structures{};
+	// YK16GrayImage* m_arrYKImage; //independent raw images
+	std::vector<YK16GrayImage> m_arrYKImage;
+	int m_iImgCnt{}; //for independent raw images --> no relation to Directroy based projections
 
-	YK16GrayImage* m_arrYKBufProj;
+	//YK16GrayImage* m_arrYKBufProj;
+	std::vector<YK16GrayImage> m_arrYKBufProj;
 	int m_iCntSelectedProj;
 
 	YK16GrayImage* m_pImgOffset;
 	YK16GrayImage* m_pImgGain;
 	//Badpixmap;
-	vector<BADPIXELMAP> m_vPixelReplMap;
+	std::vector<BADPIXELMAP> m_vPixelReplMap{};
 
 	//RTK recon
 	GeometryType::Pointer m_spFullGeometry; //sp = smart pointer
@@ -523,11 +525,11 @@ public:
 	double m_fProjImgValueMax; //value of float image
 	double m_fProjImgValueMin;
 
-	double m_multiplyFactor;
+	double m_multiplyFactor{};
 	QStandardItemModel *m_pTableModel;
-	DlgRegistration* m_pDlgRegistration;
+	DlgRegistration* m_pDlgRegistration{};
 	// DlgHistogram* m_pDlgHistogram;
-	DlgExternalCommand* m_pDlgExternalCommand;
+	DlgExternalCommand* m_pDlgExternalCommand{};
 
 	//Automatically detected relavant file/Dir path when load the projection files (SLT_SetHisDir)
 
@@ -555,28 +557,28 @@ public:
 	double m_fProjSpacingX; //updated from SelectedProjLoad
 	double m_fProjSpacingY; //updated from SelectedProjLoad
 
-	vector<VEC3D> m_vPOI_DCM;//initialized by file Load
+	std::vector<VEC3D> m_vPOI_DCM{};//initialized by file Load
 
-	QTimer* m_Timer;
+	QTimer* m_Timer{};
 	bool m_busyTimer;
 
-	vector<string> m_vSelectedFileNames;
+	std::vector<std::string> m_vSelectedFileNames{};
 
 	bool m_bMacroContinue;
 
-	vector<float> m_vPhaseFloat;
+	std::vector<float> m_vPhaseFloat{};
 
 
 	QStringList m_strListPerProjRefVol;
 
 	QString m_strPathDefaultConfigFile;
 
-	vector<int> m_vExcludeProjIdx;//if kVON (exposed_ tag is false
+	std::vector<int> m_vExcludeProjIdx{};//if kVON (exposed_ tag is false
 
 
 //private:
 public:
-	Ui::CbctReconClass ui;
+	Ui::CbctReconClass ui{};
 };
 
 #endif // BADPIXELDETECTOR_H 

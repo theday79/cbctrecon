@@ -10,9 +10,9 @@
 class AG17RGBAImage
 {
 public:
-	AG17RGBAImage(void);
+	AG17RGBAImage();
 	AG17RGBAImage(int width, int height);
-	~AG17RGBAImage(void);
+	~AG17RGBAImage();
 
 	int m_iWidth;
 	int m_iHeight;

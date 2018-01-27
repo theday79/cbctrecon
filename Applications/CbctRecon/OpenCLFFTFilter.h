@@ -13,16 +13,16 @@
 
 
 void OpenCL_padding(
-	const cl_int4 paddingIndex,
-	const cl_uint4 paddingSize,
-	const cl_uint4 inputSize,
+	cl_int4 paddingIndex,
+	cl_uint4 paddingSize,
+	cl_uint4 inputSize,
 	const float *deviceVolume,
 	float *devicePaddedVolume,
-	const std::vector<cl_float> mirrorWeights);
+	std::vector<cl_float> mirrorWeights);
 
 void OpenCL_fft_convolution(
-	const cl_int4 inputDimension,
-	const cl_int2 kernelDimension,
+	cl_int4 inputDimension,
+	cl_int2 kernelDimension,
 	float* hostProjection,
 	std::complex<float>* deviceKernelFFT);
 
@@ -40,18 +40,18 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 void OpenCL_AddConst_InPlace(
 	cl_float* input,
 	itk::Image<float, 3U>::SizeType inputSize,
-	const cl_float constant);
+	cl_float constant);
 
 void OpenCL_AddConst_MulConst_InPlace(
 	cl_float* input,
 	itk::Image<float, 3U>::SizeType inputSize,
-	const cl_float add_constant,
-	const cl_float mul_constant);
+	cl_float add_constant,
+	cl_float mul_constant);
 
 void OpenCL_AddConst_InPlace_2D(
 	cl_float* input,
 	itk::Image<float, 2U>::SizeType inputSize,
-	const cl_float constant);
+	cl_float constant);
 
 cl_float2 OpenCL_min_max(
 	const cl_float* input,
@@ -63,6 +63,6 @@ cl_float2 OpenCL_min_max_2D(
 
 cl_float2 OpenCL_min_max_recurse(
 	const cl_float2* input,
-	const cl_uint inputSize);
+	cl_uint inputSize);
 
 #endif // OpenCLFFTFilter_H_

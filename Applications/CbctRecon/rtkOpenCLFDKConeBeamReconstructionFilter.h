@@ -48,17 +48,17 @@ class ITK_EXPORT OpenCLFDKConeBeamReconstructionFilter :
 {
 public:
   /** Standard class typedefs. */
-  typedef OpenCLFDKConeBeamReconstructionFilter                                              Self;
-  typedef FDKConeBeamReconstructionFilter< itk::Image<float,3>, itk::Image<float,3>, float > Superclass;
-  typedef itk::SmartPointer<Self>                                                            Pointer;
-  typedef itk::SmartPointer<const Self>                                                      ConstPointer;
+  using Self = OpenCLFDKConeBeamReconstructionFilter;
+  using Superclass = FDKConeBeamReconstructionFilter< itk::Image<float,3>, itk::Image<float,3>, float >;
+  using Pointer = itk::SmartPointer<Self>;
+  using ConstPointer = itk::SmartPointer<const Self>;
 
   /** Typedefs of subfilters which have been implemented with OpenCL */
   //typedef rtk::OpenCLFDKWeightProjectionFilter    WeightFilterType;
 #if USE_CLFFT
-  typedef rtk::OpenCLFFTRampImageFilter           RampFilterType;
+  using RampFilterType = rtk::OpenCLFFTRampImageFilter;
 #endif
-  typedef rtk::OpenCLFDKBackProjectionImageFilter BackProjectionFilterType;
+  using BackProjectionFilterType = rtk::OpenCLFDKBackProjectionImageFilter;
 
   /** Standard New method. */
   itkNewMacro(Self);
@@ -73,18 +73,18 @@ public:
 
 protected:
   OpenCLFDKConeBeamReconstructionFilter();
-  ~OpenCLFDKConeBeamReconstructionFilter(){}
+  ~OpenCLFDKConeBeamReconstructionFilter() override= default;
 
-  void GenerateData();
+  void GenerateData() override;
 
 #if USE_CLFFT
   typename RampFilterType::Pointer    m_RampFilter;
 #endif
 
-private:
+public:
   //purposely not implemented
-  OpenCLFDKConeBeamReconstructionFilter(const Self&);
-  void operator=(const Self&);
+  OpenCLFDKConeBeamReconstructionFilter(const Self&) = delete;
+  void operator=(const Self&) = delete;
 }; // end of class
 
 } // end namespace rtk

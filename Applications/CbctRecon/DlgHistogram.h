@@ -21,7 +21,7 @@ public slots:
 public:
 	DlgHistogram();
 	DlgHistogram(QWidget *parent);
-	~DlgHistogram();
+	~DlgHistogram() override;
 
 
 public: 
