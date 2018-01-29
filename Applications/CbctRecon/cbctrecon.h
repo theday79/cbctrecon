@@ -3,30 +3,30 @@
 
 #include <QtWidgets/QMainWindow>
 //#include <QTimer>
-#include "ui_cbctrecon.h"
-#include "YK16GrayImage.h"
 #include "StructureSet.h"
+#include "YK16GrayImage.h"
+#include "ui_cbctrecon.h"
 
 //#include "itkImage.h"
-#include "itk_image_type.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
+#include "itk_image_type.h"
 
 // RTK includes
+#include <rtkElektaSynergyGeometryReader.h>
+#include <rtkHisImageIO.h>
 #include <rtkHndImageIO.h>
-#include <rtkXimImageIO.h>
+#include <rtkThreeDCircularProjectionGeometry.h>
+#include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkVarianObiGeometryReader.h>
 #include <rtkVarianProBeamGeometryReader.h>
-#include <rtkHisImageIO.h>
-#include <rtkElektaSynergyGeometryReader.h>
-#include <rtkThreeDCircularProjectionGeometryXMLFile.h>
-#include <rtkThreeDCircularProjectionGeometry.h>
+#include <rtkXimImageIO.h>
 
 #include <rtkConfiguration.h>
-#include <rtkFDKBackProjectionImageFilter.h>
-#include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkConstantImageSource.h>
 #include <rtkDisplacedDetectorImageFilter.h>
+#include <rtkFDKBackProjectionImageFilter.h>
+#include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
 
@@ -42,21 +42,21 @@
 #endif
 
 // ITK includes
-#include <itkStreamingImageFilter.h>
-#include <itkRegularExpressionSeriesFileNames.h>
-#include <itkMemoryProbesCollectorBase.h>
-#include <itkEuler3DTransform.h>
-#include <itkResampleImageFilter.h>
-#include <itkFlipImageFilter.h>
-#include <itkMultiplyImageFilter.h>
-#include "itkCastImageFilter.h"
 #include "itkAbsImageFilter.h"
-#include "itkBinaryThresholdImageFilter.h"
+#include "itkBinaryBallStructuringElement.h"
 #include "itkBinaryDilateImageFilter.h"
 #include "itkBinaryErodeImageFilter.h"
-#include "itkBinaryBallStructuringElement.h"
 #include "itkBinaryFillholeImageFilter.h"
+#include "itkBinaryThresholdImageFilter.h"
+#include "itkCastImageFilter.h"
 #include "itkMaskImageFilter.h"
+#include <itkEuler3DTransform.h>
+#include <itkFlipImageFilter.h>
+#include <itkMemoryProbesCollectorBase.h>
+#include <itkMultiplyImageFilter.h>
+#include <itkRegularExpressionSeriesFileNames.h>
+#include <itkResampleImageFilter.h>
+#include <itkStreamingImageFilter.h>
 
 using FloatPixelType = float;
 //typedef itk::Image< FloatPixelType, 3 > FloatImageType;
@@ -178,18 +178,18 @@ public:
 	void LoadRTKGeometryFile(const char* filePath);
 
 	//void GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW);
-	void GetExcludeIndexByNames(QString outlierListPath, std::vector<std::string>& vProjFileFullPath, std::vector<int>& vExcludeIdx);
+	void GetExcludeIndexByNames(const QString& outlierListPath, std::vector<std::string>& vProjFileFullPath, std::vector<int>& vExcludeIdx);
 	void GetSelectedIndices(const std::vector<double>& vFullAngles, std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW, std::vector<int>& vExcludingIdx);
 
 	void SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update m_fProjImgValueMin, max
-	double GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, FloatImageType::Pointer projImage, double theoreticalMin);
+	double GetMaxAndMinValueOfProjectionImage(double& fProjImgValueMax, double& fProjImgValueMin, const FloatImageType::Pointer& projImage); // , double theoreticalMin);
 
 	double GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ, FloatImageType::Pointer& sp3DFloatImage);
 	double GetValueFrom3DImageUshort(int reqX, int reqY, int reqZ, UShortImageType::Pointer& sp3DUshortImage);
 
 	bool IsFileNameOrderCorrect(std::vector<std::string>& vFileNames);
 
-	std::tuple<bool, bool> probeUser(QString guessDir);
+	std::tuple<bool, bool> probeUser(const QString& guessDir);
 
 	void PostApplyFOVDispParam();
 
@@ -210,8 +210,8 @@ public:
 	//bool loadPlanCTFromDCM(QString& strCTDirPath, QString& strRSPath);//using plastimatch, prepare m_spRefCTImg. Remove air, RS is needed
 	//Skin will be removed, bubble will be filled	
 
-	void FindAllRelevantPaths(QString pathProjHisDir);
-	QString MakeElektaXML(QString filePath_ImageDBF, QString filePath_FrameDBF, QString DICOM_UID);
+	void FindAllRelevantPaths(const QString& pathProjHisDir);
+	QString MakeElektaXML(const QString& filePath_ImageDBF, const QString& filePath_FrameDBF, const QString& DICOM_UID);
 
 	bool LoadShortImageToUshort(QString& strPath, UShortImageType::Pointer& pUshortImage);
 	void init_DlgRegistration(QString& strDCM_UID);

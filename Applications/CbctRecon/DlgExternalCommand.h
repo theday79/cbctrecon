@@ -1,8 +1,8 @@
 #pragma once
+#include "cbctrecon.h"
+#include "ui_DlgExternalCommand.h"
 #include <QDialog>
 #include <QString>
-#include "ui_DlgExternalCommand.h"
-#include "cbctrecon.h"
 #include <QStringList>
 
 
@@ -12,7 +12,6 @@ class DlgExternalCommand : public QDialog,
 	public Ui::DlgExternalCommandClass
 {
     Q_OBJECT
-    ;
 
 public slots:  
 void SLT_SetRTKPath();

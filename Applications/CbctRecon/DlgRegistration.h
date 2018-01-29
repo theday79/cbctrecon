@@ -1,12 +1,12 @@
 #pragma once
-#include <QDialog>
-#include "ui_DlgRegistration.h"
+#include "AG17RGBAImage.h"
+#include "YK16GrayImage.h"
+#include "cbctrecon.h"
 #include "itkImage.h"
 #include "itk_mask.h"
-#include "YK16GrayImage.h"
-#include "AG17RGBAImage.h"
+#include "ui_DlgRegistration.h"
+#include <QDialog>
 #include <QString>
-#include "cbctrecon.h"
 
 
 
@@ -50,7 +50,6 @@ class DlgRegistration : public QDialog,
 	public Ui::DlgRegistrationClass
 {
 	Q_OBJECT
-		;
 
 	public slots:
 	void SLT_CrntPosGo();

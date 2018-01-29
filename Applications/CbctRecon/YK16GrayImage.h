@@ -14,8 +14,8 @@ class QPainter;
 
 #include "itkImage.h"
 #include <QImage>
-#include <vector>
 #include <QVector>
+#include <vector>
 
 struct BADPIXELMAP{
 	int BadPixX;

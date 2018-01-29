@@ -2,8 +2,8 @@
 
 #include "YK16GrayImage.h" // for enumerators and types without overloading
 #include <QImage>
-#include <vector>
 #include <QVector>
+#include <vector>
 
 
 

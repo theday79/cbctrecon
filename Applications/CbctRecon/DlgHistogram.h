@@ -1,8 +1,8 @@
 #pragma once
+#include "cbctrecon.h"
+#include "ui_DlgHistogram.h"
 #include <QDialog>
 #include <QString>
-#include "ui_DlgHistogram.h"
-#include "cbctrecon.h"
 
 
 
@@ -10,7 +10,6 @@ class DlgHistogram : public QDialog,
 	public Ui::DlgHistogramClass
 {
     Q_OBJECT
-    ;
 
 public slots:
 	void SLT_DrawGraph();

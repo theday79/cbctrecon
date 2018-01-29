@@ -1,9 +1,9 @@
 #ifndef OpenCLFFTFilter_H_
 #define OpenCLFFTFilter_H_
 
+#include <complex>
 #include <itkImage.h>
 #include <vector>
-#include <complex>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
