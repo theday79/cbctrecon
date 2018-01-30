@@ -10591,6 +10591,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, f
 		const double gantry = fAngleStart + i * fAngleGap;
 		const std::array<double, 3> basis = get_basis_from_angles(gantry, couch);
 		size_t loop_idx = 0;
+		//int z_slice = -5000; // for progress and debug
 		for (auto poi_it = m_vPOI_DCM.begin(); poi_it < m_vPOI_DCM.end(); poi_it++, loop_idx++)
 		{
 			UShortImageType::PointType cur_point;
@@ -10600,6 +10601,12 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, f
 
 			UShortImageType::IndexType cur_idx{};
 			spUshortImage->TransformPhysicalPointToIndex(cur_point, cur_idx);
+			/* // Turn on when debugging
+			if (cur_idx[2] != z_slice) {
+				z_slice = cur_idx[2];
+				std::cout << z_slice << ", " << std::endl;
+			}
+			*/
 			const std::array<size_t, 3> point_id = { {
 					static_cast<size_t>(cur_idx[0]),
 					static_cast<size_t>(cur_idx[1]),
@@ -10983,6 +10990,7 @@ void CbctRecon::SLT_GeneratePOIData()//it fills m_vPOI_DCM
 	if (!m_vPOI_DCM.empty()) {
 		m_vPOI_DCM.clear();
 }
+	/*
 	VEC3D imgDims{};
 	imgDims.x = ui.lineEdit_outImgDim_LR->text().toInt();
 	imgDims.y = ui.lineEdit_outImgDim_AP->text().toInt();
@@ -10991,16 +10999,26 @@ void CbctRecon::SLT_GeneratePOIData()//it fills m_vPOI_DCM
 	imgSpac.x = ui.lineEdit_outImgSp_LR->text().toDouble();
 	imgSpac.y = ui.lineEdit_outImgSp_AP->text().toDouble();
 	imgSpac.z = ui.lineEdit_outImgSp_SI->text().toDouble();
-	VEC3D fPOI{};
+	*/
+	UShortImageType::SizeType imgSize = m_spCrntReconImg->GetLargestPossibleRegion().GetSize();
+	VEC3D imgDims = { imgSize[0], imgSize[1], imgSize[2] };
+	VEC3D imgSpac{
+		m_spCrntReconImg->GetSpacing()[0],
+		m_spCrntReconImg->GetSpacing()[1],
+		m_spCrntReconImg->GetSpacing()[2]
+	};
+
 	if (ui.checkBox_AP->isChecked())
 	{
 		for (size_t k = 2; k < (imgDims.z - 2); k++)
 		{
 			for (size_t i = 2; i < (imgDims.x - 2); i++)
 			{
-				fPOI.x = i * imgSpac.x - ((imgSpac.x * imgDims.x) / 2.);
-				fPOI.y = ui.lineEdit_PostTablePosY->text().toDouble() + 10;
-				fPOI.z = k * imgSpac.z - ((imgSpac.z * imgDims.z) / 2.);
+				VEC3D fPOI = {
+					i * imgSpac.x - ((imgSpac.x * imgDims.x) / 2.),
+					ui.lineEdit_PostTablePosY->text().toDouble(),
+					k * imgSpac.z - ((imgSpac.z * imgDims.z) / 2.)
+				};
 				m_vPOI_DCM.push_back(fPOI);
 			}
 		}
@@ -11011,14 +11029,15 @@ void CbctRecon::SLT_GeneratePOIData()//it fills m_vPOI_DCM
 		{
 			for (size_t j = 2; j < (imgDims.y - 2); j++)
 			{
-				fPOI.x = 2;
-				fPOI.y = j * imgSpac.y - ((imgSpac.y * imgDims.y) / 2.);
-				fPOI.z = k * imgSpac.z - ((imgSpac.z * imgDims.z) / 2.);
+				VEC3D fPOI = { 2,
+					j * imgSpac.y - ((imgSpac.y * imgDims.y) / 2.),
+					k * imgSpac.z - ((imgSpac.z * imgDims.z) / 2.)
+				};
 				m_vPOI_DCM.push_back(fPOI);
 			}
 		}
 	}
-	std::cout << "POI data generated! last value: [" << fPOI.x << ", " << fPOI.y << ", " << fPOI.z << "]" << std::endl;
+	std::cout << "POI data generated! last value: [" << m_vPOI_DCM.back().x << ", " << m_vPOI_DCM.back().y << ", " << m_vPOI_DCM.back().z << "]" << std::endl;
 
 }
 
