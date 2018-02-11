@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#ifndef __rtkOpenCLFDKBackProjectionImageFilter_h
-#define __rtkOpenCLFDKBackProjectionImageFilter_h
+#ifndef RTKOPENCLFDKBACKPROJECTIONIMAGEFILTER_H
+#define RTKOPENCLFDKBACKPROJECTIONIMAGEFILTER_H
 
 #include "rtkFDKBackProjectionImageFilter.h"
 
@@ -75,17 +75,18 @@ protected:
 
   void GenerateData() override;
 
-private:
-  OpenCLFDKBackProjectionImageFilter(const Self&); //purposely not implemented
-  void operator=(const Self&);                     //purposely not implemented
+public:
+  OpenCLFDKBackProjectionImageFilter(const Self&) = delete; //purposely not implemented
+  void operator=(const Self&) = delete;                     //purposely not implemented
 
-  cl_context       m_Context;
-  cl_command_queue m_CommandQueue;
-  cl_mem           m_DeviceMatrix;
-  cl_mem           m_DeviceVolume;
-  cl_mem           m_DeviceProjection;
-  cl_program       m_Program;
-  cl_kernel        m_Kernel;
+private:
+  cl_context       m_Context{};
+  cl_command_queue m_CommandQueue{};
+  cl_mem           m_DeviceMatrix{};
+  cl_mem           m_DeviceVolume{};
+  cl_mem           m_DeviceProjection{};
+  cl_program       m_Program{};
+  cl_kernel        m_Kernel{};
 };
 
 } // end namespace rtk

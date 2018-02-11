@@ -1,4 +1,5 @@
-#pragma once
+#ifndef AG17RGBAIMAGE_H
+#define AG17RGBAIMAGE_H
 
 #include "YK16GrayImage.h" // for enumerators and types without overloading
 #include <QImage>
@@ -26,7 +27,7 @@ public:
 	QImage m_QImage;
 	//QPainter* m_pPainter;
 
-	bool CopyFromBuffer(unsigned short* pImageBuf, int width, int height);
+	bool CopyFromBuffer(const unsigned short* pImageBuf, int width, int height);
 	bool CloneImage(AG17RGBAImage& other);
 
 	bool CreateImage(int width, int height, unsigned short usVal);
@@ -106,7 +107,7 @@ public:
 
 	//SPLIT VIEW
 	QPoint m_ptSplitCenter; //Fixed image with Moving image. center is based on dataPt.//Fixed Image: Left Top + Right Bottom, Moving: Right Top + Left Bottom        
-	int m_enSplitOption;
+	int m_enSplitOption{};
 	//This cetner is moved while Left Dragging //All split and crosshair are data point based!
 	void SetSplitOption(enSplitOption option) { m_enSplitOption = option; }
 	void SetSplitCenter(QPoint& ptSplitCenter);	//From mouse event, data point	
@@ -125,7 +126,7 @@ public:
 
 	void MedianFilter(int iMedianSizeX, int iMedianSizeY);
 
-	double m_fResampleFactor;//if it is not the 1.0, the data is already resampled.	
+	double m_fResampleFactor{};//if it is not the 1.0, the data is already resampled.	
 
 	UnsignedShortImageType::Pointer CloneItkImage();
 	void ResampleImage(double fResampleFactor);
@@ -136,3 +137,5 @@ public:
 	void InvertImage();
 
 };
+
+#endif

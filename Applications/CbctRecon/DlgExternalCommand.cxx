@@ -1,15 +1,11 @@
 #include "DlgExternalCommand.h"
-#include <QDir>
-#include <QFileInfo>
-#include <QFileDialog>
-#include <QStringList>
-#include <QMessageBox>
-#include <QProcess>
 #include "DlgRegistration.h"
+#include <QFileDialog>
+#include <QProcess>
 
 using namespace std;
 
-DlgExternalCommand::DlgExternalCommand() : QDialog()
+DlgExternalCommand::DlgExternalCommand()  
 {
     /* Sets up the GUI */
     ui.setupUi (this);
@@ -25,9 +21,7 @@ DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent)
 }
 
 DlgExternalCommand::~DlgExternalCommand()
-{
- 
-}
+= default;
 
 void DlgExternalCommand::SLT_SetRTKPath()
 {
@@ -48,7 +42,7 @@ void DlgExternalCommand::SetRTKBinPath(QString& strDirPath)
 
 	if (!dirInfo.exists())
 	{
-		cout << "ERROR! " << strDirPath.toLocal8Bit().constData() << " doesn't exist." << std::endl;
+		std::cout << "ERROR! " << strDirPath.toLocal8Bit().constData() << " doesn't exist." << std::endl;
 		return;
 	}
 
@@ -58,8 +52,9 @@ void DlgExternalCommand::SetRTKBinPath(QString& strDirPath)
 	ui.plainTextRTKPath->setPlainText(m_strDirRTKBin);
 
 	//Search for available commands
-	if (m_strDirRTKBin.isEmpty())
+	if (m_strDirRTKBin.isEmpty()) {
 		return;
+}
 	
 	int cnt = m_listRTKCommandFilter.length();
 
@@ -71,8 +66,8 @@ void DlgExternalCommand::SetRTKBinPath(QString& strDirPath)
 		tmpStrPath = m_strDirRTKBin;
 		tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
 
-		cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
-		cout << tmpStrPath.toLocal8Bit().constData() << std::endl;
+		std::cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
+		std::cout << tmpStrPath.toLocal8Bit().constData() << std::endl;
 
 		QFileInfo fInfo = QFileInfo(tmpStrPath);
 		if (fInfo.exists()) //add combo
@@ -93,8 +88,9 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 	{
 		strFinalCommandText = crntPath.append("/").append(crntCommand);
 	}
-	else
+	else {
 		return;
+}
 
 	//QString strGeometry;
 	QString strOutput; //this should be member and unique //this is float format
@@ -114,7 +110,7 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 	QString str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
 
 	if (str_mainGeometry.length() < 1)
-		cout << "Command will not be valid. set geometry file path in the main UI first." << std::endl;
+		std::cout << "Command will not be valid. set geometry file path in the main UI first." << std::endl;
 
 	QString str_mainHardware;
 	if (m_pParent->ui.radioButton_UseCPU->isChecked())
@@ -151,7 +147,7 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 	
 	if (!tmpPlmDir.exists())
 	{
-		cout << "Error! No tmp plm path is available." << tmpPlmDir.absolutePath().toLocal8Bit().constData() << std::endl;		
+		std::cout << "Error! No tmp plm path is available." << tmpPlmDir.absolutePath().toLocal8Bit().constData() << std::endl;		
 		return;
 	}
 
@@ -190,13 +186,15 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 		QString strPositivity = ui.lineEditSARTpositivity->text().trimmed();   //Enforces positivity during the reconstruction (default=off)",
 		QString strNprojpersubset = ui.lineEditSARTsubsetproj->text().trimmed(); //Number of projections processed between each update of the reconstructed volume (1 for SART, several for OSSART, all for SIRT)  (default=`1')",
 		QString strFwdMethod = "Joseph";
-		if (str_mainHardware == "cuda")
+		if (str_mainHardware == "cuda") {
 			strFwdMethod = "CudaRayCast";
+}
 			//			--fp = ENUM Forward projection method(possible values = \"Joseph\", \"RayCastInterpolator\", "CudaRayCast\" default=`Joseph')",
 
 		QString strBackMethod = "VoxelBasedBackProjection";
-		if (str_mainHardware == "cuda")
+		if (str_mainHardware == "cuda") {
 			strBackMethod = "CudaVoxelBased";		
+}
 
 		strFinalCommandText = strFinalCommandText +
 			" --geometry " + str_mainGeometry +
@@ -227,13 +225,15 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 		QString strTVbeta = ui.lineEditTVbeta->text().trimmed();   //Enforces positivity during the reconstruction (default=off)",
 		QString strTVCGiter = ui.lineEditTVCGiter->text().trimmed();   //Enforces positivity during the reconstruction (default=off)",		
 		QString strFwdMethod = "Joseph";
-		if (str_mainHardware == "cuda")
+		if (str_mainHardware == "cuda") {
 			strFwdMethod = "CudaRayCast";
+}
 		//			--fp = ENUM Forward projection method(possible values = \"Joseph\", \"RayCastInterpolator\", "CudaRayCast\" default=`Joseph')",
 
 		QString strBackMethod = "VoxelBasedBackProjection";
-		if (str_mainHardware == "cuda")
+		if (str_mainHardware == "cuda") {
 			strBackMethod = "CudaVoxelBased";
+}
 
 		strFinalCommandText = strFinalCommandText +
 			" --geometry " + str_mainGeometry +
@@ -265,13 +265,15 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 
 
 		QString strFwdMethod = "Joseph";
-		if (str_mainHardware == "cuda")
+		if (str_mainHardware == "cuda") {
 			strFwdMethod = "CudaRayCast";
+}
 		//			--fp = ENUM Forward projection method(possible values = \"Joseph\", \"RayCastInterpolator\", "CudaRayCast\" default=`Joseph')",
 
 		QString strBackMethod = "VoxelBasedBackProjection";
-		if (str_mainHardware == "cuda")
+		if (str_mainHardware == "cuda") {
 			strBackMethod = "CudaVoxelBased";
+}
 
 		strFinalCommandText = strFinalCommandText +
 			" --geometry " + str_mainGeometry +
@@ -303,8 +305,8 @@ void DlgExternalCommand::SLT_RunRTKCommand()
 	if (QProcess::execute(strFinalExternalCommand) < 0)
 		qDebug() << "Failed to run";
 
-	cout << "External RTK reconstruction is done" << std::endl;
-	cout << "File is being loaded" << std::endl;
+	std::cout << "External RTK reconstruction is done" << std::endl;
+	std::cout << "File is being loaded" << std::endl;
 
 	m_pParent->LoadExternalFloatImage(m_strRecentOutputPath, true); //true: conversion (float, direction
 	

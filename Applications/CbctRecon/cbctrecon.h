@@ -1,7 +1,20 @@
 #ifndef CBCTRECON_H
 #define CBCTRECON_H
 
+#include <array>
+#include <thread>
+
+// Qt
 #include <QtWidgets/QMainWindow>
+#include <qclipboard.h>
+#include <qdir.h>
+#include <qfiledialog.h>
+#include <qinputdialog.h>
+#include <qmessagebox.h>
+#include <qstandarditemmodel.h>
+#include <qtimer.h>
+#include <qxmlstream.h>
+
 //#include <QTimer>
 #include "StructureSet.h"
 #include "YK16GrayImage.h"
@@ -52,11 +65,43 @@
 #include "itkMaskImageFilter.h"
 #include <itkEuler3DTransform.h>
 #include <itkFlipImageFilter.h>
+#include <itkImageDuplicator.h>
+#include <itkImageSliceConstIteratorWithIndex.h>
+#include <itkImageSliceIteratorWithIndex.h>
+#include <itkMedianImageFilter.h>
 #include <itkMemoryProbesCollectorBase.h>
+#include <itkMinimumMaximumImageCalculator.h>
 #include <itkMultiplyImageFilter.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
 #include <itkRegularExpressionSeriesFileNames.h>
 #include <itkResampleImageFilter.h>
+#include <itkRescaleIntensityImageFilter.h>
+#include <itkSmoothingRecursiveGaussianImageFilter.h>
 #include <itkStreamingImageFilter.h>
+
+// Plastimatch
+#include <mha_io.h>
+#include <nki_io.h>
+#include <proj_volume.h>
+#include <ray_data.h>
+#include <rt_beam.h>
+#include <rt_plan.h>
+#include <rt_study_metadata.h>
+#include <volume.h>
+#include <volume_adjust.h>
+
+#if USE_OPENCL_PLM
+#include <plmreconstruct_config.h>
+
+#include <autotune_opencl.h>
+#include <fdk.h>
+#include <fdk_opencl.h>
+#include <opencl_util.h>
+#include <plm_image.h>
+#include <proj_image.h>
+#include <proj_image_filter.h>
+#include <proj_matrix.h>
+#endif
 
 using FloatPixelType = float;
 //typedef itk::Image< FloatPixelType, 3 > FloatImageType;
@@ -177,7 +222,7 @@ public:
 
 	void LoadRTKGeometryFile(const char* filePath);
 
-	//void GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW);
+	//void GetSelectedIndices(const std::vector<double>& vFullAngles, std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW);
 	void GetExcludeIndexByNames(const QString& outlierListPath, std::vector<std::string>& vProjFileFullPath, std::vector<int>& vExcludeIdx);
 	void GetSelectedIndices(const std::vector<double>& vFullAngles, std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW, std::vector<int>& vExcludingIdx);
 
@@ -264,7 +309,7 @@ public:
 	void CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D);
 	double GetRawIntensityScaleFactor();
 
-	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend);//output vector: append
+	//void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int angleGap, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);//output std::vector: append
 	void GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);
 	void GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);
 	void GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, std::vector<WEPLData>& vOutputWEPLData, bool bAppend);
@@ -518,8 +563,8 @@ public:
 	UShortImageType::Pointer m_spDeformedCT3; //AutoDeformCT3
 	UShortImageType::Pointer m_spDeformedCT_Final; //AutoDeformCT3
 
-	YK16GrayImage* m_dspYKReconImage;
-	YK16GrayImage*	m_dspYKImgProj;
+	YK16GrayImage* m_dspYKReconImage{};
+	YK16GrayImage*	m_dspYKImgProj{};
 	int m_iTmpIdx;
 
 	double m_fProjImgValueMax; //value of float image
@@ -581,4 +626,4 @@ public:
 	Ui::CbctReconClass ui{};
 };
 
-#endif // BADPIXELDETECTOR_H 
+#endif // CBCTRECON_H

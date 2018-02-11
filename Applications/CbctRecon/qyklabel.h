@@ -25,27 +25,27 @@ public:
 
 public:
 	qyklabel(QWidget *parent);
-	~qyklabel();
+	~qyklabel() override;
 
 	bool isFocusIn() {return m_bFocusIn;}
 
 	// virtual function reimplementation	
-	void mousePressEvent(QMouseEvent *ev); //ev->buttons() == Qt::LeftButton
-	void mouseMoveEvent(QMouseEvent *ev); 	
-	void mouseReleaseEvent(QMouseEvent *ev);
-	void wheelEvent(QWheelEvent * event); //this->setText("Delta Value: "+QString::number(event->delta()));
+	void mousePressEvent(QMouseEvent *ev) override; //ev->buttons() == Qt::LeftButton
+	void mouseMoveEvent(QMouseEvent *ev) override; 	
+	void mouseReleaseEvent(QMouseEvent *ev) override;
+	void wheelEvent(QWheelEvent * event) override; //this->setText("Delta Value: "+QString::number(event->delta()));
 
 	//void keyPressEvent ( QKeyEvent *ev);
 	//void focusInEvent ( QFocusEvent * ev );
 	//void focusOutEvent ( QFocusEvent * ev );
 
-	void enterEvent (QEvent *);
-	void leaveEvent(QEvent *);
-	int x,y;
+	void enterEvent (QEvent * /*event*/) override;
+	void leaveEvent(QEvent * /*event*/) override;
+	int x{},y{};
 
 	void SetBaseImage(YK16GrayImage* pYKImage);
-	void SetOverlayImage(AG17RGBAImage* pRGBAQImage);
-	//void ConvertAndCopyPoints(vector<QPoint>& vSrcPoint);
+	void SetOverlayImage(AG17RGBAImage* pRGBAImage);
+	//void ConvertAndCopyPoints(std::vector<QPoint>& vSrcPoint);
 	void ConvertAndCopyPoints(std::vector<QPoint>& vSrcPoint, int iDataWidth, int iDataHeight);
 
 	QPoint View2Data(QPoint viewPt, int viewWidth, int viewHeight, int dataWidth, int dataHeight);
@@ -60,7 +60,7 @@ public:
 
 
 protected:
-	void paintEvent(QPaintEvent *);
+	void paintEvent(QPaintEvent * /*unused*/) override;
 
 signals:	
 	void Mouse_Pressed_Left();

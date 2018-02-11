@@ -1,16 +1,10 @@
 #include "YK16GrayImage.h"
+#include "itkAffineTransform.h"
+#include "itkMedianImageFilter.h"
+#include "itkNearestNeighborInterpolateImageFunction.h"
+#include "itkResampleImageFilter.h"
 #include <QPixmap>
 #include <fstream>
-#include <iostream>
-#include <QLabel>
-#include <math.h>
-#include "itkImageRegionIterator.h"
-#include "itkMedianImageFilter.h"
-#include "itkIdentityTransform.h"
-#include "itkResampleImageFilter.h"
-#include "itkAffineTransform.h"
-#include "itkNearestNeighborInterpolateImageFunction.h"
-#include <QPainter>
 
 
 using namespace std;
@@ -544,7 +538,7 @@ double YK16GrayImage::CalcAveragePixelDiff(YK16GrayImage& other)
 //
 //	int oriIdx, replIdx;
 //
-//	vector<BADPIXELMAP>::iterator it;
+//	std::vector<BADPIXELMAP>::iterator it;
 //
 //	for (it = vPixelMapping.begin() ; it != vPixelMapping.end() ; it++)
 //	{
@@ -690,7 +684,7 @@ void YK16GrayImage::CopyHisHeader( const char *hisFilePath )
 	std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
 
 	if ( file.fail() )
-		cout << "Fail to open" << "	" << hisFilePath << std::endl;		
+		std::cout << "Fail to open" << "	" << hisFilePath << std::endl;		
 
 	// read header
 	if (m_pElektaHisHeader != NULL)
@@ -1242,9 +1236,9 @@ inline void fill_index(size_t i, size_t j, size_t m_iWidth, size_t uppVal, size_
 		else
 		{
 			tmpData[tmpIdx] = qRgba(
-				(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
-				(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
-				(uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				static_cast<uchar>((m_pData[i*m_iWidth + j] - lowVal) / static_cast<double>(winWidth) * 255.0),
+				static_cast<uchar>((m_pData[i*m_iWidth + j] - lowVal) / static_cast<double>(winWidth) * 255.0),
+				static_cast<uchar>((m_pData[i*m_iWidth + j] - lowVal) / static_cast<double>(winWidth) * 255.0),
 				255);
 			/*tmpData[tmpIdx+0] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
 			tmpData[tmpIdx+1] = (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
@@ -1277,9 +1271,9 @@ inline void fill_index(size_t i, size_t j, size_t m_iWidth, size_t uppVal, size_
 		else
 		{
 			tmpData[tmpIdx] = qRgba(
-				255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
-				255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
-				255 - (uchar)((m_pData[i*m_iWidth + j] - lowVal) / (double)winWidth * 255.0),
+				255 - static_cast<uchar>((m_pData[i*m_iWidth + j] - lowVal) / static_cast<double>(winWidth) * 255.0),
+				255 - static_cast<uchar>((m_pData[i*m_iWidth + j] - lowVal) / static_cast<double>(winWidth) * 255.0),
+				255 - static_cast<uchar>((m_pData[i*m_iWidth + j] - lowVal) / static_cast<double>(winWidth) * 255.0),
 				255);
 			/*tmpData[tmpIdx+0] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
 			tmpData[tmpIdx+1] = 255 - (uchar) ((m_pData[i*m_iWidth+j] - lowVal)/(double)winWidth * 255.0); //success
@@ -1425,7 +1419,7 @@ bool YK16GrayImage::isPtInFirstImage(int dataX, int dataY)
 { 
   if (dataX < 0 || dataX >= m_iWidth || dataY < 0  || dataY >= m_iHeight)
   {
-	cout << "Fatal error in isPtInFirstImage! Given point is out of image point" << std::endl;
+	std::cout << "Fatal error in isPtInFirstImage! Given point is out of image point" << std::endl;
 	return false;
   }
 

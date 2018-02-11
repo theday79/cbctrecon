@@ -1,59 +1,32 @@
 #include "DlgRegistration.h"
 //#include "cbctrecon.h"
 
-#include <stdio.h>
-#include <iostream>
-#include <stdlib.h>
-#include <string.h>
-#include <thread>
-#include <array>
 
-#include "itkImageFileWriter.h"
 #include "itkRescaleIntensityImageFilter.h"
-#include "itkThresholdImageFilter.h"
-#include "itkMinimumMaximumImageCalculator.h"
 #include "itk_image_save.h"
-#include "plmcli_config.h"
-#include "plm_image.h"
-#include "plm_image_type.h"
-#include "file_util.h"
 //warp related include files
 #include "rt_study.h"
 //#include "rtds_warp.h"
+#include "distance_map.h"
 #include "rt_study_warp.h"
 #include "warp_parms.h"
-#include "distance_map.h"
 
 #include "itk_threshold.h"
-#include "plm_math.h"
 
 #include "itk_image_load.h"
 
 #include "synthetic_vf.h"
-#include "volume_header.h"
 
-#include "plm_exception.h"
-#include "plm_version.h"
 #include "registration.h"
-#include "registration_data.h"
-#include "registration_parms.h"
 #include "shared_parms.h"
-#include "metric_parms.h"
-#include "logfile.h"
-#include "path_util.h"
-#include "rt_study_metadata.h"
 #include "string_util.h"
 
 #include "segment_body.h"
 
-#include "rtss_contour.h"
-#include "rtss_roi.h"
 
-#include "rtplan_control_pt.h"
-#include "rtplan_beam.h"
-#include "rtplan.h"
-#include "plm_file_format.h"
 #include "dcmtk_rt_study.h"
+#include "rtplan_beam.h"
+#include "rtplan_control_pt.h"
 #include <QFileDialog>
 #include <QProcess>
 
@@ -62,23 +35,15 @@
 #include "itkMinimumMaximumImageFilter.h"
 
 #include "itkGDCMImageIO.h"
-#include "itkGDCMSeriesFileNames.h"
 #include "itkNumericSeriesFileNames.h"
 
-#include "itkImageSeriesReader.h"
 #include "itkImageSeriesWriter.h"
 
-#include "itkResampleImageFilter.h"
 
-#include "itkIdentityTransform.h"
-#include "itkLinearInterpolateImageFunction.h"
 
-#include <itksys/SystemTools.hxx>
 
 #include "gdcmUIDGenerator.h"
 
-#include <string>
-#include <sstream>
 
 // END gdcm ITK based dicom writer //
 
@@ -92,10 +57,7 @@
 //#include "pcmd_warp.h"
 //#include "pcmd_xf_convert.h"
 
-#include <QDir>
-#include <QStringList>
 #include <QMessageBox>
-#include <fstream>
 
 #define FIXME_BACKGROUND_MAX (-1200)
 
@@ -105,7 +67,7 @@
 //#include "itkImageSliceConstIteratorWithIndex.h"
 //#include "itkImageSliceIteratorWithIndex.h"
 
-DlgRegistration::DlgRegistration(): QDialog ()
+DlgRegistration::DlgRegistration() 
 {
     /* Sets up the GUI */
     ui.setupUi (this);
@@ -173,12 +135,12 @@ DlgRegistration::DlgRegistration(QWidget *parent): QDialog (parent)
 	//const char* strTest2 = strTest.toUtf8().constData();
 	//char* strTest3 = (char*)(strTest.toLocal8Bit().constData());
 
-        m_pDcmStudyPlan = NULL;
+        m_pDcmStudyPlan = nullptr;
 }
 
 DlgRegistration::~DlgRegistration()
 {
-    //cout << "Deleting objects"<< std::endl;
+    //std::cout << "Deleting objects"<< std::endl;
 
     for (int i = 0 ; i<3 ; i++)
     {
@@ -190,10 +152,10 @@ DlgRegistration::~DlgRegistration()
 		m_AGDisp_Overlay[i].ReleaseBuffer();
     }
 
-    if (m_pDcmStudyPlan != NULL)
+    if (m_pDcmStudyPlan != nullptr)
     {
         delete m_pDcmStudyPlan;
-        m_pDcmStudyPlan = NULL;
+        m_pDcmStudyPlan = nullptr;
     }
     /*if (m_dspDlgRegi1 != NULL)
     {
@@ -245,9 +207,9 @@ void DlgRegistration::SLT_CrntPosGo()
   //curPhysPos[1] = imgOrigin[1] + sliderPosIdxY*imgSpacing[1]; //Y
   //curPhysPos[2] = imgOrigin[0] + sliderPosIdxX*imgSpacing[0]; //Z
 
-  int iSliderPosIdxZ = qRound((curDCMPosZ - imgOrigin[2]) / (double)imgSpacing[2]);
-  int iSliderPosIdxY = qRound((curDCMPosY - imgOrigin[1]) / (double)imgSpacing[1]);
-  int iSliderPosIdxX = qRound((curDCMPosX - imgOrigin[0]) / (double)imgSpacing[0]);
+  int iSliderPosIdxZ = qRound((curDCMPosZ - imgOrigin[2]) / static_cast<double>(imgSpacing[2]));
+  int iSliderPosIdxY = qRound((curDCMPosY - imgOrigin[1]) / static_cast<double>(imgSpacing[1]));
+  int iSliderPosIdxX = qRound((curDCMPosX - imgOrigin[0]) / static_cast<double>(imgSpacing[0]));
 
 
   ui.sliderPosDisp1->setValue(iSliderPosIdxZ);
@@ -523,8 +485,9 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
         for (int i = 0; i<3 ; i++)
         {
 		  int idxAdd = m_enViewArrange;//m_iViewArrange = 0,1,2
-		  if (idxAdd+i >=3)
+		  if (idxAdd+i >=3) {
 			idxAdd = idxAdd-3;
+}
 
             m_YKDisp[i].SetSpacing(m_YKImgFixed[i+idxAdd].m_fSpacingX,m_YKImgFixed[i+idxAdd].m_fSpacingY);
 
@@ -539,13 +502,14 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
         for (int i = 0 ; i<3 ; i++)
         {
 		  int addedViewIdx = m_enViewArrange;
-		  if (i+addedViewIdx >= 3)
+		  if (i+addedViewIdx >= 3) {
 			addedViewIdx = addedViewIdx-3;
+}
 
             //m_YKDisp[i].CreateImage(m_YKImgFixed[i].m_iWidth, m_YKImgFixed[i].m_iHeight, 0);
             //m_YKDisp[i].CopyFromBuffer(m_YKImgFixed[i].m_pData, m_YKImgFixed[i].m_iWidth, m_YKImgFixed[i].m_iHeight);
-            //cout << "width" << m_YKImgFixed[i].m_iWidth << std::endl;
-            //cout << "height" << m_YKImgFixed[i].m_iHeight << std::endl;
+            //std::cout << "width" << m_YKImgFixed[i].m_iWidth << std::endl;
+            //std::cout << "height" << m_YKImgFixed[i].m_iHeight << std::endl;
             m_YKDisp[i].CloneImage(m_YKImgFixed[i+addedViewIdx]);
         }
     }
@@ -557,8 +521,9 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
 			for (int i = 0; i < 3; i++)
 			{
 				int idxAdd = m_enViewArrange;//m_iViewArrange = 0,1,2
-				if (idxAdd + i >= 3)
+				if (idxAdd + i >= 3) {
 					idxAdd = idxAdd - 3;
+}
 
 				m_AGDisp_Overlay[i].SetSpacing(m_DoseImgFixed[i + idxAdd].m_fSpacingX, m_DoseImgFixed[i + idxAdd].m_fSpacingY);
 
@@ -572,8 +537,9 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
 			for (int i = 0; i < 3; i++)
 			{
 				int addedViewIdx = m_enViewArrange;
-				if (i + addedViewIdx >= 3)
+				if (i + addedViewIdx >= 3) {
 					addedViewIdx = addedViewIdx - 3;
+}
 
 				m_AGDisp_Overlay[i].CloneImage(m_DoseImgFixed[i + addedViewIdx]);
 			}
@@ -634,22 +600,25 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel* pOverlapWnd)
 {
   int idx = viewIdx;
 
-  if (pOverlapWnd == NULL)
+  if (pOverlapWnd == nullptr) {
 	return;
+}
 
   if (m_YKDisp[idx].IsEmpty())
 	return;
 
-  if (!m_bPressedLeft[idx] && !m_bPressedRight[idx])
+  if (!m_bPressedLeft[idx] && !m_bPressedRight[idx]) {
 	return;
+}
 
   double dspWidth = pOverlapWnd->width();
   double dspHeight = pOverlapWnd->height();
 
   int dataWidth = m_YKDisp[idx].m_iWidth;
   int dataHeight = m_YKDisp[idx].m_iHeight;
-  if (dataWidth*dataHeight == 0)
+  if (dataWidth*dataHeight == 0) {
 	return;
+}
 
   int dataX = pOverlapWnd->GetDataPtFromMousePos().x();
   int dataY = pOverlapWnd->GetDataPtFromMousePos().y();
@@ -1041,20 +1010,17 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 	  SLT_KeyMoving(false);
 
 
-  /*- Make a synthetic vector field according to the translation
+  /*- Make a synthetic std::vector field according to the translation
 	plastimatch synth-vf --fixed [msk_skin.mha] --output [xf_manual_trans.mha] --xf-trans "[origin diff (raw - regi)]"
 	plastimatch synth-vf --fixed E:\PlastimatchData\DicomEg\OLD\msk_skin.mha --output E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha --xf-trans "21 -29 1"
 
-	- Move the skin contour according to the vector field
+	- Move the skin contour according to the std::vector field
 	plastimatch warp --input [msk_skin.mha] --output-img [msk_skin_manRegi.mha] --xf [xf_manual_trans.mha]
   plastimatch warp --input E:\PlastimatchData\DicomEg\OLD\msk_skin.mha --output-img E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
   bool bPrepareMaskOnly; //prepare mask but not apply
 
-  if (ui.checkBoxCropBkgroundCBCT->isChecked())
-      bPrepareMaskOnly = false;
-  else
-      bPrepareMaskOnly = true;
+  bPrepareMaskOnly = !ui.checkBoxCropBkgroundCBCT->isChecked();
 
 
   std::cout << "1: writing temporary files" << std::endl;
@@ -1066,7 +1032,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   QString filePathXform = m_strPathPlastimatch + "/" + "xform_rigid.txt";
   QString filePathROI = m_strPathPlastimatch + "/" + "fixed_roi_rigid.mha"; //optional
 
-  typedef itk::ImageFileWriter<UShortImageType> writerType;
+  using writerType = itk::ImageFileWriter<UShortImageType>;
 
   writerType::Pointer writer1 = writerType::New();
   writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
@@ -1121,7 +1087,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   //QString filePathFixed_proc = filePathFixed;
 
 
-  typedef itk::ImageFileReader<UShortImageType> readerType;
+  using readerType = itk::ImageFileReader<UShortImageType>;
 
 
   QString strPathOriginalCTSkinMask;
@@ -1147,9 +1113,9 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       UShortImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
 
       double fShift[3];
-      fShift[0] = (double)(originBefore[0] - originAfter[0]);//DICOM
-      fShift[1] = (double)(originBefore[1] - originAfter[1]);
-      fShift[2] = (double)(originBefore[2] - originAfter[2]);
+      fShift[0] = (originBefore[0] - originAfter[0]);//DICOM
+      fShift[1] = (originBefore[1] - originAfter[1]);
+      fShift[2] = (originBefore[2] - originAfter[2]);
 
       QFileInfo finfoSkinFile1 = QFileInfo(m_strPathCTSkin);
       QString strPathAlternateSkin = m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
@@ -1164,8 +1130,9 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
           //This was OK.
           ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
 
-          if (bPrepareMaskOnly) // currently, filePathFixed_proc == "";
+          if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
               filePathFixed_proc = filePathFixed;
+}
       }
       else if (finfoSkinFile2.exists())
       {
@@ -1173,8 +1140,9 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
           strPathOriginalCTSkinMask = strPathAlternateSkin;
           ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
 
-          if (bPrepareMaskOnly)
+          if (bPrepareMaskOnly) {
               filePathFixed_proc = filePathFixed;
+}
       }
       else
       {
@@ -1199,8 +1167,9 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       m_pParent->UpdateReconImage(m_pParent->m_spRawReconImg, update_message);
   }
 
-  if (!finfoFixedProc.exists())
+  if (!finfoFixedProc.exists()) {
       filePathFixed_proc = filePathFixed; //"fixed_rigid.mha";
+}
 
   std::cout << "2: Creating a plastimatch command file" << std::endl;
 
@@ -1243,7 +1212,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 	printf ("Error.  could not load %s as command file.\n",
             str_command_filepath.c_str());
   }
-  //cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << std::endl;
+  //std::cout << "command file path is set= " << pathCmdRegister.toLocal8Bit().constData() << std::endl;
 
   if (pathCmdRegister.length() < 3)
   {
@@ -1251,7 +1220,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
       return;
   }
 
-  Shared_parms * params = 0;
+  Shared_parms * params = nullptr;
   params = reg.get_registration_parms()->get_shared_parms();
   std::string strFixed;
   std::string strMoving;
@@ -1285,7 +1254,7 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
   }
 
   ////Check that the command file is readable
-  //ifstream fin;
+  //std::ifstream fin;
   //fin.open(command_filepath);
   //if (fin.fail())
   //{
@@ -1357,13 +1326,14 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
 bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 {
-  if (event->type() == QEvent::Paint) //eventy->type() = 12 if paint event
+  if (event->type() == QEvent::Paint) { //eventy->type() = 12 if paint event
 	return false;
+}
 
   //int aa = (int)(event->type());
 
-  //cout << target << std::endl;
-  //cout <<"Event Type " << aa << std::endl;
+  //std::cout << target << std::endl;
+  //std::cout <<"Event Type " << aa << std::endl;
 
   if (event->type() == QEvent::ShortcutOverride)//51
   {
@@ -1373,7 +1343,7 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 	QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
 
 	int iArrowKey = (int)keyEvent->nativeVirtualKey();
-	//cout << iArrowKey << std::endl;
+	//std::cout << iArrowKey << std::endl;
 	double resol = ui.lineEditMovingResol->text().toDouble(); //mm
 
 	switch (iArrowKey)
@@ -1400,17 +1370,17 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 	default:
 	  break;//do nothing
 	}
-	//cout << keyEvent->->nativeVirtualKey() << std::endl;
+	//std::cout << keyEvent->->nativeVirtualKey() << std::endl;
 	//event->accept();
 	return true; //No more event transfering?
   }
   /*else if (event->type() == QEvent::KeyPress)
   {
-	cout << "key pressed" << std::endl;
+	std::cout << "key pressed" << std::endl;
   }
   else if (event->type() == QEvent::KeyRelease)
   {
-	cout << "key Released" << std::endl;
+	std::cout << "key Released" << std::endl;
   }*/
 
   //return true;
@@ -1419,7 +1389,7 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 
 void DlgRegistration::childEvent( QChildEvent *event )
 {
-  //cout << "childEvent Called" << std::endl;
+  //std::cout << "childEvent Called" << std::endl;
   if (event->added()) {
 	event->child()->installEventFilter(this);
   }
@@ -1434,18 +1404,19 @@ void DlgRegistration::ImageManualMove( int direction, double resol )
   UShortImageType::PointType imgOrigin = m_spMoving->GetOrigin();
   //USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
-  if (direction == 37)  //LEFT
+  if (direction == 37) {  //LEFT
 	imgOrigin[0] = imgOrigin[0]-resol;   //mm unit
-  else if (direction == 39) //RIGHT
+  } else if (direction == 39) { //RIGHT
 	imgOrigin[0] = imgOrigin[0]+resol;
-  else if (direction == 38) //Up
+  } else if (direction == 38) { //Up
 	imgOrigin[1] = imgOrigin[1]-resol;
-  else if (direction == 40)//DOWN
+  } else if (direction == 40) {//DOWN
 	imgOrigin[1] = imgOrigin[1]+resol;
-  else if (direction == 33) //PageUp
+  } else if (direction == 33) { //PageUp
 	imgOrigin[2] = imgOrigin[2]+resol;
-  else if (direction == 34) //PageDown
+  } else if (direction == 34) { //PageDown
 	imgOrigin[2] = imgOrigin[2]-resol;
+}
 
   m_spMoving->SetOrigin(imgOrigin);
 
@@ -1457,13 +1428,13 @@ void DlgRegistration::ImageManualMove( int direction, double resol )
   UShortImageType::PointType imgOriginRef = m_pParent->m_spRefCTImg->GetOrigin();
 
   QString strDelta;
-  strDelta.sprintf("delta(mm): %3.1f, %3.1f, %3.1f", (double)(imgOrigin[0]- imgOriginRef[0]),
-	(double)(imgOrigin[1]- imgOriginRef[1]),
-	(double)(imgOrigin[2]- imgOriginRef[2]));
+  strDelta.sprintf("delta(mm): %3.1f, %3.1f, %3.1f", (imgOrigin[0]- imgOriginRef[0]),
+	(imgOrigin[1]- imgOriginRef[1]),
+	(imgOrigin[2]- imgOriginRef[2]));
   ui.lineEditOriginChanged->setText(strDelta);
 
-  //cout << "direction  " << direction << std::endl;
-  //cout << "resolution " << resol << std::endl;
+  //std::cout << "direction  " << direction << std::endl;
+  //std::cout << "resolution " << resol << std::endl;
 }
 
 //change origin of moving image by shift value acquired from gradient registration
@@ -1489,9 +1460,9 @@ void DlgRegistration::ImageManualMoveOneShot(float shiftX, float shiftY, float s
     UShortImageType::PointType imgOriginRef = m_pParent->m_spRefCTImg->GetOrigin();
 
     QString strDelta;
-    strDelta.sprintf("delta(mm): %3.1f, %3.1f, %3.1f", (double)(imgOrigin[0] - imgOriginRef[0]),
-        (double)(imgOrigin[1] - imgOriginRef[1]),
-        (double)(imgOrigin[2] - imgOriginRef[2]));
+    strDelta.sprintf("delta(mm): %3.1f, %3.1f, %3.1f", (imgOrigin[0] - imgOriginRef[0]),
+        (imgOrigin[1] - imgOriginRef[1]),
+        (imgOrigin[2] - imgOriginRef[2]));
     ui.lineEditOriginChanged->setText(strDelta);
 }
 
@@ -1514,9 +1485,9 @@ void DlgRegistration::SLT_KeyMoving( bool bChecked )//Key Moving check box
   ui.pushButtonRestoreOriginal->setDisabled(bChecked);
 }
 
-void DlgRegistration::GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
-												   QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
-												   QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask)
+void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommandFile, const QString& strPathFixedImg, const QString& strPathMovingImg,
+												   const QString& strPathOutImg, const QString& strPathXformOut, enRegisterOption regiOption,
+												   const QString& strStageOption1, const QString& strStageOption2, const QString& strStageOption3, const QString& strPathFixedMask)
 {
   std::ofstream fout;
   fout.open(strPathCommandFile.toLocal8Bit().constData());
@@ -1839,20 +1810,22 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage)
 	   findIndx = crntCombo->findText("COR_CBCT");
 	   break;
   }
-  //cout << "setCurrentIndx " << findIndx << std::endl;
+  //std::cout << "setCurrentIndx " << findIndx << std::endl;
 
-  if (findIndx < 0) //-1 if not found
+  if (findIndx < 0) { //-1 if not found
 	return;
+}
 
   crntCombo->setCurrentIndex(findIndx);//will call "SLT_FixedImageSelected"
 
   //Below are actually redendency. don't know why setCurrentIndex sometimes doesn't trigger the SLT_MovingImageSelected slot func.
 
   QString crntStr = crntCombo->currentText();
-  if (idx == 0)
+  if (idx == 0) {
 	SLT_FixedImageSelected(crntStr);
-  else if (idx == 1)
+  } else if (idx == 1) {
 	SLT_MovingImageSelected(crntStr);
+}
   //If it is called inside the Dlg, SLT seemed not to conneced
 }
 
@@ -1865,14 +1838,14 @@ void DlgRegistration::SLT_FixedImageSelected(QString selText)
 void DlgRegistration::SLT_MovingImageSelected(QString selText)
 {
   //QString strCrntText = ui.comboBoxImgMoving->currentText();
-  //cout << "SLT_MovingImageSelected" << std::endl;
+  //std::cout << "SLT_MovingImageSelected" << std::endl;
   LoadImgFromComboBox(1, selText);
 }
 
 
 void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)// -->when fixed image loaded will be called here!
 {
-  //cout << "LoadImgFromComboBox " << "index " << idx << "text " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
+  //std::cout << "LoadImgFromComboBox " << "index " << idx << "text " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
 
   UShortImageType::Pointer spTmpImg;
   if (strSelectedComboTxt.compare(QString("RAW_CBCT"), Qt::CaseSensitive) == 0)
@@ -1914,7 +1887,7 @@ void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)
 
   if (!spTmpImg)
   {
-	//cout << "Selected image is not ready: " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
+	//std::cout << "Selected image is not ready: " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
 	return;
   }
 
@@ -1927,7 +1900,7 @@ void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)
   else if (idx ==1)
   {
 	m_spMoving = spTmpImg;
-	//cout << "idx: " << idx << "m_spMoving"  << m_spMoving << std::endl;
+	//std::cout << "idx: " << idx << "m_spMoving"  << m_spMoving << std::endl;
 	whenMovingImgLoaded();
   }
 
@@ -1990,10 +1963,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
  bool bPrepareMaskOnly = false;
 
- if (ui.checkBoxCropBkgroundCBCT->isChecked())
-     bPrepareMaskOnly = false;
- else
-     bPrepareMaskOnly = true;
+ bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
 
 
 
@@ -2012,7 +1982,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   QString filePathOutputStage2 = m_strPathPlastimatch + "/" + "output_deform_stage2.mha";
   QString filePathOutputStage3 = m_strPathPlastimatch + "/" + "output_deform_stage3.mha";
 
-  typedef itk::ImageFileWriter<UShortImageType> writerType;
+  using writerType = itk::ImageFileWriter<UShortImageType>;
 
   writerType::Pointer writer1 = writerType::New();
   writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
@@ -2062,7 +2032,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   QString filePathFixed_proc = filePathFixed;
 
   std::cout << "2: DoRegistrationDeform: CBCT pre-processing before deformable registration" << std::endl;
-  //cout << "Air region and bubble will be removed" << std::endl;
+  //std::cout << "Air region and bubble will be removed" << std::endl;
 
   QFileInfo info1(m_strPathCTSkin_manRegi);
   QFileInfo info2(m_strPathXFAutoRigid);
@@ -2078,8 +2048,9 @@ void DlgRegistration::SLT_DoRegistrationDeform()
       bool bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
       ProcessCBCT_beforeDeformRegi(filePathFixed, m_strPathCTSkin_manRegi, filePathFixed_proc, m_strPathXFAutoRigid, bBubbleRemoval, bPrepareMaskOnly); //bubble filling yes
 
-      if (bPrepareMaskOnly)
+      if (bPrepareMaskOnly) {
           filePathFixed_proc = filePathFixed;
+}
   }
 
 
@@ -2124,7 +2095,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
             str_command_filepath.c_str());
   }
 
-  Shared_parms * params = 0;
+  Shared_parms * params = nullptr;
   params = reg.get_registration_parms()->get_shared_parms();
   std::string strFixed;
   std::string strMoving;
@@ -2162,7 +2133,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
  // Registration_parms *regp = new Registration_parms();
  // if (regp->parse_command_file (command_filepath) < 0) {
-	//cout << "wrong use of command file" << std::endl;
+	//std::cout << "wrong use of command file" << std::endl;
  // }
  // do_registration (regp);
  // delete regp;
@@ -2170,7 +2141,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
   std::cout << "5: DoRegistrationDeform: Registration is done" << std::endl;
   std::cout << "6: DoRegistrationDeform: Reading output image" << std::endl;
 
-  typedef itk::ImageFileReader<UShortImageType> readerType;
+  using readerType = itk::ImageFileReader<UShortImageType>;
   QFileInfo tmpFileInfo;
 
   readerType::Pointer readerDefSt1 = readerType::New();
@@ -2208,7 +2179,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	readerFinCBCT->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
 	readerFinCBCT->Update();
 	m_pParent->m_spRawReconImg = readerFinCBCT->GetOutput();
-	//cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << std::endl;
+	//std::cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << std::endl;
   }
   else
   {
@@ -2244,7 +2215,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 	//int iBubblePunctureVal = ui.lineEditBkFillCT->text().toInt(); //0 = soft tissue
 	int iBubblePunctureVal = 0; //0 = air. deformed CT is now already a USHORT image
 	int mask_value = iBubblePunctureVal;
-        plm_mask_main(enMaskOp, input_fn, mask_fn, output_fn, (float)mask_value);
+        plm_mask_main(enMaskOp, input_fn, mask_fn, output_fn, static_cast<float>(mask_value));
 
   }
 
@@ -2311,10 +2282,10 @@ void DlgRegistration::autoPreprocessCT() {
 	// -1 -> should be filled
 	// +1 -> should be cropped
 
-	typedef itk::ImageRegionIterator<ShortImageType> iteratorType;
+	using iteratorType = itk::ImageRegionIterator<ShortImageType>;
 	iteratorType it(subFilter->GetOutput(), subFilter->GetOutput()->GetLargestPossibleRegion());
 
-	typedef itk::ImageRegionIterator<UShortImageType> CTiteratorType;
+	using CTiteratorType = itk::ImageRegionIterator<UShortImageType>;
 	CTiteratorType CT_it(m_spMoving, m_spMoving->GetLargestPossibleRegion());
 
 	it.GoToBegin();
@@ -2334,8 +2305,7 @@ void DlgRegistration::autoPreprocessCT() {
 	}
 
 
-	return;
-}
+	}
 
 bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, then show the registration DLG
 {
@@ -2359,7 +2329,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 		autoPreprocessCT();
 		return true;
 	}
-	else { return false; };
+	return false; ;
   }
 
 
@@ -2566,7 +2536,7 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
 	mask_fn = strPathMskBubbleCT_Fin;
 	output_fn = strPathBubbleRemovedCT;
 	int iBubbleFillingVal = ui.lineEditBubFillCT->text().toInt(); //0 = soft tissue
-	mask_value = (float)iBubbleFillingVal;
+	mask_value = static_cast<float>(iBubbleFillingVal);
 
         plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
   }
@@ -2582,15 +2552,16 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   mask_option = MASK_OPERATION_MASK;
 
   QFileInfo tmpInfo(strPathBubbleRemovedCT);
-  if (tmpInfo.exists())
+  if (tmpInfo.exists()) {
 	input_fn = strPathBubbleRemovedCT;
-  else
+  } else {
 	input_fn = m_pParent->m_strPathPlanCTDir;
+  }
 
   mask_fn =  strPath_mskSkinCT;
   output_fn = strPathSkinRemovedCT;
   int iAirFillValShort = ui.lineEditBkFillCT->text().toInt(); //-1024
-  mask_value = (float)iAirFillValShort;
+  mask_value = static_cast<float>(iAirFillValShort);
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
 
   //strPathSkinRemovedCT .mha file is ready. this is SHORT image
@@ -2633,17 +2604,17 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
         return;
     }
 
-    if (m_pDcmStudyPlan != NULL)
+    if (m_pDcmStudyPlan != nullptr)
     {
         delete m_pDcmStudyPlan;
-        m_pDcmStudyPlan = NULL;
+        m_pDcmStudyPlan = nullptr;
     }
 
     m_pDcmStudyPlan = new Dcmtk_rt_study();
 
-    //cout << "Before plm_file_format_deduce" << std::endl;
+    //std::cout << "Before plm_file_format_deduce" << std::endl;
     Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strDCMPath.toLocal8Bit().constData());
-    //cout << "After plm_file_format_deduce" << std::endl;
+    //std::cout << "After plm_file_format_deduce" << std::endl;
 
     if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
     {
@@ -2663,8 +2634,9 @@ void DlgRegistration::LoadRTPlan(QString& strDCMPath)
 //void DlgRegistration::plm_dmap_main( Dmap_parms* parms )
 void DlgRegistration::plm_dmap_main(QString& img_in_fn, QString& img_out_fn )
 {
-  if (img_in_fn.length() < 1 || img_out_fn.length() < 1)
+  if (img_in_fn.length() < 1 || img_out_fn.length() < 1) {
 	return;
+}
   //dmap_main (&parms_dmap);
   Distance_map dmap;
   dmap.set_input_image (img_in_fn.toLocal8Bit().constData());
@@ -2682,8 +2654,9 @@ void DlgRegistration::plm_threshold_main(QString& strRange, QString& img_in_fn, 
     /*if (parms == NULL)
           return;*/
 
-    if (img_in_fn.length() < 1 || img_out_fn.length() < 1)
+    if (img_in_fn.length() < 1 || img_out_fn.length() < 1) {
         return;
+}
 
   //threshold_main (&parms_thre);
   Plm_image::Pointer plm_image = plm_image_load (img_in_fn.toLocal8Bit().constData(), PLM_IMG_TYPE_ITK_FLOAT);
@@ -2760,7 +2733,7 @@ void DlgRegistration::plm_mask_main(Mask_operation mask_option, QString& input_f
   if (output_dicom) {
       img->save_short_dicom(output_fn.toLocal8Bit().constData(), 0);
   } else {
-	if (output_type) {
+	if (output_type != 0) {
 	  img->convert (output_type);
 	}
 	img->save_image (output_fn.toLocal8Bit().constData());
@@ -2788,7 +2761,7 @@ void DlgRegistration::plm_expansion_contract_msk( QString& strPath_msk, QString&
    parms_thre.img_in_fn = strPath_mskSkinCT_dmap.toLocal8Bit().constData();
    parms_thre.img_out_fn = strPath_mskSkinCT_mod.toLocal8Bit().constData();   */
 
-  QString strPath_mskSkinCT_mod = strPath_msk_exp_cont;
+  const QString& strPath_mskSkinCT_mod = strPath_msk_exp_cont;
   QString range_string = QString(string_format("-inf,%f", fExpVal).c_str());
   QString img_in_fn = strPath_mskSkinCT_dmap;
   QString img_out_fn = strPath_mskSkinCT_mod;
@@ -2822,7 +2795,7 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   plm_synth_trans_xf(strPath_mskSkinCT, strPath_outputXF_manualTrans,  manualTrans3d[0],  manualTrans3d[1],  manualTrans3d[2]);
 
   //2) Move CT mask according to the manual shift
-  /*Move the skin contour according to the vector field
+  /*Move the skin contour according to the std::vector field
 	plastimatch warp --input [msk_skin.mha] --output-img [msk_skin_manRegi.mha] --xf [xf_manual_trans.mha]
   plastimatch warp --input E:\PlastimatchData\DicomEg\OLD\msk_skin.mha --output-img E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
@@ -2862,15 +2835,16 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
   QString strPath_mskSkinCT_manRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
 
   double skinExp = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-  if (skinExp < 0.0 || skinExp > 100.0)
+  if (skinExp < 0.0 || skinExp > 100.0) {
 	skinExp = 0.0;
+}
 
   plm_expansion_contract_msk(strPath_mskSkinCT_manRegi, strPath_mskSkinCT_manRegi_exp, skinExp);//10 mm expansion for a mask image
 
   //4) eliminate the air region (temporarily)
   //plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha  --mask-value 0 --mask E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_exp.mha --output E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
 
-  //cout << "bPrepareMaskOnly=" << bPrepareMaskOnly << std::endl;
+  //std::cout << "bPrepareMaskOnly=" << bPrepareMaskOnly << std::endl;
 
   int bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); //0
 
@@ -2933,8 +2907,9 @@ void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QStr
   QString strPath_mskSkinCT_autoRegi_exp = m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
 
   double skinExp = ui.lineEditCBCTSkinCropBfDIR->text().toDouble();
-  if (skinExp < 0.0 || skinExp > 100.0)
+  if (skinExp < 0.0 || skinExp > 100.0) {
 	skinExp = 0.0;
+}
 
   plm_expansion_contract_msk(strPath_mskSkinCT_autoRegi, strPath_mskSkinCT_autoRegi_exp, skinExp);//8 mm expansion for a mask image
 
@@ -2950,16 +2925,18 @@ void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QStr
   QString output_fn = strPathOutputCBCT;
   float mask_value = 0.0; //unsigned short
 
-  if (!bPrepareMaskOnly)
+  if (!bPrepareMaskOnly) {
       plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-  else
+  } else {
       strPathOutputCBCT = strPathRawCBCT;
+}
 
   m_strPathCTSkin_autoRegi = strPath_mskSkinCT_autoRegi; //for further use. this is not expanded one!
 
   //****************OPTIONAL
-  if (!bBubbleFilling)
+  if (!bBubbleFilling) {
 	return; //exit
+}
 
   //Bubble filling
   //- With the latest air-removed image (rawCBCT4), find inside-body-bubbles.
@@ -3018,11 +2995,12 @@ void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QStr
   //parms_fill.output_fn = strPathBubbleRemovedCBCT.toLocal8Bit().constData();
   output_fn = strPathOutputCBCT; //overwriting
   //parms_fill.mask_value = 700.0; //compromised softtissue value
-  mask_value = (float)iBubFillUshort; //compromised softtissue value
+  mask_value = static_cast<float>(iBubFillUshort); //compromised softtissue value
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
 
-  if (bBubbleFilling) //if bubble was segmented
+  if (bBubbleFilling) { //if bubble was segmented
 	m_strPathMskCBCTBubble = strPathMskBubbleCBCT_final; //save this for further use
+}
 }
 
 void DlgRegistration::plm_synth_trans_xf( QString& strPath_fixed, QString& strPath_out_xf, double transX, double transY, double transZ)
@@ -3066,8 +3044,9 @@ void DlgRegistration::SetPlmOutputDir(QString& endFix)
   QString dirName = crntPathStr.append("/").append("plm_").append(endFix);
 
   QDir tmpDir = QDir(dirName);
-  if (!tmpDir.exists())
+  if (!tmpDir.exists()) {
 	tmpDir.mkpath(dirName);
+}
   m_strPathPlastimatch = dirName;
 }
 
@@ -3149,7 +3128,7 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
       }
   }
 
-  //cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
+  //std::cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
 
   if (m_strPathPlastimatch.length() < 1)
   {
@@ -3160,7 +3139,7 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
   QString filePathCBCT = m_strPathPlastimatch + "/" + "CorrCBCT.mha"; //usually corrected one
   QString filePathCBCT_noSkin = m_strPathPlastimatch + "/" + "CorrCBCT_final.mha"; //usually corrected one
 
-  typedef itk::ImageFileWriter<UShortImageType> writerType;
+  using writerType = itk::ImageFileWriter<UShortImageType>;
   writerType::Pointer writer = writerType::New();
   writer->SetFileName(filePathCBCT.toLocal8Bit().constData());
   writer->SetUseCompression(true);
@@ -3191,7 +3170,7 @@ void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
 
   //m_strPathCTSkin_autoRegi = strPath_mskSkinCT_autoRegi; //for further use. this is not expanded one!
 
-  typedef itk::ImageFileReader<UShortImageType> readerType;
+  using readerType = itk::ImageFileReader<UShortImageType>;
   readerType::Pointer readerCBCT = readerType::New();
   QFileInfo tmpFileInfo(filePathCBCT_noSkin);
 
@@ -3280,7 +3259,7 @@ void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw
         return;
     }
 
-    typedef itk::ImageFileReader<UShortImageType> readerType;
+    using readerType = itk::ImageFileReader<UShortImageType>;
     readerType::Pointer reader = readerType::New();
     reader->SetFileName(strPathOutputMask.toLocal8Bit().constData());
     reader->Update();
@@ -3322,8 +3301,9 @@ void DlgRegistration::GenShellMask(QString& strPathInputMask, QString& strPathOu
 {
     QFileInfo fInfoInput(strPathInputMask);
 
-    if (!fInfoInput.exists())
+    if (!fInfoInput.exists()) {
         return;
+}
 
     QString strPathTmpExp = fInfoInput.absolutePath() + "/" + "/msk_temp_exp.mha";
     QString strPathTmpCont = fInfoInput.absolutePath() + "/" + "/msk_temp_cont.mha";
@@ -3362,7 +3342,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   //Export cur image first
   QString filePathCurImg = m_strPathPlastimatch + "/" + "SkinCropRS_curImg.mha"; //usually corrected one
 
-  typedef itk::ImageFileWriter<UShortImageType> writerType;
+  using writerType = itk::ImageFileWriter<UShortImageType>;
 
   writerType::Pointer writer = writerType::New();
   writer->SetFileName(filePathCurImg.toLocal8Bit().constData());
@@ -3486,19 +3466,20 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   QFileInfo tmpInfo(filePathCurImg);
 
   QString input_fn;
-  if (tmpInfo.exists())
+  if (tmpInfo.exists()) {
       input_fn = filePathCurImg;
-  else
+  } else {
 	return;
+}
 
   QString mask_fn = strPath_mskSkinCT;
   QString output_fn = strPathSkinRemovedCT;
   int iAirFillValShort = 0;
-  float mask_value = (float)iAirFillValShort;
+  auto mask_value = static_cast<float>(iAirFillValShort);
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
   //strPathSkinRemovedCT .mha file is ready. this is SHORT image
 
-  typedef itk::ImageFileReader<UShortImageType> readerType;
+  using readerType = itk::ImageFileReader<UShortImageType>;
   readerType::Pointer reader = readerType::New();
 
   QFileInfo tmpFileInfo = QFileInfo(strPathSkinRemovedCT); //cropped image
@@ -3508,7 +3489,7 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
 	reader->Update();
 
 	spImgUshort = reader->GetOutput();
-	//cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << std::endl;
+	//std::cout << "fixed Image Path = " << filePathFixed_proc.toLocal8Bit().constData() << std::endl;
   }
   else
   {
@@ -3532,7 +3513,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
     if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
         return;
 
-    if (m_pDcmStudyPlan == NULL)
+    if (m_pDcmStudyPlan == nullptr)
     {
         std::cout << "Error! no dcmRTStudy is loaded" << std::endl;
         return;
@@ -3553,7 +3534,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
         return;
     }
 
-    float* final_iso_pos = NULL;
+    float* final_iso_pos = nullptr;
 
 
     for (int i = 0; i < iCntBeam; i++)
@@ -3575,7 +3556,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
     }
     //VEC3D shiftVal;// = GetShiftValueFromGradientXForm(filePathXform, true); //true: inverse trans should be applied if CBCT was moving image //in mm
 
-    if (final_iso_pos == NULL)
+    if (final_iso_pos == nullptr)
     {
         std::cout << "Error!  No isocenter position was found. " << std::endl;
         return;
@@ -3598,8 +3579,9 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
 {
     QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
 
-    if (filePath.length() < 1)
+    if (filePath.length() < 1) {
         return;
+}
 
 
     VEC3D planIso = GetIsocenterDCM_FromRTPlan(filePath);
@@ -3633,14 +3615,14 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
 
 void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort)
 {
-	typedef itk::ThresholdImageFilter <UShortImageType> ThresholdImageFilterType;
+	using ThresholdImageFilterType = itk::ThresholdImageFilter <UShortImageType>;
 	ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
 	thresholdFilter->SetInput(spImgUshort);
 	thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
 	thresholdFilter->SetOutsideValue(0);
 	thresholdFilter->Update();
 
-	typedef itk::MinimumMaximumImageCalculator <UShortImageType> ImageCalculatorFilterType;
+	using ImageCalculatorFilterType = itk::MinimumMaximumImageCalculator<UShortImageType>;
 	ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
 	imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
 	imageCalculatorFilter->Compute();
@@ -3706,8 +3688,8 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 		}
 	}
 	typedef itk::Image<USHORT_PixelType, 2> OutputImageType; //because dicom is one 2d image for each slice-file
-	typedef itk::GDCMImageIO                ImageIOType;
-	typedef itk::NumericSeriesFileNames     NamesGeneratorType;
+	using ImageIOType = itk::GDCMImageIO;
+	using NamesGeneratorType = itk::NumericSeriesFileNames;
 
 	UShortImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
 	UShortImageType::IndexType  start  = region.GetIndex();
@@ -3846,7 +3828,7 @@ void DlgRegistration::SLT_Override()
 	curPhysPos[2] = imgOrigin[2] + sliderPosIdxZ*imgSpacing[2]; //Z in default setting
 
 
-	UShortImageType::IndexType centerIdx;
+	UShortImageType::IndexType centerIdx{};
 	if (!isFixed) {
 		m_spMoving->TransformPhysicalPointToIndex(curPhysPos, centerIdx);
 	}
@@ -3857,7 +3839,7 @@ void DlgRegistration::SLT_Override()
 	const int radius = ui.spinBox_overrideRadius->value();
 	const unsigned int value = static_cast<unsigned int>(ui.spinBox_overrideValue->value() + 1024);
 	size_t i = 0;
-	UShortImageType::IndexType curIdx;
+	UShortImageType::IndexType curIdx{};
 	for (int curRadiusX = -radius; curRadiusX <= radius; curRadiusX++) {
 		curIdx[0] = centerIdx[0] + curRadiusX;
 		for (int curRadiusY = -radius; curRadiusY <= radius; curRadiusY++) {
@@ -3962,8 +3944,8 @@ void DlgRegistration::SLT_gPMCrecalc()
 	// Run gPMC externally ^
 
     // Translate gPMC output (preferably .mha) to ITK image
-	typedef itk::ImageFileReader<FloatImageType> ImageReaderType;
-	typedef itk::MinimumMaximumImageFilter<FloatImageType> MinMaxFindType;
+	using ImageReaderType = itk::ImageFileReader<FloatImageType>;
+	using MinMaxFindType = itk::MinimumMaximumImageFilter<FloatImageType>;
 	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType> MultiplyImageFilterType;
 	typedef itk::CastImageFilter< FloatImageType, UShortImageType > CastFilterType;
 
@@ -4056,7 +4038,7 @@ void DlgRegistration::SLT_DoRegistrationGradient()
     QString filePathOutput = m_strPathPlastimatch + "/" + "output_gradient.mha";
     QString filePathXform = m_strPathPlastimatch + "/" + "xform_gradient.txt";
 
-    typedef itk::ImageFileWriter<UShortImageType> writerType;
+    using writerType = itk::ImageFileWriter<UShortImageType>;
 
     writerType::Pointer writer1 = writerType::New();
     writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
@@ -4206,18 +4188,15 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
     bool bPrepareMaskOnly = false;
 
-    if (ui.checkBoxCropBkgroundCBCT->isChecked())
-        bPrepareMaskOnly = false;
-    else
-        bPrepareMaskOnly = true;
+    bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
 
     UShortImageType::PointType originBefore = m_pParent->m_spRefCTImg->GetOrigin();
     UShortImageType::PointType originAfter = m_pParent->m_spManualRigidCT->GetOrigin();
 
     double fShift[3];
-    fShift[0] = (double)(originBefore[0] - originAfter[0]);//DICOM
-    fShift[1] = (double)(originBefore[1] - originAfter[1]);
-    fShift[2] = (double)(originBefore[2] - originAfter[2]);
+    fShift[0] = (originBefore[0] - originAfter[0]);//DICOM
+    fShift[1] = (originBefore[1] - originAfter[1]);
+    fShift[2] = (originBefore[2] - originAfter[2]);
 
     std::cout << "1: writing temporary files" << std::endl;
 
@@ -4226,7 +4205,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     QString filePathFixed_proc = m_strPathPlastimatch + "/" + "fixed_rigid_proc.mha"; //After autoRigidbody Regi
 
     //writing
-    typedef itk::ImageFileWriter<UShortImageType> writerType;
+    using writerType = itk::ImageFileWriter<UShortImageType>;
     writerType::Pointer writer = writerType::New();
     writer->SetFileName(filePathFixed.toLocal8Bit().constData());
     writer->SetUseCompression(true);
@@ -4247,8 +4226,9 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         strPathOriginalCTSkinMask = m_strPathCTSkin;
         ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
 
-        if (bPrepareMaskOnly) // currently, filePathFixed_proc == "";
+        if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
             filePathFixed_proc = filePathFixed;
+}
 
     }
     else if (finfoSkinFile2.exists())
@@ -4257,8 +4237,9 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
         strPathOriginalCTSkinMask = strPathAlternateSkin;
         ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
 
-        if (bPrepareMaskOnly) // currently, filePathFixed_proc == "";
+        if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
             filePathFixed_proc = filePathFixed;
+}
     }
 
     QFileInfo fInfo = QFileInfo(filePathFixed_proc);
@@ -4268,7 +4249,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
 
         std::cout << "Trying to read file: filePathFixed_proc" << std::endl;
         //Update RawReconImg
-        typedef itk::ImageFileReader<UShortImageType> readerType;
+        using readerType = itk::ImageFileReader<UShortImageType>;
         readerType::Pointer reader = readerType::New();
         reader->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
         reader->Update();
@@ -4323,7 +4304,7 @@ void DlgRegistration::SLT_IntensityNormCBCT()
     //SLT_PassMovingImgForAnalysis();
 
     std::cout << "Intensity shifting is done! Added value = " << (int)(meanIntensityMov - meanIntensityFix) << std::endl;
-    QString update_message = QString("Added_%1").arg((int)(meanIntensityMov - meanIntensityFix));
+    QString update_message = QString("Added_%1").arg(static_cast<int>(meanIntensityMov - meanIntensityFix));
     m_pParent->UpdateReconImage(m_spFixed, update_message);
     SelectComboExternal(0, REGISTER_RAW_CBCT);
 }
@@ -4337,9 +4318,9 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     Dcmtk_rt_study* pRTstudyRP; //iso center info
     pRTstudyRP = new Dcmtk_rt_study();
 
-    //cout << "Before plm_file_format_deduce" << std::endl;
+    //std::cout << "Before plm_file_format_deduce" << std::endl;
     Plm_file_format file_type_dcm_plan = plm_file_format_deduce(strFilePath.toLocal8Bit().constData());
-    //cout << "After plm_file_format_deduce" << std::endl;
+    //std::cout << "After plm_file_format_deduce" << std::endl;
 
     if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN)
     {
@@ -4367,7 +4348,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
         return resultPtDcm;
     }
 
-    float* final_iso_pos = NULL;
+    float* final_iso_pos = nullptr;
 
     for (int i = 0; i < iCntBeam; i++)
     {
@@ -4388,7 +4369,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     }
     //VEC3D shiftVal;// = GetShiftValueFromGradientXForm(filePathXform, true); //true: inverse trans should be applied if CBCT was moving image //in mm
 
-    if (final_iso_pos == NULL)
+    if (final_iso_pos == nullptr)
     {
         std::cout << "Error!  No isocenter position was found. " << std::endl;
         return resultPtDcm;

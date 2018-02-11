@@ -27,22 +27,22 @@
 #ifndef QCUSTOMPLOT_H
 #define QCUSTOMPLOT_H
 
-#include <QObject>
-#include <QWidget>
-#include <QPainter>
-#include <QPaintEvent>
-#include <QPixmap>
-#include <QVector>
-#include <QString>
-#include <QPrinter>
 #include <QDateTime>
-#include <QMultiMap>
-#include <QFlags>
 #include <QDebug>
-#include <QVector2D>
+#include <QFlags>
+#include <QMultiMap>
+#include <QObject>
+#include <QPaintEvent>
+#include <QPainter>
+#include <QPixmap>
+#include <QPrinter>
 #include <QStack>
-#include <qmath.h>
+#include <QString>
+#include <QVector>
+#include <QVector2D>
+#include <QWidget>
 #include <limits>
+#include <qmath.h>
 
 // decl definitions for shared library compilation/usage:
 #if defined(QCUSTOMPLOT_COMPILE_LIBRARY)
@@ -132,7 +132,7 @@ enum PlottingHint { phNone            = 0x000 ///< <tt>0x000</tt> No hints are s
                                               ///<                on Windows-Systems to prevent the plot from freezing on fast consecutive replots (e.g. user drags ranges with mouse).
                   };
 Q_DECLARE_FLAGS(PlottingHints, PlottingHint)
-}
+}  // namespace QCP
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QCP::AntialiasedElements)
 Q_DECLARE_OPERATORS_FOR_FLAGS(QCP::PlottingHints)
@@ -142,9 +142,9 @@ class QCP_LIB_DECL QCPData
 public:
   QCPData();
   QCPData(double key, double value);
-  double key, value;
-  double keyErrorPlus, keyErrorMinus;
-  double valueErrorPlus, valueErrorMinus;
+  double key{0}, value{0};
+  double keyErrorPlus{0}, keyErrorMinus{0};
+  double valueErrorPlus{0}, valueErrorMinus{0};
 };
 Q_DECLARE_TYPEINFO(QCPData, Q_MOVABLE_TYPE);
 
@@ -164,7 +164,7 @@ class QCP_LIB_DECL QCPCurveData
 public:
   QCPCurveData();
   QCPCurveData(double t, double key, double value);
-  double t, key, value;
+  double t{0}, key{0}, value{0};
 };
 Q_DECLARE_TYPEINFO(QCPCurveData, Q_MOVABLE_TYPE);
 
@@ -185,7 +185,7 @@ class QCP_LIB_DECL QCPBarData
 public:
   QCPBarData();
   QCPBarData(double key, double value);
-  double key, value;
+  double key{0}, value{0};
 };
 Q_DECLARE_TYPEINFO(QCPBarData, Q_MOVABLE_TYPE);
 
@@ -214,7 +214,7 @@ public:
   bool scaledExportMode() const { return mScaledExportMode; }
   
   // setters:
-  void setScatterPixmap(const QPixmap pm);
+  void setScatterPixmap(const QPixmap& pm);
   void setAntialiasing(bool enabled);
   void setPdfExportMode(bool enabled);
   void setScaledExportMode(bool enabled);
@@ -234,9 +234,9 @@ public:
   
 protected:
   QPixmap mScatterPixmap;
-  bool mScaledExportMode;
-  bool mPdfExportMode;
-  bool mIsAntialiasing;
+  bool mScaledExportMode{false};
+  bool mPdfExportMode{false};
+  bool mIsAntialiasing{false};
   QStack<bool> mAntialiasingStack;
 };
 
@@ -285,16 +285,16 @@ public:
   void draw(QCPPainter *painter, const QVector2D &pos, double angle) const;
   
 protected:
-  EndingStyle mStyle;
-  double mWidth, mLength;
-  bool mInverted;
+  EndingStyle mStyle{esNone};
+  double mWidth{8}, mLength{10};
+  bool mInverted{false};
 };
 Q_DECLARE_TYPEINFO(QCPLineEnding, Q_MOVABLE_TYPE);
 
 class QCP_LIB_DECL QCPLayer
 {
 public:
-  QCPLayer(QCustomPlot* parentPlot, const QString &layerName);
+  QCPLayer(QCustomPlot* parentPlot, QString layerName);
   ~QCPLayer();
   
   // getters:
@@ -322,7 +322,7 @@ class QCP_LIB_DECL QCPLayerable : public QObject
   Q_OBJECT
 public:
   QCPLayerable(QCustomPlot *parentPlot);
-  ~QCPLayerable();
+  ~QCPLayerable() override;
   
   // getters:
   bool visible() const { return mVisible; }
@@ -361,7 +361,7 @@ class QCP_LIB_DECL QCPAbstractPlottable : public QCPLayerable
   Q_OBJECT
 public:
   QCPAbstractPlottable(QCPAxis *keyAxis, QCPAxis *valueAxis);
-  virtual ~QCPAbstractPlottable() {}
+  ~QCPAbstractPlottable() override = default;
   
   // getters:
   QString name() const { return mName; }
@@ -418,8 +418,8 @@ protected:
   QCPAxis *mKeyAxis, *mValueAxis;
   bool mSelected, mSelectable;
   
-  virtual QRect clipRect() const;
-  virtual void draw(QCPPainter *painter) = 0;
+  QRect clipRect() const override;
+  void draw(QCPPainter *painter) override = 0;
   virtual void drawLegendIcon(QCPPainter *painter, const QRect &rect) const = 0;
   virtual QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const = 0;
   virtual QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const = 0;
@@ -431,7 +431,7 @@ protected:
   void pixelsToCoords(const QPointF &pixelPos, double &key, double &value) const;
   QPen mainPen() const;
   QBrush mainBrush() const;
-  void applyDefaultAntialiasingHint(QCPPainter *painter) const;
+  void applyDefaultAntialiasingHint(QCPPainter *painter) const override;
   void applyFillAntialiasingHint(QCPPainter *painter) const;
   void applyScattersAntialiasingHint(QCPPainter *painter) const;
   void applyErrorBarsAntialiasingHint(QCPPainter *painter) const;
@@ -475,7 +475,7 @@ public:
   Q_ENUMS(ErrorType)
   
   explicit QCPGraph(QCPAxis *keyAxis, QCPAxis *valueAxis);
-  virtual ~QCPGraph();
+  ~QCPGraph() override;
   
   // getters:
   const QCPDataMap *data() const { return mData; }
@@ -517,8 +517,8 @@ public:
   void removeDataAfter(double key);
   void removeData(double fromKey, double toKey);
   void removeData(double key);
-  virtual void clearData();
-  virtual double selectTest(const QPointF &pos) const;
+  void clearData() override;
+  double selectTest(const QPointF &pos) const override;
   using QCPAbstractPlottable::rescaleAxes;
   using QCPAbstractPlottable::rescaleKeyAxis;
   using QCPAbstractPlottable::rescaleValueAxis;
@@ -531,15 +531,15 @@ protected:
   QPen mErrorPen;
   LineStyle mLineStyle;
   QCP::ScatterStyle mScatterStyle;
-  double mScatterSize;
+  double mScatterSize{};
   QPixmap mScatterPixmap;
   ErrorType mErrorType;
-  double mErrorBarSize;
-  bool mErrorBarSkipSymbol;
-  QCPGraph *mChannelFillGraph;
+  double mErrorBarSize{};
+  bool mErrorBarSkipSymbol{};
+  QCPGraph *mChannelFillGraph{};
 
-  virtual void draw(QCPPainter *painter);
-  virtual void drawLegendIcon(QCPPainter *painter, const QRect &rect) const;
+  void draw(QCPPainter *painter) override;
+  void drawLegendIcon(QCPPainter *painter, const QRect &rect) const override;
 
   // functions to generate plot data points in pixel coordinates:
   void getPlotData(QVector<QPointF> *lineData, QVector<QCPData> *pointData) const;
@@ -570,8 +570,8 @@ protected:
   int findIndexBelowY(const QVector<QPointF> *data, double y) const;
   int findIndexAboveY(const QVector<QPointF> *data, double y) const;
   double pointDistance(const QPointF &pixelPoint) const;
-  virtual QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
-  virtual QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
+  QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
+  QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
   virtual QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain, bool includeErrors) const; // overloads base class interface
   virtual QCPRange getValueRange(bool &validRange, SignDomain inSignDomain, bool includeErrors) const; // overloads base class interface
   
@@ -592,7 +592,7 @@ public:
                    lsLine  ///< Data points are connected with a straight line
                  };
   explicit QCPCurve(QCPAxis *keyAxis, QCPAxis *valueAxis);
-  virtual ~QCPCurve();
+  ~QCPCurve() override;
   
   // getters:
   const QCPCurveDataMap *data() const { return mData; }
@@ -620,18 +620,18 @@ public:
   void removeDataAfter(double t);
   void removeData(double fromt, double tot);
   void removeData(double t);
-  virtual void clearData();
-  virtual double selectTest(const QPointF &pos) const;
+  void clearData() override;
+  double selectTest(const QPointF &pos) const override;
   
 protected:
   QCPCurveDataMap *mData;
   QCP::ScatterStyle mScatterStyle;
-  double mScatterSize;
+  double mScatterSize{};
   QPixmap mScatterPixmap;
   LineStyle mLineStyle;
   
-  virtual void draw(QCPPainter *painter);
-  virtual void drawLegendIcon(QCPPainter *painter, const QRect &rect) const;
+  void draw(QCPPainter *painter) override;
+  void drawLegendIcon(QCPPainter *painter, const QRect &rect) const override;
   // drawing helpers:
   virtual void drawScatterPlot(QCPPainter *painter, const QVector<QPointF> *pointData) const;
   
@@ -640,8 +640,8 @@ protected:
   double pointDistance(const QPointF &pixelPoint) const;
 
   QPointF outsideCoordsToPixels(double key, double value, int region) const;
-  virtual QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
-  virtual QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
+  QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
+  QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
   
   friend class QCustomPlot;
   friend class QCPLegend;
@@ -652,7 +652,7 @@ class QCP_LIB_DECL QCPBars : public QCPAbstractPlottable
   Q_OBJECT
 public:
   explicit QCPBars(QCPAxis *keyAxis, QCPAxis *valueAxis);
-  virtual ~QCPBars();
+  ~QCPBars() override;
   
   // getters:
   double width() const { return mWidth; }
@@ -676,22 +676,22 @@ public:
   void removeDataAfter(double key);
   void removeData(double fromKey, double toKey);
   void removeData(double key);
-  virtual void clearData();
-  virtual double selectTest(const QPointF &pos) const;
+  void clearData() override;
+  double selectTest(const QPointF &pos) const override;
   
 protected:
   QCPBarDataMap *mData;
   double mWidth;
   QCPBars *mBarBelow, *mBarAbove;
   
-  virtual void draw(QCPPainter *painter);
-  virtual void drawLegendIcon(QCPPainter *painter, const QRect &rect) const;
+  void draw(QCPPainter *painter) override;
+  void drawLegendIcon(QCPPainter *painter, const QRect &rect) const override;
   
   QPolygonF getBarPolygon(double key, double value) const;
   double getBaseValue(double key, bool positive) const;
   static void connectBars(QCPBars* lower, QCPBars* upper);
-  virtual QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
-  virtual QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
+  QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
+  QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
   
   friend class QCustomPlot;
   friend class QCPLegend;
@@ -702,7 +702,7 @@ class QCP_LIB_DECL QCPStatisticalBox : public QCPAbstractPlottable
   Q_OBJECT
 public:
   explicit QCPStatisticalBox(QCPAxis *keyAxis, QCPAxis *valueAxis);
-  virtual ~QCPStatisticalBox();
+  ~QCPStatisticalBox() override;
   
   // getters:
   double key() const { return mKey; }
@@ -740,27 +740,27 @@ public:
   void setOutlierStyle(QCP::ScatterStyle style);
   
   // non-property methods:
-  virtual void clearData();
-  virtual double selectTest(const QPointF &pos) const;
+  void clearData() override;
+  double selectTest(const QPointF &pos) const override;
   
 protected:
   QVector<double> mOutliers;
   double mKey, mMinimum, mLowerQuartile, mMedian, mUpperQuartile, mMaximum;
-  double mWidth;
-  double mWhiskerWidth;
-  double mOutlierSize;
+  double mWidth{};
+  double mWhiskerWidth{};
+  double mOutlierSize{};
   QPen mWhiskerPen, mWhiskerBarPen, mOutlierPen, mMedianPen;
   QCP::ScatterStyle mOutlierStyle;
   
-  virtual void draw(QCPPainter *painter);
-  virtual void drawLegendIcon(QCPPainter *painter, const QRect &rect) const;
+  void draw(QCPPainter *painter) override;
+  void drawLegendIcon(QCPPainter *painter, const QRect &rect) const override;
   
-  virtual void drawQuartileBox(QCPPainter *painter, QRectF *quartileBox=0) const;
+  virtual void drawQuartileBox(QCPPainter *painter, QRectF *quartileBox=nullptr) const;
   virtual void drawMedian(QCPPainter *painter) const;
   virtual void drawWhiskers(QCPPainter *painter) const;
   virtual void drawOutliers(QCPPainter *painter) const;
-  virtual QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
-  virtual QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const;
+  QCPRange getKeyRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
+  QCPRange getValueRange(bool &validRange, SignDomain inSignDomain=sdBoth) const override;
   
   friend class QCustomPlot;
   friend class QCPLegend;
@@ -769,7 +769,7 @@ protected:
 class QCP_LIB_DECL QCPItemAnchor
 {
 public:
-  QCPItemAnchor(QCustomPlot *parentPlot, QCPAbstractItem *parentItem, const QString name, int anchorId=-1);
+  QCPItemAnchor(QCustomPlot *parentPlot, QCPAbstractItem *parentItem, const QString& name, int anchorId=-1);
   virtual ~QCPItemAnchor();
   
   QString name() const { return mName; }
@@ -807,24 +807,24 @@ public:
                       ,ptPlotCoords     ///< Dynamic positioning at a plot coordinate defined by two axes (see \ref setAxes).
                     };
   
-  QCPItemPosition(QCustomPlot *parentPlot, QCPAbstractItem *parentItem, const QString name);
-  virtual ~QCPItemPosition();
+  QCPItemPosition(QCustomPlot *parentPlot, QCPAbstractItem *parentItem, const QString& name);
+  ~QCPItemPosition() override;
   
   // getters:
   PositionType type() const { return mPositionType; }
   QCPItemAnchor *parentAnchor() const { return mParentAnchor; }
   double key() const { return mKey; }
   double value() const { return mValue; }
-  QPointF coords() const { return QPointF(mKey, mValue); }
+  QPointF coords() const { return {mKey, mValue}; }
   QCPAxis *keyAxis() const { return mKeyAxis; }
   QCPAxis *valueAxis() const { return mValueAxis; }
-  virtual QPointF pixelPoint() const;
+  QPointF pixelPoint() const override;
   
   // setters:
   void setType(PositionType type);
   bool setParentAnchor(QCPItemAnchor *parentAnchor, bool keepPixelPosition=false);
   void setCoords(double key, double value);
-  void setCoords(const QPointF &coords);
+  void setCoords(const QPointF &pos);
   void setAxes(QCPAxis* keyAxis, QCPAxis* valueAxis);
   void setPixelPoint(const QPointF &pixelPoint);
   
@@ -844,7 +844,7 @@ class QCP_LIB_DECL QCPAbstractItem : public QCPLayerable
   Q_OBJECT
 public:
   QCPAbstractItem(QCustomPlot *parentPlot);
-  virtual ~QCPAbstractItem();
+  ~QCPAbstractItem() override;
   
   // getters:
   bool clipToAxisRect() const { return mClipToAxisRect; }
@@ -876,9 +876,9 @@ protected:
   QList<QCPItemPosition*> mPositions;
   QList<QCPItemAnchor*> mAnchors;
   
-  virtual QRect clipRect() const;
-  virtual void applyDefaultAntialiasingHint(QCPPainter *painter) const;
-  virtual void draw(QCPPainter *painter) = 0;
+  QRect clipRect() const override;
+  void applyDefaultAntialiasingHint(QCPPainter *painter) const override;
+  void draw(QCPPainter *painter) override = 0;
   
   // helper functions for subclasses:
   double distSqrToLine(const QPointF &start, const QPointF &end, const QPointF &point) const;
@@ -904,7 +904,7 @@ class QCP_LIB_DECL QCPItemStraightLine : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemStraightLine(QCustomPlot *parentPlot);
-  virtual ~QCPItemStraightLine();
+  ~QCPItemStraightLine() override;
   
   // getters:
   QPen pen() const { return mPen; }
@@ -915,7 +915,7 @@ public:
   void setSelectedPen(const QPen &pen);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const point1;
   QCPItemPosition * const point2;
@@ -923,11 +923,11 @@ public:
 protected:
   QPen mPen, mSelectedPen;
   
-  virtual void draw(QCPPainter *painter);
+  void draw(QCPPainter *painter) override;
   
   // helper functions:
-  double distToStraightLine(const QVector2D &point1, const QVector2D &vec, const QVector2D &point) const;
-  QLineF getRectClippedStraightLine(const QVector2D &point1, const QVector2D &vec, const QRect &rect) const;
+  double distToStraightLine(const QVector2D &base, const QVector2D &vec, const QVector2D &point) const;
+  QLineF getRectClippedStraightLine(const QVector2D &base, const QVector2D &vec, const QRect &rect) const;
   QPen mainPen() const;
 };
 
@@ -936,7 +936,7 @@ class QCP_LIB_DECL QCPItemLine : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemLine(QCustomPlot *parentPlot);
-  virtual ~QCPItemLine();
+  ~QCPItemLine() override;
   
   // getters:
   QPen pen() const { return mPen; }
@@ -951,7 +951,7 @@ public:
   void setTail(const QCPLineEnding &tail);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const start;
   QCPItemPosition * const end;
@@ -960,7 +960,7 @@ protected:
   QPen mPen, mSelectedPen;
   QCPLineEnding mHead, mTail;
   
-  virtual void draw(QCPPainter *painter);
+  void draw(QCPPainter *painter) override;
   
   // helper functions:
   QLineF getRectClippedLine(const QVector2D &start, const QVector2D &end, const QRect &rect) const;
@@ -972,7 +972,7 @@ class QCP_LIB_DECL QCPItemEllipse : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemEllipse(QCustomPlot *parentPlot);
-  virtual ~QCPItemEllipse();
+  ~QCPItemEllipse() override;
   
   // getters:
   QPen pen() const { return mPen; }
@@ -987,7 +987,7 @@ public:
   void setSelectedBrush(const QBrush &brush);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const topLeft;
   QCPItemPosition * const bottomRight;
@@ -1005,8 +1005,8 @@ protected:
   QPen mPen, mSelectedPen;
   QBrush mBrush, mSelectedBrush;
   
-  virtual void draw(QCPPainter *painter);
-  virtual QPointF anchorPixelPoint(int anchorId) const;
+  void draw(QCPPainter *painter) override;
+  QPointF anchorPixelPoint(int anchorId) const override;
   
   // helper functions:
   QPen mainPen() const;
@@ -1018,7 +1018,7 @@ class QCP_LIB_DECL QCPItemRect : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemRect(QCustomPlot *parentPlot);
-  virtual ~QCPItemRect();
+  ~QCPItemRect() override;
   
   // getters:
   QPen pen() const { return mPen; }
@@ -1033,7 +1033,7 @@ public:
   void setSelectedBrush(const QBrush &brush);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const topLeft;
   QCPItemPosition * const bottomRight;
@@ -1049,8 +1049,8 @@ protected:
   QPen mPen, mSelectedPen;
   QBrush mBrush, mSelectedBrush;
   
-  virtual void draw(QCPPainter *painter);
-  virtual QPointF anchorPixelPoint(int anchorId) const;
+  void draw(QCPPainter *painter) override;
+  QPointF anchorPixelPoint(int anchorId) const override;
   
   // helper functions:
   QPen mainPen() const;
@@ -1062,7 +1062,7 @@ class QCP_LIB_DECL QCPItemPixmap : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemPixmap(QCustomPlot *parentPlot);
-  virtual ~QCPItemPixmap();
+  ~QCPItemPixmap() override;
   
   // getters:
   QPixmap pixmap() const { return mPixmap; }
@@ -1078,7 +1078,7 @@ public:
   void setSelectedPen(const QPen &pen);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const topLeft;
   QCPItemPosition * const bottomRight;
@@ -1093,16 +1093,16 @@ protected:
   enum AnchorIndex {aiTop, aiTopRight, aiRight, aiBottom, aiBottomLeft, aiLeft};
   QPixmap mPixmap;
   QPixmap mScaledPixmap;
-  bool mScaled;
+  bool mScaled{};
   Qt::AspectRatioMode mAspectRatioMode;
   QPen mPen, mSelectedPen;
   
-  virtual void draw(QCPPainter *painter);
-  virtual QPointF anchorPixelPoint(int anchorId) const;
+  void draw(QCPPainter *painter) override;
+  QPointF anchorPixelPoint(int anchorId) const override;
   
   // helper functions:
   void updateScaledPixmap(QRect finalRect=QRect(), bool flipHorz=false, bool flipVert=false);
-  QRect getFinalRect(bool *flippedHorz=0, bool *flippedVert=0) const;
+  QRect getFinalRect(bool *flippedHorz=nullptr, bool *flippedVert=nullptr) const;
   QPen mainPen() const;
 };
 
@@ -1111,7 +1111,7 @@ class QCP_LIB_DECL QCPItemText : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemText(QCustomPlot *parentPlot);
-  virtual ~QCPItemText();
+  ~QCPItemText() override;
   
   // getters:
   QColor color() const { return mColor; }
@@ -1144,7 +1144,7 @@ public:
   void setPadding(const QMargins &padding);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const position;
   QCPItemAnchor * const topLeft;
@@ -1165,11 +1165,11 @@ protected:
   QString mText;
   Qt::Alignment mPositionAlignment;
   Qt::Alignment mTextAlignment;
-  double mRotation;
+  double mRotation{};
   QMargins mPadding;
   
-  virtual void draw(QCPPainter *painter);
-  virtual QPointF anchorPixelPoint(int anchorId) const;
+  void draw(QCPPainter *painter) override;
+  QPointF anchorPixelPoint(int anchorId) const override;
   
   // helper functions:
   QPointF getTextDrawPoint(const QPointF &pos, const QRectF &rect, Qt::Alignment positionAlignment) const;
@@ -1184,7 +1184,7 @@ class QCP_LIB_DECL QCPItemCurve : public QCPAbstractItem
   Q_OBJECT
 public:
   QCPItemCurve(QCustomPlot *parentPlot);
-  virtual ~QCPItemCurve();
+  ~QCPItemCurve() override;
   
   // getters:
   QPen pen() const { return mPen; }
@@ -1199,7 +1199,7 @@ public:
   void setTail(const QCPLineEnding &tail);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const start;
   QCPItemPosition * const startDir;
@@ -1210,7 +1210,7 @@ protected:
   QPen mPen, mSelectedPen;
   QCPLineEnding mHead, mTail;
   
-  virtual void draw(QCPPainter *painter);
+  void draw(QCPPainter *painter) override;
   
   // helper functions:
   QPen mainPen() const;
@@ -1227,7 +1227,7 @@ public:
   };
 
   QCPItemBracket(QCustomPlot *parentPlot);
-  virtual ~QCPItemBracket();
+  ~QCPItemBracket() override;
   
   // getters:
   QPen pen() const { return mPen; }
@@ -1242,7 +1242,7 @@ public:
   void setStyle(BracketStyle style);
   
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   
   QCPItemPosition * const left;
   QCPItemPosition * const right;
@@ -1251,11 +1251,11 @@ public:
 protected:
   enum AnchorIndex {aiCenter};
   QPen mPen, mSelectedPen;
-  double mLength;
+  double mLength{};
   BracketStyle mStyle;
   
-  virtual void draw(QCPPainter *painter);
-  virtual QPointF anchorPixelPoint(int anchorId) const;
+  void draw(QCPPainter *painter) override;
+  QPointF anchorPixelPoint(int anchorId) const override;
   
   // helper functions:
   QPen mainPen() const;
@@ -1279,7 +1279,7 @@ public:
   Q_ENUMS(TracerStyle)
 
   QCPItemTracer(QCustomPlot *parentPlot);
-  virtual ~QCPItemTracer();
+  ~QCPItemTracer() override;
 
   // getters:
   QPen pen() const { return mPen; }
@@ -1304,7 +1304,7 @@ public:
   void setInterpolating(bool enabled);
 
   // non-property methods:
-  virtual double selectTest(const QPointF &pos) const;
+  double selectTest(const QPointF &pos) const override;
   void updatePosition();
 
   QCPItemPosition * const position;
@@ -1312,13 +1312,13 @@ public:
 protected:
   QPen mPen, mSelectedPen;
   QBrush mBrush, mSelectedBrush;
-  double mSize;
+  double mSize{};
   TracerStyle mStyle;
   QCPGraph *mGraph;
-  double mGraphKey;
-  bool mInterpolating;
+  double mGraphKey{};
+  bool mInterpolating{};
 
-  virtual void draw(QCPPainter *painter);
+  void draw(QCPPainter *painter) override;
 
   // helper functions:
   QPen mainPen() const;
@@ -1328,7 +1328,7 @@ protected:
 class QCP_LIB_DECL QCPRange
 {
 public:
-  double lower, upper;
+  double lower{0}, upper{0};
   QCPRange();
   QCPRange(double lower, double upper);
   double size() const;
@@ -1350,7 +1350,7 @@ class QCP_LIB_DECL QCPAbstractLegendItem : public QObject
   Q_OBJECT
 public:
   QCPAbstractLegendItem(QCPLegend *parent);
-  virtual ~QCPAbstractLegendItem() {}
+  ~QCPAbstractLegendItem() override = default;
   
   // getters:
   bool antialiased() const { return mAntialiased; }
@@ -1397,7 +1397,7 @@ class QCP_LIB_DECL QCPPlottableLegendItem : public QCPAbstractLegendItem
   Q_OBJECT
 public:
   QCPPlottableLegendItem(QCPLegend *parent, QCPAbstractPlottable *plottable);
-  virtual ~QCPPlottableLegendItem() {}
+  ~QCPPlottableLegendItem() override = default;
   
   // getters:
   QCPAbstractPlottable *plottable() { return mPlottable; }
@@ -1414,8 +1414,8 @@ protected:
   QColor getTextColor() const;
   QFont getFont() const;
 
-  virtual void draw(QCPPainter *painter, const QRect &rect) const;
-  virtual QSize size(const QSize &targetSize) const;
+  void draw(QCPPainter *painter, const QRect &rect) const override;
+  QSize size(const QSize &targetSize) const override;
 };
 
 class QCP_LIB_DECL QCPLegend : public QCPLayerable
@@ -1448,7 +1448,7 @@ public:
   Q_DECLARE_FLAGS(SelectableParts, SelectablePart)
   
   explicit QCPLegend(QCustomPlot *parentPlot);
-  virtual ~QCPLegend();
+  ~QCPLegend() override;
   
   // getters:
   QPen borderPen() const { return mBorderPen; }
@@ -1529,7 +1529,7 @@ public:
   void reArrange();
   
   bool selectTestLegend(const QPointF &pos) const;
-  QCPAbstractLegendItem *selectTestItem(const QPoint pos) const;
+  QCPAbstractLegendItem *selectTestItem(QPoint pos) const;
   
 signals:
   void selectionChanged(QCPLegend::SelectableParts selection);
@@ -1543,10 +1543,10 @@ protected:
   QPoint mPosition;
   QSize mSize, mMinimumSize, mIconSize;
   PositionStyle mPositionStyle;
-  bool mAutoSize;
-  int mPaddingLeft, mPaddingRight, mPaddingTop, mPaddingBottom;
-  int mMarginLeft, mMarginRight, mMarginTop, mMarginBottom;
-  int mItemSpacing, mIconTextPadding;
+  bool mAutoSize{};
+  int mPaddingLeft{}, mPaddingRight{}, mPaddingTop{}, mPaddingBottom{};
+  int mMarginLeft{}, mMarginRight{}, mMarginTop{}, mMarginBottom{};
+  int mItemSpacing{}, mIconTextPadding{};
   SelectableParts mSelected, mSelectable;
   QPen mSelectedBorderPen, mSelectedIconBorderPen;
   QBrush mSelectedBrush;
@@ -1560,8 +1560,8 @@ protected:
   virtual void updateSelectionState();
   virtual bool handleLegendSelection(QMouseEvent *event, bool additiveSelection, bool &modified);
   // introduced methods:
-  virtual void applyDefaultAntialiasingHint(QCPPainter *painter) const;
-  virtual void draw(QCPPainter *painter);
+  void applyDefaultAntialiasingHint(QCPPainter *painter) const override;
+  void draw(QCPPainter *painter) override;
   virtual void calculateAutoSize();
   virtual void calculateAutoPosition();
   
@@ -1582,7 +1582,7 @@ class QCP_LIB_DECL QCPGrid : public QCPLayerable
   Q_OBJECT
 public:
   QCPGrid(QCPAxis *parentAxis);
-  ~QCPGrid();
+  ~QCPGrid() override;
   
   // getters:
   bool subGridVisible() const { return mSubGridVisible; }
@@ -1602,12 +1602,12 @@ public:
   
 protected:
   QCPAxis *mParentAxis;
-  bool mSubGridVisible;
-  bool mAntialiasedSubGrid, mAntialiasedZeroLine;
+  bool mSubGridVisible{};
+  bool mAntialiasedSubGrid{}, mAntialiasedZeroLine{};
   QPen mPen, mSubGridPen, mZeroLinePen;
   
-  virtual void applyDefaultAntialiasingHint(QCPPainter *painter) const;
-  virtual void draw(QCPPainter *painter);
+  void applyDefaultAntialiasingHint(QCPPainter *painter) const override;
+  void draw(QCPPainter *painter) override;
   // drawing helpers:
   void drawGridLines(QCPPainter *painter) const;
   void drawSubGridLines(QCPPainter *painter) const;
@@ -1695,7 +1695,7 @@ public:
   Q_DECLARE_FLAGS(SelectableParts, SelectablePart)
   
   explicit QCPAxis(QCustomPlot *parentPlot, AxisType type);
-  virtual ~QCPAxis();
+  ~QCPAxis() override;
       
   // getters:
   AxisType axisType() const { return mAxisType; }
@@ -1840,14 +1840,14 @@ protected:
   LabelType mTickLabelType;
   ScaleType mScaleType;
   AxisType mAxisType;
-  double mTickStep;
-  double mScaleLogBase, mScaleLogBaseLogInv;
-  int mSubTickCount, mTickLengthIn, mTickLengthOut, mSubTickLengthIn, mSubTickLengthOut;
-  int mAutoTickCount;
-  int mTickLabelPadding, mLabelPadding, mPadding;
-  double mTickLabelRotation;
-  bool mTicks, mTickLabels, mAutoTicks, mAutoTickLabels, mAutoTickStep, mAutoSubTicks;
-  bool mRangeReversed;
+  double mTickStep{};
+  double mScaleLogBase{}, mScaleLogBaseLogInv{};
+  int mSubTickCount{}, mTickLengthIn{}, mTickLengthOut{}, mSubTickLengthIn{}, mSubTickLengthOut{};
+  int mAutoTickCount{};
+  int mTickLabelPadding{}, mLabelPadding{}, mPadding{};
+  double mTickLabelRotation{};
+  bool mTicks{}, mTickLabels{}, mAutoTicks{}, mAutoTickLabels{}, mAutoTickStep{}, mAutoSubTicks{};
+  bool mRangeReversed{};
   SelectableParts mSelectable, mSelected;
   QFont mSelectedTickLabelFont, mSelectedLabelFont;
   QColor mSelectedTickLabelColor, mSelectedLabelColor;
@@ -1858,9 +1858,9 @@ protected:
   QCPGrid *mGrid;
   QVector<double> mSubTickVector;
   QChar mExponentialChar, mPositiveSignChar;
-  int mNumberPrecision;
-  char mNumberFormatChar;
-  bool mNumberBeautifulPowers, mNumberMultiplyCross;
+  int mNumberPrecision{};
+  char mNumberFormatChar{};
+  bool mNumberBeautifulPowers{}, mNumberMultiplyCross{};
   Qt::Orientation mOrientation;
   int mLowestVisibleTick, mHighestVisibleTick;
   
@@ -1876,8 +1876,8 @@ protected:
   virtual bool handleAxisSelection(QMouseEvent *event, bool additiveSelection, bool &modified);
   
   // drawing:
-  virtual void applyDefaultAntialiasingHint(QCPPainter *painter) const;
-  virtual void draw(QCPPainter *painter); 
+  void applyDefaultAntialiasingHint(QCPPainter *painter) const override;
+  void draw(QCPPainter *painter) override; 
   virtual void drawTickLabel(QCPPainter *painter, double position, int distanceToAxis, const QString &text, QSize *tickLabelsSize);
   virtual void getMaxTickLabelSize(const QFont &font, const QString &text, QSize *tickLabelsSize) const;
   
@@ -1946,8 +1946,8 @@ public:
                    };
   Q_ENUMS(LayerInsertMode)
   
-  explicit QCustomPlot(QWidget *parent = 0);
-  virtual ~QCustomPlot();
+  explicit QCustomPlot(QWidget *parent = nullptr);
+  ~QCustomPlot() override;
   
   // getters:
   QString title() const { return mTitle; }
@@ -2035,7 +2035,7 @@ public:
   // specialized interface for QCPGraph:
   QCPGraph *graph(int index) const;
   QCPGraph *graph() const;
-  QCPGraph *addGraph(QCPAxis *keyAxis=0, QCPAxis *valueAxis=0);
+  QCPGraph *addGraph(QCPAxis *keyAxis=nullptr, QCPAxis *valueAxis=nullptr);
   bool removeGraph(QCPGraph *graph);
   bool removeGraph(int index);
   int clearGraphs();
@@ -2060,7 +2060,7 @@ public:
   bool setCurrentLayer(const QString &name);
   bool setCurrentLayer(QCPLayer *layer);
   int layerCount() const;
-  bool addLayer(const QString &name, QCPLayer *otherLayer=0, LayerInsertMode insertMode=limAbove);
+  bool addLayer(const QString &name, QCPLayer *otherLayer=nullptr, LayerInsertMode insertMode=limAbove);
   bool removeLayer(QCPLayer *layer);
   bool moveLayer(QCPLayer *layer, QCPLayer *otherLayer, LayerInsertMode insertMode=limAbove);
   
@@ -2109,46 +2109,46 @@ protected:
   QColor mTitleColor, mSelectedTitleColor;
   QRect mViewport;
   QRect mAxisRect;
-  int mMarginLeft, mMarginRight, mMarginTop, mMarginBottom;
-  bool mAutoMargin, mAutoAddPlottableToLegend;
+  int mMarginLeft{}, mMarginRight{}, mMarginTop{}, mMarginBottom{};
+  bool mAutoMargin{}, mAutoAddPlottableToLegend{};
   QColor mColor;
   QList<QCPAbstractPlottable*> mPlottables;
   QList<QCPGraph*> mGraphs; // extra list of items also in mPlottables that are of type QCPGraph
   QList<QCPAbstractItem*> mItems;
   QList<QCPLayer*> mLayers;
   Qt::Orientations mRangeDrag, mRangeZoom;
-  QCPAxis *mRangeDragHorzAxis, *mRangeDragVertAxis, *mRangeZoomHorzAxis, *mRangeZoomVertAxis;
-  double mRangeZoomFactorHorz, mRangeZoomFactorVert;
-  bool mDragging;
+  QCPAxis *mRangeDragHorzAxis{}, *mRangeDragVertAxis{}, *mRangeZoomHorzAxis{}, *mRangeZoomVertAxis{};
+  double mRangeZoomFactorHorz{}, mRangeZoomFactorVert{};
+  bool mDragging{false};
   QCP::AntialiasedElements mAntialiasedElements, mNotAntialiasedElements;
   QPixmap mAxisBackground;
-  bool mAxisBackgroundScaled;
+  bool mAxisBackgroundScaled{};
   Qt::AspectRatioMode mAxisBackgroundScaledMode;
   Interactions mInteractions;
-  int mSelectionTolerance;
-  bool mTitleSelected;
+  int mSelectionTolerance{};
+  bool mTitleSelected{};
   QRect mTitleBoundingBox;
-  bool mNoAntialiasingOnDrag;
+  bool mNoAntialiasingOnDrag{};
   // not explicitly exposed properties:
   QPixmap mPaintBuffer;
   QPoint mDragStart;
   QCPRange mDragStartHorzRange, mDragStartVertRange;
   QPixmap mScaledAxisBackground;
-  bool mReplotting;
+  bool mReplotting{false};
   QCP::AntialiasedElements mAADragBackup, mNotAADragBackup;
-  QCPLayer *mCurrentLayer;
+  QCPLayer *mCurrentLayer{};
   QCP::PlottingHints mPlottingHints;
   Qt::KeyboardModifier mMultiSelectModifier;
   
   // reimplemented methods:
-  virtual QSize minimumSizeHint() const;
-  virtual void paintEvent(QPaintEvent *event);
-  virtual void resizeEvent(QResizeEvent *event);
-  virtual void mouseDoubleClickEvent(QMouseEvent *event);
-  virtual void mousePressEvent(QMouseEvent *event);
-  virtual void mouseMoveEvent(QMouseEvent *event);
-  virtual void mouseReleaseEvent(QMouseEvent *event);
-  virtual void wheelEvent(QWheelEvent *event);
+  QSize minimumSizeHint() const override;
+  void paintEvent(QPaintEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
+  void mousePressEvent(QMouseEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
+  void mouseReleaseEvent(QMouseEvent *event) override;
+  void wheelEvent(QWheelEvent *event) override;
   // event helpers:
   virtual bool handlePlottableSelection(QMouseEvent *event, bool additiveSelection, bool &modified);  
   virtual bool handleItemSelection(QMouseEvent *event, bool additiveSelection, bool &modified);  

@@ -3,106 +3,16 @@
 #if USE_AVX
 #include <immintrin.h>
 #endif
-#include "YK16GrayImage.h"
-#include <QFileDialog>
-#include <QInputDialog>
-#include <QMessageBox>
-#include <QPainter>
-#include <algorithm>
-#include <fstream>
-#include <functional>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#include "itkImageDuplicator.h"
-#include "itkImageSliceConstIteratorWithIndex.h"
-#include "itkImageSliceIteratorWithIndex.h"
 
-
-#include <QStandardItemModel>
-#ifdef _WIN32
-#include <QClipBoard> // re-check on windows and linux
-#else
-#include <QClipboard>
-#endif
-#include <QDir>
-#include <QDirIterator>
-#include <QFileInfo>
-#include <QProcess>
-#include <QTimer>
-#include <QVector>
-
-// ITK includes
-#include "itkAddImageFilter.h"
-#include "itkGPUMeanImageFilter.h"
-#include "itkIdentityTransform.h"
-#include "itkMeanImageFilter.h" //YKTEMP20141218
-#include "itkMedianImageFilter.h"
-#include "itkMinimumMaximumImageCalculator.h"
-#include "itkResampleImageFilter.h"
-#include "itkRescaleIntensityImageFilter.h"
-#include "itkThresholdImageFilter.h"
-
-#include "DlgExternalCommand.h"
-#include "DlgHistogram.h"
-#include "DlgRegistration.h"
-#include "itkGDCMImageIO.h"
-#include "itkGDCMSeriesFileNames.h"
-#include "itkImageSeriesReader.h"
-#include "itkImageSeriesWriter.h"
-#include "itkNumericSeriesFileNames.h"
-#include "itkShiftScaleImageFilter.h"
-
-#include "itkAffineTransform.h"
-#include "itkNearestNeighborInterpolateImageFunction.h"
-#include <itksys/SystemTools.hxx>
-
-#include "mha_io.h"
-#include "nki_io.h"
-#include "plm_image.h"
-#include "rt_study_metadata.h"
-
-// New pytrip WEPL
-#include "volume_adjust.h"
-#include <array>
-
-// plastiWEPL
-#include "aperture.h"
-#include "plm_math.h"
-#include "proj_matrix.h"
-#include "proj_volume.h"
-#include "ray_data.h"
-#include "ray_trace_probe.h"
-#include "rpl_volume.h"
-#include "rt_beam.h"
-#include "rt_plan.h"
-#include "volume.h"
-#include "volume_limit.h"
-#include "wed_parms.h"
-
-#if USE_OPENCL_PLM
-#include "plmreconstruct_config.h"
-
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-#include "autotune_opencl.h"
-#include "fdk.h"
-#include "fdk_opencl.h"
-#include "opencl_util.h"
-#include "proj_image.h"
-#include "proj_image_filter.h"
-#include "proj_matrix.h"
-#endif
 
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-#include <thread>
 
 #if ITK_VERSION_MAJOR >= 4
 #include "gdcmUIDGenerator.h"
@@ -113,26 +23,19 @@
 
 //related includes for forward projection
 //#include "itkMedianImageFilter.h"
-#include "itkIdentityTransform.h"
-#include "itkResampleImageFilter.h"
-#include "itkRescaleIntensityImageFilter.h"
-#include "itkSmoothingRecursiveGaussianImageFilter.h"
-#include "rtkJosephForwardProjectionImageFilter.h"
-#include <itkEuler3DTransform.h>
-#include <itkFlipImageFilter.h>
 #if USE_CUDA
 # include "rtkConjugateGradientConeBeamReconstructionFilter.h"
 # include "rtkCudaForwardProjectionImageFilter.h"
 # include "rtkSARTConeBeamReconstructionFilter.h"
 #endif
+
+// Local
 #ifdef USE_OPENCL_RTK
 # include "rtkOpenCLFDKConeBeamReconstructionFilter.h" // local
 #endif
-#include "rtkBoellaardScatterCorrectionImageFilter.h"
-#include "rtkRayCastInterpolatorForwardProjectionImageFilter.h"
 
-#include <QXmlStreamReader>
-
+#include "DlgExternalCommand.h"
+#include "DlgRegistration.h"
 #include "OpenCLFFTFilter.h"
 
 #define round(dTemp) (long(dTemp+(dTemp>0? .5:-.5)))
@@ -156,8 +59,8 @@ struct RATIONAL
 
 void InsertHeaderToArray(TIFIFD* IFDArr, int insertIdx, int TagID, int dataType, int DataCnt, int dataVal);
 bool SaveDoseGrayImage(const char* filePath, int width, int height, double spacingX, double spacingY, double originLeft_mm, double originTop_mm, unsigned short* pData);
-double vectorMean(const vector<double>& vDouble);
-double vectorSum(const vector<double>& vDouble);
+double vectorMean(const std::vector<double>& vDouble);
+double vectorSum(const std::vector<double>& vDouble);
 
 CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 : QMainWindow(parent, flags)
@@ -172,7 +75,7 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
     ////m_pMedianYKImg = new YK16GrayImage(2304, 3200);
     //m_fPercentThre = 30.0; //30% increase is mandatory
     //m_iMedianSize = 3;
-    //m_arrYKImage = nullptr; vectors are good at commiting suicide
+    //m_arrYKImage = nullptr; std::vectors are good at commiting suicide
 
     m_dspYKReconImage = new YK16GrayImage();
     m_dspYKImgProj = new YK16GrayImage();
@@ -251,7 +154,7 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
     //shell test
     //QString strCurFolder = "H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release";
     //QString strCommand = QString("explorer %1").arg(strCurFolder);
-    //cout << strCommand.toLocal8Bit().constData() << std::endl;
+    //std::cout << strCommand.toLocal8Bit().constData() << std::endl;
     //::system(strCommand.toLocal8Bit().constData());
     //::system("rtkfdk");
 
@@ -282,7 +185,7 @@ CbctRecon::~CbctRecon()
     delete m_dspYKReconImage;
     delete m_dspYKImgProj;
     delete m_pDlgRegistration;
-    delete m_Timer;
+    // delete m_Timer;
     delete m_pDlgExternalCommand;
 	// delete m_pDlgHistogram;
 }
@@ -299,7 +202,7 @@ void CbctRecon::ReleaseMemory()
 
     if (m_pTableModel != nullptr)
     {
-        delete m_pTableModel;
+        // delete m_pTableModel;
         m_pTableModel = nullptr;
     }
 
@@ -573,7 +476,7 @@ void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
     //size1[1] = (double)oldSize[1]*(double)oldSpacing[1] / spacing_mm;
     //size1[2] = (double)oldSize[2]*(double)oldSpacing[2] / spacing_mm;
 
-    ////cout << "mask size = " << size1 << std::endl;
+    ////std::cout << "mask size = " << size1 << std::endl;
 
     //FloatImageType::IndexType idxStart; //always should be 0 -->want to shift center? Use Origin
     //idxStart[0] = 0;
@@ -585,7 +488,7 @@ void CbctRecon::SLT_LoadImageFloat3D() //Dose image for JPhillips
     //spacing1[1] = spacing_mm;
     //spacing1[2] = spacing_mm;
 
-    ////cout << "mask spacing = " << spacing1 << std::endl;
+    ////std::cout << "mask spacing = " << spacing1 << std::endl;
 
     //FloatImageType::PointType origin1; //Top Left Inferior most position
 
@@ -888,9 +791,9 @@ void CbctRecon::SLT_DrawProjImages()
     int height = imgSize[1];
     m_dspYKImgProj->CreateImage(width, height, 0);
 
-    //cout << "img Size_Requested: " << imgSize[0] << "	" << imgSize[1] <<"	" << imgSize[2] << std::endl; //same
-    //cout << "img Size_Buffered: " << imgSizeBuf[0] << "	" << imgSizeBuf[1] <<"	" << imgSizeBuf[2] << std::endl; //same
-    //cout << "img Size_LargestPossible: " << imgSizeLargest[0] << "	" << imgSizeLargest[1] <<"	" << imgSizeLargest[2] << std::endl; //same
+    //std::cout << "img Size_Requested: " << imgSize[0] << "	" << imgSize[1] <<"	" << imgSize[2] << std::endl; //same
+    //std::cout << "img Size_Buffered: " << imgSizeBuf[0] << "	" << imgSizeBuf[1] <<"	" << imgSizeBuf[2] << std::endl; //same
+    //std::cout << "img Size_LargestPossible: " << imgSizeLargest[0] << "	" << imgSizeLargest[1] <<"	" << imgSizeLargest[2] << std::endl; //same
     //-->this means that projection Reader modifies the original image a little bit (1024 --> 1016)
 
     it.SetFirstDirection(0); //x?
@@ -1557,7 +1460,7 @@ void CbctRecon::LoadBadPixelMap(const char* filePath)
 {
     m_vPixelReplMap.clear();
 
-    ifstream fin;
+    std::ifstream fin;
     fin.open(filePath);
 
     if (fin.fail()) {
@@ -1607,11 +1510,10 @@ void CbctRecon::BadPixReplacement(YK16GrayImage* targetImg)
 
     int oriIdx, replIdx;
 
-    vector<BADPIXELMAP>::iterator it;
-
-    for (it = m_vPixelReplMap.begin(); it != m_vPixelReplMap.end(); it++)
+    
+    for (auto & it : m_vPixelReplMap)
     {
-        BADPIXELMAP tmpData = (*it);
+        BADPIXELMAP tmpData = it;
         oriIdx = tmpData.BadPixY * DEFAULT_ELEKTA_PROJ_WIDTH + tmpData.BadPixX;
         replIdx = tmpData.ReplPixY * DEFAULT_ELEKTA_PROJ_WIDTH + tmpData.ReplPixX;
         targetImg->m_pData[oriIdx] = targetImg->m_pData[replIdx];
@@ -1672,10 +1574,10 @@ void CbctRecon::SLT_DrawReconImage()
     // so original reconImg will be= gone after running once.
     //use less memory than standard ImageToImageFilters
 
-    //cout <<"is InPlace going in extractFilter?  " << extractFilter->GetInPlace() << std::endl;
-    //cout << "InPlace Possible? " << extractFilter->CanRunInPlace() << std::endl;
+    //std::cout <<"is InPlace going in extractFilter?  " << extractFilter->GetInPlace() << std::endl;
+    //std::cout << "InPlace Possible? " << extractFilter->CanRunInPlace() << std::endl;
     extractFilter->SetDirectionCollapseToSubmatrix();
-    //cout <<"is InPlace still going?  " << extractFilter->GetInPlace() << std::endl;
+    //std::cout <<"is InPlace still going?  " << extractFilter->GetInPlace() << std::endl;
 
     //return;
 
@@ -1685,11 +1587,11 @@ void CbctRecon::SLT_DrawReconImage()
     UShortImageType::RegionType crntRegion3D = clonedImage->GetBufferedRegion();
 
     crntRegion3D = clonedImage->GetBufferedRegion();
-    //cout << crntRegion3D.GetSize()[2] << std::endl; // 01
+    //std::cout << crntRegion3D.GetSize()[2] << std::endl; // 01
 
 
-    //cout << crntRegion3D.size[0] << std::endl;
-    //cout << crntRegion3D.size[1] << std::endl;
+    //std::cout << crntRegion3D.size[0] << std::endl;
+    //std::cout << crntRegion3D.size[1] << std::endl;
     //UShortImageType::RegionType crntRegion3D;
 
     //  We take the size from the region and collapse the size in the $Z$
@@ -1700,7 +1602,7 @@ void CbctRecon::SLT_DrawReconImage()
     UShortImageType::SizeType size = crntRegion3D.GetSize();
     size[2] = 0; // z size number = 0 --> should not be 1
 
-    //cout << "size is " << size[0] << "	" << size[1] << "	" << size[2] << std::endl;
+    //std::cout << "size is " << size[0] << "	" << size[1] << "	" << size[2] << std::endl;
 
     UShortImageType::IndexType start = crntRegion3D.GetIndex();
     const int iSliceNumber = ui.spinBoxReconImgSliceNo->value();
@@ -1715,7 +1617,7 @@ void CbctRecon::SLT_DrawReconImage()
     // strPosZ.sprintf("%4.2f", posZ);
     ui.lineEdit_CurrentPosZ->setText(strPosZ);
 
-    //cout << "start point is " << start[0] << "	" << start[1] << "	" << start[2] << std::endl;
+    //std::cout << "start point is " << start[0] << "	" << start[1] << "	" << start[2] << std::endl;
 
 
     //Define a region to generate
@@ -1746,11 +1648,11 @@ void CbctRecon::SLT_DrawReconImage()
     writer->Update();	*/
 
     //crntRegion3D = m_spReconImg->GetLargestPossibleRegion();
-    //cout << crntRegion3D.GetSize()[2] << std::endl; // 120
+    //std::cout << crntRegion3D.GetSize()[2] << std::endl; // 120
     //crntRegion3D = m_spReconImg->GetBufferedRegion();
-    //cout << crntRegion3D.GetSize()[2] << std::endl; // 01
+    //std::cout << crntRegion3D.GetSize()[2] << std::endl; // 01
 
-    //cout <<m_dspYKReconImage->m_iWidth << "	" << m_dspYKReconImage->m_iHeight << std::endl;
+    //std::cout <<m_dspYKReconImage->m_iWidth << "	" << m_dspYKReconImage->m_iHeight << std::endl;
     UShortImage2DType::Pointer pCrnt2D = extractFilter->GetOutput();
     YK16GrayImage::CopyItkImage2YKImage(pCrnt2D, m_dspYKReconImage); //dimension should be same automatically.
 
@@ -1814,13 +1716,12 @@ void CbctRecon::LoadRTKGeometryFile(const char* filePath)
     std::cout << "Coordination is following IEC coordinate (e.g. 190 deg = RPO, 170 LPO, 30 = LAO supposing HFS) no and kV source position (not MV gantry)" << std::endl;*/
 
 
-    vector<double> vTempConvAngles;
+    std::vector<double> vTempConvAngles;
 
-    vector<double>::const_iterator it;
     auto itBegin = (m_spFullGeometry->GetGantryAngles()).begin();
     auto itEnd = (m_spFullGeometry->GetGantryAngles()).end();
 
-    for (it = itBegin; it != itEnd; it++)
+    for (auto it = itBegin; it != itEnd; it++)
     {
         double tmpAngle = (*it);
 
@@ -1846,16 +1747,16 @@ void CbctRecon::LoadRTKGeometryFile(const char* filePath)
         m_bScanDirectionCW = false;
         std::cout << "The scan direction is CCW" << std::endl;
     }
-    //cout << "AngularGapsWithNext Size: " << custGeometry->GetAngularGapsWithNext().size() << std::endl;
-    //cout << "AngularGapsWithNext Mean (deg): " << vectorMean(custGeometry->GetAngularGapsWithNext())/itk::Math::pi * 180.0<< std::endl;
+    //std::cout << "AngularGapsWithNext Size: " << custGeometry->GetAngularGapsWithNext().size() << std::endl;
+    //std::cout << "AngularGapsWithNext Mean (deg): " << std::vectorMean(custGeometry->GetAngularGapsWithNext())/itk::Math::pi * 180.0<< std::endl;
     std::cout << "AngularGaps Size: " << m_spFullGeometry->GetAngularGaps(m_spFullGeometry->GetSourceAngles()).size() << std::endl;
 
     //SLT_DoReconstruction();
 
-    //double meanGap = vectorMean(m_spFullGeometry->GetAngularGaps())/itk::Math::pi * 180.0;
-    //cout << "AngularGaps Mean (deg): " << meanGap << std::endl;
-    //double angleSum = vectorSum(m_spFullGeometry->GetAngularGaps())/itk::Math::pi * 180.0;//total rot. range from first angle
-    //cout << "AngularGaps Sum (deg): " << angleSum  << std::endl;
+    //double meanGap = std::vectorMean(m_spFullGeometry->GetAngularGaps())/itk::Math::pi * 180.0;
+    //std::cout << "AngularGaps Mean (deg): " << meanGap << std::endl;
+    //double angleSum = std::vectorSum(m_spFullGeometry->GetAngularGaps())/itk::Math::pi * 180.0;//total rot. range from first angle
+    //std::cout << "AngularGaps Sum (deg): " << angleSum  << std::endl;
 
 }
 void CbctRecon::SLT_OpenElektaGeomFile()
@@ -2123,7 +2024,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	//LR flip
 
 	std::cout << "Flip filter is being applied" << std::endl;
-	using FilterType = itk::FlipImageFilter<FloatImageType>;
+	using FilterType = itk::FlipImageFilter<CUDAFloatImageType>;
 	FilterType::Pointer flipFilter = FilterType::New();
 	using FlipAxesArrayType = FilterType::FlipAxesArrayType;
 	FlipAxesArrayType arrFlipAxes;
@@ -2137,12 +2038,12 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	//const unsigned int Dimension = 3;
 	//FinalImageType::Pointer finalImg ;
 
-	using AbsImageFilterType = itk::AbsImageFilter<FloatImageType, FloatImageType>;
+	using AbsImageFilterType = itk::AbsImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
 	AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
 	absImgFilter->SetInput(flipFilter->GetOutput()); // 20140206 modified it was a bug
 													 //absImgFilter->SetInput(resampler->GetOutput());
 
-	using MultiplyImageFilterType = itk::MultiplyImageFilter<FloatImageType, FloatImageType, CUDAFloatImageType>;
+	using MultiplyImageFilterType = itk::MultiplyImageFilter<CUDAFloatImageType>;
 	MultiplyImageFilterType::Pointer multiplyImageFilter = MultiplyImageFilterType::New();
 	multiplyImageFilter->SetInput(absImgFilter->GetOutput());
 	multiplyImageFilter->SetConstant(65536); //calculated already
@@ -2216,11 +2117,11 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
 	ui.lineEdit_ReconstructionTime->setText(QString("%1").arg(reconTimeProbe.GetMean()));
 
-	//cout << "TestYK" << std::endl;
-	//cout << tmpReconImg->GetRequestedRegion().GetSize() << std::endl;
-	//cout << "Before InPlace Off: " <<  castFilter->GetInPlace() << std::endl;	//0
+	//std::cout << "TestYK" << std::endl;
+	//std::cout << tmpReconImg->GetRequestedRegion().GetSize() << std::endl;
+	//std::cout << "Before InPlace Off: " <<  castFilter->GetInPlace() << std::endl;	//0
 	//castFilter->InPlaceOff();
-	//cout << "After InPlace Off: " <<  castFilter->GetInPlace() << std::endl; //0
+	//std::cout << "After InPlace Off: " <<  castFilter->GetInPlace() << std::endl; //0
 	//Because Input Output format are different, this filter cannot do InPlace function.
 
 	//By default CanRunInPlace checks whether the input and output image type match.
@@ -2245,7 +2146,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 
 	if (outputFilePath.length() < 2 || !outFileDir.exists())
 	{
-		cout << "No available output path. Should be exported later" << std::endl;
+		std::cout << "No available output path. Should be exported later" << std::endl;
 		ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
 	}
 	else
@@ -2256,7 +2157,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 		writer->SetUseCompression(true); //not exist in original code (rtkfdk)
 		writer->SetInput(m_spCrntReconImg);
 
-		cout << "Writing the image to: " << outputFilePath.toLocal8Bit().constData() << std::endl;
+		std::cout << "Writing the image to: " << outputFilePath.toLocal8Bit().constData() << std::endl;
 
 		TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
 
@@ -2292,7 +2193,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	castBack->Update();
 	m_spProjImg3DFloat = castBack->GetOutput();
 
-	cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
+	std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
 	//if not found, just skip
 
 	//SLT_DrawGraph();
@@ -2302,7 +2203,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 #else
 void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 {
-	cout << "This program were not compiled with the CUDA option, please select OpenCL or CPU instead!" << std::endl;
+	std::cout << "This program were not compiled with the CUDA option, please select OpenCL or CPU instead!" << std::endl;
 	return;
 }
 #endif
@@ -2360,8 +2261,8 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(const FloatImageType::Pointer& spCu
 		} };
 
 	auto* vol = new Volume(&sizeOutput[0], &offset[0], &spacing[0], nullptr, PT_FLOAT, 1);
-	cout << "Buffer vol: " << vol->pix_size * vol->npix << std::endl;
-	cout << "Buffer proj: " << proj_dim[1] * proj_dim[0] * sizeof(float) << std::endl;
+	std::cout << "Buffer vol: " << vol->pix_size * vol->npix << std::endl;
+	std::cout << "Buffer proj: " << proj_dim[1] * proj_dim[0] * sizeof(float) << std::endl;
 	/* Set up device memory */
 	ocl_buf_vol = opencl_buf_create(
 		&ocl_dev,
@@ -2424,10 +2325,10 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(const FloatImageType::Pointer& spCu
 	/* Calculate the scale */
 	const float scale = static_cast<float>(sqrt(3.0) / static_cast<double>(1 + proj_dim[2])) * 10.0f;
 
-	vector<double>::const_iterator itShiftX, itShiftY;
+	std::vector<double>::const_iterator itShiftX, itShiftY;
 	itShiftX = m_spCustomGeometry->GetProjectionOffsetsX().begin();
 	itShiftY = m_spCustomGeometry->GetProjectionOffsetsY().begin();
-	cout << "Proj. # " << std::endl;
+	std::cout << "Proj. # " << std::endl;
 	/* Project each image into the volume one at a time */
 	for (int image_num = 0; image_num < static_cast<int>(proj_dim[2]); image_num++)
 	{
@@ -2441,7 +2342,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(const FloatImageType::Pointer& spCu
 		itk::Index<3U> cur_idx = { { 0, 0, image_num } };
 		proj->img = &spCurImg->GetPixel(cur_idx);
 		if (proj->img == ITK_NULLPTR) {
-			cout << "No image!" << std::endl;
+			std::cout << "No image!" << std::endl;
 }
 
 		proj->pmat = new Proj_matrix;
@@ -2527,8 +2428,8 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(const FloatImageType::Pointer& spCu
 		delete proj->pmat;
 		delete proj;
 	}
-	cout << std::endl;
-	cout << "Reading results..." << std::endl;
+	std::cout << std::endl;
+	std::cout << "Reading results..." << std::endl;
 	/* Read back results */
 	opencl_buf_read(&ocl_dev, ocl_buf_vol,
 		vol->pix_size * vol->npix, vol->img);
@@ -2599,7 +2500,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 {
 	if (m_spProjImg3DFloat == nullptr)
 	{
-		cout << "processed Projection image is not ready yet" << std::endl;
+		std::cout << "processed Projection image is not ready yet" << std::endl;
 		return;
 	}
 
@@ -2616,7 +2517,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	{
 		ddf->SetInput(spCurImg);
 		ddf->SetGeometry(m_spCustomGeometry);
-		cout << "DDF was set in pipeline" << std::endl;
+		std::cout << "DDF was set in pipeline" << std::endl;
 
 		if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
 			ddf->Update();//no mememory increas: InPlace Filter
@@ -2635,7 +2536,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 		//pssf->SetGeometry( geometryReader->GetOutputObject() );
 		pssf->SetGeometry(m_spCustomGeometry);
 		//pssf->InPlaceOff(); //YKComments: Do not overwrite input image buffer for output
-		cout << "short scan image filter success" << std::endl;
+		std::cout << "short scan image filter success" << std::endl;
 
 		if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
 			pssf->Update(); //no mememory increas: InPlace Filter
@@ -2689,7 +2590,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	double fTruncCorFactor = ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
 	if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT)
 	{
-		cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << std::endl;
+		std::cout << "Warning! Truncation factor is " << fTruncCorFactor << ". Regardless of previous setting, this factor should not be 0 for scatter corrected CBCT. Now zero value is applied." << std::endl;
 		fTruncCorFactor = 0.0;
 	}
 
@@ -2701,11 +2602,11 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 		ui.lineEdit_Ramp_HannCutY->text().toDouble()
 	} };
 
-	cout << "Starting RTK fdk" << std::endl;
+	std::cout << "Starting RTK fdk" << std::endl;
 	FloatImageType::Pointer targetImg = RTKOpenCLFDK(spCurImg, m_spCustomGeometry, spacing, sizeOutput, fdk_options);
 #endif
 
-	cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << std::endl;
+	std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard DICOM coordinate" << std::endl;
 
 	/* RTK-produced 3D Volume should be changed in coordination of itk */
 	/* Coordination transformation using Euler 3D transformation */
@@ -2762,8 +2663,8 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	transform->SetParameters(param);
 	transform->SetFixedParameters(fixedParam); //Center of the Transform
 
-	cout << "Transform matrix:" << "	" << std::endl;
-	cout << transform->GetMatrix() << std::endl;
+	std::cout << "Transform matrix:" << "	" << std::endl;
+	std::cout << transform->GetMatrix() << std::endl;
 
 	using ResampleFilterType = itk::ResampleImageFilter <FloatImageType, FloatImageType>;
 	ResampleFilterType::Pointer resampler = ResampleFilterType::New();
@@ -2779,7 +2680,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 
 	//LR flip
 
-	cout << "Flip filter is being applied" << std::endl;
+	std::cout << "Flip filter is being applied" << std::endl;
 	using FilterType = itk::FlipImageFilter<FloatImageType>;
 	FilterType::Pointer flipFilter = FilterType::New();
 	using FlipAxesArrayType = FilterType::FlipAxesArrayType;
@@ -2815,7 +2716,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	itk::TimeProbe reconTimeProbe;
 	reconTimeProbe.Start();
 
-	cout << "Reconstructing the image.. please wait..." << std::endl;
+	std::cout << "Reconstructing the image.. please wait..." << std::endl;
 	UShortImageType::SizeType indexRadius{};
 	indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
 	indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
@@ -2832,18 +2733,18 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 		//YKTEMP20141218 E
 
 		//this is radius. 1 --> median window 3
-		cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << std::endl;
+		std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X Y Z) is = " << indexRadius << std::endl;
 
 		medFilter->SetRadius(indexRadius);
 		medFilter->SetInput(castFilter->GetOutput());
 		medFilter->Update(); //Error here!g
 
 		tmpReconImg = medFilter->GetOutput();
-		cout << "median filtering has been done" << std::endl;
+		std::cout << "median filtering has been done" << std::endl;
 	}
 	else
 	{
-		cout << "No post median filtering is used" << std::endl;
+		std::cout << "No post median filtering is used" << std::endl;
 		castFilter->Update();
 		tmpReconImg = castFilter->GetOutput();
 	}
@@ -2861,7 +2762,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 	thresholdFilterBelow->Update();
 	tmpReconImg = thresholdFilterBelow->GetOutput();
 
-	cout << "After Filtering" << std::endl;
+	std::cout << "After Filtering" << std::endl;
 
 	reconTimeProbe.Stop();
 	std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
@@ -2889,7 +2790,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 
 	if (outputFilePath.length() < 2 || !outFileDir.exists())
 	{
-		cout << "No available output path. Should be exported later" << std::endl;
+		std::cout << "No available output path. Should be exported later" << std::endl;
 		ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
 	}
 	else
@@ -2900,7 +2801,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 		writer->SetUseCompression(true); //not exist in original code (rtkfdk)
 		writer->SetInput(m_spCrntReconImg);
 
-		cout << "Writing the image to: " << outputFilePath.toLocal8Bit().constData() << std::endl;
+		std::cout << "Writing the image to: " << outputFilePath.toLocal8Bit().constData() << std::endl;
 
 		TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
 
@@ -2928,7 +2829,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 		UpdateReconImage(m_spCrntReconImg, updated_text);
 	}
 
-	cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
+	std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
 	//if not found, just skip
 
 	//SLT_DrawGraph();
@@ -2938,7 +2839,7 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 #else
 void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target)
 {
-	cout << "This program were not compiled with the CUDA option, please select OpenCL or CPU instead!" << std::endl;
+	std::cout << "This program were not compiled with the CUDA option, please select OpenCL or CPU instead!" << std::endl;
 	return;
 }
 #endif
@@ -2952,8 +2853,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
     }
     //Resampling first --> to save the recon time. 1024 --> 512
 
-    //cout << m_spProjImg3DFloat->GetRequestedRegion().GetSize() << std::endl;
-    //cout << spTmpImage->GetRequestedRegion().GetSize() << std::endl;
+    //std::cout << m_spProjImg3DFloat->GetRequestedRegion().GetSize() << std::endl;
+    //std::cout << spTmpImage->GetRequestedRegion().GetSize() << std::endl;
     //return;
 
     using DuplicatorType = itk::ImageDuplicator<FloatImageType>;
@@ -3274,11 +3175,11 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target)
     std::cout << "It took " << reconTimeProbe.GetMean() << ' ' << reconTimeProbe.GetUnit() << std::endl;
     ui.lineEdit_ReconstructionTime->setText(QString("%1").arg(reconTimeProbe.GetMean()));
 
-    //cout << "TestYK" << std::endl;
-    //cout << tmpReconImg->GetRequestedRegion().GetSize() << std::endl;
-    //cout << "Before InPlace Off: " <<  castFilter->GetInPlace() << std::endl;	//0
+    //std::cout << "TestYK" << std::endl;
+    //std::cout << tmpReconImg->GetRequestedRegion().GetSize() << std::endl;
+    //std::cout << "Before InPlace Off: " <<  castFilter->GetInPlace() << std::endl;	//0
     //castFilter->InPlaceOff();
-    //cout << "After InPlace Off: " <<  castFilter->GetInPlace() << std::endl; //0
+    //std::cout << "After InPlace Off: " <<  castFilter->GetInPlace() << std::endl; //0
     //Because Input Output format are different, this filter cannot do InPlace function.
 
     //By default CanRunInPlace checks whether the input and output image type match.
@@ -3666,7 +3567,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		regexp = "Proj_.*.hnd";
 }
     //char * regexp = ".*.his";
-    vector <string> names;
+    std::vector <std::string> names;
     itk::RegularExpressionSeriesFileNames::Pointer regexpnames = itk::RegularExpressionSeriesFileNames::New();
     regexpnames->SetDirectory(dirPath.toLocal8Bit().constData());
     //regexpnames->SetNumericSort(false);
@@ -3718,7 +3619,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     }
 	else if (geomFileInfo.fileName() == "ProjectionInfo.xml")//this is OBI XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
 	{
-		cout << "Varian XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << std::endl;
+		std::cout << "Varian XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << std::endl;
 		// ADDED BY AGRAVGAARD :::::::: Thief'd from RTK/applications/ rtkvarianobigemetry.cxx
 		rtk::VarianObiGeometryReader::Pointer reader;
 		reader = rtk::VarianObiGeometryReader::New();
@@ -3731,13 +3632,13 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		xmlWriter->SetFilename("RTKgeometry.xml");
 		xmlWriter->SetObject(reader->GetGeometry());
 		TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
-		cout << "RTK standard Geometry XML File was created:" << "RTKgeometry.xml" << std::endl;
+		std::cout << "RTK standard Geometry XML File was created:" << "RTKgeometry.xml" << std::endl;
 		LoadRTKGeometryFile("RTKgeometry.xml");
 		// ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData()); //will generate m_spFullGeometry
 	}
 	else if (geomFileInfo.fileName() == "Scan.xml")//this is XIM XML. this code will be deleted later ,instead RTK XML will be used as a sole solution
 	{
-		cout << "Varian Xim XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << std::endl;
+		std::cout << "Varian Xim XML Geometry File was found. This will be temporarily used:" << geomPath.toLocal8Bit().constData() << std::endl;
 		// ADDED BY AGRAVGAARD :::::::: Thief'd from RTK/applications/ rtkvarianobigemetry.cxx
 		rtk::VarianProBeamGeometryReader::Pointer reader;
 		reader = rtk::VarianProBeamGeometryReader::New();
@@ -3774,7 +3675,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     if (iFullGeoDataSize != fullCnt)
     {
 		if (!ximIsUsed) {
-			cout << "Size of geometry data and file numbers are not same! Check and retry" << std::endl;
+			std::cout << "Size of geometry data and file numbers are not same! Check and retry" << std::endl;
 			return;
 		}
 		
@@ -3804,7 +3705,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     if (ui.Radio_ManualProjAngleGap->isChecked())
     {
         //bManualGap = true;
-        //cout << "Input angle gap in deg: " ;
+        //std::cout << "Input angle gap in deg: " ;
         //cin >> gantryAngleInterval;
 
         if (gantryAngleInterval < meanGap)
@@ -3817,15 +3718,15 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
     ///////////////////////////////////Exclude outlier projection files
 
-    vector<int> vExcludeIdx;
+    std::vector<int> vExcludeIdx;
 
     std::cout << "[Excluding-files-function] has been omitted. To reactivaite it, please edit SLT_LoadSelectedProjFiles" << std::endl;
 
 
     ///////////////////////////////////Exclude outlier projection files
-    vector<int> vSelectedIdx;
-    vector<int> vSelectedIdx_final;
-    vector<int>::iterator itIdx;
+    std::vector<int> vSelectedIdx;
+    std::vector<int> vSelectedIdx_final;
+    std::vector<int>::iterator itIdx;
 
     //double gantryAngleInterval = ui.lineEdit_ManualProjAngleGap->text().toDouble();
 
@@ -3836,7 +3737,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
         double firstAngle = m_spFullGeometry->GetGantryAngles().at(0);
         double lastAngle = m_spFullGeometry->GetGantryAngles().at(iFullGeoDataSize - 1);
 
-        vector<double> vNormAngles;
+        std::vector<double> vNormAngles;
 
         int multiSize = round(angleSum / gantryAngleInterval) + 2;
 
@@ -3914,7 +3815,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     vSelectedIdx_final.clear();
 
 
-    //vector<int>::iterator itExclude;
+    //std::vector<int>::iterator itExclude;
     //for (itExclude = m_vExcludeProjIdx.begin(); itExclude != m_vExcludeProjIdx.end(); ++itExclude)
     //{
     //    int idx = (*itExclude);
@@ -3924,7 +3825,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     //    std::cout << "Exclude " << idx << std::endl;
     //}
 
-    vector<int>::iterator itFinal;
+    std::vector<int>::iterator itFinal;
     int curIdx = 0;
     for (itFinal = vSelectedIdx.begin(); itFinal != vSelectedIdx.end(); ++itFinal)
     {
@@ -3980,12 +3881,12 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
         m_vSelectedFileNames.clear();
 }
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open("D:/DebugFileNames.txt");
 
     for (itIdx = vSelectedIdx_final.begin(); itIdx != vSelectedIdx_final.end(); itIdx++)
     {
-        string curStr = names.at(*itIdx);
+		std::string curStr = names.at(*itIdx);
         m_vSelectedFileNames.push_back(curStr);
         fout << curStr.c_str() << std::endl;
     }
@@ -3993,8 +3894,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     fout.close();
 
     ////YKTEMP
-    ////cout << vSelectedIdx.size() << " is the number of selected index" << std::endl;
-    ////cout << m_spCustomGeometry->GetGantryAngles().size() << " is the number of m_spCustomGeometry" << std::endl;
+    ////std::cout << vSelectedIdx.size() << " is the number of selected index" << std::endl;
+    ////std::cout << m_spCustomGeometry->GetGantryAngles().size() << " is the number of m_spCustomGeometry" << std::endl;
     //rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
     //    rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
     //xmlWriter->SetFilename("D:/FewProjGeom.xml");
@@ -4010,7 +3911,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     //    QString strNewFilePath = strDir + "/" + fInfo.fileName();
     //    QFile::copy(fInfo.absoluteFilePath(), strNewFilePath);
     //}
-    //cout << countFiles << " files were copied." << std::endl;
+    //std::cout << countFiles << " files were copied." << std::endl;
     ////YKTEMP
 
 
@@ -4124,7 +4025,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		pow(m_spCustomGeometry->GetSourceToDetectorDistances()[2], 2)) * 0.1;
 
 	const double correctionValue = GetMaxAndMinValueOfProjectionImage(originalMax, originalMin, reader->GetOutput()); // , theoreticalMin);
-	cout << "Reader Max, Min=" << originalMax << "	" << originalMin << std::endl;
+	std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin << std::endl;
 
 	if (correctionValue != 10.0 && correctionValue != 20.0) { // 10 and 20 are error codes
 		if ((originalMax - originalMin) > (log(65535.0f) - theoreticalMin)) {
@@ -4143,7 +4044,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 		originalMax = -1.0;
 		originalMin = -1.0;
 		if (GetMaxAndMinValueOfProjectionImage(originalMax, originalMin, reader->GetOutput()) != 20.0) {
-			cout << "Reader Max, Min=" << originalMax << "	" << originalMin << std::endl;
+			std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin << std::endl;
 }
 	}
     m_spProjImg3DFloat = reader->GetOutput(); // 1024 1024, line integ image
@@ -4200,7 +4101,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     //typedef itk::AddImageFilter <FloatImageType, FloatImageType, FloatImageType> AddImageFilterType;
     //AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
     //addImageFilter->SetInput1(m_spProjImg3D);
-    //cout << "adding value=" << addingValue << std::endl;
+    //std::cout << "adding value=" << addingValue << std::endl;
     //addImageFilter->SetConstant2(addingValue); // + ~0.5
     //addImageFilter->Update();
     //m_spProjImg3D = addImageFilter->GetOutput();
@@ -4217,7 +4118,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     // std::cout << "before button enabled" << std::endl;
     ui.pushButton_DoRecon->setEnabled(true);
 
-    //cout << "before setMinMax" << std::endl;
+    //std::cout << "before setMinMax" << std::endl;
     ui.spinBoxImgIdx->setMinimum(0);
     ui.spinBoxImgIdx->setMaximum(m_vSelectedFileNames.size() - 1);
     ui.spinBoxImgIdx->setValue(0); //it doesn't call Draw Event .. don't know why.
@@ -4227,11 +4128,11 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 
     SetMaxAndMinValueOfProjectionImage(); //update min max projection image
 
-    //cout << "before SLT_InitializeGraphLim" << std::endl;
+    //std::cout << "before SLT_InitializeGraphLim" << std::endl;
     SLT_InitializeGraphLim();
 
 
-    //cout << "before SLT_DrawProjImages" << std::endl;
+    //std::cout << "before SLT_DrawProjImages" << std::endl;
     this->SLT_DrawProjImages();  //Update Table is called
     //SLT_DrawGraph();
     //SLT_UpdateTable();
@@ -4261,11 +4162,11 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
 //
 //}
 
-void CbctRecon::GetSelectedIndices(const vector<double>& vFullAngles, vector<double>& vNormAngles, vector<int>& vTargetIdx, bool bCW, vector<int>& vExcludingIdx)
+void CbctRecon::GetSelectedIndices(const std::vector<double>& vFullAngles, std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW, std::vector<int>& vExcludingIdx)
 {
-    //vector<double>::iterator nomIt;
+    //std::vector<double>::iterator nomIt;
 
-    //vector<double>::const_iterator full_It;//assumption, sorted by projection time. Begins with 179.xxx (CW)
+    //std::vector<double>::const_iterator full_It;//assumption, sorted by projection time. Begins with 179.xxx (CW)
     int latest_Idx = 0;
 
     double curVal = 0.0;
@@ -4405,10 +4306,10 @@ void CbctRecon::GetSelectedIndices(const vector<double>& vFullAngles, vector<dou
     //vTargetIdx.push_back(sizeFull-1); //omit the last image --> should be same as first...
 }
 
-void CbctRecon::GetExcludeIndexByNames(const QString& outlierListPath, vector<string>& vProjFileFullPath, vector<int>& vExcludeIdx)
+void CbctRecon::GetExcludeIndexByNames(const QString& outlierListPath, std::vector<std::string>& vProjFileFullPath, std::vector<int>& vExcludeIdx)
 {
-    ifstream fin;
-    fin.open(outlierListPath.toLocal8Bit().constData(), ios::in);
+    std::ifstream fin;
+    fin.open(outlierListPath.toLocal8Bit().constData(), std::ios::in);
     if (static_cast<int>(fin.fail()) == 1) {
         return;
 	}
@@ -4783,7 +4684,7 @@ void CbctRecon::SLT_DrawGraph() //based on profile
         return;
 }
 
-    //cout << "check graph 1" << std::endl;
+    //std::cout << "check graph 1" << std::endl;
     ui.customPlot->clearGraphs();
 
 
@@ -4808,7 +4709,7 @@ void CbctRecon::SLT_DrawGraph() //based on profile
         vAxisY.push_back(tableVal2);
     }
 
-    //cout << "check graph 2" << std::endl;
+    //std::cout << "check graph 2" << std::endl;
 
     ui.customPlot->addGraph();
     ui.customPlot->graph(0)->setData(vAxisX, vAxisY);
@@ -4823,7 +4724,7 @@ void CbctRecon::SLT_DrawGraph() //based on profile
     double tmpYMin = ui.lineEditYMin->text().toDouble();
     double tmpYMax = ui.lineEditYMax->text().toDouble();
 
-    //cout << "check graph 3" << std::endl;
+    //std::cout << "check graph 3" << std::endl;
 
     ui.customPlot->xAxis->setRange(tmpXMin, tmpXMax);
     ui.customPlot->yAxis->setRange(tmpYMin, tmpYMax);
@@ -4835,7 +4736,7 @@ void CbctRecon::SLT_DrawGraph() //based on profile
     titleFont.setPointSize(10);
     ui.customPlot->setTitleFont(titleFont);
 
-    //cout << "check graph 4" << std::endl;
+    //std::cout << "check graph 4" << std::endl;
 
     ui.customPlot->legend->setVisible(false);
     QFont legendFont = font();  // start out with MainWindow's font..
@@ -4844,7 +4745,7 @@ void CbctRecon::SLT_DrawGraph() //based on profile
     ui.customPlot->legend->setPositionStyle(QCPLegend::psTopRight);
     ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
 
-    //cout << "check graph 5" << std::endl;
+    //std::cout << "check graph 5" << std::endl;
     ui.customPlot->replot();
 
     //SLT_UpdateTable();
@@ -4857,7 +4758,7 @@ void CbctRecon::SLT_UpdateTable()
         ui.radioButton_graph_proj->setChecked(true);
 }
 
-    //cout << "check 1" << std::endl;
+    //std::cout << "check 1" << std::endl;
     YK16GrayImage* pYKImg = nullptr;
     double fMultiPlyFactor = 1.0;
     double fMinValue = 0.0;
@@ -4884,14 +4785,14 @@ void CbctRecon::SLT_UpdateTable()
         return;
 }
 
-    //cout << "check 2" << std::endl;
+    //std::cout << "check 2" << std::endl;
 
     if (m_pTableModel != nullptr)
     {
         delete m_pTableModel;
         m_pTableModel = nullptr;
     }
-    //cout << "check 3" << std::endl;
+    //std::cout << "check 3" << std::endl;
     int columnSize = 1;
     int rowSize = 0;
 
@@ -4908,7 +4809,7 @@ void CbctRecon::SLT_UpdateTable()
         rowSize = pYKImg->m_iHeight;
     }
 
-    //cout << "check 4" << std::endl;
+    //std::cout << "check 4" << std::endl;
     m_pTableModel = new QStandardItemModel(rowSize, columnSize, this); //2 Rows and 3 Columns
 
     //for (int i = 0 ; i<columnSize ; i++)
@@ -4921,22 +4822,19 @@ void CbctRecon::SLT_UpdateTable()
     //}
 
 
-    //cout << "check 5" << std::endl;
+    //std::cout << "check 5" << std::endl;
     //int width = pYKImg->m_iWidth;
     //int height = pYKImg->m_iHeight;
     //int fixedY = qRound(height / 2.0);
 
     double originX, originY;
     double spacingX, spacingY;
+	originX = 0.0;
+	originY = 0.0;
+	spacingX = 1.0;
+	spacingY = 1.0;
 
-    if (ui.radioButton_graph_proj->isChecked())
-    {
-        originX = 0.0;
-        originY = 0.0;
-        spacingX = 1.0;
-        spacingY = 1.0;
-    }
-    else
+    if (!ui.radioButton_graph_proj->isChecked())
     {
         if (m_spCrntReconImg != nullptr)
         {
@@ -4949,7 +4847,7 @@ void CbctRecon::SLT_UpdateTable()
         }
     }
 
-    //cout << "check 6" << std::endl;
+    //std::cout << "check 6" << std::endl;
 
     QVector<double> vPos;
     if (ui.radioButton_Profile_Hor->isChecked())
@@ -4989,12 +4887,12 @@ void CbctRecon::SLT_UpdateTable()
 
     ui.tableViewReconImgProfile->setModel(m_pTableModel); //also for proj
 
-    //cout << "check 7" << std::endl;
+    //std::cout << "check 7" << std::endl;
     SLT_DrawGraph();
 }
 
 
-bool CbctRecon::IsFileNameOrderCorrect(vector<string>& vFileNames)
+bool CbctRecon::IsFileNameOrderCorrect(std::vector<std::string>& vFileNames)
 {
     //regardless of whether number or hexa codes,
     //we can convert it from number to hexa number and compare the order
@@ -5342,7 +5240,7 @@ void CbctRecon::SLT_LoadPlanCT_mha() //m_spRecon -->m_spRefCT
     //double minVal= (double)(imageCalculatorFilter->GetMinimum());
     //double maxVal= (double)(imageCalculatorFilter->GetMaximum());
 
-    //cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
+    //std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
 
     ////Min value is always 3024 --> outside the FOV
     ////USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
@@ -5911,8 +5809,8 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString
     imageCalculatorFilter->Compute();
     auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
     auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-    //cout << "Min and Max Values are	" << minVal << "	" << maxVal << std::endl; //should be 0 and 4096
-    //cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
+    //std::cout << "Min and Max Values are	" << minVal << "	" << maxVal << std::endl; //should be 0 and 4096
+    //std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
 
     //Min value is always 3024 --> outside the FOV
     auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
@@ -5965,7 +5863,7 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer& spUsImage, QString
     //double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
     //double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
 
-    //cout << "Short image Min and Max Values are	" << minVal2 << "	" << maxVal2 << std::endl;
+    //std::cout << "Short image Min and Max Values are	" << minVal2 << "	" << maxVal2 << std::endl;
 
     using WriterType = itk::ImageFileWriter<ShortImageType>;
     WriterType::Pointer writer = WriterType::New();
@@ -6160,8 +6058,8 @@ void CbctRecon::SLT_ExportReconSHORT_HU()
     //imageCalculatorFilter->Compute();
     //double minVal = (double)(imageCalculatorFilter->GetMinimum());
     //double maxVal = (double)(imageCalculatorFilter->GetMaximum());
-    //cout << "Min and Max Values are	" << minVal << "	" << maxVal << std::endl; //should be 0 and 4096
-    ////cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
+    //std::cout << "Min and Max Values are	" << minVal << "	" << maxVal << std::endl; //should be 0 and 4096
+    ////std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
 
     ////Min value is always 3024 --> outside the FOV
     //SHORT_PixelType outputMinVal = (SHORT_PixelType)(minVal - 1024);
@@ -6214,7 +6112,7 @@ void CbctRecon::SLT_ExportReconSHORT_HU()
     //double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
     //double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
 
-    //cout << "Short image Min and Max Values are	" << minVal2 << "	" << maxVal2 << std::endl;
+    //std::cout << "Short image Min and Max Values are	" << minVal2 << "	" << maxVal2 << std::endl;
 
     //typedef itk::ImageFileWriter<ShortImageType> WriterType;
     //WriterType::Pointer writer = WriterType::New();
@@ -6223,9 +6121,9 @@ void CbctRecon::SLT_ExportReconSHORT_HU()
     //writer->SetUseCompression(false); //for plastimatch
     //writer->SetInput(addImageFilter->GetOutput());
 
-    //cout << "Writing is under progress...: " << strPath.toLocal8Bit().constData() << std::endl;
+    //std::cout << "Writing is under progress...: " << strPath.toLocal8Bit().constData() << std::endl;
     //writer->Update();
-    //cout << "Writing was successfully done" << std::endl;
+    //std::cout << "Writing was successfully done" << std::endl;
 
     //QString msgStr = QString("SHORT File Writing was successfully done");
     //QMessageBox::information(this, "Procedure Done", msgStr);
@@ -6241,11 +6139,11 @@ void CbctRecon::SLT_ExportReconSHORT_HU()
 
     if (res2 == QMessageBox::Yes)
     {
-    std::cout << "DICOM export is under progress." << std::endl;
+    std::std::cout << "DICOM export is under progress." << std::endl;
     ShortImageType::Pointer spTmpImgResult = spRescaleFilter->GetOutput();
     ExportDICOM_SHORT(spTmpImgResult);
 
-    std::cout << "DICOM export is completed." << std::endl;
+    std::std::cout << "DICOM export is completed." << std::endl;
     }*/
 
     //return;
@@ -6458,7 +6356,7 @@ void CbctRecon::SLT_ExportReconSHORT_HU()
 //		std::cerr << excp << std::endl;
 //		return;
 //	}
-//	/*std::cout << "The output series in directory " << argv[2]
+//	/*std::std::cout << "The output series in directory " << argv[2]
 //	<< " has " << outputSize[2] << " files with spacing "
 //		<< outputSpacing
 //		<< std::endl;*/
@@ -6681,7 +6579,7 @@ void CbctRecon::SLT_DoBowtieCorrection()
 }
 
 	if (ximIsUsed || hisIsUsed) {
-		cout << "Bow tie filtering should not be used for His data or Xim data!!" << std::endl;
+		std::cout << "Bow tie filtering should not be used for His data or Xim data!!" << std::endl;
 		return;
 	}
 
@@ -6690,12 +6588,12 @@ void CbctRecon::SLT_DoBowtieCorrection()
 
 	if (strList.length() != 4 && !ui.checkBox_Fullfan->isChecked())
 	{
-		cout << "Wrong number of arguments!" << std::endl << "Must be a;b;c;d -> d. / (1 + exp(-b.*(x - a))) + c" << std::endl;
+		std::cout << "Wrong number of arguments!" << std::endl << "Must be a;b;c;d -> d. / (1 + exp(-b.*(x - a))) + c" << std::endl;
 		return;
 	}
 	if (strList.length() != 5 && ui.checkBox_Fullfan->isChecked())
 	{
-		cout << "Wrong number of arguments!" << std::endl
+		std::cout << "Wrong number of arguments!" << std::endl
 			<< "Must be a;b;c;d;e -> c - sqrt(abs(a^2-((x+/-e)*d-b)^2)) * heaviside((x+/-e)*d-b+a) * heaviside(-((x+/-e)*d-b-a))" << std::endl;
 		return;
 	}
@@ -6712,12 +6610,12 @@ void CbctRecon::SLT_DoBowtieCorrection()
 	FloatImageType::SizeType imgSize = m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize();
 	if (ui.checkBox_Fullfan->isChecked())
 	{
-		cout << "Bow-tie correction curve:"
+		std::cout << "Bow-tie correction curve:"
 			<< poly3_d << " / ( 1 + exp(-" << poly3_b << " * (x - " << poly3_a << "))) + " << poly3_c
 			<< " + " << poly3_d << " / ( 1 + exp(" << poly3_b << " * (x - " << poly3_e << ")))" << std::endl;
 	}
 	else {
-		cout << "Bow-tie correction curve:" << poly3_d << " / ( 1 + exp(-" << poly3_b << " * (x - " << poly3_a << "))) + " << poly3_c << std::endl;
+		std::cout << "Bow-tie correction curve:" << poly3_d << " / ( 1 + exp(-" << poly3_b << " * (x - " << poly3_a << "))) + " << poly3_c << std::endl;
 	}
 
 
@@ -6753,7 +6651,7 @@ void CbctRecon::SLT_DoBowtieCorrection()
 	}
 	SetMaxAndMinValueOfProjectionImage();
 	SLT_DrawProjImages();
-	cout << "Bow-tie correction done." << std::endl;
+	std::cout << "Bow-tie correction done." << std::endl;
 }
 
 void CbctRecon::SLT_ViewRegistration() //default showing function
@@ -6899,7 +6797,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortI
     filter->Update();
 
     YKFixed.CreateImage(width, height, 0);
-    //cout << "Before MovingImg Creation " << std::endl;
+    //std::cout << "Before MovingImg Creation " << std::endl;
 
     YKMoving.CreateImage(width, height, 0);//exactly same dimension
 
@@ -6918,11 +6816,11 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortI
     }
 
 
-    //cout << "tot pixel no: " << cnt << std::endl;
+    //std::cout << "tot pixel no: " << cnt << std::endl;
 
     //YK16GrayImage::CopyItkImage2YKImage(filter->GetOutput(), &YKMoving);
 
-    //cout << "After MovingImg Creation " << std::endl;
+    //std::cout << "After MovingImg Creation " << std::endl;
 
     it.GoToBegin();
 
@@ -7086,7 +6984,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortI
 		break;
 
 	default:
-		cout << "default should not passed by" << std::endl;
+		std::cout << "default should not passed by" << std::endl;
 		width = imgSize[0];
 		height = imgSize[1];
 		iCntSlice = imgSize[2];
@@ -7103,7 +7001,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer& spFixedImg, UShortI
 	filter->Update();
 
 	YKFixed.CreateImage(width, height, 0);
-	//cout << "Before MovingImg Creation " << std::endl;
+	//std::cout << "Before MovingImg Creation " << std::endl;
 
 	YKMoving.CreateImage(width, height, 0);//exactly same dimension
 
@@ -7314,7 +7212,7 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
 {
     //in case of eletka, img_UID
     //QString aa;
-    //cout<< "ddd " << aa.toLocal8Bit().constData() << std::endl;
+    //std::cout<< "ddd " << aa.toLocal8Bit().constData() << std::endl;
 
     m_strDCMUID = "";
     m_strPathPatientDir = "";
@@ -7343,10 +7241,10 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
     {
 		if (curHisDir.dirName().contains("Scan0", Qt::CaseSensitive))
 		{
-			cout << "XML set by guessing: Scan0/../ProjectionInfo.xml" << std::endl;
+			std::cout << "XML set by guessing: Scan0/../ProjectionInfo.xml" << std::endl;
 			m_strPathGeomXML = curHisDir.absolutePath() + "/../" + "ProjectionInfo.xml";
 			ui.lineEdit_ElektaGeomPath->setText(m_strPathGeomXML);
-			cout << "Patient DIR set to: Scan0/../../" << std::endl;
+			std::cout << "Patient DIR set to: Scan0/../../" << std::endl;
 			m_strPathGeomXML = curHisDir.absolutePath() + "/../";
 			ximIsUsed = false;
 			hisIsUsed = false;
@@ -7354,10 +7252,10 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
 		}
 		if (curHisDir.absolutePath().contains("Acquisitions", Qt::CaseSensitive))
 		{
-			cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
+			std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
 			m_strPathGeomXML = curHisDir.absolutePath() + "/../../" + "Scan.xml";
 			ui.lineEdit_ElektaGeomPath->setText(m_strPathGeomXML);
-			cout << "Patient DIR set to: Acquisitions/../../../" << std::endl;
+			std::cout << "Patient DIR set to: Acquisitions/../../../" << std::endl;
 			m_strPathGeomXML = curHisDir.absolutePath() + "/../../";
 			ximIsUsed = true;
 			hisIsUsed = false;
@@ -7365,8 +7263,8 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
 		}
 		
 		
-			cout << "Projection folder should have format [img_UID]" << std::endl;
-			cout << "XML file cannot be made" << std::endl;
+			std::cout << "Projection folder should have format [img_UID]" << std::endl;
+			std::cout << "XML file cannot be made" << std::endl;
 			return;
 		
     }
@@ -7481,9 +7379,9 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
         }
     }
 
-    //cout << "Root folder: " << tmpDir_RootFolder.absolutePath().toLocal8Bit().constData() << std::endl;
-    //cout << "Root folder2: " << tmpDir_RootFolder.absolutePath().append("\\FRAME.DBF").toLocal8Bit().constData() << std::endl;
-    //cout << fInfo_FrameDBF.absoluteFilePath().toLocal8Bit().constData() << std::endl;
+    //std::cout << "Root folder: " << tmpDir_RootFolder.absolutePath().toLocal8Bit().constData() << std::endl;
+    //std::cout << "Root folder2: " << tmpDir_RootFolder.absolutePath().append("\\FRAME.DBF").toLocal8Bit().constData() << std::endl;
+    //std::cout << fInfo_FrameDBF.absoluteFilePath().toLocal8Bit().constData() << std::endl;
 
     //GenerateXMLFunc.
 
@@ -7524,7 +7422,7 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
     //movingDir = tmpDir_IMAGES;
     //break;
     // case 2:
-    //cout << "No CT DICOM folder exist. Proceeding w/o CT" << std::endl;
+    //std::cout << "No CT DICOM folder exist. Proceeding w/o CT" << std::endl;
     //break;
     // }
     //
@@ -7544,7 +7442,7 @@ void CbctRecon::FindAllRelevantPaths(const QString& pathProjHisDir)//called foll
 
     // for (int i = 0 ; i < listDir.size() ; i++)
     // {
-    ////cout << listDir.at(i).absolutePath().toLocal8Bit().constData() << std::endl; //this returns Dir, not itself
+    ////std::cout << listDir.at(i).absolutePath().toLocal8Bit().constData() << std::endl; //this returns Dir, not itself
     //QString tmpPath = listDir.at(i).absoluteFilePath();
     // }
 
@@ -7920,7 +7818,7 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geo
 		std::cout << "Setting-up vacant projection image data" << std::endl;
 
 		//a) size
-		//cout << "chk1" << std::endl;
+		//std::cout << "chk1" << std::endl;
 		size[0] = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0]; // qRound((double)DEFAULT_W*m_fResampleF);
 		size[1] = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
 		size[2] = spGeometry->GetGantryAngles().size();
@@ -8019,12 +7917,12 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geo
 	if (bSave)
 	{
 		//Saving part: save as his file in sub-folder of raw image
-		cout << "Files are being saved" << std::endl;
-		cout << " Patient DIR Path: " << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
+		std::cout << "Files are being saved" << std::endl;
+		std::cout << " Patient DIR Path: " << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
 
 		if (m_strPathPatientDir.isEmpty())
 		{
-			cout << "File save error!: No patient DIR name" << std::endl;
+			std::cout << "File save error!: No patient DIR name" << std::endl;
 			return;
 		}
 
@@ -8037,7 +7935,7 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geo
 
 		if (!crntDir.exists())
 		{
-			cout << "File save error: The specified folder does not exist." << std::endl;
+			std::cout << "File save error: The specified folder does not exist." << std::endl;
 			return;
 		}
 
@@ -8047,7 +7945,7 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geo
 
 		if (!tmpResult)
 		{
-			cout << "FwdProj directory seems to exist already. Files will be overwritten." << std::endl;
+			std::cout << "FwdProj directory seems to exist already. Files will be overwritten." << std::endl;
 		}
 
 		QString strSavingFolder = strCrntDir + "/" + fwdDirName;
@@ -8186,7 +8084,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geom
 		std::cout << "Setting-up vacant projection image data" << std::endl;
 
 		//a) size
-		//cout << "chk1" << std::endl;
+		//std::cout << "chk1" << std::endl;
 		size[0] = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0]; // qRound((double)DEFAULT_W*m_fResampleF);
 		size[1] = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
 		size[2] = spGeometry->GetGantryAngles().size();
@@ -8215,7 +8113,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geom
 
 		//4) Prepare CT image to be projected
 		//int fwdMethod = en_Joseph; //later, it will be coming from the GUI
-		// cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " << fwdMethod << std::endl;
+		// std::cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " << fwdMethod << std::endl;
 
 		// Create forward projection image filter
 		rtk::ForwardProjectionImageFilter<FloatImageType, FloatImageType>::Pointer forwardProjection; //Float to Float
@@ -8380,7 +8278,7 @@ void CbctRecon::SaveProjImageAsHIS(UShortImageType::Pointer& spProj3D, std::vect
         fclose(fd);
 
         it_FwdProj.NextSlice();
-        //cout << "Now saving " << i+1 << " th file: " << crntFileName.toLocal8Bit().constData() << std::endl;
+        //std::cout << "Now saving " << i+1 << " th file: " << crntFileName.toLocal8Bit().constData() << std::endl;
     }
 
     std::cout << "Saving completed" << std::endl;
@@ -8435,7 +8333,8 @@ void CbctRecon::SLT_DoScatterCorrection_APRIORI()
     AfterScatCorrectionMacro();
     std::cout << "FINISHED!Scatter correction: CBCT DICOM files are saved" << std::endl;
 }
-#include <itkStatisticsImageFilter.h>
+
+
 void CbctRecon::CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D) 
 {
 	using StatFilterType = itk::StatisticsImageFilter<UShortImageType>;
@@ -8556,7 +8455,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
         //tmpYKRaw.SaveDataAsRaw(str1.toLocal8Bit().constData());
         ////tmpYKRaw.SaveDataAsRaw(str2.toLocal8Bit().constData());
 
-        //cout << "i = " << i << std::endl;
+        //std::cout << "i = " << i << std::endl;
         //continue;
 
         //Dimension should be matched
@@ -8888,7 +8787,7 @@ void CbctRecon::Get2DFrom3D(UShortImageType::Pointer& spSrcImg3D, FloatImage2DTy
     //int width = imgDim[idxHor];
     //int height = imgDim[idxVer];
     int zSize = imgDim[idxZ];
-    //cout << "Get2DFrom3D zSize = " << zSize << std::endl;
+    //std::cout << "Get2DFrom3D zSize = " << zSize << std::endl;
 
 
 
@@ -8935,8 +8834,8 @@ void CbctRecon::Get2DFrom3D(UShortImageType::Pointer& spSrcImg3D, FloatImage2DTy
     spTargetImg2D->Allocate();
     spTargetImg2D->FillBuffer(0);
 
-    //cout << "src size = " << spSrcImg3D->GetRequestedRegion().GetSize() << " " << std::endl;
-    //cout << "target image size = " << spTargetImg2D->GetRequestedRegion().GetSize() << " " << std::endl;
+    //std::cout << "src size = " << spSrcImg3D->GetRequestedRegion().GetSize() << " " << std::endl;
+    //std::cout << "target image size = " << spTargetImg2D->GetRequestedRegion().GetSize() << " " << std::endl;
 
 
     itk::ImageSliceConstIteratorWithIndex<UShortImageType> it_3D(spSrcImg3D, spSrcImg3D->GetRequestedRegion());
@@ -8956,7 +8855,7 @@ void CbctRecon::Get2DFrom3D(UShortImageType::Pointer& spSrcImg3D, FloatImage2DTy
         QString crntFileName = crntFileInfo.fileName();
         QString crntPath = strSavingFolder + "/" + crntFileName;*/
         //Search matching slice using slice iterator for m_spProjCTImg
-        //cout << "Get2DFrom3D: Slide= " << i  << " ";
+        //std::cout << "Get2DFrom3D: Slide= " << i  << " ";
 
         if (i == idx)
         {
@@ -8976,7 +8875,7 @@ void CbctRecon::Get2DFrom3D(UShortImageType::Pointer& spSrcImg3D, FloatImage2DTy
         it_3D.NextSlice();
     }	//end of for
 
-    //cout << "cnt = " << cnt << " TotCnt " << cntTot << std::endl;
+    //std::cout << "cnt = " << cnt << " TotCnt " << cntTot << std::endl;
     /*YK16GrayImage tmpYK;
     tmpYK.UpdateFromItkImageFloat(spTargetImg2D);
     QString str = QString("D:\\testYK\\InsideFunc_%1.raw").arg(idx);
@@ -9386,7 +9285,7 @@ void CbctRecon::ResampleItkImage2D(FloatImage2DType::Pointer& spSrcImg2D, FloatI
 
     //outputSpacing[2] = spSrcImg2D->GetSpacing()[2];
 
-    //cout << "Output spacing: " << outputSpacing << std::endl;
+    //std::cout << "Output spacing: " << outputSpacing << std::endl;
 
     //FloatImageType2D::Pointer input = spSrcImg2D;
     //FloatImageType2D::PointType prevOrigin = input->GetOrigin(); //-204.6 - 204.6  0
@@ -9487,7 +9386,7 @@ void CbctRecon::AfterScatCorrectionMacro()
     m_pDlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
     m_pDlgRegistration->SLT_DoLowerMaskIntensity(); //it will check the check button.
-	cout << "Updating ReconImage..";
+	std::cout << "Updating ReconImage..";
     QString updated_text = QString("Scatter corrected CBCT");
     UpdateReconImage(m_spScatCorrReconImg, updated_text); //main GUI update
 
@@ -9508,7 +9407,7 @@ void CbctRecon::AfterScatCorrectionMacro()
         SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, updated_text_ct, strSavingFolder);
         //Export as DICOM (using plastimatch) folder?
     }
-	cout << "Exiting AfterScatCorrectionMacro.";
+	std::cout << "Exiting AfterScatCorrectionMacro.";
 }
 
 //called whenver recon 3D image for display changes.
@@ -9599,7 +9498,7 @@ void CbctRecon::SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString
 
 void CbctRecon::ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::Pointer& spImgShort)
 {
-    //cout << "Before filter spImgUshort" << spImgUshort << std::endl;
+    //std::cout << "Before filter spImgUshort" << spImgUshort << std::endl;
 
     using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
     ThresholdImageFilterType::Pointer thresholdFilter = ThresholdImageFilterType::New();
@@ -9614,8 +9513,8 @@ void CbctRecon::ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, Short
     imageCalculatorFilter->Compute();
     auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
     auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-    //cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl; //should be 0 and 4096
-    //cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
+    //std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl; //should be 0 and 4096
+    //std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal << std::endl;
 
     //Min value is always 3024 --> outside the FOV
     auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
@@ -9633,8 +9532,8 @@ void CbctRecon::ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, Short
 
     spImgShort = spRescaleFilter->GetOutput();
 
-    //cout << "After filter spImgUshort" << spImgUshort << std::endl;
-    //cout << "After filter spImgShort" << spImgShort << std::endl;
+    //std::cout << "After filter spImgUshort" << spImgUshort << std::endl;
+    //std::cout << "After filter spImgShort" << spImgShort << std::endl;
 }
 
 void CbctRecon::SLT_LoadPlanCT_USHORT()
@@ -9661,7 +9560,7 @@ void CbctRecon::SLT_LoadPlanCT_USHORT()
 
 void CbctRecon::SLT_CalcAndSaveAngularWEPL()//single point
 {
-    vector<WEPLData> vOutputWEPL;
+    std::vector<WEPLData> vOutputWEPL;
 
     double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
 	double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
@@ -9682,7 +9581,7 @@ void CbctRecon::SLT_CalcAndSaveAngularWEPL()//single point
         return;
 }
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open(filePath.toLocal8Bit().constData());
 
     fout << "Angle" << "	" << "WEPL(mm)" << std::endl;
@@ -9872,7 +9771,7 @@ void CbctRecon::SLT_SetCBCTSkinRSPath()
 }
 void CbctRecon::SLT_CropSkinUsingThreshold()
 {
-	cout << "Overwriting of values below threshold to air ";
+	std::cout << "Overwriting of values below threshold to air ";
 	if (m_spCrntReconImg == nullptr) {
 		return;
 	}
@@ -9905,7 +9804,7 @@ void CbctRecon::SLT_CropSkinUsingThreshold()
 	HoleFillingFilterType::Pointer HoleFillingFilter = HoleFillingFilterType::New();
 	HoleFillingFilter->SetForegroundValue(1);
 	HoleFillingFilter->SetFullyConnected(false);
-	cout << "Threshold filtering.. ";
+	std::cout << "Threshold filtering.. ";
 	HoleFillingFilter->SetInput(spCrntImgMask);
 
 	using StructElementType = itk::BinaryBallStructuringElement< USHORT_PixelType, 3>;
@@ -9917,7 +9816,7 @@ void CbctRecon::SLT_CropSkinUsingThreshold()
 	erodeStructElement.SetRadius(ui.lineEdit_ErodeRadius->text().toInt());
 	erodeStructElement.CreateStructuringElement();
 	binaryErode->SetKernel(erodeStructElement);
-	cout << "filling holes.. ";
+	std::cout << "filling holes.. ";
 	binaryErode->SetInput(HoleFillingFilter->GetOutput());
 
 	DilateFilterType::Pointer binaryDilate = DilateFilterType::New();
@@ -9926,14 +9825,14 @@ void CbctRecon::SLT_CropSkinUsingThreshold()
 	dilateStructElement.SetRadius(ui.lineEdit_DilateRadius->text().toInt());
 	dilateStructElement.CreateStructuringElement();
 	binaryDilate->SetKernel(dilateStructElement);
-	cout << "eroding dirt.. ";
+	std::cout << "eroding dirt.. ";
 	binaryDilate->SetInput(binaryErode->GetOutput());
-	cout << "Skin mask is being created..." << std::endl;
+	std::cout << "Skin mask is being created..." << std::endl;
 
 	using MaskFilterType = itk::MaskImageFilter <UShortImageType, UShortImageType, UShortImageType>;
 	MaskFilterType::Pointer MaskFilter = MaskFilterType::New();
 	MaskFilter->SetMaskingValue(0);
-	cout << "Dilating.. ";
+	std::cout << "Dilating.. ";
 	MaskFilter->SetMaskImage(binaryDilate->GetOutput());
     QString update_text = QString("Thresh-based skin cropped image");
 	if (m_spCrntReconImg == m_spRawReconImg)
@@ -10025,11 +9924,11 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
     }
     int sizePOI = m_vPOI_DCM.size();
 
-    vector<WEPLData> vOutputWEPL_manual;
-    vector<WEPLData> vOutputWEPL_auto_rigid;
-    vector<WEPLData> vOutputWEPL_deform;
-    vector<WEPLData> vOutputWEPL_rawCBCT;
-    vector<WEPLData> vOutputWEPL_corCBCT;
+    std::vector<WEPLData> vOutputWEPL_manual;
+    std::vector<WEPLData> vOutputWEPL_auto_rigid;
+    std::vector<WEPLData> vOutputWEPL_deform;
+    std::vector<WEPLData> vOutputWEPL_rawCBCT;
+    std::vector<WEPLData> vOutputWEPL_corCBCT;
 
 	for (int i = 0; i < sizePOI; i++)
 	{
@@ -10045,12 +9944,12 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 			GetAngularWEPL_SinglePoint(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_auto_rigid, true);
 		if (m_spDeformedCT_Final)
 			GetAngularWEPL_SinglePoint(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_deform, true);
-		cout << "OK, point: " << i << " succeeded. Next..\n" << std::endl;
+		std::cout << "OK, point: " << i << " succeeded. Next..\n" << std::endl;
 	}
-    //cout << "Computed WEPL points: " << vOutputWEPL.size() << std::endl;
+    //std::cout << "Computed WEPL points: " << vOutputWEPL.size() << std::endl;
 
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open(strPathOutput.toLocal8Bit().constData());
 
     //    double curAngle2;
@@ -10104,32 +10003,32 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 
 	if (m_vPOI_DCM.empty())
 	{
-		cout << "No POI data is prepared. Load them first" << std::endl;
+		std::cout << "No POI data is prepared. Load them first" << std::endl;
 		return;
 	}
 
 	if (m_spRawReconImg == nullptr)
 	{
-		cout << "Error: no Raw Recon image is found" << std::endl;
+		std::cout << "Error: no Raw Recon image is found" << std::endl;
 		return;
 	}
 
 	if (m_spScatCorrReconImg == nullptr)
 	{
-		cout << "Warning: no ScatCorrReconImg is found" << std::endl;
+		std::cout << "Warning: no ScatCorrReconImg is found" << std::endl;
 	}
 
 	if (m_spManualRigidCT == nullptr)
 	{
-		cout << "Warning: no ManualRigidCT is found" << std::endl;
+		std::cout << "Warning: no ManualRigidCT is found" << std::endl;
 	}
 	if (m_spAutoRigidCT == nullptr)
 	{
-		cout << "Warning: no AutoRigidCT is found" << std::endl;
+		std::cout << "Warning: no AutoRigidCT is found" << std::endl;
 	}
 	if (m_spDeformedCT_Final == nullptr)
 	{
-		cout << "Warning: no DeformedCT is found" << std::endl;
+		std::cout << "Warning: no DeformedCT is found" << std::endl;
 	}
 	
 	std::vector<WEPLData> vOutputWEPL_manual;
@@ -10142,7 +10041,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 #pragma omp section
 		{
 			GetAngularWEPL_window(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_rawCBCT, true);//mandatory
-			cout << "Done: (RAW)";
+			std::cout << "Done: (RAW)";
 		}
 #pragma omp section
 		{
@@ -10150,10 +10049,10 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 			{
 				try {
 					GetAngularWEPL_window(m_spScatCorrReconImg, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_corCBCT, true);
-					cout << " (COR)";
+					std::cout << " (COR)";
 				}
-				catch (exception e) {
-					cout << " (COR) failed!!: e=" << e.what() << std::endl;
+				catch (std::exception e) {
+					std::cout << " (COR) failed!!: e=" << e.what() << std::endl;
 				}
 			}
 		}
@@ -10163,10 +10062,10 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 			{
 				try {
 					GetAngularWEPL_window(m_spManualRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_manual, true);
-					cout << " (MAN)";
+					std::cout << " (MAN)";
 				}
-				catch (exception e) {
-					cout << " (MAN) failed!!: e=" << e.what() << std::endl;
+				catch (std::exception e) {
+					std::cout << " (MAN) failed!!: e=" << e.what() << std::endl;
 				}
 			}
 		}
@@ -10176,10 +10075,10 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 			{
 				try {
 					GetAngularWEPL_window(m_spAutoRigidCT, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_auto_rigid, true);
-					cout << " (AUT)";
+					std::cout << " (AUT)";
 				}
-				catch (exception e) {
-					cout << " (AUT) failed!!: e=" << e.what() << std::endl;
+				catch (std::exception e) {
+					std::cout << " (AUT) failed!!: e=" << e.what() << std::endl;
 				}
 			}
 		}
@@ -10189,19 +10088,19 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 			{
 				try {
 					GetAngularWEPL_window(m_spDeformedCT_Final, fAngleGap, fAngleStart, fAngleEnd, vOutputWEPL_deform, true);
-					cout << " (DEF)";
+					std::cout << " (DEF)";
 				}
-				catch (exception e) {
-					cout << " (DEF) failed!!: e=" << e.what() << std::endl;
+				catch (std::exception e) {
+					std::cout << " (DEF) failed!!: e=" << e.what() << std::endl;
 				}
 			}
 		}
 	}
-	cout << std::endl;
+	std::cout << std::endl;
 
-	cout << "Saving results...";
+	std::cout << "Saving results...";
 
-	ofstream fout;
+	std::ofstream fout;
 	fout.open(strPathOutput.toLocal8Bit().constData());
 
 	int cntWEPL = vOutputWEPL_rawCBCT.size();
@@ -10242,7 +10141,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString& strPathOutput)
 		fout << std::endl;
 	}
 	fout.close();
-	cout << "done!" << std::endl;
+	std::cout << "done!" << std::endl;
 
 }
 
@@ -10305,8 +10204,8 @@ double plastimatchWEPL() {
 	plm_long ap_idx = 0;  //ray number always 0 here
 
 	Ray_data *ray_data;
-	double ray_ap[3]; //vector from src to ray intersection with ap plane
-	double ray_ap_length; //length of vector from src to ray intersection with ap plane
+	double ray_ap[3]; //std::vector from src to ray intersection with ap plane
+	double ray_ap_length; //length of std::vector from src to ray intersection with ap plane
 	double rglength; //length that we insert into get_rgdepth for each ray
 
 	rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose for some flavors of beam
@@ -10625,7 +10524,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer& spUshortImage, f
 	}
 };
 
-void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, vector<WEPLData>& vOutputWEPLData, bool bAppend)
+void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>& vOutputWEPLData, bool bAppend)
 {
     if (spUshortImage == nullptr) {
         return;
@@ -10732,7 +10631,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(UShortImageType::Pointer& spUshortIma
 }
 }
 
-void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, vector<WEPLData>& vOutputWEPLData, bool bAppend)
+void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImage, float fAngleGap, float fAngleStart, float fAngleEnd, std::vector<WEPLData>& vOutputWEPLData, bool bAppend)
 {
 	if (spUshortImage == nullptr) {
 		return;
@@ -10833,7 +10732,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 		//if (m_spRawReconImg)
 		//GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd, curPOI, i, vOutputWEPL_rawCBCT, true);//mandatory
 
-		cout << "POI idx: " << p << ", calculation for all given angles startng...\n";
+		std::cout << "POI idx: " << p << ", calculation for all given angles startng...\n";
 
 		//for (int i = qRound(fAngleStart / fAngleGap); i < (sizeAngles + qRound(fAngleStart / fAngleGap)); i++)
 		for (int i = 0; i < sizeAngles; i++)
@@ -10845,9 +10744,9 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			srcProton[1] = isoTarget[1] - (srcDistance * cos(curAngle * M_PI / 180.0));
 			srcProton[2] = isoTarget[2];
 
-			//cout << "\nDefine scene.." << std::endl;
+			//std::cout << "\nDefine scene.." << std::endl;
 			auto* scene = new Rt_plan;
-			//cout << "New beam.." << std::endl;
+			//std::cout << "New beam.." << std::endl;
 			Rt_beam* newBeam = scene->append_beam(); // . to ->
 			scene->set_patient(ct_vol); // . to ->
 			newBeam->get_aperture()->set_distance(ap_distance);
@@ -10861,7 +10760,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			newBeam->set_isocenter_position(&isoTarget[0]);
 			newBeam->set_source_position(&srcProton[0]);
 
-			//cout << "\nPrep beam.." << std::endl;
+			//std::cout << "\nPrep beam.." << std::endl;
 			//scene.prepare_beam_for_calc(newBeam);
 
 			scene->set_target(target_bool);
@@ -10899,7 +10798,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 
 			Proj_volume *proj_vol = rpl_vol->get_proj_volume();
 			//float *proj_wed_vol_img = (float*) rpl_vol->proj_wed_vol->img;
-			//cout << "\nA lot of const doubles..";
+			//std::cout << "\nA lot of const doubles..";
 
 			const double *src = proj_vol->get_src();
 			const double *iso = proj_vol->get_iso();
@@ -10908,7 +10807,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			vec3_sub3(&src_iso_vec[0], src, iso);
 			const double src_iso_distance = vec3_len(&src_iso_vec[0]);
 			const double ap_iso_distance = src_iso_distance - sid_length;
-			//cout << " front clipping plane..";
+			//std::cout << " front clipping plane..";
 			double base_rg_dist = ap_iso_distance - rpl_vol->get_front_clipping_plane();
 
 			const double base_dist = proj_vol->get_proj_matrix()->sid; //distance from source to aperture
@@ -10919,10 +10818,10 @@ void CbctRecon::GetAngularWEPL_MultiPoint(UShortImageType::Pointer& spUshortImag
 			//plm_long ap_idx = 0;  //ray number always 0 here
 
 			Ray_data *ray_data;
-			double ray_ap[3]; //vector from src to ray intersection with ap plane
-			double ray_ap_length; //length of vector from src to ray intersection with ap plane
+			double ray_ap[3]; //std::vector from src to ray intersection with ap plane
+			double ray_ap_length; //length of std::vector from src to ray intersection with ap plane
 			double rglength; //length that we insert into get_rgdepth for each ray
-							 //cout << " get ray data.. " << std::endl;
+							 //std::cout << " get ray data.. " << std::endl;
 			rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose for some flavors of beam
 			ray_data = rpl_vol->get_ray_data();
 
@@ -11001,7 +10900,11 @@ void CbctRecon::SLT_GeneratePOIData()//it fills m_vPOI_DCM
 	imgSpac.z = ui.lineEdit_outImgSp_SI->text().toDouble();
 	*/
 	UShortImageType::SizeType imgSize = m_spCrntReconImg->GetLargestPossibleRegion().GetSize();
-	VEC3D imgDims = { imgSize[0], imgSize[1], imgSize[2] };
+	VEC3D imgDims = {
+		static_cast<double>(imgSize[0]),
+		static_cast<double>(imgSize[1]),
+		static_cast<double>(imgSize[2])
+	};
 	VEC3D imgSpac{
 		m_spCrntReconImg->GetSpacing()[0],
 		m_spCrntReconImg->GetSpacing()[1],
@@ -11054,8 +10957,8 @@ void CbctRecon::SLT_LoadPOIData()//it fills m_vPOI_DCM
         return;
 }
 
-    ifstream fin;
-    fin.open(filePath.toLocal8Bit().constData(), ios::in);
+    std::ifstream fin;
+    fin.open(filePath.toLocal8Bit().constData(), std::ios::in);
     if (fin.fail()) {
         return;
 }
@@ -11136,7 +11039,7 @@ void CbctRecon::SLT_StopSyncFromSharedMem()
     //decrease counter
     //ReleaseSemaphore(hSemaphore, 1, &prev_counter);
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open("E:\\SemphoreLogC++.txt");
 
 
@@ -11328,7 +11231,7 @@ void CbctRecon::TransformationRTK2IEC(FloatImageType::Pointer& spSrcTarg)
     region_trans.SetIndex(start_trans);
 
     /* 2) Prepare Target image */
-    FloatImageType::Pointer targetImg = spSrcTarg;
+    const FloatImageType::Pointer& targetImg = spSrcTarg;
 
     /* 3) Configure transform */
     using TransformType = itk::Euler3DTransform<double>;
@@ -11647,7 +11550,7 @@ void CbctRecon::SLTM_ExportProjGeometryTXT()
         return;
 }
 
-    vector<double>::const_iterator itAng, itShiftX, itShiftY;
+    std::vector<double>::const_iterator itAng, itShiftX, itShiftY;
 
     int cntAngle = m_spCustomGeometry->GetGantryAngles().size();
     int cntShiftX = m_spCustomGeometry->GetProjectionOffsetsX().size();
@@ -11655,7 +11558,7 @@ void CbctRecon::SLTM_ExportProjGeometryTXT()
 
     if (cntAngle <= 0)
     {
-        std::cout << "Error! no angle vector is found" << std::endl;
+        std::cout << "Error! no angle std::vector is found" << std::endl;
         return;
     }
 
@@ -11669,7 +11572,7 @@ void CbctRecon::SLTM_ExportProjGeometryTXT()
     itShiftX = m_spCustomGeometry->GetProjectionOffsetsX().begin();
     itShiftY = m_spCustomGeometry->GetProjectionOffsetsY().begin();
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open(strPath.toLocal8Bit().constData());
 
     fout << "MV_Gantry_Angle" << "	" << "PanelShiftX(mm)" << "	" << "PanelShiftY(mm)" << std::endl;
@@ -12015,7 +11918,7 @@ void CbctRecon::SLTM_ForwardProjection()
      if (strPath.length() <= 1)
      return;
 
-     vector<double>::const_iterator itAng, itShiftX, itShiftY;
+     std::vector<double>::const_iterator itAng, itShiftX, itShiftY;
 
      int cntAngle = crntGeometry->GetGantryAngles().size();
      int cntShiftX = crntGeometry->GetProjectionOffsetsX().size();
@@ -12023,7 +11926,7 @@ void CbctRecon::SLTM_ForwardProjection()
 
      if (cntAngle <= 0)
      {
-     std::cout << "Error! no angle vector is found" << std::endl;
+     std::cout << "Error! no angle std::vector is found" << std::endl;
      return;
      }
 
@@ -12037,7 +11940,7 @@ void CbctRecon::SLTM_ForwardProjection()
      itShiftX = crntGeometry->GetProjectionOffsetsX().begin();
      itShiftY = crntGeometry->GetProjectionOffsetsY().begin();
 
-     ofstream fout;
+     std::ofstream fout;
      fout.open(strPath.toLocal8Bit().constData());
 
      fout << "MV_Gantry_Angle" << "	" << "PanelShiftX(mm)" << "	" << "PanelShiftY(mm)" << std::endl;
@@ -12404,7 +12307,7 @@ bool CbctRecon::GetCouchShiftFromINIXVI(QString& strPathINIXVI, VEC3D* pTrans, V
         return false;
 }
 
-    ifstream fin;
+    std::ifstream fin;
     fin.open(strPathINIXVI.toLocal8Bit().constData());
 
     if (fin.fail()) {
@@ -12492,7 +12395,7 @@ bool CbctRecon::GetXrayParamFromINI(QString& strPathINI, float& kVp, float& mA, 
     //TubeMA=64.0000
     //TubeKV = 120.0000
     //TubeKVLength = 40.0000
-    ifstream fin;
+    std::ifstream fin;
     fin.open(strPathINI.toLocal8Bit().constData());
 
     if (fin.fail()) {
@@ -12774,8 +12677,8 @@ void CbctRecon::SLT_OpenPhaseData()
 
 
 
-    ifstream fin;
-    fin.open(filePath.toLocal8Bit().constData(), ios::in);
+    std::ifstream fin;
+    fin.open(filePath.toLocal8Bit().constData(), std::ios::in);
     if (fin.fail()) {
         return;
 }
@@ -12831,7 +12734,7 @@ void CbctRecon::SLT_Export4DCBCT()
 
     int cntGroup = strlistPhaseFull.count();
 
-    vector<int> vPhaseBinsSelected;
+    std::vector<int> vPhaseBinsSelected;
     //m_strPatientDirName = tmpDir_PatientFolder.dirName();
     //m_strPathPatientDir = tmpDir_PatientFolder.absolutePath();
 
@@ -12901,7 +12804,7 @@ void CbctRecon::SLT_Export4DCBCT()
     //crntSubDir.mkdir();
 }
 
-bool CbctRecon::ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull)
+bool CbctRecon::ResortCBCTProjection(std::vector<int>& vIntPhaseBinSelected, QString& strPathForXML, QString& strPathProjRoot, QString& strUID, std::vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, std::vector<std::string>& vProjPathsFull)
 {
     if (vIntPhaseBinSelected.empty()) {
         return false;
@@ -12969,8 +12872,8 @@ bool CbctRecon::ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString&
 
     //strPathProj
     //strPathForXML
-    vector<int> vSelectedIdxTemp;
-    vector<int> vSelectedIdxFin;
+    std::vector<int> vSelectedIdxTemp;
+    std::vector<int> vSelectedIdxFin;
 
     for (int i = 0; i < iNumOfSelPhase; i++)
     {
@@ -12983,7 +12886,7 @@ bool CbctRecon::ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString&
     std::cout << "0 " << vSelectedIdxTemp.at(0) << std::endl;
     std::cout << "1 " << vSelectedIdxTemp.at(1) << std::endl;
 
-    vector<int>::iterator it;
+    std::vector<int>::iterator it;
 
     int prevVal = -1;
     for (it = vSelectedIdxTemp.begin(); it != vSelectedIdxTemp.end(); ++it)
@@ -12999,7 +12902,7 @@ bool CbctRecon::ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString&
 
     GeometryType::Pointer spSubGeometry = GeometryType::New();
 
-    vector<int>::iterator itIdx;
+    std::vector<int>::iterator itIdx;
 
     for (itIdx = vSelectedIdxFin.begin(); itIdx != vSelectedIdxFin.end(); itIdx++)
     {
@@ -13045,13 +12948,13 @@ bool CbctRecon::ResortCBCTProjection(vector<int>& vIntPhaseBinSelected, QString&
         QFile::copy(fInfo.absoluteFilePath(), strPathProjNew);
     }
 
-    //    vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, vector<string>& vProjPathsFull
+    //    std::vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull, std::vector<std::string>& vProjPathsFull
     std::cout << vSelectedIdxFin.size() << " files were copied." << std::endl;
 
     return true;
 }
 
-void CbctRecon::AppendInPhaseIndex(int iPhase, vector<float>& vFloatPhaseFull, vector<int>& vOutputIndex, int margin)
+void CbctRecon::AppendInPhaseIndex(int iPhase, std::vector<float>& vFloatPhaseFull, std::vector<int>& vOutputIndex, int margin)
 {
 
     int iNumOfPhase = vFloatPhaseFull.size();
@@ -13107,7 +13010,7 @@ void CbctRecon::SLT_LoadCBCTcorrMHA()
 
     LoadShort3DImage(fileName, REGISTER_COR_CBCT);
 
-    //cout << m_spScatCorrReconImg->GetBufferedRegion().GetSize() << std::endl;
+    //std::cout << m_spScatCorrReconImg->GetBufferedRegion().GetSize() << std::endl;
 
     SLT_DrawReconImage();
 
@@ -13363,7 +13266,7 @@ void CbctRecon::SLTM_WELPCalcMultipleFiles()
 }
 
 
-	std::vector<vector<WEPLData>> vArrOutputWEPL;
+	std::vector<std::vector<WEPLData>> vArrOutputWEPL;
 	vArrOutputWEPL.resize(iCntFiles);
 
     for (int i = 0; i < iCntFiles; i++)
@@ -13372,7 +13275,7 @@ void CbctRecon::SLTM_WELPCalcMultipleFiles()
     }
 
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open(strPathOutText.toLocal8Bit().constData());
 
     fout << "Point Index" << "\t" << "Gantry Angle" << "\t" << "Sample Number";
@@ -13417,7 +13320,7 @@ void CbctRecon::SLTM_WELPCalcMultipleFiles()
     //delete[] vArrOutputWEPL;
 }
 
-void CbctRecon::GetWEPLDataFromSingleFile(const QString& filePath, vector<VEC3D>& vPOI, vector<WEPLData>& vOutputWEPL)
+void CbctRecon::GetWEPLDataFromSingleFile(const QString& filePath, std::vector<VEC3D>& vPOI, std::vector<WEPLData>& vOutputWEPL)
 {
 
     int iCntPOI = vPOI.size();
@@ -13482,7 +13385,7 @@ void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
     //    }
     //}
 
-    ////cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
+    ////std::cout << "Plastimatch Path " << m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
 
     //if (m_pDlgRegistration->m_strPathPlastimatch.length() < 1)
     //{
@@ -13611,7 +13514,7 @@ void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
     //writer->SetUseCompression(true);
     //writer->SetInput(spCBCT);
 
-    //cout << "Writing the CBCT file" << std::endl;
+    //std::cout << "Writing the CBCT file" << std::endl;
     //writer->Update();
 
     //QFileInfo CBCTInfo(filePathCBCT);
@@ -13622,7 +13525,7 @@ void CbctRecon::SLTM_ScatterCorPerProjRef() //load text file
     //}
 
     ////ERROR HERE! delete the temporry folder.
-    //cout << "Delete the temporary folder if it crashes" << std::endl;
+    //std::cout << "Delete the temporary folder if it crashes" << std::endl;
 
     ////4) eliminate the air region (temporarily)
     ////Mask_parms parms_msk;
@@ -13660,10 +13563,10 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, 
     ConstantImageSourceType::SpacingType spacing;
     ConstantImageSourceType::PointType origin;
 
-    //cout << "Setting-up vacant projection image data" << std::endl;
+    //std::cout << "Setting-up vacant projection image data" << std::endl;
 
     //a) size
-    //cout << "chk1" << std::endl;
+    //std::cout << "chk1" << std::endl;
     size[0] = spProjImg3D->GetBufferedRegion().GetSize()[0];
     size[1] = spProjImg3D->GetBufferedRegion().GetSize()[1];
     size[2] = 1;
@@ -13698,7 +13601,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, 
     constantImageSource->SetConstant(1.0);
     constantImageSource->UpdateOutputInformation();
 
-    //cout << "Canvas for projection image is ready to write" << std::endl;
+    //std::cout << "Canvas for projection image is ready to write" << std::endl;
 
     //4) Prepare CT image to be projected
     int fwdMethod = en_CudaRayCast; //later, it will be coming from the GUI
@@ -13755,7 +13658,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, 
         curSrcOffsetX, curSrcOffsetY); //In elekta, these are 0
 
     itk::TimeProbe projProbe;
-    //cout << "Forward projection is now ongoing" << std::endl;
+    //std::cout << "Forward projection is now ongoing" << std::endl;
 	FloatImageType::Pointer resultFwdImg;
 	if (fwdMethod == en_CudaRayCast)
 	{
@@ -13800,7 +13703,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer& spVolImgFloat, 
     //if (valOffset < 0)
     //    valOffset = 0.0;
 
-    //cout << "MaxValProj=" << maxValProj << " MInval=" << minValProj << " ValOffset = " << valOffset << std::endl;
+    //std::cout << "MaxValProj=" << maxValProj << " MInval=" << minValProj << " ValOffset = " << valOffset << std::endl;
 
     itk::ImageRegionConstIterator<FloatImageType> itSrc(resultFwdImg, resultFwdImg->GetRequestedRegion()); //2D
 
@@ -13872,8 +13775,8 @@ void CbctRecon::SLTM_LoadPerProjRefList()
         return;
 }
 
-    ifstream fin;
-    fin.open(filePath.toLocal8Bit().constData(), ios::in);
+    std::ifstream fin;
+    fin.open(filePath.toLocal8Bit().constData(), std::ios::in);
     if (fin.fail()) {
         return;
 }
@@ -13918,7 +13821,7 @@ void CbctRecon::SLTM_LoadPerProjRefList()
 //
 //void CbctRecon::cudaMedianFilter2DITK(FloatImageType2D::Pointer& spFloatImage2D, int wndSizeX, int wndSizeY)
 //{
-//	cout << "cudaMedianFilter2DITK is being used" << std::endl;
+//	std::cout << "cudaMedianFilter2DITK is being used" << std::endl;
 //
 //	FloatImageType2D::SizeType sizeSrc = spFloatImage2D->GetBufferedRegion().GetSize();
 //	FloatImageType2D::IndexType startSrc = spFloatImage2D->GetBufferedRegion().GetIndex();
@@ -14079,7 +13982,7 @@ bool SaveDoseGrayImage(const char* filePath, int width, int height, double spaci
 	IFDarr.reserve(IFDSize);
 
     int offsetX;
-    int offsetY;
+    int offsetY = 0;
 
     /*int idx = 0;
     int TagID = 0;
@@ -14338,7 +14241,7 @@ bool SaveDoseGrayImage(const char* filePath, int width, int height, double spaci
 
 
 
-double vectorMean(const vector<double>& vDouble)
+double vectorMean(const std::vector<double>& vDouble)
 {
     int size = vDouble.size();
     if (size <= 0) {
@@ -14346,7 +14249,7 @@ double vectorMean(const vector<double>& vDouble)
 }
 
     double sum = 0.0;
-    vector<double>::const_iterator it;
+    std::vector<double>::const_iterator it;
 
     for (it = vDouble.begin(); it != vDouble.end(); it++)
     {
@@ -14356,7 +14259,7 @@ double vectorMean(const vector<double>& vDouble)
     return sum / static_cast<double>(size);
 }
 
-double vectorSum(const vector<double>& vDouble)
+double vectorSum(const std::vector<double>& vDouble)
 {
     int size = vDouble.size();
     if (size <= 0) {
@@ -14364,7 +14267,7 @@ double vectorSum(const vector<double>& vDouble)
 }
 
     double sum = 0.0;
-    vector<double>::const_iterator it;
+    std::vector<double>::const_iterator it;
 
     for (it = vDouble.begin(); it != vDouble.end(); it++)
     {
@@ -14523,7 +14426,7 @@ void CbctRecon::RotateImgBeforeFwd(UShortImageType::Pointer& spInputImgUS, UShor
     transform->SetParameters(param);
     transform->SetFixedParameters(fixedParam); //Center of the Transform
 
-    /*cout << "Transform matrix:" << "	" << std::endl;
+    /*std::cout << "Transform matrix:" << "	" << std::endl;
     std::cout << transform->GetMatrix() << std::endl;*/
 
 	using ResampleFilterType = itk::ResampleImageFilter<UShortImageType, UShortImageType>;
@@ -14753,7 +14656,7 @@ bool CbctRecon::SaveCurrentSetting(QString& strPathConfigFile)
     }
 
 
-    ofstream fout;
+    std::ofstream fout;
     fout.open(strPathConfigFile.toLocal8Bit().constData());
 
     QString strRefmAs = ui.lineEdit_RefmAs->text();
@@ -14849,7 +14752,7 @@ bool CbctRecon::LoadCurrentSetting(QString& strPathConfigFile)
         return false;
     }
 
-    ifstream fin;
+    std::ifstream fin;
     char str[MAX_LINE_LENGTH];
 
     fin.open(strPathConfigFile.toLocal8Bit().constData());

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DLGREGISTRATION_H
+#define DLGREGISTRATION_H
+
 #include "AG17RGBAImage.h"
 #include "YK16GrayImage.h"
 #include "cbctrecon.h"
@@ -140,9 +142,9 @@ public:
    QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
    QString strStageOption1, QString strStageOption2, QString strStageOption3);*/
 
-	void GenPlastiRegisterCommandFile(QString strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg,
-		QString strPathOutImg, QString strPathXformOut, enRegisterOption regiOption,
-		QString strStageOption1, QString strStageOption2, QString strStageOption3, const QString& strPathFixedMask = QString(""));
+	void GenPlastiRegisterCommandFile(const QString& strPathCommandFile, const QString& strPathFixedImg, const QString& strPathMovingImg,
+		const QString& strPathOutImg, const QString& strPathXformOut, enRegisterOption regiOption,
+		const QString& strStageOption1, const QString& strStageOption2, const QString& strStageOption3, const QString& strPathFixedMask = QString(""));
 
 	//VEC3D GetShiftValueFromGradientXForm(QString& filePath); //get val mm
 	VEC3D GetShiftValueFromGradientXForm(QString& filePath, bool bInverse = false);
@@ -206,18 +208,18 @@ public:
 	AG17RGBAImage m_DoseImgMoving[3]; //CBCT in this study
 	AG17RGBAImage m_AGDisp_Overlay[3]; //CBCT in this study
 	bool dose_loaded = false;
-	int m_enViewArrange;
+	int m_enViewArrange{};
 	//YK16GrayImage m_YKImgMoving[3];    //RefCT
 
-	bool m_bPressedLeft[3];//Left Mouse Pressed but not released
-	bool m_bPressedRight[3];
+	bool m_bPressedLeft[3]{};//Left Mouse Pressed but not released
+	bool m_bPressedRight[3]{};
 	QPoint m_ptWindowLevelStart;//data point
 
 	QPoint m_ptPanStart;//data point
 
 	QPoint m_ptTmpOriginalDataOffset;
-	int m_iTmpOriginalW;
-	int m_iTmpOriginalL;
+	int m_iTmpOriginalW{};
+	int m_iTmpOriginalL{};
 
 	UShortImageType::Pointer m_spFixed;//pointer only, for display
 	UShortImageType::Pointer m_spMoving;//pointer only, for display
@@ -235,12 +237,14 @@ public:
 
 
 
-	Dcmtk_rt_study* m_pDcmStudyPlan;
+	Dcmtk_rt_study* m_pDcmStudyPlan{};
 
 
 
 
 public:
-	Ui::DlgRegistrationClass ui;
+	Ui::DlgRegistrationClass ui{};
 
 };
+
+#endif

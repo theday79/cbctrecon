@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#ifndef __rtkOpenCLFDKConeBeamReconstructionFilter_h
-#define __rtkOpenCLFDKConeBeamReconstructionFilter_h
+#ifndef RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_H
+#define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_H
 
 #include "rtkFDKConeBeamReconstructionFilter.h"
 // #include "rtkOpenCLFDKWeightProjectionFilter.h" <- hard, because cpu is not bad and cuda is full of textures

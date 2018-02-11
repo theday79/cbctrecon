@@ -107,6 +107,7 @@ SET(CbctRecon_HEADERS
 	rtkOpenCLFFTConvolutionImageFilter.hxx
 	itkOpenCLImageToImageFilter.h
 	itkOpenCLImageToImageFilter.hxx
+    rtkOpenCLUtilities.h
 	OpenCLFFTFilter.h
 )
 SET(CbctRecon_FORMS

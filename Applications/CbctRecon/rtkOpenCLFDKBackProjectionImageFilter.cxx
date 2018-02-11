@@ -19,21 +19,15 @@
 // #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #include "rtkOpenCLFDKBackProjectionImageFilter.h"
 
-#include <itkImageRegionConstIterator.h>
-#include <itkImageRegionIteratorWithIndex.h>
-#include <itkLinearInterpolateImageFunction.h>
-#include <itkMacro.h>
 #include "rtkOpenCLUtilities.h"
 
-#include <iostream>
 
 namespace rtk
 {
 
 	OpenCLFDKBackProjectionImageFilter
 		::OpenCLFDKBackProjectionImageFilter()
-	{
-	}
+	= default;
 
 	void
 		OpenCLFDKBackProjectionImageFilter
@@ -45,7 +39,7 @@ namespace rtk
 		cl_context_properties       properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[0], 0 };
 
 		cl_int error;
-		m_Context = clCreateContext(properties, devices.size(), &(devices[0]), NULL, NULL, &error);
+		m_Context = clCreateContext(properties, devices.size(), &devices[0], nullptr, nullptr, &error);
 		if (error != CL_SUCCESS)
 			itkExceptionMacro(<< "Could not create OpenCL context, error code: " << error);
 
@@ -57,7 +51,7 @@ namespace rtk
 		m_DeviceMatrix = clCreateBuffer(m_Context,
 			CL_MEM_READ_ONLY,
 			sizeof(cl_float) * 12,
-			NULL,
+			nullptr,
 			&error);
 		if (error != CL_SUCCESS)
 			itkExceptionMacro(<< "Could not allocate OpenCL matrix buffer, error code: " << error);
@@ -71,10 +65,10 @@ namespace rtk
 		if (error != CL_SUCCESS)
 			itkExceptionMacro(<< "Could not allocate OpenCL volume buffer, error code: " << error);
 
-		cl_image_format projFormat;
+		cl_image_format projFormat{};
 		projFormat.image_channel_order = CL_INTENSITY;
 		projFormat.image_channel_data_type = CL_FLOAT;
-		cl_image_desc im_desc;
+		cl_image_desc im_desc{};
 		im_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
 		im_desc.image_width = this->GetInput(1)->GetLargestPossibleRegion().GetSize()[0];
 		im_desc.image_height = this->GetInput(1)->GetLargestPossibleRegion().GetSize()[1];
@@ -88,20 +82,21 @@ namespace rtk
 #ifdef CL_VERSION_2_0
 		im_desc.mem_object = NULL;
 #else
-		im_desc.buffer = NULL;
+		im_desc.buffer = nullptr;
 #endif
 
 		m_DeviceProjection = clCreateImage(m_Context,
 			CL_MEM_READ_ONLY,
 			&projFormat,
 			&im_desc,
-			NULL,
+			nullptr,
 			&error);
 
 		if (error != CL_SUCCESS)
 			itkExceptionMacro(<< "Could not allocate OpenCL projection image, error code: " << error);
 
-		CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl",
+		std::string cl_file("fdk_opencl.cl");
+		CreateAndBuildOpenCLProgramFromSourceFile(cl_file,
 			m_Context, m_Program);
 
 		m_Kernel = clCreateKernel(m_Program, "OpenCLFDKBackProjectionImageFilterKernel", &error);
@@ -109,7 +104,7 @@ namespace rtk
 			itkExceptionMacro(<< "Could not create OpenCL kernel, error code: " << error);
 
 		// Set kernel parameters
-		cl_uint4 volumeDim;
+		cl_uint4 volumeDim{};
 		volumeDim.s[0] = this->GetOutput()->GetRequestedRegion().GetSize()[0];
 		volumeDim.s[1] = this->GetOutput()->GetRequestedRegion().GetSize()[1];
 		volumeDim.s[2] = this->GetOutput()->GetRequestedRegion().GetSize()[2];
@@ -136,8 +131,8 @@ namespace rtk
 			volBytes,
 			this->GetOutput()->GetBufferPointer(),
 			0,
-			NULL,
-			NULL));
+			nullptr,
+			nullptr));
 		OPENCL_CHECK_ERROR(clReleaseMemObject(m_DeviceProjection));
 		OPENCL_CHECK_ERROR(clReleaseMemObject(m_DeviceVolume));
 		OPENCL_CHECK_ERROR(clReleaseMemObject(m_DeviceMatrix));
@@ -185,14 +180,16 @@ namespace rtk
 			// We correct the matrix for non zero indexes
 			itk::Matrix<double, 3, 3> matrixIdxProj;
 			matrixIdxProj.SetIdentity();
-			for (unsigned int i = 0; i < 2; i++) //SR: 0.5 for 2D texture
+			for (unsigned int i = 0; i < 2; i++) { //SR: 0.5 for 2D texture
 				matrixIdxProj[i][2] = -1 * (projection->GetBufferedRegion().GetIndex()[i]) + 0.5;
+}
 
 			matrix = matrixIdxProj.GetVnlMatrix() * matrix.GetVnlMatrix() * matrixIdxVol.GetVnlMatrix();
 
 			double perspFactor = matrix[Dimension - 1][Dimension];
-			for (unsigned int j = 0; j < Dimension; j++)
+			for (unsigned int j = 0; j < Dimension; j++) {
 				perspFactor += matrix[Dimension - 1][j] * rotCenterIndex[j];
+}
 
 			matrix /= perspFactor;
 
@@ -209,10 +206,10 @@ namespace rtk
 				CL_TRUE,
 				0,
 				12 * sizeof(float),
-				fMatrix,
+				(void*)&fMatrix[0],
 				0,
-				NULL,
-				NULL));
+				nullptr,
+				nullptr));
 
 			const size_t origin[] = { 0,0,0 };
 			const size_t region[] = {
@@ -222,14 +219,14 @@ namespace rtk
 			OPENCL_CHECK_ERROR(clEnqueueWriteImage(m_CommandQueue,
 				m_DeviceProjection,
 				CL_TRUE,
-				origin,
-				region,
+				&origin[0],
+				&region[0],
 				0,
 				0,
-				projection->GetBufferPointer(),
+				(void*)&projection->GetBufferPointer()[0],
 				0,
-				NULL,
-				NULL));
+				nullptr,
+				nullptr));
 
 			// Execute kernel
 			cl_event events[2];
@@ -238,11 +235,11 @@ namespace rtk
 			OPENCL_CHECK_ERROR(clEnqueueNDRangeKernel(m_CommandQueue,
 				m_Kernel,
 				1,
-				NULL,
+				nullptr,
 				&global_work_size,
 				&local_work_size,
 				0,
-				NULL,
+				nullptr,
 				&events[0]));
 			OPENCL_CHECK_ERROR(clWaitForEvents(1, &events[0]));
 			OPENCL_CHECK_ERROR(clReleaseEvent(events[0]));

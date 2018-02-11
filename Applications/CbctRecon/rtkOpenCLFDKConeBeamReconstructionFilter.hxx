@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#ifndef __rtkOpenCLFDKConeBeamReconstructionFilter_hxx
-#define __rtkOpenCLFDKConeBeamReconstructionFilter_hxx
+#ifndef RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
+#define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
 
 namespace rtk
 {
@@ -64,4 +64,4 @@ OpenCLFDKConeBeamReconstructionFilter
 
 } // end namespace rtk
 
-#endif // __rtkOpenCLFDKConeBeamReconstructionFilter_hxx
+#endif // RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX

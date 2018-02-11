@@ -1,12 +1,12 @@
-#pragma once
+#ifndef DLGEXTERNALCOMMAND_H
+#define DLGEXTERNALCOMMAND_H
+
 #include "cbctrecon.h"
 #include "ui_DlgExternalCommand.h"
 #include <QDialog>
 #include <QString>
 #include <QStringList>
 
-
-using namespace std;
 
 class DlgExternalCommand : public QDialog,
 	public Ui::DlgExternalCommandClass
@@ -39,3 +39,5 @@ private:
     Ui::DlgExternalCommandClass ui;
 	
 };
+
+#endif

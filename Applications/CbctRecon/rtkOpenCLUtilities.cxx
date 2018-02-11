@@ -18,15 +18,14 @@
 
 #include "rtkOpenCLUtilities.h"
 #include <fstream>
-#include "rtkConfiguration.h"
 
 std::vector<cl_platform_id> GetListOfOpenCLPlatforms()
 {
   cl_uint numberOfPlatforms;
-  OPENCL_CHECK_ERROR( clGetPlatformIDs (0, NULL, &numberOfPlatforms) );
+  OPENCL_CHECK_ERROR( clGetPlatformIDs (0, nullptr, &numberOfPlatforms) );
 
   std::vector<cl_platform_id> platformList(numberOfPlatforms);
-  OPENCL_CHECK_ERROR( clGetPlatformIDs (numberOfPlatforms, &(platformList[0]), NULL) );
+  OPENCL_CHECK_ERROR( clGetPlatformIDs (numberOfPlatforms, &(platformList[0]), nullptr) );
 
   return platformList;
 }
@@ -34,23 +33,23 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms()
 std::vector<cl_device_id> GetListOfOpenCLDevices(const cl_platform_id platform)
 {
   cl_uint numberOfDevices;
-  OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &numberOfDevices) );
+  OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr, &numberOfDevices) );
 
   std::vector<cl_device_id> deviceList(numberOfDevices);
-  OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, numberOfDevices, &(deviceList[0]), NULL) );
+  OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, numberOfDevices, &(deviceList[0]), nullptr) );
 
-  cl_bool bImageSupport = false;
+  cl_bool bImageSupport = 0u;
   // If found, check if supports image.
   if(numberOfDevices>0)
     OPENCL_CHECK_ERROR( clGetDeviceInfo (deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
-                                         sizeof(cl_bool), &bImageSupport, NULL) );
+                                         sizeof(cl_bool), &bImageSupport, nullptr) );
 
   // If not a good device, switch to CPU.
-  if(!bImageSupport)
+  if(bImageSupport == 0u)
     {
-    OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, NULL, &numberOfDevices) );
+    OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, nullptr, &numberOfDevices) );
     deviceList.resize(numberOfDevices);
-    OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, numberOfDevices, &(deviceList[0]), NULL) );
+    OPENCL_CHECK_ERROR( clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, numberOfDevices, &(deviceList[0]), nullptr) );
     }
 /*
   char buf[1024];
@@ -60,7 +59,7 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(const cl_platform_id platform)
   return deviceList;
 }
 
-void CreateAndBuildOpenCLProgramFromSourceFile(const std::string fileName, const cl_context &context,
+void CreateAndBuildOpenCLProgramFromSourceFile(std::string& fileName, const cl_context &context,
                                                cl_program &program)
 {
   char * oclSource;
@@ -68,15 +67,15 @@ void CreateAndBuildOpenCLProgramFromSourceFile(const std::string fileName, const
   cl_int error;
 
   // Open file stream
-  std::string  completeFileName = fileName; //std::string(RTK_BINARY_DIR) + std::string("/") + 
-  std::fstream f( completeFileName.c_str(), (std::fstream::in | std::fstream::binary) );
+  //const std::string& completeFileName(fileName); //std::string(RTK_BINARY_DIR) + std::string("/") + 
+  std::fstream f( fileName.c_str(), (std::fstream::in | std::fstream::binary) );
 
   // Check if we have opened file stream
   if ( f.is_open() )
     {
     // Find the stream size
     f.seekg(0, std::fstream::end);
-    size = (size_t)f.tellg();
+    size = static_cast<size_t>(f.tellg());
     f.seekg(0, std::fstream::beg);
 
     oclSource = new char[size+1];
@@ -86,27 +85,28 @@ void CreateAndBuildOpenCLProgramFromSourceFile(const std::string fileName, const
     f.close();
     oclSource[size] = '\0';
     }
-  else
-    itkGenericExceptionMacro(<< "Could not read OpenCL source file "
-                             << completeFileName);
+  else {
+	  itkGenericExceptionMacro(<< "Could not read OpenCL source file "
+		  << fileName);
+  }
 
   program = clCreateProgramWithSource(context,
                                       1,
-                                      (const char **)&oclSource,
+                                      (const char **)(&oclSource),
                                       &size,
                                       &error);
   if(error != CL_SUCCESS)
     itkGenericExceptionMacro(<< "Could not create OpenCL sampler object, error code: " << error);
 
-  error = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+  error = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
   if(error != CL_SUCCESS)
     {
     cl_device_id id;
-    clGetContextInfo(context, CL_CONTEXT_DEVICES, sizeof(cl_device_id), &id, NULL);
+    clGetContextInfo(context, CL_CONTEXT_DEVICES, sizeof(cl_device_id), &id, nullptr);
 
     size_t logSize;
-    OPENCL_CHECK_ERROR( clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize) );
-    char *log = new char[logSize+1];
+    OPENCL_CHECK_ERROR( clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logSize) );
+    auto *log = new char[logSize+1];
     OPENCL_CHECK_ERROR( clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG, logSize, log, &logSize) );
     log[logSize] = '\0';
     itkGenericExceptionMacro(<< "OPENCL ERROR with clBuildProgram. The log is:"

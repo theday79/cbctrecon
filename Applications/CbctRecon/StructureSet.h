@@ -1,4 +1,6 @@
-#pragma once
+#ifndef STRUCTURESET_H
+#define STRUCTURESET_H
+
 class StructureSet
 {
 public:
@@ -6,3 +8,5 @@ public:
 	~StructureSet();
 };
 
+
+#endif

@@ -1,15 +1,14 @@
 #include "qyklabel.h"
-#include <QPainter>
-#include "YK16GrayImage.h"
 #include "AG17RGBAImage.h"
+#include <QPainter>
 
 using namespace std;
 
 qyklabel::qyklabel(QWidget *parent)
 	: QLabel(parent)
 {
-	m_pYK16Image = NULL;
-	m_pRGBAImage = NULL;
+	m_pYK16Image = nullptr;
+	m_pRGBAImage = nullptr;
 	//this->width();
 	//m_Rt = this->rect();
 
@@ -23,13 +22,13 @@ qyklabel::qyklabel(QWidget *parent)
 }
 
 qyklabel::~qyklabel()
-{
-}
+= default;
 
 void qyklabel::mouseMoveEvent( QMouseEvent *ev )
 {
-	if (m_pYK16Image == NULL)
+	if (m_pYK16Image == nullptr) {
 		return;
+}
 	
 	this->x	= ev->x();
 	this->y = ev->y();
@@ -38,8 +37,9 @@ void qyklabel::mouseMoveEvent( QMouseEvent *ev )
 
 void qyklabel::mousePressEvent( QMouseEvent *ev )
 {
-	if (m_pYK16Image == NULL)
+	if (m_pYK16Image == nullptr) {
 		return;
+}
 	this->x	= ev->x();
 	this->y = ev->y();
 
@@ -55,10 +55,11 @@ void qyklabel::mousePressEvent( QMouseEvent *ev )
 
 void qyklabel::mouseReleaseEvent( QMouseEvent *ev )
 {
-  if (m_pYK16Image == NULL)
+  if (m_pYK16Image == nullptr) {
 	return;
+}
 
-  //cout << "Mouse Released from qlabel" << std::endl;//it worked
+  //std::cout << "Mouse Released from qlabel" << std::endl;//it worked
 
   if (ev->button() == Qt::LeftButton)
   {	
@@ -73,27 +74,30 @@ void qyklabel::mouseReleaseEvent( QMouseEvent *ev )
 
 void qyklabel::wheelEvent( QWheelEvent * event )
 {
-  if (m_pYK16Image == NULL)
+  if (m_pYK16Image == nullptr) {
 	return;
+}
 
-  m_iMouseWheelDelta = (int)(event->delta()/100.0);
+  m_iMouseWheelDelta = static_cast<int>(event->delta()/100.0);
   emit Mouse_Wheel();
 }
 
-void qyklabel::enterEvent (QEvent *)
+void qyklabel::enterEvent (QEvent * /*event*/)
 {
-  if (m_pYK16Image == NULL)
+  if (m_pYK16Image == nullptr) {
 	return;
+}
 
   m_bFocusIn = true;
 
   emit FocusIn();
 }
 
-void qyklabel::leaveEvent( QEvent * )
+void qyklabel::leaveEvent( QEvent *  /*event*/)
 {  
-	if (m_pYK16Image == NULL)
+	if (m_pYK16Image == nullptr) {
 		return;	
+}
 
 
 	m_bFocusIn = false;
@@ -122,15 +126,16 @@ QImage* compose_image_with_overlay(QRect* rect, QImage* src, QImage* overlay) {
 	return src;
 }
 
-void qyklabel::paintEvent(QPaintEvent *)
+void qyklabel::paintEvent(QPaintEvent * /*unused*/)
 {
 	QPainter painter(this);
 	painter.setPen(QPen(Qt::black, 2));
 	QRect TargetRt = this->rect();
 	painter.drawRect(TargetRt);
 
-	if (m_pYK16Image == NULL)
+	if (m_pYK16Image == nullptr) {
 		return;
+}
 
 	if (m_pYK16Image->m_iWidth < 1 || m_pYK16Image->m_iHeight < 1)
 		return;
@@ -177,7 +182,7 @@ void qyklabel::paintEvent(QPaintEvent *)
 	/*VH_ratio = m_pYK16Image->m_iHeight / (double) m_pYK16Image->m_iWidth;
 	int newFixedHeight = qRound(this->width() * VH_ratio);
 	this->setFixedHeight(newFixedHeight);*/
-	if (m_pRGBAImage != NULL && m_pYK16Image != NULL) {
+	if (m_pRGBAImage != nullptr && m_pYK16Image != nullptr) {
 		painter.setCompositionMode(QPainter::CompositionMode_Source);
 		painter.fillRect(TargetRt, Qt::transparent);
 		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
@@ -187,14 +192,15 @@ void qyklabel::paintEvent(QPaintEvent *)
 		if (m_pRGBAImage->m_QImage.allGray())
 			std::cout << "RGBA was grayscale!?" << std::endl;
 	}
-	else if (m_pYK16Image != NULL)
+	else if (m_pYK16Image != NULL) {
 		painter.drawImage(TargetRt, m_pYK16Image->m_QImage); //it Works!YKTEMP
+	}
 
 
 	if (m_bDrawPoints)
 	{
 		painter.setPen(QPen(Qt::red, 2));
-		vector<QPoint>::iterator it;
+		std::vector<QPoint>::iterator it;
 		for (it = m_vPt.begin(); it != m_vPt.end(); it++)
 		{
 			painter.drawPoint((*it).x(), (*it).y());
@@ -268,11 +274,12 @@ void qyklabel::SetBaseImage( YK16GrayImage* pYKImage )
 
 void qyklabel::SetOverlayImage(AG17RGBAImage* pRGBAImage)
 {
-	if (pRGBAImage->m_pData != NULL && !pRGBAImage->m_QImage.isNull())
+	if (pRGBAImage->m_pData != nullptr && !pRGBAImage->m_QImage.isNull()) {
 		m_pRGBAImage = pRGBAImage;
 }
+}
 
-void qyklabel::ConvertAndCopyPoints(vector<QPoint>& vSrcPoint, int iDataWidth, int iDataHeight)
+void qyklabel::ConvertAndCopyPoints(std::vector<QPoint>& vSrcPoint, int iDataWidth, int iDataHeight)
 {
 	m_vPt.clear();	
 
@@ -280,7 +287,7 @@ void qyklabel::ConvertAndCopyPoints(vector<QPoint>& vSrcPoint, int iDataWidth, i
 	int dspHeight = this->height();
 
 
-	vector<QPoint>::iterator it;
+	std::vector<QPoint>::iterator it;
 
 	for (it = vSrcPoint.begin() ; it != vSrcPoint.end() ; it++)
 	{
@@ -292,8 +299,8 @@ void qyklabel::ConvertAndCopyPoints(vector<QPoint>& vSrcPoint, int iDataWidth, i
 
 QPoint qyklabel::View2Data(QPoint viewPt, int viewWidth, int viewHeight, int dataWidth, int dataHeight)
 {
-	double fZoomX = viewWidth / (double)dataWidth;
-	double fZoomY = viewHeight / (double)dataHeight;
+	double fZoomX = viewWidth / static_cast<double>(dataWidth);
+	double fZoomY = viewHeight / static_cast<double>(dataHeight);
 
 	QPoint dataPt;
 	dataPt.setX(qRound(viewPt.x() / fZoomX));
@@ -304,8 +311,8 @@ QPoint qyklabel::View2Data(QPoint viewPt, int viewWidth, int viewHeight, int dat
 
 QPoint qyklabel::Data2View(QPoint dataPt, int viewWidth, int viewHeight, int dataWidth, int dataHeight)
 {
-	double fZoomX = viewWidth / (double)dataWidth;
-	double fZoomY = viewHeight / (double)dataHeight;
+	double fZoomX = viewWidth / static_cast<double>(dataWidth);
+	double fZoomY = viewHeight / static_cast<double>(dataHeight);
 
 	QPoint viewPt;
 	viewPt.setX(qRound(dataPt.x() * fZoomX));
@@ -316,10 +323,11 @@ QPoint qyklabel::Data2View(QPoint dataPt, int viewWidth, int viewHeight, int dat
 
 void qyklabel::SetDrawPointToggle(bool bToggle )
 {
-	if (bToggle)
+	if (bToggle) {
 		m_bDrawPoints = true;
-	else
+	} else {
 		m_bDrawPoints = false;
+}
 
 
 	update();
@@ -327,8 +335,9 @@ void qyklabel::SetDrawPointToggle(bool bToggle )
 
 QPoint qyklabel::GetDataPtFromMousePos()
 {
-  if (m_pYK16Image == NULL)
-	return QPoint(0,0);
+  if (m_pYK16Image == nullptr) {
+	return {0,0};
+}
 
   
   if (m_pYK16Image->m_fZoom == 1.0 && m_pYK16Image->m_iOffsetX == 0 && m_pYK16Image->m_iOffsetY == 0)
@@ -340,8 +349,9 @@ QPoint qyklabel::GetDataPtFromMousePos()
 
 QPoint qyklabel::GetDataPtFromViewPt(int viewPtX, int viewPtY)
 {
-  if (m_pYK16Image == NULL)
-	return QPoint(0,0);  
+  if (m_pYK16Image == nullptr) {
+	return {0,0};  
+}
 
   if (m_pYK16Image->m_fZoom == 1.0 && m_pYK16Image->m_iOffsetX == 0 && m_pYK16Image->m_iOffsetY == 0)
 	return View2Data(QPoint(viewPtX, viewPtY), width(), height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);  
@@ -351,8 +361,9 @@ QPoint qyklabel::GetDataPtFromViewPt(int viewPtX, int viewPtY)
 
 QPoint qyklabel::GetViewPtFromDataPt(int dataPtX, int dataPtY)
 {
-  if (m_pYK16Image == NULL)
-	return QPoint(0,0);  
+  if (m_pYK16Image == nullptr) {
+	return {0,0};  
+}
 
   if (m_pYK16Image->m_fZoom == 1.0 && m_pYK16Image->m_iOffsetX == 0 && m_pYK16Image->m_iOffsetY == 0)
 	return Data2View(QPoint(dataPtX, dataPtY), width(), height(), m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
@@ -381,8 +392,8 @@ QPoint qyklabel::View2DataExt(QPoint viewPt, int viewWidth, int viewHeight, int 
 
 
   QPoint dataPt;
-  dataPt.setX(qRound(viewPt.x()*newWidth/(double)viewWidth + dataLeftTopX));
-  dataPt.setY(qRound(viewPt.y()*newHeight/(double)viewHeight + dataLeftTopY)); 
+  dataPt.setX(qRound(viewPt.x()*newWidth/static_cast<double>(viewWidth) + dataLeftTopX));
+  dataPt.setY(qRound(viewPt.y()*newHeight/static_cast<double>(viewHeight) + dataLeftTopY)); 
 
   return dataPt;
 }
@@ -400,8 +411,8 @@ QPoint qyklabel::Data2ViewExt( QPoint dataPt, int viewWidth, int viewHeight, int
 
 
   QPoint viewPt;
-  viewPt.setX(qRound((dataPt.x() - dataLeftTopX) * viewWidth/(double)newWidth));
-  viewPt.setY(qRound((dataPt.y() - dataLeftTopY) * viewHeight/(double)newHeight));  
+  viewPt.setX(qRound((dataPt.x() - dataLeftTopX) * viewWidth/static_cast<double>(newWidth)));
+  viewPt.setY(qRound((dataPt.y() - dataLeftTopY) * viewHeight/static_cast<double>(newHeight)));  
 
   return viewPt;
 }

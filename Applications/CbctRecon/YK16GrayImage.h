@@ -1,4 +1,6 @@
-#pragma once
+#ifndef YK16GRAYIMAGE_H
+#define YK16GRAYIMAGE_H
+
 
 //v20130830 : his header buffer, itk compatible
 
@@ -196,3 +198,5 @@ public:
 	//mirror
 
 };
+
+#endif

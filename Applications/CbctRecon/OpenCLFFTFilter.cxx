@@ -1,7 +1,4 @@
 #include "OpenCLFFTFilter.h"
-#include <itkImage.h>
-#include <complex>
-#include <iostream>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -22,18 +19,18 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
 	cl_int         err = CL_SUCCESS;
 
 	/* Setup OpenCL environment. */
-	err = clGetPlatformIDs(1, &platform, NULL);
+	err = clGetPlatformIDs(1, &platform, nullptr);
 
-	err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, NULL);
+	err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, nullptr);
 
 	cl_ulong max_mem_alloc;
-	err |= clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_mem_alloc, NULL);
+	err |= clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_mem_alloc, nullptr);
 
 	if (required_mem_alloc_size > max_mem_alloc) {
 		std::cout << "Memory required: " << required_mem_alloc_size / (1024 * 1024) << "MB"
 			<< " was larger than DEV_MAX_MEM: " << max_mem_alloc / (1024 * 1024) << "MB\n"
 			<< "Changing to CPU mode..." << std::endl;
-		err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, NULL);
+		err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, nullptr);
 	}
 
 	return std::make_tuple(platform, device);
@@ -48,11 +45,11 @@ OpenCL_padding(
 	const cl_uint4 inputSize,
 	const float *hostVolume, //input
 	float *hostPaddedVolume, //output
-	const std::vector<cl_float> mirrorWeights)
+	const std::vector<cl_float>& mirrorWeights)
 {
 	cl_int           err = CL_SUCCESS;
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_program       m_Program;
 	cl_kernel        m_Kernel;
 
@@ -64,12 +61,14 @@ OpenCL_padding(
 
 	// std::cout << "Padding OpenCL style" << std::endl;
 	cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0 };
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
-	if (err != CL_SUCCESS)
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not create OpenCL context, error code: " << err << std::endl;
+}
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not create OpenCL queue, error code: " << err << std::endl;
+}
 
 
 	/* Prepare OpenCL memory objects and place data inside them. */
@@ -77,34 +76,39 @@ OpenCL_padding(
 	const cl_uint w_buf_sizeof = mirrorWeights.size(); // just because intellisense couldn't understand it below...
 	cl_mem weights_d = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, w_buffer_size, (void *)&mirrorWeights[0], &err);
 	// err = clEnqueueWriteBuffer(queue, weights_d, CL_TRUE, 0, w_buffer_size, &(mirrorWeights[0]), 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not write OpenCL weigths_d buffer, error code: " << err << std::endl;
+}
 
 
 	cl_mem devicePaddedVolume = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, pv_buffer_size, (void *)&hostPaddedVolume[0], &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not write OpenCL devicePaddedVolume buffer, error code: " << err << std::endl;
+}
 
 	size_t v_buffer_size = sizeof(hostVolume);
 	cl_mem deviceVolume = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, v_buffer_size, (void *)&hostVolume[0], &err);
 	// err = clEnqueueWriteBuffer(queue, deviceVolume, CL_TRUE, 0, v_buffer_size, hostVolume, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not write OpenCL deviceVolume buffer, error code: " << err << std::endl;
+}
 
 
 	// some text
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl",
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file,
 		ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "padding_kernel", &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) { // added to all kernels for optimization on my(AGA's) machine. Thanks to Intel's OpenCL SDK for giving "preferred work-group" sizes.
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) { // added to all kernels for optimization on my(AGA's) machine. Thanks to Intel's OpenCL SDK for giving "preferred work-group" sizes.
 		local_work_size = 16;
 	}
 
@@ -117,37 +121,43 @@ OpenCL_padding(
 	err |= clSetKernelArg(m_Kernel, 4, sizeof(cl_uint4), &inputSize);
 	err |= clSetKernelArg(m_Kernel, 5, sizeof(cl_mem), (void *)&weights_d);
 	err |= clSetKernelArg(m_Kernel, 6, sizeof(cl_uint), &w_buf_sizeof);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not parse OpenCL arguments, error code: " << err << std::endl;
+}
 
 	// Call to kernel
 
 	// Execute kernel
 	cl_event events[2];
-	err = clEnqueueNDRangeKernel(queue,	m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue,	m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
-	if (err != CL_SUCCESS)
+		0, nullptr, &events[0]);
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not wait for OpenCL event!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, devicePaddedVolume, CL_TRUE, 0, pv_buffer_size, hostPaddedVolume, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, devicePaddedVolume, CL_TRUE, 0, pv_buffer_size, hostPaddedVolume, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL memory objects. */
 	clReleaseMemObject(weights_d);
@@ -290,7 +300,7 @@ void clFFT_Forward_Multiply_Backward(T* hostProjection, const std::complex<T>* h
 
 	// Create program
 	cl_program m_Program;
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	cl_kernel m_Kernel;
 	if (kernelDimension.y == 1)
@@ -534,8 +544,8 @@ void OpenCL_fft_convolution(
 
 void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* sub_buffer, 
 	itk::Image<float, 3U>::SizeType inputSize, itk::Image<float, 2U>::SizeType subSize) {
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -554,11 +564,12 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* su
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 	/* Prepare OpenCL memory objects and place data inside them. */
 	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
@@ -573,66 +584,76 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* su
 		*/
 
 	// Create program
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "subtract_kernel2D", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 	cl_event events[2];
 
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 32;
 	}
 
 	const size_t global_work_size = inputSize[0]* inputSize[1] * inputSize[2]; 
 
 	const cl_uint4 inputDim = {
-		(cl_uint) inputSize[0],
-		(cl_uint) inputSize[1],
-		(cl_uint) inputSize[2],
+		static_cast<cl_uint>(inputSize[0]),
+		static_cast<cl_uint>(inputSize[1]),
+		static_cast<cl_uint>(inputSize[2]),
 		0 };
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_int4), &inputDim);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_mem), (void *)&deviceSubBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceSubBuffer);
@@ -642,15 +663,16 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* su
 	clReleaseContext(ctx);
 
 	// std::cout << "Did it work? we just don't know..." << std::endl; IT WORKS
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 }
 
 
 itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
-	itk::Image<unsigned short, 3U>::Pointer Num3D,
-	itk::Image<unsigned short, 3U>::Pointer Denum3D) {
+	const itk::Image<unsigned short, 3U>::Pointer& Num3D,
+	const itk::Image<unsigned short, 3U>::Pointer& Denum3D) {
 
 	unsigned short* buffer = Num3D->GetBufferPointer();
 	itk::Image<unsigned short, 3U>::SizeType inputSize = Num3D->GetLargestPossibleRegion().GetSize();
@@ -674,8 +696,8 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 
 	outImage->Allocate();
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -696,11 +718,12 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 
 	// std::cout << "SUB3D::Input xyz size: " << inputSize[0] * inputSize[1] * inputSize[2] << std::endl;
@@ -715,70 +738,81 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 	err = clEnqueueWriteBuffer(queue, deviceOutBuffer, CL_TRUE, 0, memorySizeOutput, outImage->GetBufferPointer(), 0, NULL, NULL);
 	*/
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could create OpenCL buffers, error code: " << err << std::endl;
+}
 		
 	// Create program
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "divide_kernel3D_Ushort", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	cl_event events[2];
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 16;
 	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 	const cl_uint4 inputDim = {
-		(cl_uint)inputSize[0],
-		(cl_uint)inputSize[1],
-		(cl_uint)inputSize[2],
+		static_cast<cl_uint>(inputSize[0]),
+		static_cast<cl_uint>(inputSize[1]),
+		static_cast<cl_uint>(inputSize[2]),
 		0 };
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_mem), (void *)&deviceSubBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_mem), (void *)&deviceOutBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
 
-	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, outImage->GetBufferPointer(), 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, outImage->GetBufferPointer(), 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 	
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceSubBuffer);
@@ -789,8 +823,9 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 	clReleaseContext(ctx);
 
 	// std::cout << "Did it work? we just don't know..." << std::endl; IT WORKS
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "SUB3D::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 	
 	return outImage;
@@ -801,8 +836,8 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 	itk::Image<float, 3U>::SizeType inputSize,
 	const cl_float constant) {
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -819,11 +854,12 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 	//itk::Image<float, 3U>::SizeType inputSize = input->GetLargestPossibleRegion().GetSize();
 
@@ -834,63 +870,73 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 
 	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could create OpenCL buffers, error code: " << err << std::endl;
+}
 
 	// Create program
 	// std::cout << "build subtraction kernel..." << std::endl;
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "add_const_kernel", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	std::cout << "Kernel created." << std::endl;
 	cl_event events[2];
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 32;
 	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2]; 
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_float), &constant);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceBuffer);
@@ -898,8 +944,9 @@ void OpenCL_AddConst_InPlace(cl_float* buffer,
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 }
 
@@ -908,8 +955,8 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float* buffer,
 	const cl_float add_constant,
 	const cl_float mul_constant) {
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -926,28 +973,32 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float* buffer,
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 	/* Prepare OpenCL memory objects and place data inside them. */
 	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
 
 	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could create OpenCL buffers, error code: " << err << std::endl;
+}
 
 	// Create program
 	// std::cout << "build subtraction kernel..." << std::endl;
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "add_mul_const_kernel", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	std::cout << "Kernel created." << std::endl;
@@ -955,49 +1006,57 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float* buffer,
 
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 32;
 	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_float), &add_constant);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_float), &mul_constant);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceBuffer);
@@ -1005,8 +1064,9 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float* buffer,
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADDMUL::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 }
 
@@ -1014,8 +1074,8 @@ void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 	itk::Image<float, 2U>::SizeType inputSize,
 	const cl_float constant) {
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -1031,11 +1091,12 @@ void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 	//itk::Image<float, 3U>::SizeType inputSize = input->GetLargestPossibleRegion().GetSize();
 
@@ -1046,62 +1107,72 @@ void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 
 	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could create OpenCL buffers, error code: " << err << std::endl;
+}
 
 	// Create program
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "add_const_kernel", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	cl_event events[2];
 
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 32;
 	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1];
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_float), &constant);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceBuffer);
@@ -1109,8 +1180,9 @@ void OpenCL_AddConst_InPlace_2D(cl_float* buffer,
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "ADD::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 }
 
@@ -1118,8 +1190,8 @@ cl_float2 OpenCL_min_max(
 	const cl_float* buffer,
 	itk::Image<float, 3U>::SizeType inputSize) {
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -1135,10 +1207,11 @@ cl_float2 OpenCL_min_max(
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 	//std::cout << "MMM::Input xy size: " << inputSize[0] * inputSize[1] * inputSize[2] << std::endl;
 
@@ -1146,17 +1219,20 @@ cl_float2 OpenCL_min_max(
 	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
 	//err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 	
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could create OpenCL buffers, error code: " << err << std::endl;
+}
 
 	// Create program
 	//std::cout << "build min max kernel..." << std::endl;
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "min_max_kernel", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	//std::cout << "Kernel created." << std::endl;
@@ -1164,79 +1240,89 @@ cl_float2 OpenCL_min_max(
 	
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 16;
 	}
 
 	cl_uint divider = 128;
 	while (true) {
-		if (inputSize[0] % divider == 0)
+		if (inputSize[0] % divider == 0) {
 			break;
+}
 		divider /= 2;
-		if (divider == 2)
+		if (divider == 2) {
 			break;
+}
 	}
 
 	const cl_uint4 outputDim = {
-		(cl_uint)inputSize[0] / divider,
-		(cl_uint)inputSize[1],
-		(cl_uint)inputSize[2],
+		static_cast<cl_uint>(inputSize[0]) / divider,
+		static_cast<cl_uint>(inputSize[1]),
+		static_cast<cl_uint>(inputSize[2]),
 		0 };
 
 	const size_t global_work_size = outputDim.x * outputDim.y * outputDim.z;
 
 	const cl_uint4 inputDim = {
-		(cl_uint)inputSize[0],
-		(cl_uint)inputSize[1],
-		(cl_uint)inputSize[2],
+		static_cast<cl_uint>(inputSize[0]),
+		static_cast<cl_uint>(inputSize[1]),
+		static_cast<cl_uint>(inputSize[2]),
 		0 };
 
 
 	const size_t memorySizeSub = outputDim.x * outputDim.y * outputDim.z * sizeof(cl_float2);
 	//std::cout << "MMM::output xy size: " << outputDim.x * outputDim.y * outputDim.z << std::endl;
-	cl_float2* sub_buffer = new cl_float2[outputDim.x * outputDim.y * outputDim.z];
+	auto* sub_buffer = new cl_float2[outputDim.x * outputDim.y * outputDim.z];
 	cl_mem  deviceSubBuffer;
 	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
 	//err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_mem), (void *)&deviceSubBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_uint), &divider);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceSubBuffer);
@@ -1245,18 +1331,19 @@ cl_float2 OpenCL_min_max(
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMM::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
-	return OpenCL_min_max_recurse(sub_buffer, (cl_uint) global_work_size);
+	return OpenCL_min_max_recurse(sub_buffer, static_cast<cl_uint>(global_work_size));
 }
 
 cl_float2 OpenCL_min_max_2D(
 	const cl_float* buffer,
 	itk::Image<float, 2U>::SizeType inputSize) {
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -1272,16 +1359,18 @@ cl_float2 OpenCL_min_max_2D(
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 
 	/* Prepare OpenCL memory objects and place data inside them. */
 	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not create OpenCL mem object, error code: " << err << std::endl;
+}
 	/*
 	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
@@ -1290,12 +1379,14 @@ cl_float2 OpenCL_min_max_2D(
 		*/
 	// Create program
 	//std::cout << "build min max kernel..." << std::endl;
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "min_max_kernel", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	//std::cout << "Kernel created." << std::endl;
@@ -1303,77 +1394,87 @@ cl_float2 OpenCL_min_max_2D(
 
 	size_t local_work_size = 128;
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 16;
 	}
 
 	cl_uint divider = 128;
 	while (true) {
-		if (inputSize[0] % divider == 0)
+		if (inputSize[0] % divider == 0) {
 			break;
+}
 		divider /= 2;
-		if (divider == 2)
+		if (divider == 2) {
 			break;
+}
 	}
 
 	const cl_uint2 outputDim = {
-		(cl_uint)inputSize[0] / divider,
-		(cl_uint)inputSize[1]
+		static_cast<cl_uint>(inputSize[0]) / divider,
+		static_cast<cl_uint>(inputSize[1])
 	};
 
 	const size_t global_work_size = outputDim.x * outputDim.y;
 
 	const cl_uint2 inputDim = {
-		(cl_uint)inputSize[0],
-		(cl_uint)inputSize[1]
+		static_cast<cl_uint>(inputSize[0]),
+		static_cast<cl_uint>(inputSize[1])
 	};
 
 
 	const size_t memorySizeSub = outputDim.x * outputDim.y * sizeof(cl_float2);
 	//std::cout << "MMM::output xy size: " << outputDim.x * outputDim.y * outputDim.z << std::endl;
-	cl_float2* sub_buffer = new cl_float2[outputDim.x * outputDim.y];
+	auto* sub_buffer = new cl_float2[outputDim.x * outputDim.y];
 	cl_mem  deviceSubBuffer;
 	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
 	//err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_mem), (void *)&deviceSubBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_uint), &divider);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceSubBuffer);
@@ -1382,10 +1483,11 @@ cl_float2 OpenCL_min_max_2D(
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MM2D::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
-	return OpenCL_min_max_recurse(sub_buffer, (cl_uint)global_work_size);
+	return OpenCL_min_max_recurse(sub_buffer, static_cast<cl_uint>(global_work_size));
 }
 
 cl_float2 OpenCL_min_max_recurse(
@@ -1395,16 +1497,18 @@ cl_float2 OpenCL_min_max_recurse(
 	if (inputSize < 257) {
 		cl_float2 out = { 65535.0, -9999.0 };
 		for (cl_uint i = 0; i < inputSize; i++) {
-			if (out.x > buffer[i].x)
+			if (out.x > buffer[i].x) {
 				out.x = buffer[i].x;
-			if (out.y < buffer[i].y)
+}
+			if (out.y < buffer[i].y) {
 				out.y = buffer[i].y;
+}
 		}
 		return out;
 	}
 
-	cl_context       ctx = 0;
-	cl_command_queue queue = 0;
+	cl_context       ctx = nullptr;
+	cl_command_queue queue = nullptr;
 	cl_int           err;
 
 	cl_program            m_Program;
@@ -1421,17 +1525,19 @@ cl_float2 OpenCL_min_max_recurse(
 	cl_device_id device = std::get<1>(dev_tuple);
 
 	props[1] = (cl_context_properties)platform;
-	ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
 	queue = clCreateCommandQueue(ctx, device, 0, &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not setup OpenCL, error code: " << err << std::endl;
+}
 
 	// std::cout << "MMR::Input xy size: " << inputSize << std::endl;
 
 	/* Prepare OpenCL memory objects and place data inside them. */
 	deviceBuffer = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeInput, (void*)&buffer[0], &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not create OpenCL mem object, error code: " << err << std::endl;
+}
 	/*
 	err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0, memorySizeInput, buffer, 0, NULL, NULL);
 
@@ -1441,38 +1547,42 @@ cl_float2 OpenCL_min_max_recurse(
 
 	cl_uint divider = 128;
 	while (true) {
-		if (inputSize % divider == 0)
+		if (inputSize % divider == 0) {
 			break;
+}
 		divider /= 2;
-		if (divider == 2)
+		if (divider == 2) {
 			break;
+}
 	}
 
 
-	const cl_uint outputDim = (cl_uint)inputSize / divider;
+	const cl_uint outputDim = inputSize / divider;
 	size_t local_work_size = 128;
 	
 	char device_name[128];
-	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, NULL);
-	if (!strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200")) {
+	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
+	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) {
 		local_work_size = 16;
 	}
 
 	while (local_work_size > 32) {
-		if (((outputDim + (outputDim % local_work_size)) / local_work_size) % 2 != 0) // global must be evenly divisable with local work group
+		if (((outputDim + (outputDim % local_work_size)) / local_work_size) % 2 != 0) { // global must be evenly divisable with local work group
 			local_work_size /= 2;
-		else
+		} else {
 			break;
+}
 	}
 	const size_t global_work_size = ((outputDim + (outputDim % local_work_size)) / local_work_size) * local_work_size; // seems redundant, but isn't
 	//std::cout << "global/local = " << (float)global_work_size / (float)local_work_size << std::endl;
 	const size_t memorySizeSub = global_work_size * sizeof(cl_float2); // to avoid access violation in kernel
 	//std::cout << "MMM::output xy size: " << outputDim << std::endl;
-	cl_float2* sub_buffer = new cl_float2[global_work_size];
+	auto* sub_buffer = new cl_float2[global_work_size];
 	cl_mem  deviceSubBuffer;
 	deviceSubBuffer = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub, (void*)&sub_buffer[0], &err);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not create OpenCL buffers of size: " << global_work_size << "*sizeof(cl_float2), error code: " << err << std::endl;
+}
 	/*
 	err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
 
@@ -1481,56 +1591,67 @@ cl_float2 OpenCL_min_max_recurse(
 		*/
 	// Create program
 	//std::cout << "build min max kernel 2..." << std::endl;
-	CreateAndBuildOpenCLProgramFromSourceFile("fdk_opencl.cl", ctx, m_Program);
+	std::string cl_file("fdk_opencl.cl");
+	CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
 	m_Kernel = clCreateKernel(m_Program, "min_max_kernel2", &err);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 
 	//std::cout << "Kernel created." << std::endl;
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not parse arg 1 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 1, sizeof(cl_mem), (void *)&deviceSubBuffer);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not parse arg 2 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 2, sizeof(cl_uint), &divider);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not parse arg 3 to OpenCL kernel, error code: " << err << std::endl;
+}
 	err = clSetKernelArg(m_Kernel, 3, sizeof(cl_uint), &outputDim);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not parse arg 4 to OpenCL kernel, error code: " << err << std::endl;
+}
 
 	cl_event events[2];
 	// Execute kernel
-	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, NULL,
+	err = clEnqueueNDRangeKernel(queue, m_Kernel, 1, nullptr,
 		&global_work_size, &local_work_size,
-		0, NULL, &events[0]);
+		0, nullptr, &events[0]);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not run OpenCL kernel, error code: " << err << std::endl;
+}
 
 	err = clWaitForEvents(1, &events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not wait for OpenCL events!?, error code: " << err << std::endl;
+}
 	err = clReleaseEvent(events[0]);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not release OpenCL event, error code: " << err << std::endl;
+}
 
 	/* Wait for calculations to be finished. */
 	err = clReleaseKernel(m_Kernel);
 	err |= clReleaseProgram(m_Program);
 	err |= clFinish(queue);
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not finish OpenCL queue, error code: " << err << std::endl;
+}
 
 	/* Fetch results of calculations. */
-	err = clEnqueueReadBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, NULL, NULL);
-	if (err != CL_SUCCESS)
+	err = clEnqueueReadBuffer(queue, deviceSubBuffer, CL_TRUE, 0, memorySizeSub, sub_buffer, 0, nullptr, nullptr);
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not read OpenCL buffer, error code: " << err << std::endl;
+}
 
 	/* Release OpenCL working objects. */
 	clReleaseMemObject(deviceSubBuffer);
@@ -1540,8 +1661,9 @@ cl_float2 OpenCL_min_max_recurse(
 	clReleaseCommandQueue(queue);
 	clReleaseContext(ctx);
 
-	if (err != CL_SUCCESS)
+	if (err != CL_SUCCESS) {
 		std::cout << "MMR::Could not create OpenCL kernel, error code: " << err << std::endl;
+}
 
 	return OpenCL_min_max_recurse(sub_buffer, outputDim);
 }

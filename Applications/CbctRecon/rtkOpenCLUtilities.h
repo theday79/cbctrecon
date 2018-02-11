@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#ifndef __rtkOpenCLUtilities_h
-#define __rtkOpenCLUtilities_h
+#ifndef RTKOPENCLUTILITIES_H
+#define RTKOPENCLUTILITIES_H
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -25,9 +25,9 @@
 #include <CL/cl.h>
 #endif
 
+#include <itkMacro.h>
 #include <string>
 #include <vector>
-#include <itkMacro.h>
 
 /** \brief Macro to check errors when running an OpenCL command.
  *
@@ -59,7 +59,7 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms();
  *
  * \ingroup Functions
  */
-std::vector<cl_device_id> GetListOfOpenCLDevices(const cl_platform_id platform);
+std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform);
 
 /** \brief Builds an OpenCL program in a given filename given a context
  *
@@ -67,7 +67,7 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(const cl_platform_id platform);
  *
  * \ingroup Functions
  */
-void CreateAndBuildOpenCLProgramFromSourceFile(const std::string fileName, const cl_context &context,
+void CreateAndBuildOpenCLProgramFromSourceFile(std::string& fileName, const cl_context &context,
                                                cl_program &program);
 
 #endif
