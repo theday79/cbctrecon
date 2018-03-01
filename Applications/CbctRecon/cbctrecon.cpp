@@ -3719,9 +3719,14 @@ void CbctRecon::SLT_LoadSelectedProjFiles()//main loading fuction for projection
     ///////////////////////////////////Exclude outlier projection files
 
     std::vector<int> vExcludeIdx;
-
-    std::cout << "[Excluding-files-function] has been omitted. To reactivaite it, please edit SLT_LoadSelectedProjFiles" << std::endl;
-
+	if (!hisIsUsed) {
+		vExcludeIdx.push_back(2);
+		std::cout << "[Excluding-files-function] has exluded the second projection, as it is often faulty in varian projections." << std::endl;
+	}
+	else
+	{
+		std::cout << "[Excluding-files-function] has been omitted. To reactivaite it, please edit SLT_LoadSelectedProjFiles" << std::endl;
+	}
 
     ///////////////////////////////////Exclude outlier projection files
     std::vector<int> vSelectedIdx;
@@ -8367,6 +8372,128 @@ void CbctRecon::CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer&
 	ui.lineEdit_RefmAs->setText(QString("64,40"));
 }
 
+
+int divisible_by_235_const(const int size)
+{
+	int input_size = size;
+	bool ok = true;
+	while (ok) {
+		if (input_size % 2 == 0) {
+			// ok so far
+			input_size /= 2; // compiler should optimize so division and modulo is calculated simultaneously
+		}
+		else if (input_size % 3 == 0) {
+			// ok so far
+			input_size /= 3;
+		}
+		else if (input_size % 5 == 0) {
+			// ok so far
+			input_size /= 5;
+		}
+		else {
+			ok = false;
+		}
+	}
+	return input_size;
+}
+
+int get_padding(int input_size) {
+	int cur_padding = 0;
+	while (true) {
+		//Padding necessary
+		if (divisible_by_235_const(input_size + cur_padding) != 1) {
+			//While is broken if divisible, else more padding needed.
+			cur_padding += 2;
+		}
+		else {
+			break;
+		}
+	}
+	return cur_padding;
+}
+
+
+#ifdef LOWPASS_FFT
+// template<typename T>
+FloatImage2DType::Pointer LowPassFFT(FloatImage2DType::Pointer& input, const double sigmaValue)
+{
+	const unsigned int Dimension = input->GetImageDimension();
+	using RealImageType = FloatImage2DType;
+
+	// Some FFT filter implementations, like VNL's, need the image size to be a
+	// multiple of small prime numbers.
+	using PadFilterType = itk::WrapPadImageFilter< RealImageType, RealImageType >;
+	PadFilterType::Pointer padFilter = PadFilterType::New();
+	padFilter->SetInput(input);
+	PadFilterType::SizeType padding{};
+	auto input_size = input->GetLargestPossibleRegion().GetSize();
+	
+	for (unsigned int dim = 0; dim < Dimension; dim++) {
+		padding[dim] = get_padding(input_size[dim]);
+		// Even though the size is usually 512 or 384 which gives padding 0, 
+		// it would not really speed up the code much to have the checks for these sizes.
+	}
+	padFilter->SetPadUpperBound(padding);
+
+	using ForwardFFTFilterType = itk::ForwardFFTImageFilter< RealImageType >;
+	using ComplexImageType = ForwardFFTFilterType::OutputImageType;
+	ForwardFFTFilterType::Pointer forwardFFTFilter = ForwardFFTFilterType::New();
+	forwardFFTFilter->SetInput(padFilter->GetOutput());
+	forwardFFTFilter->UpdateOutputInformation();
+
+	// A Gaussian is used here to create a low-pass filter.
+	using GaussianSourceType = itk::GaussianImageSource< RealImageType >;
+	GaussianSourceType::Pointer gaussianSource = GaussianSourceType::New();
+	gaussianSource->SetNormalized(false);
+	gaussianSource->SetScale(1.0);
+	ComplexImageType::ConstPointer transformedInput
+		= forwardFFTFilter->GetOutput();
+	const ComplexImageType::RegionType inputRegion(
+		transformedInput->GetLargestPossibleRegion());
+	const ComplexImageType::SizeType inputSize
+		= inputRegion.GetSize();
+	const ComplexImageType::SpacingType inputSpacing =
+		transformedInput->GetSpacing();
+	const ComplexImageType::PointType inputOrigin =
+		transformedInput->GetOrigin();
+	const ComplexImageType::DirectionType inputDirection =
+		transformedInput->GetDirection();
+	gaussianSource->SetSize(inputSize);
+	gaussianSource->SetSpacing(inputSpacing);
+	gaussianSource->SetOrigin(inputOrigin);
+	gaussianSource->SetDirection(inputDirection);
+	GaussianSourceType::ArrayType sigma;
+	GaussianSourceType::PointType mean;
+	sigma.Fill(sigmaValue);
+	for (unsigned int ii = 0; ii < Dimension; ++ii)
+	{
+		const double halfLength = inputSize[ii] * inputSpacing[ii] / 2.0;
+		sigma[ii] *= halfLength;
+		mean[ii] = inputOrigin[ii] + halfLength;
+	}
+	mean = inputDirection * mean;
+	gaussianSource->SetSigma(sigma);
+	gaussianSource->SetMean(mean);
+
+	using FFTShiftFilterType = itk::FFTShiftImageFilter< RealImageType, RealImageType >;
+	FFTShiftFilterType::Pointer fftShiftFilter = FFTShiftFilterType::New();
+	fftShiftFilter->SetInput(gaussianSource->GetOutput());
+
+	using MultiplyFilterType = itk::MultiplyImageFilter< ComplexImageType,
+		RealImageType,
+		ComplexImageType >;
+	MultiplyFilterType::Pointer multiplyFilter = MultiplyFilterType::New();
+	multiplyFilter->SetInput1(forwardFFTFilter->GetOutput());
+	multiplyFilter->SetInput2(fftShiftFilter->GetOutput());
+
+	using InverseFilterType = itk::InverseFFTImageFilter< ComplexImageType, RealImageType >;
+	InverseFilterType::Pointer inverseFFTFilter = InverseFilterType::New();
+	inverseFFTFilter->SetInput(multiplyFilter->GetOutput());
+	inverseFFTFilter->Update();
+	return inverseFFTFilter->GetOutput();
+}
+#endif
+
 //spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value (0-65535)
 void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, UShortImageType::Pointer& spProjCT3D, UShortImageType::Pointer& spProjScat3D,
 	double medianRadius, double gaussianSigma, int nonNegativeScatOffset, bool bSave)
@@ -8445,19 +8572,6 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
         Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i, PLANE_AXIAL); //simple conversion between ushort 3D to float 2D (using casting, not log): input/output: 0-65535
         Get2DFrom3D(spProjCT3D, spImg2DPrim, i, PLANE_AXIAL);
 
-        //YK16GrayImage tmpYKRaw, tmpYKPrim;
-        //tmpYKRaw.UpdateFromItkImageFloat(spImg2DRaw);
-        ////tmpYKPrim.UpdateFromItkImageFloat(spImg2DPrim);
-
-        //QString str1 = QString("D:\\testYK\\imageRaw_%1.raw").arg(i);
-        ////QString str2 = QString("D:\\testYK\\imagePrim_%1.raw").arg(i);
-        //
-        //tmpYKRaw.SaveDataAsRaw(str1.toLocal8Bit().constData());
-        ////tmpYKRaw.SaveDataAsRaw(str2.toLocal8Bit().constData());
-
-        //std::cout << "i = " << i << std::endl;
-        //continue;
-
         //Dimension should be matched
         AllocateByRef(spImg2DRaw, spImg2DScat);
 
@@ -8472,10 +8586,9 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
             it_Tar.Set(intensityValScat);//float 	  //allow minus value
         }
 
-        //If CUDA is selected, do this using CUDA
-
-        //Resampling to speed-up
-
+#ifdef LOWPASS_FFT
+		spImg2DScat = LowPassFFT(spImg2DScat, gaussianSigma);
+#else
         //ResampleItkImage2D(spImg2DScat, spImg2DScat, resF2D);
         using MedianFilterType = itk::MedianImageFilter<FloatImage2DType, FloatImage2DType>;
 
@@ -8512,10 +8625,15 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
 		}
 		//gaussianFilter->Update();
 		//spImg2DScat = gaussianFilter->GetOutput();
-		
+#endif
+
         using AddImageFilterType = itk::AddImageFilter<FloatImage2DType, FloatImage2DType, FloatImage2DType>;
         AddImageFilterType::Pointer addFilter = AddImageFilterType::New();
-        addFilter->SetInput1(gaussianFilter->GetOutput());
+#ifdef LOWPASS_FFT
+        addFilter->SetInput1(spImg2DScat);
+#else
+		addFilter->SetInput1(gaussianFilter->GetOutput());
+#endif
         addFilter->SetConstant2(static_cast<float>(nonNegativeScatOffset));
         addFilter->Update();
         spImg2DScat = addFilter->GetOutput(); //even after the offset applied, - value is still possible
@@ -8523,11 +8641,11 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
         //float to unsigned short
         Set2DTo3D(spImg2DScat, spProjScat3D, i, PLANE_AXIAL); //input/Output: 0-65535 intensity valuesno mu_t to intensity converion is involved
 
-        int unit = qRound(iSizeZ / 10.0);
-        if (i%unit == 0)
-        {
-            std::cout << "Generating scatter map: " << (i / static_cast<double>(unit))*10.0 << " % is done" << std::endl;
-        }
+		int unit = qRound(iSizeZ / 10.0);
+		if (i%unit == 0)
+		{
+			std::cout << "Generating scatter map: " << (i / static_cast<double>(unit))*10.0 << " % is done" << std::endl;
+		}
     }//end of for
 
     if (bSave)
@@ -8536,15 +8654,20 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
         std::cout << "Files are being saved" << std::endl;
         std::cout << "Patient DIR Path: " << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
 
-        if (m_strPathPatientDir.isEmpty())
+        if (m_strPathPatientDir.isEmpty() && hisIsUsed)
         {
             std::cout << "File save error!: No patient DIR name" << std::endl;
             return;
         }
 
         //Get current folder
-        QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder
-
+		QString strCrntDir;
+		if (hisIsUsed) {
+			strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder
+		}
+		else {
+			strCrntDir = m_pDlgRegistration->m_strPathPlastimatch;
+		}
 
         //Make a sub directory
         QDir crntDir(strCrntDir);
@@ -8565,7 +8688,16 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer& spProjRaw3D, USh
         }
 
         QString strSavingFolder = strCrntDir + "/" + scatDirName;
-        SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder, m_fResampleF);
+		if (hisIsUsed) {
+			SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder, m_fResampleF);
+		}
+		else {
+			using imagewritertype = itk::ImageFileWriter<UShortImageType>;
+			imagewritertype::Pointer imagewriter = imagewritertype::New();
+			imagewriter->SetInput(spProjScat3D);
+			imagewriter->SetFileName(QString(strSavingFolder + "/scatter.mha").toStdString());
+			imagewriter->Update();
+		}
     }
 }
 

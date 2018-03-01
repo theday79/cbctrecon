@@ -11,6 +11,8 @@ OPTION(USE_OPENCL "Toggle OpenCL (deprecated features) on or off" OFF) # OFF by 
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
+OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
+
 OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON) # I have not tried setting it "OFF", tbh
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code
 IF(USE_CUDA)
@@ -22,6 +24,10 @@ ENDIF(USE_OPENCL)
 IF(USE_GPMC)
   message (STATUS "Compiling with GPMC option")
 ENDIF(USE_GPMC)
+IF(USE_LOWPASS_FFT)
+  message (STATUS "Compiling with Gauss FFT as low-pass filter for scatter smoothing option")
+  ADD_DEFINITIONS(-DLOWPASS_FFT=TRUE)
+ENDIF(USE_LOWPASS_FFT)
 ########################START SUPERBUILD STUFF ################################
 include(ExternalProject)
 include(ExternalProjectDependency)
@@ -37,6 +43,8 @@ FIND_PACKAGE(Git REQUIRED) # We superbuild now.
 FIND_PACKAGE(OpenCL REQUIRED)
 IF(USE_CUDA)
   FIND_PACKAGE(CUDA_wrap)
+  GET_FILENAME_COMPONENT(CUDA_TOOLKIT_ROOT_DIR "${CUDA_TOOLKIT_INCLUDE}/.." ABSOLUTE)
+  FIND_PACKAGE(CUDA REQUIRED)
 ENDIF(USE_CUDA)
 FIND_PACKAGE(FFTW)
 # set(TBB_ROOT "" CACHE PATH "Root dir of intel TBB, (one level up from lib)")
@@ -68,6 +76,20 @@ else()
 endif()
 
 set(CbctRecon_MAIN_PROJECT_APPLICATION_NAME ${${CbctRecon_MAIN_PROJECT}_APPLICATION_NAME})
+set(CbctReconAppName ${CbctRecon_MAIN_PROJECT_APPLICATION_NAME})
+
+#-----------------------------------------------------------------------------
+if(NOT DEFINED ${CbctReconAppName}_VERSION_MAJOR)
+  set(${CbctReconAppName}_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
+endif()
+if(NOT DEFINED ${CbctReconAppName}_VERSION_MINOR)
+  set(${CbctReconAppName}_VERSION_MINOR "2") # bump at functionality change
+endif()
+if(NOT DEFINED ${CbctReconAppName}_VERSION_PATCH)
+  set(${CbctReconAppName}_VERSION_PATCH "0") # bump at minor change
+endif()
+project(${CbctReconAppName} VERSION "${${CbctReconAppName}_VERSION_MAJOR}.${${CbctReconAppName}_VERSION_MINOR}.${${CbctReconAppName}_VERSION_PATCH}")
+#-----------------------------------------------------------------------------
 
 SET(CbctRecon_INSTALL_BIN_DIR "${CMAKE_BINARY_DIR}/install-all/bin/")
 SET(CbctRecon_INSTALL_LIB_DIR "${CMAKE_BINARY_DIR}/install-all/lib/")

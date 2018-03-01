@@ -25,6 +25,7 @@ OPTION(USE_CUDA "Toggle CUDA on or off" ON)
 OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # OFF because currently broken
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_GPMC "Toggle gPMC on or off" ON)
+OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 
 include(ProcessorCount)
 ProcessorCount(N)
@@ -52,6 +53,11 @@ IF(USE_CLFFT)
   message (STATUS "Compiling with clFFT option")
   ADD_DEFINITIONS(-DUSE_CLFFT=TRUE)
 ENDIF(USE_CLFFT)
+
+IF(USE_LOWPASS_FFT)
+  message (STATUS "Compiling with Gauss FFT as low-pass filter for scatter smoothing option")
+  ADD_DEFINITIONS(-DLOWPASS_FFT=TRUE)
+ENDIF(USE_LOWPASS_FFT)
 
 IF (OpenCL_FOUND)
   ADD_DEFINITIONS(-DUSE_OPENCL_PLM=TRUE)

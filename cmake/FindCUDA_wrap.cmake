@@ -13,7 +13,7 @@ else ()
     set (CUDA_PROPAGATE_HOST_FLAGS CACHE BOOL OFF)
   endif ()
 
-  # GCS 2012-05-11:  We need to propagate cxx flags to nvcc, but
+  # GCS 2012-05-11:  We need to propagate cxx flags to nvcc, but 
   # the flag -ftest-coverage causes nvcc to barf, so exclude that one
   if (CMAKE_COMPILER_IS_GNUCC)
     string (REPLACE "-ftest-coverage" "" TMP "${CMAKE_CXX_FLAGS}")
@@ -40,10 +40,6 @@ mark_as_advanced(CUDA_FOUND)
 if(CUDA_FOUND)
   if(${CUDA_VERSION} LESS 3.2)
     message("CUDA version ${CUDA_VERSION} found, too old for RTK")
-    set(CUDA_FOUND FALSE)
-  endif()
-  if(${CUDA_VERSION} GREATER 8.5)
-    message("CUDA version ${CUDA_VERSION} found, too new for VS17")
     set(CUDA_FOUND FALSE)
   endif()
 endif()
@@ -96,9 +92,9 @@ endif()
 
 if(CUDA_FOUND)
   try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
-         ${CMAKE_BINARY_DIR}
-         ${CMAKE_CURRENT_LIST_DIR}/has_cuda_gpu.c
-         CMAKE_FLAGS
+         ${CMAKE_BINARY_DIR} 
+         ${CMAKE_CURRENT_LIST_DIR}/has_cuda_gpu.cxx
+         CMAKE_FLAGS 
              -DINCLUDE_DIRECTORIES:STRING=${CUDA_TOOLKIT_INCLUDE}
              -DLINK_LIBRARIES:STRING=${CUDA_CUDART_LIBRARY}
          COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR

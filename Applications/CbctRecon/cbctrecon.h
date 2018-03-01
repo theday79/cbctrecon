@@ -79,6 +79,15 @@
 #include <itkSmoothingRecursiveGaussianImageFilter.h>
 #include <itkStreamingImageFilter.h>
 
+#ifdef LOWPASS_FFT
+// ITK Low-pass fourier filter
+#include "itkFFTShiftImageFilter.h"
+#include "itkForwardFFTImageFilter.h"
+#include "itkGaussianImageSource.h"
+#include "itkInverseFFTImageFilter.h"
+#include "itkWrapPadImageFilter.h"
+#endif
+
 // Plastimatch
 #include <mha_io.h>
 #include <nki_io.h>
