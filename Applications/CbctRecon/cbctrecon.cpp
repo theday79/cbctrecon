@@ -1786,6 +1786,49 @@ void CbctRecon::SLT_SetOutputPath()
     ui.lineEdit_OutputFilePath->setText(strPath);
 }
 
+template<typename ImageType>
+double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer& geometry, const typename ImageType::Pointer& ProjStack)
+{
+
+	using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, ImageType>;
+	FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
+	FOVfilter->SetGeometry(geometry);
+	FOVfilter->SetProjectionsStack(ProjStack.GetPointer());
+	double x, z;
+	double r = -1.0;
+	bool hasOverlap = FOVfilter->ComputeFOVRadius(FOVfilterType::FOVRadiusType::RADIUSBOTH, x, z, r);
+	if (hasOverlap) {
+		std::cout << "FOV radius was found!" << std::endl;
+	}
+	return r;
+}
+
+template<typename T, typename ImageType>
+bool GetOutputResolutionFromFOV(typename T::SizeType& sizeOutput, typename T::SpacingType& spacing,
+	const rtk::ThreeDCircularProjectionGeometry::Pointer& geometry, const typename ImageType::Pointer& ProjStack,
+	const QString outputFilePath)
+{
+
+	QFileInfo outFileInfo(outputFilePath);
+	QDir outFileDir = outFileInfo.absoluteDir();
+
+	if (outputFilePath.length() < 2 || !outFileDir.exists())
+	{
+		double radius = GetFOVRadius<typename ImageType>(geometry, ProjStack);
+		if (radius != -1.0) {
+			sizeOutput[0] = 512; // AP
+			sizeOutput[1] = 200; // SI
+			sizeOutput[2] = 512; // LR
+			spacing[0] = 2.0 * radius / sizeOutput[0];
+			spacing[1] = 1.0;
+			spacing[2] = 2.0 * radius / sizeOutput[2];
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #if USE_CUDA
 void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 {
@@ -1887,6 +1930,10 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target)
 	spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
 	spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
 	spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
+	if (GetOutputResolutionFromFOV<ConstantImageSourceType, FloatImageType>(sizeOutput, spacing, m_spCustomGeometry, m_spProjImg3DFloat, ui.lineEdit_OutputFilePath->text()))
+	{
+		std::cout << "Reconstruction resolution and image size were set automatically, as no outputfilepath was given." << std::endl;
+	}
 
 	ConstantImageSourceType::PointType origin;
 	origin[0] = -0.5*sizeOutput[0] * spacing[0]; //Y in DCM?
@@ -7681,12 +7728,12 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geometry
 	}
 
 #ifndef USE_CUDA
-	CPU_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, false); //final moving image
+	CPU_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, bSave); //final moving image
 #else
 	if (ui.radioButton_UseCUDA->isChecked()) {
-		CUDA_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, false); //final moving image
+		CUDA_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, bSave); //final moving image
 	} else {
-		CPU_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, false); //final moving image
+		CPU_ForwardProjection(spVolImg3D, spGeometry, spProjCT3D, bSave); //final moving image
 }
 #endif // !USE_CUDA
 
@@ -7925,14 +7972,21 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geo
 		std::cout << "Files are being saved" << std::endl;
 		std::cout << " Patient DIR Path: " << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
 
+		bool manuallySelectedDir = false; // <- just to make sure I don't break usecases of the older version.
 		if (m_strPathPatientDir.isEmpty())
 		{
 			std::cout << "File save error!: No patient DIR name" << std::endl;
-			return;
+
+			m_strPathPatientDir = QFileDialog::getExistingDirectory(this, tr("Open Directory"), ".", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+			if (m_strPathPatientDir.length() <= 1) {
+				return;
+			}
+			manuallySelectedDir = true;
 		}
 
 		//Get current folder
-		QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj folder
+		QString subdir_images("IMAGES");
+		QString strCrntDir = m_strPathPatientDir + "/" + subdir_images; //current Proj folder
 
 
 		//Make a sub directory
@@ -7940,8 +7994,18 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer& spVolImg3D, Geo
 
 		if (!crntDir.exists())
 		{
-			std::cout << "File save error: The specified folder does not exist." << std::endl;
-			return;
+			if (manuallySelectedDir) {
+				QDir current_dir(m_strPathPatientDir);
+				bool success = current_dir.mkdir(subdir_images);
+				if (!success) {
+					std::cerr << "Could not create subfolder IMAGES in given directory" << std::endl;
+					return;
+				}
+			}
+			else {
+				std::cout << "File save error: The specified folder does not exist." << std::endl;
+				return;
+			}
 		}
 
 		QString fwdDirName = "fwd_" + m_strDCMUID;
@@ -11973,7 +12037,11 @@ void CbctRecon::SLTM_ForwardProjection()
         //Save proj3D;
 
         //QString outputPath = "D:/ProjTemplate.mha";
-        QString outputPath = "D:/2D3DRegi/FwdProj_0.mha";
+        //QString outputPath = "D:/2D3DRegi/FwdProj_0.mha";
+        QString outputPath  = QFileDialog::getSaveFileName(this, "File path to save", m_strPathDirDefault, "Projection stack (*.mha)", nullptr, nullptr); //Filename don't need to exist
+		    if (outputPath.length() <= 1) {
+			      return;
+		    }
 
         using WriterType = itk::ImageFileWriter<UShortImageType>;
         WriterType::Pointer writer = WriterType::New();
