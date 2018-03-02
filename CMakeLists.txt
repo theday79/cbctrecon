@@ -79,15 +79,9 @@ set(CbctRecon_MAIN_PROJECT_APPLICATION_NAME ${${CbctRecon_MAIN_PROJECT}_APPLICAT
 set(CbctReconAppName ${CbctRecon_MAIN_PROJECT_APPLICATION_NAME})
 
 #-----------------------------------------------------------------------------
-if(NOT DEFINED ${CbctReconAppName}_VERSION_MAJOR)
-  set(${CbctReconAppName}_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
-endif()
-if(NOT DEFINED ${CbctReconAppName}_VERSION_MINOR)
-  set(${CbctReconAppName}_VERSION_MINOR "2") # bump at functionality change
-endif()
-if(NOT DEFINED ${CbctReconAppName}_VERSION_PATCH)
-  set(${CbctReconAppName}_VERSION_PATCH "0") # bump at minor change
-endif()
+set(${CbctReconAppName}_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
+set(${CbctReconAppName}_VERSION_MINOR "2") # bump at functionality change
+set(${CbctReconAppName}_VERSION_PATCH "0") # bump at minor change
 project(${CbctReconAppName} VERSION "${${CbctReconAppName}_VERSION_MAJOR}.${${CbctReconAppName}_VERSION_MINOR}.${${CbctReconAppName}_VERSION_PATCH}")
 #-----------------------------------------------------------------------------
 
