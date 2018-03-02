@@ -81,7 +81,7 @@ set(CbctReconAppName ${CbctRecon_MAIN_PROJECT_APPLICATION_NAME})
 #-----------------------------------------------------------------------------
 set(${CbctReconAppName}_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
 set(${CbctReconAppName}_VERSION_MINOR "2") # bump at functionality change
-set(${CbctReconAppName}_VERSION_PATCH "0") # bump at minor change
+set(${CbctReconAppName}_VERSION_PATCH "1") # bump at minor change
 project(${CbctReconAppName} VERSION "${${CbctReconAppName}_VERSION_MAJOR}.${${CbctReconAppName}_VERSION_MINOR}.${${CbctReconAppName}_VERSION_PATCH}")
 #-----------------------------------------------------------------------------
 
