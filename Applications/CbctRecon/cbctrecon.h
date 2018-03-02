@@ -42,6 +42,7 @@
 #include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
+#include <rtkFieldOfViewImageFilter.h>
 
 #if USE_CUDA
 # include "rtkCudaFDKConeBeamReconstructionFilter.h"
