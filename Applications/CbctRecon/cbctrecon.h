@@ -40,9 +40,9 @@
 #include <rtkDisplacedDetectorImageFilter.h>
 #include <rtkFDKBackProjectionImageFilter.h>
 #include <rtkFDKConeBeamReconstructionFilter.h>
+#include <rtkFieldOfViewImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
-#include <rtkFieldOfViewImageFilter.h>
 
 #if USE_CUDA
 # include "rtkCudaFDKConeBeamReconstructionFilter.h"

@@ -61,7 +61,7 @@ OpenCL_padding(
 
 	// std::cout << "Padding OpenCL style" << std::endl;
 	cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0 };
-	ctx = clCreateContext(props, 1, &device, nullptr, nullptr, &err);
+	ctx = clCreateContext(&props[0], 1, &device, nullptr, nullptr, &err);
 	if (err != CL_SUCCESS) {
 		std::cout << "PAD::Could not create OpenCL context, error code: " << err << std::endl;
 }
@@ -108,7 +108,7 @@ OpenCL_padding(
 	size_t local_work_size = 128;
 	char device_name[128];
 	err |= clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), &device_name, nullptr);
-	if (strcmp(device_name, "Intel(R) Iris(TM) Pro Graphics 5200") == 0) { // added to all kernels for optimization on my(AGA's) machine. Thanks to Intel's OpenCL SDK for giving "preferred work-group" sizes.
+	if (strcmp(&device_name[0], "Intel(R) Iris(TM) Pro Graphics 5200") == 0) { // added to all kernels for optimization on my(AGA's) machine. Thanks to Intel's OpenCL SDK for giving "preferred work-group" sizes.
 		local_work_size = 16;
 	}
 
@@ -604,11 +604,11 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(cl_float* buffer, const cl_float* su
 
 	const size_t global_work_size = inputSize[0]* inputSize[1] * inputSize[2]; 
 
-	const cl_uint4 inputDim = {
+	const cl_uint4 inputDim = { {
 		static_cast<cl_uint>(inputSize[0]),
 		static_cast<cl_uint>(inputSize[1]),
 		static_cast<cl_uint>(inputSize[2]),
-		0 };
+		0 } };
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
 	if (err != CL_SUCCESS) {
@@ -762,11 +762,6 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 	}
 
 	const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
-	const cl_uint4 inputDim = {
-		static_cast<cl_uint>(inputSize[0]),
-		static_cast<cl_uint>(inputSize[1]),
-		static_cast<cl_uint>(inputSize[2]),
-		0 };
 
 	err = clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), (void *)&deviceBuffer);
 	if (err != CL_SUCCESS) {
@@ -1256,19 +1251,13 @@ cl_float2 OpenCL_min_max(
 }
 	}
 
-	const cl_uint4 outputDim = {
+	const cl_uint4 outputDim = { {
 		static_cast<cl_uint>(inputSize[0]) / divider,
 		static_cast<cl_uint>(inputSize[1]),
 		static_cast<cl_uint>(inputSize[2]),
-		0 };
+		0 } };
 
 	const size_t global_work_size = outputDim.x * outputDim.y * outputDim.z;
-
-	const cl_uint4 inputDim = {
-		static_cast<cl_uint>(inputSize[0]),
-		static_cast<cl_uint>(inputSize[1]),
-		static_cast<cl_uint>(inputSize[2]),
-		0 };
 
 
 	const size_t memorySizeSub = outputDim.x * outputDim.y * outputDim.z * sizeof(cl_float2);
@@ -1410,17 +1399,12 @@ cl_float2 OpenCL_min_max_2D(
 }
 	}
 
-	const cl_uint2 outputDim = {
+	const cl_uint2 outputDim = { {
 		static_cast<cl_uint>(inputSize[0]) / divider,
 		static_cast<cl_uint>(inputSize[1])
-	};
+	} };
 
 	const size_t global_work_size = outputDim.x * outputDim.y;
-
-	const cl_uint2 inputDim = {
-		static_cast<cl_uint>(inputSize[0]),
-		static_cast<cl_uint>(inputSize[1])
-	};
 
 
 	const size_t memorySizeSub = outputDim.x * outputDim.y * sizeof(cl_float2);
@@ -1495,7 +1479,7 @@ cl_float2 OpenCL_min_max_recurse(
 	const cl_uint inputSize) {
 
 	if (inputSize < 257) {
-		cl_float2 out = { 65535.0, -9999.0 };
+		cl_float2 out = { { 65535.0, -9999.0 } };
 		for (cl_uint i = 0; i < inputSize; i++) {
 			if (out.x > buffer[i].x) {
 				out.x = buffer[i].x;

@@ -77,7 +77,7 @@ DlgRegistration::DlgRegistration(QWidget *parent): QDialog (parent)
 {
     /* Sets up the GUI */
     ui.setupUi (this);
-    m_pParent = (CbctRecon*)(parent);
+    m_pParent = dynamic_cast<CbctRecon*>(parent);
 
     connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit1())); //added
     connect(ui.labelOverlapWnd2, SIGNAL(Mouse_Move()), this, SLOT(SLT_UpdateSplit2())); //added
@@ -188,8 +188,9 @@ void DlgRegistration::SLT_CrntPosGo()
     //CbctRecon* pParent= (CbctRecon*)(this->parent());
     /*whenFixedImgLoaded();
     SLT_DrawImageWhenSliceChange();    	    */
-  if (!m_spFixed)
+  if (m_spFixed == nullptr) {
 	return;
+}
 
 
   // DICOMN position, mm
@@ -198,7 +199,7 @@ void DlgRegistration::SLT_CrntPosGo()
   double curDCMPosZ = ui.lineEditCurPosZ->text().toDouble();
 
 
-  UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
+  //UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
   UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
   UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
@@ -222,8 +223,9 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 {
     /*if (m_pParent == NULL)
         return;	*/
-	if (!m_spFixed)
+	if (m_spFixed == nullptr) {
 	  return;
+}
 
 	int sliderPosIdxZ,sliderPosIdxY, sliderPosIdxX;
 
@@ -318,7 +320,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
     //m_pParent->Draw2DFrom3D(m_pParent->m_spReconImg, PLANE_FRONTAL, curPhysPos[1], m_YKImgFixed[1]);
     //m_pParent->Draw2DFrom3D(m_pParent->m_spReconImg, PLANE_SAGITTAL, curPhysPos[2], m_YKImgFixed[2]);
 
-	if (m_spMoving)
+	if (m_spMoving != nullptr)
 	{
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed,m_spMoving, PLANE_AXIAL, curPhysPos[0], m_YKImgFixed[0], m_YKImgMoving[0]);
 	  m_pParent->Draw2DFrom3DDouble(m_spFixed, m_spMoving, PLANE_FRONTAL, curPhysPos[1], m_YKImgFixed[1], m_YKImgMoving[1]);
@@ -361,7 +363,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 	ui.lineEditOriginFixed->setText(strOriFixed);
 
 
-	if (m_spMoving)
+	if (m_spMoving != nullptr)
 	{
 	  UShortImageType::PointType imgOriginMoving = m_spMoving->GetOrigin();
 	  QString strOriMoving;
@@ -381,16 +383,17 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange()
 //Display is not included here
 void DlgRegistration::whenFixedImgLoaded()
 {
-  if (!m_spFixed)
+  if (m_spFixed == nullptr) {
 	return;
+}
     /*if (!m_pParent->m_spReconImg)
         return;
 
 	m_spFixed = m_pParent->m_spReconImg;*/
 
     UShortImageType::SizeType imgSize = m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
-    UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
-    UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
+    //UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
+    //UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
 	//to avoid first unnecessary action.
     disconnect(ui.sliderPosDisp1, SIGNAL(valueChanged(int)), this, SLOT(SLT_DrawImageWhenSliceChange()));
@@ -493,8 +496,9 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
 
             m_YKDisp[i].SetSplitOption(PRI_LEFT_TOP);
             //m_YKDisp[i].SetSplitCenter(QPoint dataPt);//From mouse event
-            if (!m_YKDisp[i].ConstituteFromTwo(m_YKImgFixed[i+idxAdd], m_YKImgMoving[i+idxAdd]))
+            if (!m_YKDisp[i].ConstituteFromTwo(m_YKImgFixed[i+idxAdd], m_YKImgMoving[i+idxAdd])) {
                 std::cout << "Image error " << i+1 << " th view" << std::endl;
+}
         }
     }
     else
@@ -528,8 +532,9 @@ void DlgRegistration::SLT_DrawImageInFixedSlice()//Display Swap here!
 				m_AGDisp_Overlay[i].SetSpacing(m_DoseImgFixed[i + idxAdd].m_fSpacingX, m_DoseImgFixed[i + idxAdd].m_fSpacingY);
 
 				m_AGDisp_Overlay[i].SetSplitOption(PRI_LEFT_TOP);
-				if (!m_AGDisp_Overlay[i].ConstituteFromTwo(m_DoseImgFixed[i + idxAdd], m_DoseImgMoving[i + idxAdd]))
+				if (!m_AGDisp_Overlay[i].ConstituteFromTwo(m_DoseImgFixed[i + idxAdd], m_DoseImgMoving[i + idxAdd])) {
 					std::cout << "Dose Image error " << i + 1 << " th view" << std::endl;
+}
 			}
 		}
 		else
@@ -604,8 +609,9 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel* pOverlapWnd)
 	return;
 }
 
-  if (m_YKDisp[idx].IsEmpty())
+  if (m_YKDisp[idx].IsEmpty()) {
 	return;
+}
 
   if (!m_bPressedLeft[idx] && !m_bPressedRight[idx]) {
 	return;
@@ -654,7 +660,7 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel* pOverlapWnd)
 	int prevOffsetX = m_ptTmpOriginalDataOffset.x();
 	int prevOffsetY = m_ptTmpOriginalDataOffset.y();
 
-	double fZoom = m_YKDisp[idx].m_fZoom;
+	//double fZoom = m_YKDisp[idx].m_fZoom;
 
 	m_YKDisp[idx].SetOffset(prevOffsetX - curOffsetX, prevOffsetY - curOffsetY);
 
@@ -665,13 +671,13 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel* pOverlapWnd)
 	double wWidth = 2.0;
 	double wLevel = 2.0;
 
-	int iAddedWidth = (int)((m_ptWindowLevelStart.y() - pOverlapWnd->y)*wWidth);
-	int iAddedLevel = (int)((pOverlapWnd->x - m_ptWindowLevelStart.x())*wLevel);
+	auto iAddedWidth = static_cast<int>((m_ptWindowLevelStart.y() - pOverlapWnd->y)*wWidth);
+	auto iAddedLevel = static_cast<int>((pOverlapWnd->x - m_ptWindowLevelStart.x())*wLevel);
 
 	//Which image is clicked first??
 	QPoint crntDataPt = pOverlapWnd->GetDataPtFromViewPt(m_ptWindowLevelStart.x(),  m_ptWindowLevelStart.y());
 
-	if (pOverlapWnd->m_pYK16Image != NULL)
+	if (pOverlapWnd->m_pYK16Image != nullptr)
 	{
 	  if (m_YKDisp[idx].isPtInFirstImage(crntDataPt.x(), crntDataPt.y()))
 	  {
@@ -701,8 +707,9 @@ void DlgRegistration::SLT_MouseWheelUpdate1()
 	ui.labelOverlapWnd1->m_pYK16Image->SetZoom(oldZoom + ui.labelOverlapWnd1->m_iMouseWheelDelta * fWeighting);
 	this->SLT_DrawImageInFixedSlice();
   }
-  else
+  else {
 	ui.sliderPosDisp1->setValue(ui.sliderPosDisp1->value() + ui.labelOverlapWnd1->m_iMouseWheelDelta);
+}
 
 }
 
@@ -718,8 +725,9 @@ void DlgRegistration::SLT_MouseWheelUpdate2()
 	this->SLT_DrawImageInFixedSlice();
 
   }
-  else
+  else {
 	ui.sliderPosDisp2->setValue(ui.sliderPosDisp2->value() + ui.labelOverlapWnd2->m_iMouseWheelDelta);
+}
 }
 
 void DlgRegistration::SLT_MouseWheelUpdate3()
@@ -733,8 +741,9 @@ void DlgRegistration::SLT_MouseWheelUpdate3()
 	this->SLT_DrawImageInFixedSlice();
 
   }
-  else
+  else {
 	ui.sliderPosDisp3->setValue(ui.sliderPosDisp3->value() + ui.labelOverlapWnd3->m_iMouseWheelDelta);
+}
 }
 
 //release everything
@@ -983,10 +992,10 @@ void DlgRegistration::SLT_RestoreImageSingle()
 
 void DlgRegistration::SLT_RestoreImageAll()
 {
-  for (int i = 0 ; i<3 ; i++)
+  for (auto & i : m_YKDisp)
   {
-	m_YKDisp[i].SetZoom(1.0);
-	m_YKDisp[i].SetOffset(0,0);
+	i.SetZoom(1.0);
+	i.SetOffset(0,0);
 
 	SLT_DrawImageInFixedSlice();
   }
@@ -995,19 +1004,22 @@ void DlgRegistration::SLT_RestoreImageAll()
 void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 {
   //1) Save current image files
-  if (!m_spFixed || !m_spMoving)
+  if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
 	return;
+}
 
   //Before the registration, remove background and fill the air-bubble of the cbct
   //1) calculate manual shift value
   //PreProcess_CBCT(); // remove skin and fill bubble before registration
 
-  if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
+  if ((m_pParent->m_spRefCTImg == nullptr) || (m_pParent->m_spManualRigidCT == nullptr)) {
 	return;
+}
 
 
-  if (ui.checkBoxKeyMoving->isChecked())
+  if (ui.checkBoxKeyMoving->isChecked()) {
 	  SLT_KeyMoving(false);
+}
 
 
   /*- Make a synthetic std::vector field according to the translation
@@ -1227,8 +1239,9 @@ void DlgRegistration::SLT_DoRegistrationRigid()//plastimatch auto registration
 
   std::map<std::string, Metric_parms>::iterator it;
   for (it = params->metric.begin(); it != params->metric.end(); ++it) {
-	  if (strncmp(it->first.c_str(), "0", 1) != 0)
+	  if (strncmp(it->first.c_str(), "0", 1) != 0) {
 		  std::cout << it->first.c_str() << std::endl;
+}
 	  strFixed = it->second.fixed_fn; // fn is just File Name!!
 	  strMoving = it->second.moving_fn;
   }
@@ -1337,12 +1350,13 @@ bool DlgRegistration::eventFilter( QObject *target, QEvent *event )
 
   if (event->type() == QEvent::ShortcutOverride)//51
   {
-	if (!ui.checkBoxKeyMoving->isChecked())
+	if (!ui.checkBoxKeyMoving->isChecked()) {
 	  return false;
+}
 
-	QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+	auto *keyEvent = dynamic_cast<QKeyEvent *>(event);
 
-	int iArrowKey = (int)keyEvent->nativeVirtualKey();
+	auto iArrowKey = static_cast<int>(keyEvent->nativeVirtualKey());
 	//std::cout << iArrowKey << std::endl;
 	double resol = ui.lineEditMovingResol->text().toDouble(); //mm
 
@@ -1397,8 +1411,9 @@ void DlgRegistration::childEvent( QChildEvent *event )
 
 void DlgRegistration::ImageManualMove( int direction, double resol )
 {
-  if (!m_spMoving)
+  if (m_spMoving == nullptr) {
 	return;
+}
 
   //USHORT_ImageType::SizeType imgSize = m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
   UShortImageType::PointType imgOrigin = m_spMoving->GetOrigin();
@@ -1440,8 +1455,9 @@ void DlgRegistration::ImageManualMove( int direction, double resol )
 //change origin of moving image by shift value acquired from gradient registration
 void DlgRegistration::ImageManualMoveOneShot(float shiftX, float shiftY, float shiftZ )//DICOM coordinate
 {
-    if (!m_spMoving)
+    if (m_spMoving == nullptr) {
         return;
+}
 
     //USHORT_ImageType::SizeType imgSize = m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
     UShortImageType::PointType imgOrigin = m_spMoving->GetOrigin();
@@ -1469,8 +1485,9 @@ void DlgRegistration::ImageManualMoveOneShot(float shiftX, float shiftY, float s
 //Bring Focus
 void DlgRegistration::SLT_BringFocusToEnableArrow(bool bChecked)
 {
-  if (bChecked)
+  if (bChecked) {
 	ui.labelDisp1->setFocus(); //if focus is in label, Key Event will trigger 51 (override)
+}
 }
 
 void DlgRegistration::SLT_KeyMoving( bool bChecked )//Key Moving check box
@@ -1510,21 +1527,23 @@ void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommand
 
   fout << "img_out=" << strPathOutImg.toLocal8Bit().constData() << std::endl;
   fout << "xform_out=" << strPathXformOut.toLocal8Bit().constData() << std::endl;
-  if (regiOption == PLAST_GRADIENT)
+  if (regiOption == PLAST_GRADIENT) {
 	fout << "logfile=" << "gradient_log.txt" << std::endl;
-  else if (regiOption == PLAST_RIGID)
+  } else if (regiOption == PLAST_RIGID) {
 	  fout << "logfile=" << "rigid_log.txt" << std::endl;
-  else if (regiOption == PLAST_BSPLINE)
+  } else if (regiOption == PLAST_BSPLINE) {
 	  fout << "logfile=" << "bspline_log.txt" << std::endl;
+}
 
   fout << std::endl;
 
   //QString strOptim = ui.comboBoxDeformOption->currentText();
   QString strOptim;
-  if (ui.radioButton_mse->isChecked())
+  if (ui.radioButton_mse->isChecked()) {
       strOptim = "mse";
-  else if (ui.radioButton_mi->isChecked())
+  } else if (ui.radioButton_mi->isChecked()) {
       strOptim = "mi";
+}
 
   QStringList strListOption1,strListOption2, strListOption3;
   strListOption1 = strStageOption1.split(",");  //Subsampling rate (3), Grid size (1), Regularization(1), LandmarkPenalty(1), Max Iteration (1), StageOutput(1)
@@ -1550,12 +1569,13 @@ void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommand
 	//fout << "impl=" << "itk" << std::endl;
 
 	fout << "impl=" << "itk" << std::endl;
-	if (m_pParent->ui.radioButton_UseCPU->isChecked())
+	if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
 		fout << "threading=" << "openmp" << std::endl;
-	else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+	} else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
 		fout << "threading=" << "cuda" << std::endl;
-	else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+	} else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
 		fout << "threading=" << "opencl" << std::endl;
+}
 
 	//fout << "background_val=" << "0" << std::endl;
 	fout << "background_val=" << "500" << std::endl; //-600 in HU //added
@@ -1592,24 +1612,27 @@ void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommand
 	  fout << "[STAGE]" << std::endl;
 	  fout << "xform=" << "bspline" << std::endl;
 	  fout << "impl=" << "plastimatch" << std::endl;
-	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
+	  if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
 		  fout << "threading=" << "openmp" << std::endl;
-	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
+	  } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
 		  fout << "threading=" << "cuda" << std::endl;
-		  if (ui.radioButton_mse->isChecked())
+		  if (ui.radioButton_mse->isChecked()) {
 			  fout << "alg_flavor=" << "j" <<std::endl;
-		  else
+		  } else {
 			  fout << "alg_flavor=" << "a" << std::endl;
+}
 	  }
-	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
 		  fout << "threading=" << "opencl" << std::endl;
+}
 
 	  fout << "regularization_lambda=" << strListOption1.at(4).toDouble() << std::endl;
 
-	  if (strOptim.length() < 1)
+	  if (strOptim.length() < 1) {
 		fout << "metric=" << "mi" << std::endl;
-	  else
+	  } else {
 		fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
+}
 
 	  fout << "max_its=" << strListOption1.at(6).toInt() << std::endl;
 	  fout << "grid_spac=" << strListOption1.at(3).toInt() << " " << strListOption1.at(3).toInt() << " " << strListOption1.at(3).toInt() << std::endl;//20 20 20 --> minimum
@@ -1624,19 +1647,21 @@ void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommand
 	  fout << "[STAGE]" << std::endl;
 	  fout << "xform=" << "bspline" << std::endl;
 	  fout << "impl=" << "plastimatch" << std::endl;
-	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
+	  if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
 		  fout << "threading=" << "openmp" << std::endl;
-	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+	  } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
 		  fout << "threading=" << "cuda" << std::endl;
-	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+	  } else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
 		  fout << "threading=" << "opencl" << std::endl;
+}
 
 	  fout << "regularization_lambda=" << strListOption2.at(4).toDouble() << std::endl;
 
-	  if (strOptim.length() < 1)
+	  if (strOptim.length() < 1) {
 		fout << "metric=" << "mi" << std::endl;
-	  else
+	  } else {
 		fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
+}
 
 	  fout << "max_its=" << strListOption2.at(6).toInt() << std::endl;
 	  fout << "grid_spac=" << strListOption2.at(3).toInt() << " " << strListOption2.at(3).toInt() << " " << strListOption2.at(3).toInt() << std::endl;//20 20 20 --> minimum
@@ -1650,19 +1675,21 @@ void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommand
 	  fout << "[STAGE]" << std::endl;
 	  fout << "xform=" << "bspline" << std::endl;
 	  fout << "impl=" << "plastimatch" << std::endl;
-	  if (m_pParent->ui.radioButton_UseCPU->isChecked())
+	  if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
 		  fout << "threading=" << "openmp" << std::endl;
-	  else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+	  } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
 		  fout << "threading=" << "cuda" << std::endl;
-	  else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+	  } else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
 		  fout << "threading=" << "opencl" << std::endl;
+}
 
 	  fout << "regularization_lambda=" << strListOption3.at(4).toDouble() << std::endl;
 
-	  if (strOptim.length() < 1)
+	  if (strOptim.length() < 1) {
 		fout << "metric=" << "mi" << std::endl;
-	  else
+	  } else {
 		fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
+}
 
 	  fout << "max_its=" << strListOption3.at(6).toInt() << std::endl;
 	  fout << "grid_spac=" << strListOption3.at(3).toInt() << " " << strListOption3.at(3).toInt() << " " << strListOption3.at(3).toInt() << std::endl;//20 20 20 --> minimum
@@ -1673,6 +1700,10 @@ void DlgRegistration::GenPlastiRegisterCommandFile(const QString& strPathCommand
 	}
 
 	break;
+  
+  case PLAST_AFFINE:
+	  std::cerr << "PLAST_AFFINE not implemented, please use gradient, rigid or bspline instead." << std::endl;
+	  break;
   }
 
   fout.close();
@@ -1684,87 +1715,106 @@ void DlgRegistration::AddImageToCombo(int comboIdx, enREGI_IMAGES option) //comb
   switch(option)
   {
   case REGISTER_RAW_CBCT:
-	if (m_pParent->m_spRawReconImg)
+	if (m_pParent->m_spRawReconImg != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("RAW_CBCT");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("RAW_CBCT");
+}
 	}
 	break;
   case REGISTER_REF_CT:
-	if (m_pParent->m_spRefCTImg)
+	if (m_pParent->m_spRefCTImg != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("REF_CT");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("REF_CT");
+}
 	}
 	break;
   case REGISTER_MANUAL_RIGID:
-	if (m_pParent->m_spManualRigidCT)
+	if (m_pParent->m_spManualRigidCT != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("MANUAL_RIGID_CT");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("MANUAL_RIGID_CT");
+}
 	}
 	break;
   case REGISTER_AUTO_RIGID:
-	if (m_pParent->m_spAutoRigidCT)
+	if (m_pParent->m_spAutoRigidCT != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("AUTO_RIGID_CT");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("AUTO_RIGID_CT");
+}
 	}
 	break;
   case  REGISTER_DEFORM1:
-	if (m_pParent->m_spDeformedCT1)
+	if (m_pParent->m_spDeformedCT1 != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("DEFORMED_CT1");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("DEFORMED_CT1");
+}
 	}
 	break;
   case  REGISTER_DEFORM2:
-	if (m_pParent->m_spDeformedCT2)
+	if (m_pParent->m_spDeformedCT2 != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("DEFORMED_CT2");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("DEFORMED_CT2");
+}
 	}
 	break;
   case  REGISTER_DEFORM3:
-	if (m_pParent->m_spDeformedCT3)
+	if (m_pParent->m_spDeformedCT3 != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("DEFORMED_CT3");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("DEFORMED_CT3");
+}
 	}
 	break;
 
   case  REGISTER_DEFORM_FINAL:
-	if (m_pParent->m_spDeformedCT_Final)
+	if (m_pParent->m_spDeformedCT_Final != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("DEFORMED_CT_FINAL");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("DEFORMED_CT_FINAL");
+}
 	}
 	break;
   case  REGISTER_COR_CBCT:
-	if (m_pParent->m_spScatCorrReconImg)
+	if (m_pParent->m_spScatCorrReconImg != nullptr)
 	{
-	  if (comboIdx == 0)
+	  if (comboIdx == 0) {
 		ui.comboBoxImgFixed->addItem("COR_CBCT");
-	  else if (comboIdx ==1)
+	  } else if (comboIdx ==1) {
 		ui.comboBoxImgMoving->addItem("COR_CBCT");
+}
 	}
 	break;
+  case  REGISTER_DEFORM_SKIP_AUTORIGID:
+	  if (m_pParent->m_spScatCorrReconImg != nullptr)
+	  {
+		  if (comboIdx == 0) {
+			  ui.comboBoxImgFixed->addItem("REGISTER_DEFORM_SKIP_AUTORIGID");
+		  } else if (comboIdx == 1) {
+			  ui.comboBoxImgMoving->addItem("REGISTER_DEFORM_SKIP_AUTORIGID");
+}
+	  }
+	  break;
   }
 }
 
@@ -1773,10 +1823,12 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage)
 {
   QComboBox* crntCombo;
 
-  if (idx  ==0)
+  if (idx  ==0) {
 	crntCombo = ui.comboBoxImgFixed;
-  if (idx  ==1)
+}
+  if (idx  ==1) {
 	crntCombo = ui.comboBoxImgMoving;
+}
 
 
   int findIndx = -1;
@@ -1808,6 +1860,9 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage)
 	   break;
 	 case  REGISTER_COR_CBCT:
 	   findIndx = crntCombo->findText("COR_CBCT");
+	   break;
+	 case  REGISTER_DEFORM_SKIP_AUTORIGID:
+	   findIndx = crntCombo->findText("REGISTER_DEFORM_SKIP_AUTORIGID");
 	   break;
   }
   //std::cout << "setCurrentIndx " << findIndx << std::endl;
@@ -1885,7 +1940,7 @@ void DlgRegistration::LoadImgFromComboBox(int idx, QString& strSelectedComboTxt)
 	spTmpImg = m_pParent->m_spScatCorrReconImg;
   }
 
-  if (!spTmpImg)
+  if (spTmpImg == nullptr)
   {
 	//std::cout << "Selected image is not ready: " << strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
 	return;
@@ -1912,40 +1967,50 @@ void DlgRegistration::UpdateListOfComboBox( int idx )
 {
   QComboBox* crntCombo;
 
-  if (idx == 0)
+  if (idx == 0) {
 	crntCombo = ui.comboBoxImgFixed;
-  else
+  } else {
 	crntCombo = ui.comboBoxImgMoving;
+}
 
   //remove all the list
   crntCombo->clear();
 
-  if (m_pParent->m_spRawReconImg)
+  if (m_pParent->m_spRawReconImg != nullptr) {
 	crntCombo->addItem("RAW_CBCT");
+}
 
-  if (m_pParent->m_spRefCTImg)
+  if (m_pParent->m_spRefCTImg != nullptr) {
 	crntCombo->addItem("REF_CT");
+}
 
-  if (m_pParent->m_spManualRigidCT)
+  if (m_pParent->m_spManualRigidCT != nullptr) {
 	crntCombo->addItem("MANUAL_RIGID_CT");
+}
 
-  if (m_pParent->m_spAutoRigidCT)
+  if (m_pParent->m_spAutoRigidCT != nullptr) {
 	crntCombo->addItem("AUTO_RIGID_CT");
+}
 
-  if (m_pParent->m_spDeformedCT1)
+  if (m_pParent->m_spDeformedCT1 != nullptr) {
 	crntCombo->addItem("DEFORMED_CT1");
+}
 
-  if (m_pParent->m_spDeformedCT2)
+  if (m_pParent->m_spDeformedCT2 != nullptr) {
 		crntCombo->addItem("DEFORMED_CT2");
+}
 
-  if (m_pParent->m_spDeformedCT3)
+  if (m_pParent->m_spDeformedCT3 != nullptr) {
 	  crntCombo->addItem("DEFORMED_CT3");
+}
 
-  if (m_pParent->m_spDeformedCT_Final)
+  if (m_pParent->m_spDeformedCT_Final != nullptr) {
 	crntCombo->addItem("DEFORMED_CT_FINAL");
+}
 
-  if (m_pParent->m_spScatCorrReconImg)
+  if (m_pParent->m_spScatCorrReconImg != nullptr) {
 	crntCombo->addItem("COR_CBCT");
+}
 }
 
 void DlgRegistration::SLT_RestoreMovingImg()
@@ -1958,8 +2023,9 @@ void DlgRegistration::SLT_RestoreMovingImg()
 
 void DlgRegistration::SLT_DoRegistrationDeform()
 {
- if (!m_spFixed || !m_spMoving)
+ if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
 	return;
+}
 
  bool bPrepareMaskOnly = false;
 
@@ -2102,8 +2168,9 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 
   std::map<std::string, Metric_parms>::iterator it;
   for (it = params->metric.begin(); it != params->metric.end(); ++it) {
-	  if (strncmp(it->first.c_str(), "0", 1) != 0)
+	  if (strncmp(it->first.c_str(), "0", 1) != 0) {
 		  std::cout << it->first.c_str() << std::endl;
+}
 	  strFixed = it->second.fixed_fn; // fn is just File Name!!
 	  strMoving = it->second.moving_fn;
   }
@@ -2246,7 +2313,7 @@ void DlgRegistration::SLT_DoRegistrationDeform()
 }
 
 void DlgRegistration::autoPreprocessCT() {
-	if (!m_spMoving || !m_spFixed) {
+	if ((m_spMoving == nullptr) || (m_spFixed == nullptr)) {
 		return;
 	}
 	if (m_spFixed->GetLargestPossibleRegion().GetSize()[0] != m_spMoving->GetLargestPossibleRegion().GetSize()[0] ||
@@ -2257,7 +2324,7 @@ void DlgRegistration::autoPreprocessCT() {
 		return;
 	}
 	unsigned short air_thresh = 1024 + ui.lineEditBkDetectCT->text().toInt();
-	typedef itk::BinaryThresholdImageFilter <UShortImageType, ShortImageType> threshFilterType;
+	using threshFilterType = itk::BinaryThresholdImageFilter <UShortImageType, ShortImageType>;
 	threshFilterType::Pointer threshFilter_CT = threshFilterType::New();
 	threshFilter_CT->SetInput(m_spMoving);
 
@@ -2274,7 +2341,7 @@ void DlgRegistration::autoPreprocessCT() {
 	threshFilter_CBCT->SetLowerThreshold(air_thresh); // -600 HU
 	//threshFilter_CBCT->Update();
 
-	typedef itk::SubtractImageFilter<ShortImageType, ShortImageType, ShortImageType> subFilterType;
+	using subFilterType = itk::SubtractImageFilter<ShortImageType, ShortImageType, ShortImageType>;
 	subFilterType::Pointer subFilter = subFilterType::New();
 	subFilter->SetInput1(threshFilter_CT->GetOutput());
 	subFilter->SetInput2(threshFilter_CBCT->GetOutput());
@@ -2363,8 +2430,9 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   /* Save output file */
   sb.img_out->save_image (strPathMskBubbleCT.toLocal8Bit().constData());
 
-  if (m_pParent->m_strPathRS.isEmpty())
+  if (m_pParent->m_strPathRS.isEmpty()) {
 	return false;
+}
   /* End of [1]Segment air region*/
 
   //plastimatch convert --input E:\PlastimatchData\DicomEg\OLD\RS.dcm --output-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all2.mha --output-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_all.txt --referenced-ct E:\PlastimatchData\DicomEg\OLD\CT
@@ -2409,8 +2477,9 @@ bool DlgRegistration::PreprocessCT() //CT preparation + CBCT preparation only, t
   /* [3]Read outputss-list.txt and leave skin only*/
   std::ifstream fin;
   fin.open(sslist_path_all.toLocal8Bit().constData(), std::ios::in);
-  if (fin.fail())
+  if (fin.fail()) {
 	return false;
+}
 
   char str[MAX_LINE_LENGTH];
 
@@ -2698,7 +2767,7 @@ void DlgRegistration::plm_mask_main(Mask_operation mask_option, QString& input_f
         return;
   }
 
-  UCharImageType::Pointer mask = itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), 0);
+  UCharImageType::Pointer mask = itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), nullptr);
 
   switch (img->m_type) {
 	case PLM_IMG_TYPE_ITK_UCHAR:
@@ -2731,7 +2800,7 @@ void DlgRegistration::plm_mask_main(Mask_operation mask_option, QString& input_f
   Plm_image_type output_type = PLM_IMG_TYPE_UNDEFINED; //default: comes from Mask_param header
 
   if (output_dicom) {
-      img->save_short_dicom(output_fn.toLocal8Bit().constData(), 0);
+      img->save_short_dicom(output_fn.toLocal8Bit().constData(), nullptr);
   } else {
 	if (output_type != 0) {
 	  img->convert (output_type);
@@ -2778,8 +2847,9 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
 
   //1) Move CT mask according to the manual shift
   //plastimatch synth-vf --fixed [msk_skin.mha] --output [xf_manual_trans.mha] --xf-trans "[origin diff (raw - regi)]"
-  if (!m_pParent->m_spManualRigidCT)
+  if (m_pParent->m_spManualRigidCT == nullptr) {
 	return;
+}
 
   //QString strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
   QString strPath_outputXF_manualTrans = m_strPathPlastimatch + "/xf_manual_trans.mha";
@@ -2881,8 +2951,9 @@ void DlgRegistration::ProcessCBCT_beforeAutoRigidRegi(QString& strPathRawCBCT, Q
 //called after the auto rigid regi. 1) accurate skin clipping 2) air bubble filling inside of the CBCT
 void DlgRegistration::ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString& strPath_mskSkinCT_manRegi, QString& strPathOutputCBCT, QString& strPathXFAutoRigid, bool bBubbleFilling, bool bPrepareMaskOnly)
 {
-  if (!m_pParent->m_spAutoRigidCT)
+  if (m_pParent->m_spAutoRigidCT == nullptr) {
 	return;
+}
 
   Warp_parms parms;
   Plm_file_format file_type;
@@ -3011,7 +3082,7 @@ void DlgRegistration::plm_synth_trans_xf( QString& strPath_fixed, QString& strPa
   sv_parms.translation[1] = transY;
   sv_parms.translation[2] = transZ;
 
-  FloatImageType::Pointer fixed = itk_image_load_float (strPath_fixed.toLocal8Bit().constData(), 0);
+  FloatImageType::Pointer fixed = itk_image_load_float (strPath_fixed.toLocal8Bit().constData(), nullptr);
   sv_parms.pih.set_from_itk_image (fixed);
 
   //Synthetic_vf_parms *sv_parms = &parms->sv_parms;
@@ -3080,21 +3151,23 @@ void DlgRegistration::initDlgRegistration( QString& strDCMUID )
 void DlgRegistration::SLT_PassFixedImgForAnalysis()
 {
   QString cur_fixed = ui.comboBoxImgFixed->currentText();
-  if (m_spFixed)
+  if (m_spFixed != nullptr) {
 	m_pParent->UpdateReconImage(m_spFixed, cur_fixed);
+}
 
 }
 
 void DlgRegistration::SLT_PassMovingImgForAnalysis()
 {
   QString cur_moving = ui.comboBoxImgMoving->currentText();
-  if (m_spMoving)
+  if (m_spMoving != nullptr) {
 	m_pParent->UpdateReconImage(m_spMoving, cur_moving);
+}
 }
 
 void DlgRegistration::PostSkinRemovingCBCT( UShortImageType::Pointer& spCBCT )
 {
-  if (!spCBCT)
+  if (spCBCT == nullptr)
   {
       std::cout << "Error! No CBCT image is available" << std::endl;
       return;
@@ -3216,7 +3289,7 @@ void DlgRegistration::SLT_DoLowerMaskIntensity()
 
 void DlgRegistration::ThermoMaskRemovingCBCT(UShortImageType::Pointer& spCBCTraw, UShortImageType::Pointer& spCBCTcor, int diffThreshold, int noTouchThreshold)
 {
-    if (!spCBCTraw || !spCBCTcor)
+    if ((spCBCTraw == nullptr) || (spCBCTcor == nullptr))
     {
         std::cout << "You need both raw and corr CBCT images" << std::endl;
         return;
@@ -3331,8 +3404,9 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   {
 	  std::cout << "margin has not been implemented yet. regarded as 0.0 in this version" << std::endl;
   }
-  if (!spImgUshort)
+  if (spImgUshort == nullptr) {
 	return;
+}
 
    /* Load RS file to make a Skin mask*/
   Warp_parms parms;
@@ -3379,8 +3453,9 @@ void DlgRegistration::CropSkinUsingRS( UShortImageType::Pointer& spImgUshort, QS
   /* [3]Read outputss-list.txt and leave skin only*/
   std::ifstream fin;
   fin.open(sslist_path_all.toLocal8Bit().constData(), std::ios::in);
-  if (fin.fail())
+  if (fin.fail()) {
 	return;
+}
 
   char str[MAX_LINE_LENGTH];
 
@@ -3507,11 +3582,13 @@ void DlgRegistration::SLT_ExchangeRawRef()
 
 void DlgRegistration::SLT_ManualMoveByDCMPlan()
 {
-    if (!m_spFixed || !m_spMoving)
+    if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
         return;
+}
 
-    if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
+    if ((m_pParent->m_spRefCTImg == nullptr) || (m_pParent->m_spManualRigidCT == nullptr)) {
         return;
+}
 
     if (m_pDcmStudyPlan == nullptr)
     {
@@ -3550,8 +3627,9 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
             std::cout << "Beam Gantry: " << curBeam->gantry_angle << ", Control point rate: " << curBeam->cplist[j]->meterset_rate << //control_pt_no <<
                 ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << std::endl;
 
-            if (i == 0 && j == 0)
+            if (i == 0 && j == 0) {
                 final_iso_pos = curBeam->cplist[j]->get_isocenter();
+}
         }
     }
     //VEC3D shiftVal;// = GetShiftValueFromGradientXForm(filePathXform, true); //true: inverse trans should be applied if CBCT was moving image //in mm
@@ -3577,7 +3655,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan()
 
 void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+    QString filePath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", nullptr, nullptr);
 
     if (filePath.length() < 1) {
         return;
@@ -3597,11 +3675,13 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen()
         std::cout << "isocenter was found: " << planIso.x << ", " << planIso.y << ", " << planIso.z << std::endl;
     }
 
-    if (!m_spFixed || !m_spMoving)
+    if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
         return;
+}
 
-    if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
+    if ((m_pParent->m_spRefCTImg == nullptr) || (m_pParent->m_spManualRigidCT == nullptr)) {
         return;
+}
 
     //ImageManualMoveOneShot(-iso_pos[0], -iso_pos[1], -iso_pos[2]);
     ImageManualMoveOneShot(planIso.x, planIso.y, planIso.z);
@@ -3626,14 +3706,14 @@ void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::
 	ImageCalculatorFilterType::Pointer imageCalculatorFilter = ImageCalculatorFilterType::New();
 	imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
 	imageCalculatorFilter->Compute();
-	double minVal = (double)(imageCalculatorFilter->GetMinimum());
-	double maxVal = (double)(imageCalculatorFilter->GetMaximum());
+	auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+	auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
 	//Min value is always 3024 --> outside the FOV
-	SHORT_PixelType outputMinVal = (SHORT_PixelType)(minVal - 1024);
-	SHORT_PixelType outputMaxVal = (SHORT_PixelType)(maxVal - 1024);
+	auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
+	auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
 
-	typedef itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType> RescaleFilterType;
+	using RescaleFilterType = itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
 	RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
 	spRescaleFilter->SetInput(thresholdFilter->GetOutput());
 	spRescaleFilter->SetOutputMinimum(outputMinVal);
@@ -3645,8 +3725,9 @@ void ConvertUshort2Short(UShortImageType::Pointer& spImgUshort, ShortImageType::
 
 QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir)
 {
-	if (!spImg)
+	if (spImg == nullptr) {
 		return "";
+}
 
 	ShortImageType::Pointer spShortImg;
 	ConvertUshort2Short(spImg, spShortImg);
@@ -3670,8 +3751,9 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer& spImg, QString& strPat
 
 QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString& strPatientID, QString& strPatientName, QString& strPathTargetDir)
 {
-	if (!spImg)
+	if (spImg == nullptr) {
 		return "";
+}
 
 	ShortImageType::Pointer spShortImg;
 	ConvertUshort2Short(spImg, spShortImg);
@@ -3687,7 +3769,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 			dirReNew.mkdir(".");
 		}
 	}
-	typedef itk::Image<USHORT_PixelType, 2> OutputImageType; //because dicom is one 2d image for each slice-file
+	using OutputImageType = itk::Image<USHORT_PixelType, 2>; //because dicom is one 2d image for each slice-file
 	using ImageIOType = itk::GDCMImageIO;
 	using NamesGeneratorType = itk::NumericSeriesFileNames;
 
@@ -3725,7 +3807,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 	namesGenerator->SetSeriesFormat(newDirPath.toStdString() + "/CT." + studyUID + ".%d.dcm");
 	
 
-	typedef itk::ImageSeriesWriter<ShortImageType, OutputImageType> SeriesWriterType;
+	using SeriesWriterType = itk::ImageSeriesWriter<ShortImageType, OutputImageType>;
 	SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
 	seriesWriter->SetInput(spShortImg);
 	seriesWriter->SetImageIO(gdcmIO);
@@ -3745,7 +3827,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer& spImg, QString
 	return newDirPath.toLocal8Bit().constData();
 }
 
-QString get_output_options(UShortImageType::Pointer m_spFixed){
+QString get_output_options(const UShortImageType::Pointer& m_spFixed){
 
 	QString str_fixedOrigin = QString("%1,%2,%3") // done per image because CT might be different from reconstructed CBCT
 		.arg(m_spFixed->GetOrigin()[0])
@@ -3779,9 +3861,10 @@ QString get_output_options(UShortImageType::Pointer m_spFixed){
 void DlgRegistration::SLT_Override()
 {
 	bool isFixed = false;
-	if (!ui.comboBox_imToOverride->currentText().compare(QString("Moving")))
+	if (ui.comboBox_imToOverride->currentText().compare(QString("Moving")) == 0) {
 		isFixed = true;
-	if ((isFixed && !m_spFixed) || (!isFixed && !m_spMoving)) {
+}
+	if ((isFixed && (m_spFixed == nullptr)) || (!isFixed && (m_spMoving == nullptr))) {
 		std::cout << "The image you try to override is not loaded!" << std::endl;
 		return;
 	}
@@ -3837,7 +3920,7 @@ void DlgRegistration::SLT_Override()
 	}
 
 	const int radius = ui.spinBox_overrideRadius->value();
-	const unsigned int value = static_cast<unsigned int>(ui.spinBox_overrideValue->value() + 1024);
+	const auto value = static_cast<unsigned int>(ui.spinBox_overrideValue->value() + 1024);
 	size_t i = 0;
 	UShortImageType::IndexType curIdx{};
 	for (int curRadiusX = -radius; curRadiusX <= radius; curRadiusX++) {
@@ -3868,31 +3951,33 @@ void DlgRegistration::SLT_Override()
 
 void DlgRegistration::SLT_gPMCrecalc()
 {
-	if (!m_spFixed)
+	if (m_spFixed == nullptr) {
 		return;
+}
     QString tmp_str = QString("tmp_");
     QString fix_str = QString("Fixed");
     QString mov_str = QString("Moving");
 	QString fixed_dcm_dir, moving_dcm_dir = "";
 	// Export fixed and moving as DCM
 	fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spFixed, tmp_str, fix_str, m_strPathPlastimatch);
-	if (m_spFixed != m_spMoving)
+	if (m_spFixed != m_spMoving) {
 		moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(m_spMoving, tmp_str, mov_str, m_strPathPlastimatch);
+}
 
 	QString plan_filepath = "";
 	// Load dcm rtplan.
 	if (ui.spinBox_NdcmPlans->value() == 1) {
 		plan_filepath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file", 
-			m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+			m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", nullptr, nullptr);
 	}
 	else
 	{
 		plan_filepath = QFileDialog::getOpenFileName(this, "Open DCMRT Plan file",
-			m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0);
+			m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", nullptr, nullptr);
 		for (size_t i = 1; i < ui.spinBox_NdcmPlans->value(); i++) {
 			plan_filepath = QString("%1,%2").arg(plan_filepath)
 				.arg(QFileDialog::getOpenFileName(this, "Open DCMRT Plan file",
-					m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", 0, 0));
+					m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)", nullptr, nullptr));
 		}
 	}
 
@@ -3911,8 +3996,9 @@ void DlgRegistration::SLT_gPMCrecalc()
 	gPMC_device = "cpu";
 #endif
 
-	if (m_pParent->ui.radioButton_UseCPU->isChecked())
+	if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
 		gPMC_device = "cpu";
+}
 
 	QString image_independent_string = QString(" --hardware %1 --plan \"%2\" -n %3 -b %4 --verbose")
 		.arg(gPMC_device)
@@ -3927,8 +4013,9 @@ void DlgRegistration::SLT_gPMCrecalc()
 		get_output_options(m_spFixed) +
 		image_independent_string;
 	// std::cout << gPMC_command_str.toStdString() << std::endl;
-	if (QProcess::execute(gPMC_command_str) < 0)
+	if (QProcess::execute(gPMC_command_str) < 0) {
 		qDebug() << "Failed to run (fixed mc recalc)";
+}
 
 	if (moving_dcm_dir != "")
 	{
@@ -3938,16 +4025,17 @@ void DlgRegistration::SLT_gPMCrecalc()
 			get_output_options(m_spMoving) +
 			image_independent_string;
 
-		if (QProcess::execute(gPMC_command_str) < 0)
+		if (QProcess::execute(gPMC_command_str) < 0) {
 			qDebug() << "Failed to run (moving mc recalc)";
+}
 	}
 	// Run gPMC externally ^
 
     // Translate gPMC output (preferably .mha) to ITK image
 	using ImageReaderType = itk::ImageFileReader<FloatImageType>;
 	using MinMaxFindType = itk::MinimumMaximumImageFilter<FloatImageType>;
-	typedef itk::MultiplyImageFilter<FloatImageType, FloatImageType> MultiplyImageFilterType;
-	typedef itk::CastImageFilter< FloatImageType, UShortImageType > CastFilterType;
+	using MultiplyImageFilterType = itk::MultiplyImageFilter<FloatImageType, FloatImageType>;
+	using CastFilterType = itk::CastImageFilter< FloatImageType, UShortImageType >;
 
 	QString fixedDosePath = fixed_dcm_dir + "/dose_fixed.mha";
 	QFileInfo finfofixedDosePath = QFileInfo(fixedDosePath);
@@ -3970,10 +4058,11 @@ void DlgRegistration::SLT_gPMCrecalc()
 		castFilter->Update();
 		m_spFixedDose = castFilter->GetOutput();
 
-		if (!m_spFixedDose)
+		if (m_spFixedDose == nullptr) {
 			std::cout << "Dose failed to load for fixed Image!!" << std::endl;
-		else
+		} else {
 			std::cout << "Dose loaded for fixed Image" << std::endl;
+}
 
 		UShortImageType::SizeType imgDim = m_spFixedDose->GetBufferedRegion().GetSize();
 		UShortImageType::SpacingType spacing = m_spFixedDose->GetSpacing();
@@ -4009,14 +4098,16 @@ void DlgRegistration::SLT_gPMCrecalc()
 	}
 	else
 	{
-		if (!m_spFixedDose.IsNull())
+		if (!m_spFixedDose.IsNull()) {
 			m_spMovingDose = m_spFixedDose;
+}
 	}
     // Display dose as colorwash on top of fixed and moving in all three plots
-	if (!m_spFixedDose && !m_spMovingDose)
+	if ((m_spFixedDose == nullptr) && (m_spMovingDose == nullptr)) {
 		dose_loaded = false;
-	else
+	} else {
 		dose_loaded = true;
+}
 
 	SLT_DrawImageWhenSliceChange();
 }
@@ -4024,11 +4115,13 @@ void DlgRegistration::SLT_gPMCrecalc()
 void DlgRegistration::SLT_DoRegistrationGradient()
 {
     //1) Save current image files
-    if (!m_spFixed || !m_spMoving)
+    if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
         return;
+}
 
-    if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
+    if ((m_pParent->m_spRefCTImg == nullptr) || (m_pParent->m_spManualRigidCT == nullptr)) {
         return;
+}
 
     std::cout << "1: writing temporary files" << std::endl;
 	ui.progressBar->setValue(5);
@@ -4116,7 +4209,7 @@ void DlgRegistration::SLT_DoRegistrationGradient()
 
 VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bInverse)
 {
-    VEC3D resVal;
+    VEC3D resVal{};
     resVal.x = 0.0;
     resVal.y = 0.0;
     resVal.z = 0.0;
@@ -4124,8 +4217,9 @@ VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bI
 	std::ifstream fin;
     fin.open(filePath.toLocal8Bit().constData());
 
-    if (fin.fail())
+    if (fin.fail()) {
         return resVal;
+}
 
     char str[MAX_LINE_LENGTH];
     //memset(str, 0, MAX_LINE_LENGTH);
@@ -4137,8 +4231,9 @@ VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bI
         fin.getline(str, MAX_LINE_LENGTH);
         tmpStr = QString(str);
 
-        if (tmpStr.contains("Parameters") && !tmpStr.contains("#"))
+        if (tmpStr.contains("Parameters") && !tmpStr.contains("#")) {
             break;
+}
     }
     QStringList strList = tmpStr.split(" ");
     if (strList.count() < 4)
@@ -4174,14 +4269,17 @@ VEC3D DlgRegistration::GetShiftValueFromGradientXForm(QString& filePath, bool bI
 
 void DlgRegistration::SLT_ConfirmManualRegistration()
 {
-    if (!m_spFixed || !m_spMoving)
+    if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
         return;
+}
 
-    if (!m_pParent->m_spRefCTImg || !m_pParent->m_spManualRigidCT)
+    if ((m_pParent->m_spRefCTImg == nullptr) || (m_pParent->m_spManualRigidCT == nullptr)) {
         return;
+}
 
-    if (ui.checkBoxKeyMoving->isChecked())
+    if (ui.checkBoxKeyMoving->isChecked()) {
         SLT_KeyMoving(false); // uncheck macro
+}
 
     //Apply post processing for raw CBCT image and generate
     std::cout << "Preprocessing for CBCT" << std::endl;
@@ -4224,7 +4322,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     if (finfoSkinFile1.exists())
     {
         strPathOriginalCTSkinMask = m_strPathCTSkin;
-        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
+        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, &fShift[0], bPrepareMaskOnly);
 
         if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
             filePathFixed_proc = filePathFixed;
@@ -4235,7 +4333,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration()
     {
         std::cout << "alternative skin file will be used" << std::endl;
         strPathOriginalCTSkinMask = strPathAlternateSkin;
-        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift, bPrepareMaskOnly);
+        ProcessCBCT_beforeAutoRigidRegi(filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, &fShift[0], bPrepareMaskOnly);
 
         if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
             filePathFixed_proc = filePathFixed;
@@ -4300,10 +4398,10 @@ void DlgRegistration::SLT_IntensityNormCBCT()
 
     //m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));
 
-    m_pParent->AddConstHU(m_spFixed, (int)(meanIntensityMov - meanIntensityFix));
+    m_pParent->AddConstHU(m_spFixed, static_cast<int>(meanIntensityMov - meanIntensityFix));
     //SLT_PassMovingImgForAnalysis();
 
-    std::cout << "Intensity shifting is done! Added value = " << (int)(meanIntensityMov - meanIntensityFix) << std::endl;
+    std::cout << "Intensity shifting is done! Added value = " << static_cast<int>(meanIntensityMov - meanIntensityFix) << std::endl;
     QString update_message = QString("Added_%1").arg(static_cast<int>(meanIntensityMov - meanIntensityFix));
     m_pParent->UpdateReconImage(m_spFixed, update_message);
     SelectComboExternal(0, REGISTER_RAW_CBCT);
@@ -4330,6 +4428,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     else
     {
         std::cout << "Found file is not RTPLAN. Skipping dcm plan." << std::endl;
+		delete pRTstudyRP;
         return resultPtDcm;
     }
     Rtplan::Pointer rtplan = pRTstudyRP->get_rtplan();
@@ -4337,6 +4436,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     if (!rtplan)
     {
         std::cout << "Error! no dcm plan is loaded" << std::endl;
+		delete pRTstudyRP;
         return resultPtDcm;
     }
 
@@ -4345,6 +4445,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     if (iCntBeam < 1)
     {
         std::cout << "Error! no beam is found" << std::endl;
+		delete pRTstudyRP;
         return resultPtDcm;
     }
 
@@ -4363,8 +4464,9 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
 			std::cout << "Beam Gantry: " << curBeam->gantry_angle << ", Control point rate: " << curBeam->cplist[j]->meterset_rate << //control_pt_no <<
                 ", Isocenter pos : " << cur_iso_pos[0] << "/" << cur_iso_pos[1] << "/" << cur_iso_pos[2] << std::endl;
 
-            if (i == 0 && j == 0) //choose first beam's isocenter
+            if (i == 0 && j == 0) { //choose first beam's isocenter
                 final_iso_pos = curBeam->cplist[j]->get_isocenter();
+}
         }
     }
     //VEC3D shiftVal;// = GetShiftValueFromGradientXForm(filePathXform, true); //true: inverse trans should be applied if CBCT was moving image //in mm
@@ -4372,6 +4474,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     if (final_iso_pos == nullptr)
     {
         std::cout << "Error!  No isocenter position was found. " << std::endl;
+		delete pRTstudyRP;
         return resultPtDcm;
     }
 
@@ -4379,5 +4482,6 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString& strFilePath)
     resultPtDcm.y = final_iso_pos[1];
     resultPtDcm.z = final_iso_pos[2];
 
+	delete pRTstudyRP;
     return resultPtDcm;
 }

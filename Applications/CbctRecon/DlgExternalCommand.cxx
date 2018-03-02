@@ -15,9 +15,9 @@ DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent)
 {
     /* Sets up the GUI */
     ui.setupUi (this);
-    m_pParent = (CbctRecon*)(parent);	
+    m_pParent = dynamic_cast<CbctRecon*>(parent);	
 
-	int len = BuildRTKCommandFilter();
+	//int len = BuildRTKCommandFilter();
 }
 
 DlgExternalCommand::~DlgExternalCommand()
@@ -109,16 +109,18 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 	//geometry
 	QString str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
 
-	if (str_mainGeometry.length() < 1)
+	if (str_mainGeometry.length() < 1) {
 		std::cout << "Command will not be valid. set geometry file path in the main UI first." << std::endl;
+}
 
 	QString str_mainHardware;
-	if (m_pParent->ui.radioButton_UseCPU->isChecked())
+	if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
 		str_mainHardware = "cpu";
-	else if (m_pParent->ui.radioButton_UseCUDA->isChecked())
+	} else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
 		str_mainHardware = "cuda";
-	else if (m_pParent->ui.radioButton_UseOpenCL->isChecked())
+	} else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
 		str_mainHardware = "opencl";
+}
 
 	//QString str_mainTruncation;
 	double f_mainTrunc = m_pParent->ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
@@ -302,16 +304,18 @@ void DlgExternalCommand::SLT_GenRTKCommand()
 void DlgExternalCommand::SLT_RunRTKCommand()
 {
 	QString strFinalExternalCommand = ui.plainTextRTKCommandLine->toPlainText();
-	if (QProcess::execute(strFinalExternalCommand) < 0)
+	if (QProcess::execute(strFinalExternalCommand) < 0) {
 		qDebug() << "Failed to run";
+}
 
 	std::cout << "External RTK reconstruction is done" << std::endl;
 	std::cout << "File is being loaded" << std::endl;
 
 	m_pParent->LoadExternalFloatImage(m_strRecentOutputPath, true); //true: conversion (float, direction
 	
-	if (m_pParent->ui.checkBox_PostMedianOn->isChecked())
+	if (m_pParent->ui.checkBox_PostMedianOn->isChecked()) {
 		m_pParent->MedianFilterByGUI();//applied to raw image
+}
 
 	m_pParent->FileExportByGUI();//applied to raw image
 }

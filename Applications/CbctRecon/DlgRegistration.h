@@ -200,7 +200,7 @@ public:
 
 
 public:
-	CbctRecon* m_pParent; //to pull 3D images
+	CbctRecon* m_pParent{}; //to pull 3D images
 	YK16GrayImage m_YKImgFixed[3]; //CBCT in this study
 	YK16GrayImage m_YKImgMoving[3]; //CBCT in this study
 	YK16GrayImage m_YKDisp[3]; //CBCT in this study

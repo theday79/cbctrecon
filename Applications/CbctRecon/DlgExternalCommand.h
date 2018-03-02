@@ -28,7 +28,7 @@ public:
 	
 	void SetRTKBinPath(QString& strDirPath);
 public: 
-    CbctRecon* m_pParent; //to pull 3D images 
+    CbctRecon* m_pParent{}; //to pull 3D images 
 	QString m_strDirRTKBin;
 
 	QStringList m_listRTKCommandFilter;
@@ -36,7 +36,7 @@ public:
 	QString m_strRecentOutputPath;
 
 private:
-    Ui::DlgExternalCommandClass ui;
+    Ui::DlgExternalCommandClass ui{};
 	
 };
 

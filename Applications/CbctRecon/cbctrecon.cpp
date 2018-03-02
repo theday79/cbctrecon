@@ -1791,7 +1791,7 @@ double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer& geomet
 {
 
 	using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, ImageType>;
-	FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
+	typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
 	FOVfilter->SetGeometry(geometry);
 	FOVfilter->SetProjectionsStack(ProjStack.GetPointer());
 	double x, z;
@@ -1806,7 +1806,7 @@ double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer& geomet
 template<typename T, typename ImageType>
 bool GetOutputResolutionFromFOV(typename T::SizeType& sizeOutput, typename T::SpacingType& spacing,
 	const rtk::ThreeDCircularProjectionGeometry::Pointer& geometry, const typename ImageType::Pointer& ProjStack,
-	const QString outputFilePath)
+	const QString& outputFilePath)
 {
 
 	QFileInfo outFileInfo(outputFilePath);
@@ -1814,7 +1814,7 @@ bool GetOutputResolutionFromFOV(typename T::SizeType& sizeOutput, typename T::Sp
 
 	if (outputFilePath.length() < 2 || !outFileDir.exists())
 	{
-		double radius = GetFOVRadius<typename ImageType>(geometry, ProjStack);
+		double radius = GetFOVRadius<ImageType>(geometry, ProjStack);
 		if (radius != -1.0) {
 			sizeOutput[0] = 512; // AP
 			sizeOutput[1] = 200; // SI
@@ -3580,11 +3580,11 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString& guessDir) {
 	return std::make_tuple(instaRecon, dcm_success);
 }
 
-void read_projections(rtk::ProjectionsReader< FloatImageType >::Pointer m_reader) {
+void read_projections(rtk::ProjectionsReader< FloatImageType >::Pointer& m_reader) {
 	m_reader->Update(); 
 }
 
-void read_bowtie_projection(rtk::ProjectionsReader< FloatImage2DType >::Pointer bowtiereader) {
+void read_bowtie_projection(rtk::ProjectionsReader< FloatImage2DType >::Pointer& bowtiereader) {
 	bowtiereader->Update();
 }
 

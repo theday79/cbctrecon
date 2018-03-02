@@ -533,7 +533,7 @@ bool AG17RGBAImage::CalcImageInfo_ROI()
 	
 	double pixel, sumPixel;
 
-	int npixels = m_iWidth*m_iWidth;
+	//int npixels = m_iWidth*m_iWidth;
 	nTotal = 0;
 	//minPixel = 4095;
 	minPixel = 65535;
@@ -1278,7 +1278,7 @@ void AG17RGBAImage::UpdateFromItkImage(UnsignedShortImageType::Pointer& spRefItk
 	}
 
 	UnsignedShortImageType::SizeType size = spRefItkImg->GetRequestedRegion().GetSize();
-	UnsignedShortImageType::SpacingType spacing = spRefItkImg->GetSpacing();
+	//UnsignedShortImageType::SpacingType spacing = spRefItkImg->GetSpacing();
 
 	m_iWidth = size[0];
 	m_iHeight = size[1];
@@ -1314,7 +1314,7 @@ void AG17RGBAImage::UpdateFromItkImageFloat(FloatImageType2D::Pointer& spRefItkI
 	}
 
 	FloatImageType2D::SizeType size = spRefItkImg->GetRequestedRegion().GetSize();
-	FloatImageType2D::SpacingType spacing = spRefItkImg->GetSpacing();
+	//FloatImageType2D::SpacingType spacing = spRefItkImg->GetSpacing();
 
 	m_iWidth = size[0];
 	m_iHeight = size[1];
