@@ -27,8 +27,7 @@
 #include <CL/cl.h>
 #endif
 
-namespace rtk
-{
+namespace rtk {
 
 /** \class OpenCLFDKBackProjectionImageFilter
  * \brief OpenCL version of FDK backprojection.
@@ -42,12 +41,12 @@ namespace rtk
  * \ingroup Projector OpenCLImageToImageFilter
  */
 
-class ITK_EXPORT OpenCLFDKBackProjectionImageFilter :
-  public FDKBackProjectionImageFilter< itk::Image<float,3>, itk::Image<float,3> >
-{
+class ITK_EXPORT OpenCLFDKBackProjectionImageFilter
+    : public FDKBackProjectionImageFilter<itk::Image<float, 3>,
+                                          itk::Image<float, 3>> {
 public:
   /** Standard class typedefs. */
-  using ImageType = itk::Image<float,3>;
+  using ImageType = itk::Image<float, 3>;
   using Self = OpenCLFDKBackProjectionImageFilter;
   using SuperClass = FDKBackProjectionImageFilter<ImageType, ImageType>;
   using Pointer = itk::SmartPointer<Self>;
@@ -76,17 +75,18 @@ protected:
   void GenerateData() override;
 
 public:
-  OpenCLFDKBackProjectionImageFilter(const Self&) = delete; //purposely not implemented
-  void operator=(const Self&) = delete;                     //purposely not implemented
+  OpenCLFDKBackProjectionImageFilter(const Self &) =
+      delete;                            // purposely not implemented
+  void operator=(const Self &) = delete; // purposely not implemented
 
 private:
-  cl_context       m_Context{};
+  cl_context m_Context{};
   cl_command_queue m_CommandQueue{};
-  cl_mem           m_DeviceMatrix{};
-  cl_mem           m_DeviceVolume{};
-  cl_mem           m_DeviceProjection{};
-  cl_program       m_Program{};
-  cl_kernel        m_Kernel{};
+  cl_mem m_DeviceMatrix{};
+  cl_mem m_DeviceVolume{};
+  cl_mem m_DeviceProjection{};
+  cl_program m_Program{};
+  cl_kernel m_Kernel{};
 };
 
 } // end namespace rtk

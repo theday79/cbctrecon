@@ -21,8 +21,7 @@
 #include "itkImageToImageFilter.h"
 //#include "itkOpenCLKernelManager.h"
 
-namespace itk
-{
+namespace itk {
 
 /** \class OpenCLImageToImageFilter
  *
@@ -36,16 +35,16 @@ namespace itk
  *
  * \ingroup ITKOpenCLCommon
  */
-template< class TInputImage, class TOutputImage, class TParentImageFilter =
-            ImageToImageFilter< TInputImage, TOutputImage > >
-class ITK_EXPORT OpenCLImageToImageFilter : public TParentImageFilter
-{
+template <class TInputImage, class TOutputImage,
+          class TParentImageFilter =
+              ImageToImageFilter<TInputImage, TOutputImage>>
+class ITK_EXPORT OpenCLImageToImageFilter : public TParentImageFilter {
 public:
   /** Standard class typedefs. */
-  typedef OpenCLImageToImageFilter     Self;
-  typedef TParentImageFilter         Superclass;
-  typedef SmartPointer< Self >       Pointer;
-  typedef SmartPointer< const Self > ConstPointer;
+  typedef OpenCLImageToImageFilter Self;
+  typedef TParentImageFilter Superclass;
+  typedef SmartPointer<Self> Pointer;
+  typedef SmartPointer<const Self> ConstPointer;
 
   itkNewMacro(Self);
 
@@ -53,22 +52,25 @@ public:
   itkTypeMacro(OpenCLImageToImageFilter, TParentImageFilter);
 
   /** Superclass typedefs. */
-  //typedef typename Superclass::DataObjectIdentifierType DataObjectIdentifierType;
+  // typedef typename Superclass::DataObjectIdentifierType
+  // DataObjectIdentifierType;
   typedef unsigned int DataObjectIdentifierType;
 
-  typedef typename Superclass::OutputImageRegionType    OutputImageRegionType;
-  typedef typename Superclass::OutputImagePixelType     OutputImagePixelType;
+  typedef typename Superclass::OutputImageRegionType OutputImageRegionType;
+  typedef typename Superclass::OutputImagePixelType OutputImagePixelType;
 
   /** Some convenient typedefs. */
-  typedef TInputImage                           InputImageType;
-  typedef typename InputImageType::Pointer      InputImagePointer;
+  typedef TInputImage InputImageType;
+  typedef typename InputImageType::Pointer InputImagePointer;
   typedef typename InputImageType::ConstPointer InputImageConstPointer;
-  typedef typename InputImageType::RegionType   InputImageRegionType;
-  typedef typename InputImageType::PixelType    InputImagePixelType;
+  typedef typename InputImageType::RegionType InputImageRegionType;
+  typedef typename InputImageType::PixelType InputImagePixelType;
 
   /** ImageDimension constants */
-  itkStaticConstMacro(InputImageDimension, unsigned int, TInputImage::ImageDimension);
-  itkStaticConstMacro(OutputImageDimension, unsigned int, TOutputImage::ImageDimension);
+  itkStaticConstMacro(InputImageDimension, unsigned int,
+                      TInputImage::ImageDimension);
+  itkStaticConstMacro(OutputImageDimension, unsigned int,
+                      TOutputImage::ImageDimension);
 
   // macro to set if OpenCL is used
   itkSetMacro(GPUEnabled, bool);
@@ -77,25 +79,25 @@ public:
 
   void GenerateData();
 
-  //virtual void GraftOutput(DataObject *output);
+  // virtual void GraftOutput(DataObject *output);
 
-  //virtual void GraftOutput(const DataObjectIdentifierType & key, DataObject *output);
+  // virtual void GraftOutput(const DataObjectIdentifierType & key, DataObject
+  // *output);
 
 protected:
   OpenCLImageToImageFilter();
   ~OpenCLImageToImageFilter();
 
-  virtual void PrintSelf(std::ostream & os, Indent indent) const;
+  virtual void PrintSelf(std::ostream &os, Indent indent) const;
 
-  virtual void GPUGenerateData() {
-  }
+  virtual void GPUGenerateData() {}
 
   // OpenCL kernel manager
   // typename OpenCLKernelManager::Pointer m_OpenCLKernelManager;
 
 private:
-  OpenCLImageToImageFilter(const Self &); //purposely not implemented
-  void operator=(const Self &);        //purposely not implemented
+  OpenCLImageToImageFilter(const Self &); // purposely not implemented
+  void operator=(const Self &);           // purposely not implemented
 
   bool m_GPUEnabled;
 };

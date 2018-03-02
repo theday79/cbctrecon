@@ -19,23 +19,25 @@
 #ifndef RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
 #define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
 
-namespace rtk
-{
+namespace rtk {
 
-OpenCLFDKConeBeamReconstructionFilter
-::OpenCLFDKConeBeamReconstructionFilter()
-{
+OpenCLFDKConeBeamReconstructionFilter ::
+    OpenCLFDKConeBeamReconstructionFilter() {
   // Create each filter which are specific for OpenCL
   m_BackProjectionFilter = BackProjectionFilterType::New();
 #if USE_CLFFT
-  m_WeightFilter = WeightFilterType::New(); // Not yet implemented in OpenCL due to heavy texture use in cuda version
+  m_WeightFilter = WeightFilterType::New(); // Not yet implemented in OpenCL due
+                                            // to heavy texture use in cuda
+                                            // version
   m_RampFilter = RampFilterType::New();
   m_WeightFilter->SetInput(m_ExtractFilter->GetOutput());
   m_RampFilter->SetInput(m_WeightFilter->GetOutput());
 #endif
   std::cout << "before getoutput" << std::endl;
-  //Permanent internal connections
-  m_BackProjectionFilter->SetInput( 1, m_RampFilter->GetOutput() ); // m_rampFilter is not performed yet at this point
+  // Permanent internal connections
+  m_BackProjectionFilter->SetInput(
+      1, m_RampFilter
+             ->GetOutput()); // m_rampFilter is not performed yet at this point
   std::cout << "after getoutput" << std::endl;
 
   // Default parameters
@@ -43,16 +45,15 @@ OpenCLFDKConeBeamReconstructionFilter
   m_BackProjectionFilter->SetTranspose(false);
 }
 
-void
-OpenCLFDKConeBeamReconstructionFilter
-::GenerateData()
-{
-  auto* openclbp = dynamic_cast<BackProjectionFilterType*>( m_BackProjectionFilter.GetPointer() );
+void OpenCLFDKConeBeamReconstructionFilter ::GenerateData() {
+  auto *openclbp = dynamic_cast<BackProjectionFilterType *>(
+      m_BackProjectionFilter.GetPointer());
 
   // Init GPU memory
   openclbp->InitDevice();
 #if USE_CLFFT
-  // Because the Cuda inplace filter takes care of inheritance in CUDreconstruction, we have to do it manually here
+  // Because the Cuda inplace filter takes care of inheritance in
+  // CUDreconstruction, we have to do it manually here
   this->Superclass::m_RampFilter = GetRampFilter();
 #endif
   // Run reconstruction

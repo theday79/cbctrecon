@@ -19,63 +19,63 @@
 #ifndef rtkOpenCLFFTRampImageFilter_h
 #define rtkOpenCLFFTRampImageFilter_h
 
-#include <itkConceptChecking.h>
 #include "rtkConfiguration.h"
 #include "rtkFFTRampImageFilter.h"
-#include "rtkOpenCLFFTConvolutionImageFilter.h"
 #include "rtkMacro.h"
+#include "rtkOpenCLFFTConvolutionImageFilter.h"
+#include <itkConceptChecking.h>
 
-namespace rtk
-{
+namespace rtk {
 
-	/** \class FFTRampImageFilter
-	 * \brief Implements the ramp image filter of the filtered backprojection algorithm.
-	 *
-	 * The filter code is based on FFTConvolutionImageFilter by Gaetan Lehmann
-	 * (see http://hdl.handle.net/10380/3154)
-	 *
-	 * \test rtkrampfiltertest.cxx
-	 *
-	 * \author Simon Rit
-	 *
-	 * \ingroup ImageToImageFilter
-	 */
+/** \class FFTRampImageFilter
+ * \brief Implements the ramp image filter of the filtered backprojection
+ * algorithm.
+ *
+ * The filter code is based on FFTConvolutionImageFilter by Gaetan Lehmann
+ * (see http://hdl.handle.net/10380/3154)
+ *
+ * \test rtkrampfiltertest.cxx
+ *
+ * \author Simon Rit
+ *
+ * \ingroup ImageToImageFilter
+ */
 
-	class OpenCLFFTRampImageFilter :
-		public OpenCLFFTConvolutionImageFilter< FFTRampImageFilter< itk::Image<float, 3>, itk::Image<float, 3>, float > >
-	{
-	public:
-		/** Standard class typedefs. */
-		typedef OpenCLFFTRampImageFilter                                  Self;
-		typedef FFTRampImageFilter<FloatImageType, FloatImageType, float> Superclass;
-		typedef itk::SmartPointer<Self>                                   Pointer;
-		typedef itk::SmartPointer<const Self>                             ConstPointer;
+class OpenCLFFTRampImageFilter
+    : public OpenCLFFTConvolutionImageFilter<FFTRampImageFilter<
+          itk::Image<float, 3>, itk::Image<float, 3>, float>> {
+public:
+  /** Standard class typedefs. */
+  typedef OpenCLFFTRampImageFilter Self;
+  typedef FFTRampImageFilter<FloatImageType, FloatImageType, float> Superclass;
+  typedef itk::SmartPointer<Self> Pointer;
+  typedef itk::SmartPointer<const Self> ConstPointer;
 
-		/** Standard New method. */
-		itkNewMacro(Self);
+  /** Standard New method. */
+  itkNewMacro(Self);
 
-		/** Runtime information support. */
-		itkTypeMacro(OpenCLFFTRampImageFilter, FFTRampImageFilter);
+  /** Runtime information support. */
+  itkTypeMacro(OpenCLFFTRampImageFilter, FFTRampImageFilter);
 
-	protected:
-		rtkcuda_EXPORT OpenCLFFTRampImageFilter() {}
-		~OpenCLFFTRampImageFilter(){}
-		
-		//virtual void GenerateInputRequestedRegion() ITK_OVERRIDE;
+protected:
+  rtkcuda_EXPORT OpenCLFFTRampImageFilter() {}
+  ~OpenCLFFTRampImageFilter() {}
 
-		/** Creates and return a pointer to one line of the ramp kernel in Fourier space.
-		 *  Used in generate data functions.  */
-		//void UpdateFFTConvolutionKernel(const SizeType size) ITK_OVERRIDE;
+  // virtual void GenerateInputRequestedRegion() ITK_OVERRIDE;
 
-	private:
-		OpenCLFFTRampImageFilter(const Self&); //purposely not implemented
-		void operator=(const Self&);     //purposely not implemented
-	}; // end of class
+  /** Creates and return a pointer to one line of the ramp kernel in Fourier
+   * space. Used in generate data functions.  */
+  // void UpdateFFTConvolutionKernel(const SizeType size) ITK_OVERRIDE;
+
+private:
+  OpenCLFFTRampImageFilter(const Self &); // purposely not implemented
+  void operator=(const Self &);           // purposely not implemented
+};                                        // end of class
 
 } // end namespace rtk
 
 //#ifndef ITK_MANUAL_INSTANTIATION
-//#include "rtkOpenCLFFTRampImageFilter.hxx" //do it the cuda way in convolution filter only
-//#endif
+//#include "rtkOpenCLFFTRampImageFilter.hxx" //do it the cuda way in convolution
+// filter only #endif
 
 #endif

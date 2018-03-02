@@ -35,15 +35,13 @@
  *
  * \ingroup Macro
  */
-#define OPENCL_CHECK_ERROR(cmd) \
-    { \
-    cl_int rc = cmd; \
-    if (rc != CL_SUCCESS) \
-      itkGenericExceptionMacro(<< "OPENCL ERROR with " \
-                               << #cmd \
-                               << ". Returned value is " \
-                               << rc); \
-    }
+#define OPENCL_CHECK_ERROR(cmd)                                                \
+  {                                                                            \
+    cl_int rc = cmd;                                                           \
+    if (rc != CL_SUCCESS)                                                      \
+      itkGenericExceptionMacro(<< "OPENCL ERROR with " << #cmd                 \
+                               << ". Returned value is " << rc);               \
+  }
 
 /** \brief Get the list of OpenCL compatible platforms
  *
@@ -67,7 +65,8 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform);
  *
  * \ingroup Functions
  */
-void CreateAndBuildOpenCLProgramFromSourceFile(std::string& fileName, const cl_context &context,
+void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
+                                               const cl_context &context,
                                                cl_program &program);
 
 #endif

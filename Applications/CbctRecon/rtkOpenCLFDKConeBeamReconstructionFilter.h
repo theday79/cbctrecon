@@ -20,22 +20,22 @@
 #define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_H
 
 #include "rtkFDKConeBeamReconstructionFilter.h"
-// #include "rtkOpenCLFDKWeightProjectionFilter.h" <- hard, because cpu is not bad and cuda is full of textures
+// #include "rtkOpenCLFDKWeightProjectionFilter.h" <- hard, because cpu is not
+// bad and cuda is full of textures
 #if USE_CLFFT
 #include "rtkOpenCLFFTRampImageFilter.h"
 #endif
 #include "rtkOpenCLFDKBackProjectionImageFilter.h"
 
-namespace rtk
-{
+namespace rtk {
 
 /** \class OpenCLFDKConeBeamReconstructionFilter
  * \brief Implements [Feldkamp, Davis, Kress, 1984] algorithm using OpenCL
  *
  * Replaces ramp and backprojection in FDKConeBeamReconstructionFilter with
  * - OpenCLFDKBackProjectionImageFilter.
- * Also take care to create the reconstructed volume on the GPU at the beginning and
- * transfers it at the end.
+ * Also take care to create the reconstructed volume on the GPU at the beginning
+ * and transfers it at the end.
  *
  * \test rtkfdktest.cxx
  *
@@ -43,18 +43,20 @@ namespace rtk
  *
  * \ingroup ReconstructionAlgorithm OpenCLImageToImageFilter
  */
-class ITK_EXPORT OpenCLFDKConeBeamReconstructionFilter :
-  public FDKConeBeamReconstructionFilter< itk::Image<float,3>, itk::Image<float,3>, float >
-{
+class ITK_EXPORT OpenCLFDKConeBeamReconstructionFilter
+    : public FDKConeBeamReconstructionFilter<itk::Image<float, 3>,
+                                             itk::Image<float, 3>, float> {
 public:
   /** Standard class typedefs. */
   using Self = OpenCLFDKConeBeamReconstructionFilter;
-  using Superclass = FDKConeBeamReconstructionFilter< itk::Image<float,3>, itk::Image<float,3>, float >;
+  using Superclass =
+      FDKConeBeamReconstructionFilter<itk::Image<float, 3>,
+                                      itk::Image<float, 3>, float>;
   using Pointer = itk::SmartPointer<Self>;
   using ConstPointer = itk::SmartPointer<const Self>;
 
   /** Typedefs of subfilters which have been implemented with OpenCL */
-  //typedef rtk::OpenCLFDKWeightProjectionFilter    WeightFilterType;
+  // typedef rtk::OpenCLFDKWeightProjectionFilter    WeightFilterType;
 #if USE_CLFFT
   using RampFilterType = rtk::OpenCLFFTRampImageFilter;
 #endif
@@ -73,18 +75,18 @@ public:
 
 protected:
   OpenCLFDKConeBeamReconstructionFilter();
-  ~OpenCLFDKConeBeamReconstructionFilter() override= default;
+  ~OpenCLFDKConeBeamReconstructionFilter() override = default;
 
   void GenerateData() override;
 
 #if USE_CLFFT
-  typename RampFilterType::Pointer    m_RampFilter;
+  typename RampFilterType::Pointer m_RampFilter;
 #endif
 
 public:
-  //purposely not implemented
-  OpenCLFDKConeBeamReconstructionFilter(const Self&) = delete;
-  void operator=(const Self&) = delete;
+  // purposely not implemented
+  OpenCLFDKConeBeamReconstructionFilter(const Self &) = delete;
+  void operator=(const Self &) = delete;
 }; // end of class
 
 } // end namespace rtk

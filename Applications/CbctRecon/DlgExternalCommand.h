@@ -7,37 +7,35 @@
 #include <QString>
 #include <QStringList>
 
+class DlgExternalCommand : public QDialog, public Ui::DlgExternalCommandClass {
+  Q_OBJECT
 
-class DlgExternalCommand : public QDialog,
-	public Ui::DlgExternalCommandClass
-{
-    Q_OBJECT
-
-public slots:  
-void SLT_SetRTKPath();
-void SLT_GenRTKCommand();
-void SLT_RunRTKCommand();
-void SLT_SetRTKPathManual();
+public slots:
+  void SLT_SetRTKPath();
+  void SLT_GenRTKCommand();
+  void SLT_RunRTKCommand();
+  void SLT_SetRTKPathManual();
 
 public:
-	DlgExternalCommand();
-	DlgExternalCommand(QWidget *parent);
-	~DlgExternalCommand() override;
+  DlgExternalCommand();
+  DlgExternalCommand(QWidget *parent);
+  ~DlgExternalCommand() override;
 
-	int BuildRTKCommandFilter(); //pull predefined command names that you want. From some preset option file
-	
-	void SetRTKBinPath(QString& strDirPath);
-public: 
-    CbctRecon* m_pParent{}; //to pull 3D images 
-	QString m_strDirRTKBin;
+  int BuildRTKCommandFilter(); // pull predefined command names that you want.
+                               // From some preset option file
 
-	QStringList m_listRTKCommandFilter;
+  void SetRTKBinPath(QString &strDirPath);
 
-	QString m_strRecentOutputPath;
+public:
+  CbctRecon *m_pParent{}; // to pull 3D images
+  QString m_strDirRTKBin;
+
+  QStringList m_listRTKCommandFilter;
+
+  QString m_strRecentOutputPath;
 
 private:
-    Ui::DlgExternalCommandClass ui{};
-	
+  Ui::DlgExternalCommandClass ui{};
 };
 
 #endif

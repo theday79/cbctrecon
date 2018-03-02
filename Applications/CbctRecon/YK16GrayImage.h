@@ -1,13 +1,12 @@
 #ifndef YK16GRAYIMAGE_H
 #define YK16GRAYIMAGE_H
 
-
-//v20130830 : his header buffer, itk compatible
+// v20130830 : his header buffer, itk compatible
 
 class QPixmap;
 class QLabel;
 class QPainter;
-//class QImage;
+// class QImage;
 
 #define DEFAULT_WINLEVEL_MID 10000
 #define DEFAULT_WINLEVEL_WIDTH 20000
@@ -19,25 +18,25 @@ class QPainter;
 #include <QVector>
 #include <vector>
 
-struct BADPIXELMAP{
-	int BadPixX;
-	int BadPixY;
-	int ReplPixX;
-	int ReplPixY;
+struct BADPIXELMAP {
+  int BadPixX;
+  int BadPixY;
+  int ReplPixX;
+  int ReplPixY;
 };
 
-enum enProfileDirection{
-	DIRECTION_HOR = 0,
-	DIRECTION_VER,	
+enum enProfileDirection {
+  DIRECTION_HOR = 0,
+  DIRECTION_VER,
 };
 
-enum enSplitOption{
-    PRI_LEFT_TOP = 0, //Primary Left Top
-    PRI_RIGHT_TOP, //Primary Left Top
-    PRI_LEFT,	
-    PRI_RIGHT,	
-    PRI_TOP,	
-    PRI_BOTTOM,	
+enum enSplitOption {
+  PRI_LEFT_TOP = 0, // Primary Left Top
+  PRI_RIGHT_TOP,    // Primary Left Top
+  PRI_LEFT,
+  PRI_RIGHT,
+  PRI_TOP,
+  PRI_BOTTOM,
 };
 
 using UnsignedShortImageType = itk::Image<unsigned short, 2>;
@@ -45,158 +44,167 @@ using FloatImageType2D = itk::Image<float, 2>;
 
 // using namespace std; please no
 
-class YK16GrayImage
-{	
+class YK16GrayImage {
 public:
-	YK16GrayImage();
-	YK16GrayImage(int width, int height);
-	~YK16GrayImage();
+  YK16GrayImage();
+  YK16GrayImage(int width, int height);
+  ~YK16GrayImage();
 
-	int m_iWidth;
-	int m_iHeight;
-	//added: 20140206
-	double m_fSpacingX; //[mm/px]
-	double m_fSpacingY;
+  int m_iWidth;
+  int m_iHeight;
+  // added: 20140206
+  double m_fSpacingX; //[mm/px]
+  double m_fSpacingY;
 
-	unsigned short* m_pData; // 0 - 65535
+  unsigned short *m_pData; // 0 - 65535
 
-	QPixmap* m_pPixmap; //Actually, no need!
-	QImage m_QImage;
-	//QPainter* m_pPainter;
+  QPixmap *m_pPixmap; // Actually, no need!
+  QImage m_QImage;
+  // QPainter* m_pPainter;
 
-	bool LoadRawImage(const char *filePath, int width, int height);
-	bool CopyFromBuffer(unsigned short* pImageBuf, int width, int height);
-	bool CloneImage(YK16GrayImage& other);
+  bool LoadRawImage(const char *filePath, int width, int height);
+  bool CopyFromBuffer(unsigned short *pImageBuf, int width, int height);
+  bool CloneImage(YK16GrayImage &other);
 
-	bool CreateImage(int width, int height, unsigned short usVal);
+  bool CreateImage(int width, int height, unsigned short usVal);
 
-	bool FillPixMap(int winMid, int winWidth);
-	bool FillPixMapMinMax(int winMin, int winMax); //0-65535 중 window level
+  bool FillPixMap(int winMid, int winWidth);
+  bool FillPixMapMinMax(int winMin, int winMax); // 0-65535 중 window level
 
-	bool FillPixMapDual(int winMid1, int winMid2,int winWidth1, int winWidth2);
-	bool FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1, int winMax2); //0-65535 중 window level
+  bool FillPixMapDual(int winMid1, int winMid2, int winWidth1, int winWidth2);
+  bool FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
+                            int winMax2); // 0-65535 중 window level
 
+  bool SaveDataAsRaw(const char *filePath);
+  // bool DrawToLabel(QLabel* lbDisplay);
 
+  bool IsEmpty();
+  bool ReleaseBuffer();
 
-	bool SaveDataAsRaw (const char *filePath);
-	//bool DrawToLabel(QLabel* lbDisplay);
+  // bool CalcImageInfo (double& meanVal, double& STDV, double& minVal, double&
+  // maxVal);
+  bool CalcImageInfo();
+  double CalcAveragePixelDiff(YK16GrayImage &other);
 
-	bool IsEmpty();
-	bool ReleaseBuffer();
+  // bool DoPixelReplacement(std::vector<BADPIXELMAP>& vPixelMapping); //based
+  // on pixel mapping information, some bad pixels will be replaced with median
+  // pixel value near by
 
-	//bool CalcImageInfo (double& meanVal, double& STDV, double& minVal, double& maxVal);
-	bool CalcImageInfo ();
-	double CalcAveragePixelDiff(YK16GrayImage& other);
+  static void CopyYKImage2ItkImage(YK16GrayImage *pYKImage,
+                                   UnsignedShortImageType::Pointer &spTarImage);
+  static void CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
+                                   YK16GrayImage *pYKImage);
 
-	// bool DoPixelReplacement(std::vector<BADPIXELMAP>& vPixelMapping); //based on pixel mapping information, some bad pixels will be replaced with median pixel value near by
+  QString m_strFilePath;
 
-	static void CopyYKImage2ItkImage(YK16GrayImage* pYKImage, UnsignedShortImageType::Pointer& spTarImage);
-	static void CopyItkImage2YKImage(UnsignedShortImageType::Pointer& spSrcImage, YK16GrayImage* pYKImage);
+  double m_fPixelMean;
+  double m_fPixelSD;
+  double m_fPixelMin;
+  double m_fPixelMax;
 
-	QString m_strFilePath;
+  static void Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB);
 
-	double m_fPixelMean;
-	double m_fPixelSD;
-	double m_fPixelMin;
-	double m_fPixelMax;
+  QRect m_rtROI;
+  bool setROI(int left, int top, int right,
+              int bottom); // if there is error, go to default: entire image
+  bool CalcImageInfo_ROI();
+  double m_fPixelMean_ROI;
+  double m_fPixelSD_ROI;
+  double m_fPixelMin_ROI;
+  double m_fPixelMax_ROI;
+  bool m_bDrawROI;
 
-	static void Swap(YK16GrayImage* pImgA, YK16GrayImage* pImgB);
+  void DrawROIOn(bool bROI_Draw); // only rectangle
 
-	QRect m_rtROI;
-	bool setROI(int left, int top, int right, int bottom); //if there is error, go to default: entire image
-	bool CalcImageInfo_ROI();
-	double m_fPixelMean_ROI;
-	double m_fPixelSD_ROI;
-	double m_fPixelMin_ROI;
-	double m_fPixelMax_ROI;
-	bool m_bDrawROI;
+  // Elekta CBCT recon
+  char *m_pElektaHisHeader;
+  void CopyHisHeader(const char *hisFilePath);
+  // bool SaveDataAsHis (const char *filePath);
+  bool SaveDataAsHis(const char *filePath, bool bInverse);
+  bool m_bShowInvert;
 
-	void DrawROIOn(bool bROI_Draw); //only rectangle
+  void MultiplyConstant(double multiplyFactor);
 
+  void SetSpacing(double spacingX, double spacingY) {
+    m_fSpacingX = spacingX;
+    m_fSpacingY = spacingY;
+  };
 
-	//Elekta CBCT recon
-	char* m_pElektaHisHeader;
-	void CopyHisHeader(const char *hisFilePath);
-	//bool SaveDataAsHis (const char *filePath);
-	bool SaveDataAsHis( const char *filePath, bool bInverse );
-	bool m_bShowInvert;
+  QPoint m_ptProfileProbe; // Mouse Clicked Position --> Data
+  bool m_bDrawProfileX;
+  bool m_bDrawProfileY;
 
-	void MultiplyConstant(double multiplyFactor);
+  QPoint m_ptFOVCenter; // data pos
+  int m_iFOVRadius;     // data pos (pixel)
+  bool m_bDrawFOVCircle;
 
-	void SetSpacing(double spacingX, double spacingY)
-	{
-		m_fSpacingX = spacingX;
-		m_fSpacingY = spacingY;
-	};
+  int m_iTableTopPos; // data pos
+  bool m_bDrawTableLine;
 
-	QPoint m_ptProfileProbe; //Mouse Clicked Position --> Data
-	bool m_bDrawProfileX;
-	bool m_bDrawProfileY;
+  QPoint m_ptCrosshair; // data position
+  bool m_bDrawCrosshair;
 
-	QPoint m_ptFOVCenter; // data pos
-	int m_iFOVRadius;//data pos (pixel)
-	bool m_bDrawFOVCircle;
+  ////ZOOM and PAN function. Using these information below, prepare the m_QImage
+  /// for displaying
+  // in qlabel in FillPixMap function
+  int m_iOffsetX; // for Pan function.. this is data based offset
+  int m_iOffsetY;
+  void SetOffset(int offsetX, int offsetY) {
+    m_iOffsetX = offsetX;
+    m_iOffsetY = offsetY;
+  }
+  double m_fZoom;
+  void SetZoom(double fZoom);
 
-	int m_iTableTopPos;//data pos
-	bool m_bDrawTableLine;
+  // SPLIT VIEW
+  QPoint m_ptSplitCenter; // Fixed image with Moving image. center is based on
+                          // dataPt.//Fixed Image: Left Top + Right Bottom,
+                          // Moving: Right Top + Left Bottom
+  int m_enSplitOption;
+  // This cetner is moved while Left Dragging //All split and crosshair are data
+  // point based!
+  void SetSplitOption(enSplitOption option) { m_enSplitOption = option; }
+  void SetSplitCenter(QPoint &ptSplitCenter); // From mouse event, data point
+  // void SetSplitCenter(int centerX, int centerY)
+  // {m_ptSplitCenter.setX(centerX); m_ptSplitCenter.setY(centerY);}//From mouse
+  // event, data point
+  bool ConstituteFromTwo(YK16GrayImage &YKImg1,
+                         YK16GrayImage &YKImg2); // YKImg1 and two should be in
+                                                 // exactly same dimension and
+                                                 // spacing
+  bool isPtInFirstImage(int dataX, int dataY);
 
-	QPoint m_ptCrosshair; //data position
-	bool m_bDrawCrosshair;
+  void SetProfileProbePos(int dataX, int dataY);
+  unsigned short GetProfileProbePixelVal();
+  void GetProfileData(int dataX, int dataY, QVector<double> &vTarget,
+                      enProfileDirection direction);
+  void GetProfileData(QVector<double> &vTarget, enProfileDirection direction);
 
+  void EditImage_Flip();
+  void EditImage_Mirror();
 
-	////ZOOM and PAN function. Using these information below, prepare the m_QImage for displaying 
-	//in qlabel in FillPixMap function
-	int m_iOffsetX; //for Pan function.. this is data based offset
-	int m_iOffsetY;
-	void SetOffset(int offsetX, int offsetY){m_iOffsetX = offsetX; m_iOffsetY = offsetY;}
-	double m_fZoom;
-	void SetZoom(double fZoom);
+  void MedianFilter(int iMedianSizeX, int iMedianSizeY);
 
+  double
+      m_fResampleFactor; // if it is not the 1.0, the data is already resampled.
 
-	//SPLIT VIEW
-	QPoint m_ptSplitCenter; //Fixed image with Moving image. center is based on dataPt.//Fixed Image: Left Top + Right Bottom, Moving: Right Top + Left Bottom        
-	int m_enSplitOption;
-	//This cetner is moved while Left Dragging //All split and crosshair are data point based!
-	void SetSplitOption(enSplitOption option) {m_enSplitOption = option;}
-	void SetSplitCenter(QPoint& ptSplitCenter);	//From mouse event, data point	
-	//void SetSplitCenter(int centerX, int centerY) {m_ptSplitCenter.setX(centerX); m_ptSplitCenter.setY(centerY);}//From mouse event, data point
-	bool ConstituteFromTwo(YK16GrayImage& YKImg1,YK16GrayImage& YKImg2); //YKImg1 and two should be in exactly same dimension and spacing
-	bool isPtInFirstImage(int dataX, int dataY);
+  UnsignedShortImageType::Pointer CloneItkImage();
+  void ResampleImage(double fResampleFactor);
 
-	void SetProfileProbePos(int dataX, int dataY);
-	unsigned short GetProfileProbePixelVal();	
-	void GetProfileData(int dataX, int dataY, QVector<double>& vTarget, enProfileDirection direction); 
-	void GetProfileData(QVector<double>& vTarget, enProfileDirection direction);
+  void UpdateFromItkImage(UnsignedShortImageType::Pointer &spRefItkImg);
+  void UpdateFromItkImageFloat(FloatImageType2D::Pointer &spRefItkImg);
 
-	void EditImage_Flip();
-	void EditImage_Mirror();
+  void InvertImage();
 
+  // will be added later
+  /*void EditImage_CW90();
+  void EditImage_CCW90();
+  void EditImage_Rotation(double angle);*/
 
-	void MedianFilter(int iMedianSizeX, int iMedianSizeY);
+  // should be implemented later
 
-	double m_fResampleFactor;//if it is not the 1.0, the data is already resampled.	
-
-	UnsignedShortImageType::Pointer CloneItkImage();
-	void ResampleImage(double fResampleFactor);
-
-	void UpdateFromItkImage(UnsignedShortImageType::Pointer& spRefItkImg);
-	void UpdateFromItkImageFloat(FloatImageType2D::Pointer& spRefItkImg);
-
-	void InvertImage();
-
-	//will be added later
-	/*void EditImage_CW90();
-	void EditImage_CCW90();
-	void EditImage_Rotation(double angle);*/
-
-
-        
-
-	//should be implemented later
-
-	//Flip
-	//mirror
-
+  // Flip
+  // mirror
 };
 
 #endif
