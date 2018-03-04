@@ -5,8 +5,11 @@
 #endif
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+
+#include <stdio.h>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -3626,6 +3629,7 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
   return std::make_tuple(instaRecon, dcm_success);
 }
 
+/*
 void read_projections(
     rtk::ProjectionsReader<FloatImageType>::Pointer &m_reader) {
   m_reader->Update();
@@ -3635,6 +3639,7 @@ void read_bowtie_projection(
     rtk::ProjectionsReader<FloatImage2DType>::Pointer &bowtiereader) {
   bowtiereader->Update();
 }
+*/
 
 void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
                                             // projection images
@@ -4056,7 +4061,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
   ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileNames(m_vSelectedFileNames);
   // TRY_AND_EXIT_ON_ITK_EXCEPTION(
-  std::thread calc_thread(read_projections, reader);
+  //std::thread calc_thread(read_projections, reader);
+  std::thread calc_thread([&reader](){reader->Update();});
   // calc_thread.detach();
 
   std::cout << "Reader detached from main thread" << std::endl;
@@ -4083,7 +4089,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
       std::vector<std::string> filepath;
       filepath.push_back(bowtiePath.toStdString());
       bowtiereader->SetFileNames(filepath);
-      std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
+      //std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
+      std::thread calc_thread_bowtie([&bowtiereader]{bowtiereader->Update();});
       answers = probeUser(guessDir.absolutePath());
       calc_thread_bowtie.join();
     } else {
@@ -4434,7 +4441,6 @@ void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
           double diffCur = fabs(tmpNominalValue - curVal);
           double diffNext = fabs(tmpNominalValue - nextVal);
 
-          latest_Idx = j;
 
           /*	if (diffCur <= diffNext)
                   {
@@ -4752,8 +4758,6 @@ CbctRecon::GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ,
   it.GoToBegin();
 
   int idxX, idxY, idxZ;
-  idxX = 0;
-  idxY = 0;
   idxZ = 0;
 
   while (!it.IsAtEnd()) {
@@ -4798,8 +4802,6 @@ double CbctRecon::GetValueFrom3DImageUshort(
   it.GoToBegin();
 
   int idxX, idxY, idxZ;
-  idxX = 0;
-  idxY = 0;
   idxZ = 0;
 
   while (!it.IsAtEnd()) {
@@ -6660,7 +6662,7 @@ void CbctRecon::DoBeamHardeningCorrection() {
   double poly3_d = 9.727e-01;*/
 
   std::cout << "Beam hardening corrF poly curve:" << poly3_a << "	"
-            << poly3_b << "	" << poly3_c << "	" << poly3_d
+            << poly3_b << "	" << poly3_c << "	" << poly3_d << "  " << poly3_e
             << std::endl;
 
   float *pImgBuffer = m_spProjImg3DFloat->GetBufferPointer();
@@ -8205,7 +8207,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
   FloatImageType::Pointer spResultProjImageFloat;
   // Euler Transformation for RTK's weird orientation
 
-  int iNumOfProjections = 0;
+  //int iNumOfProjections = 0;
 
   if (true) {
     // 0) CT image Transformation
@@ -8345,7 +8347,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     size[1] = m_spProjImg3DFloat->GetBufferedRegion()
                   .GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
     size[2] = spGeometry->GetGantryAngles().size();
-    iNumOfProjections = size[2];
+    //iNumOfProjections = size[2];
 
     // b) spacing
     spacing[0] = m_fProjSpacingX / m_fResampleF; // typical HIS file
@@ -8528,12 +8530,15 @@ void CbctRecon::SaveProjImageAsHIS(UShortImageType::Pointer &spProj3D,
     QString crntFileName = crntFileInfo.fileName();
     QString crntPath = strSavingFolder + "/" + crntFileName;
 
-    // fd = fopen(crntPath.toLocal8Bit().constData(), "wb");
+#ifdef WIN32
     if (fopen_s(&fd, crntPath.toLocal8Bit().constData(), "wb") == 0) {
       std::cerr << "Could not open file: " << crntPath.toLocal8Bit().constData()
-                << " for writing!" << std::endl;
+      << " for writing!" << std::endl;
       return;
     }
+#else
+    fd = fopen(crntPath.toLocal8Bit().constData(), "wb");
+#endif
     fwrite(it->m_pElektaHisHeader, 100, 1,
            fd); // this buffer only include header info
 
@@ -10863,15 +10868,8 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
 
   const std::string stdout_file = "WEPL_stdout.txt";
   const std::string stderr_file = "WEPL_stderr.txt";
-  /*
-  FILE *stream;
-  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
-          exit(-1);
-  FILE *stream_err;
-  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
-          exit(-1);
-          */
 
+#ifdef WIN32
   FILE *stream;
   if (freopen_s(&stream, stdout_file.c_str(), "w", stdout) == 0) {
     exit(-1);
@@ -10880,6 +10878,16 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
   if (freopen_s(&stream_err, stderr_file.c_str(), "w", stderr) == 0) {
     exit(-1);
   }
+#else
+  FILE *stream;
+  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL){
+    exit(-1);
+  }
+  FILE *stream_err;
+  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL){
+    exit(-1);
+  }
+#endif
 
   const std::array<double, 3> pixel_size = {{wepl_image->GetSpacing()[0],
                                              wepl_image->GetSpacing()[1],
@@ -10922,6 +10930,7 @@ for (int i = 0; i < sizeAngles; i++)
 
   // delete[] stArrWEPL;
 
+#ifdef WIN32
   errno_t err = freopen_s(&stream, "CON", "w", stdout);
   if (err == 0) {
     std::cerr << "Ran into an error: " << err << " upon changing stdout stream"
@@ -10933,6 +10942,16 @@ for (int i = 0; i < sizeAngles; i++)
     std::cerr << "Ran into an error: " << err << " upon changing stderr stream"
               << std::endl;
   }
+#else
+  stream = freopen("CON", "w", stdout);
+  if (stream == nullptr){
+    exit(-1);
+  }
+  stream_err = freopen("CON", "w", stderr);
+  if (stream_err == nullptr){
+    exit(-1);
+  }
+#endif
 }
 
 void CbctRecon::GetAngularWEPL_MultiPoint(
@@ -10990,15 +11009,8 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
 
   const std::string stdout_file = "WEPL_stdout.txt";
   const std::string stderr_file = "WEPL_stderr.txt";
-  /*
-  FILE *stream;
-  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL)
-          exit(-1);
-  FILE *stream_err;
-  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL)
-          exit(-1);
-  */
 
+#ifdef WIN32
   FILE *stream;
   if (freopen_s(&stream, stdout_file.c_str(), "w", stdout) == 0) {
     exit(-1);
@@ -11007,6 +11019,16 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
   if (freopen_s(&stream_err, stderr_file.c_str(), "w", stderr) == 0) {
     exit(-1);
   }
+#else
+  FILE *stream;
+  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL){
+    exit(-1);
+  }
+  FILE *stream_err;
+  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL){
+    exit(-1);
+  }
+#endif
 
 #pragma omp parallel for
   for (int p = 0; p < static_cast<int>(sizePOI); p++) {
@@ -11188,7 +11210,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
   delete[] stArrWEPL;
   */
   ct_vol->free();
-
+#ifdef WIN32
   errno_t err = freopen_s(&stream, "CON", "w", stdout);
   if (err == 0) {
     std::cerr << "Ran into an error: " << err << " upon changing stdout stream"
@@ -11200,6 +11222,21 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
     std::cerr << "Ran into an error: " << err << " upon changing stderr stream"
               << std::endl;
   }
+#else
+  stream = freopen("CON", "w", stdout);
+  if (stream == nullptr) {
+    std::cerr << "Ran into an error: upon changing stdout stream"
+    << std::endl;
+    return;
+  }
+  
+  stream_err = freopen("CON", "w", stderr);
+  if (stream_err == nullptr) {
+    std::cerr << "Ran into an error: upon changing stderr stream"
+    << std::endl;
+    return;
+  }
+#endif
 }
 
 void CbctRecon::SLT_GeneratePOIData() // it fills m_vPOI_DCM
@@ -12341,7 +12378,7 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP() {
       "[2] manual-aligned CT(dcm_plan), [3] DeformedCT_skipAutoRigid",
       QLineEdit::Normal, "0", &ok);
 
-  enREGI_IMAGES enRegImg;
+  enREGI_IMAGES enRegImg = REGISTER_DEFORM_FINAL;
 
   if (ok && !text.isEmpty()) {
     int iRefImgVal = text.toInt();
@@ -12354,8 +12391,8 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP() {
       enRegImg = REGISTER_MANUAL_RIGID;
     } else if (iRefImgVal == 3) {
       enRegImg = REGISTER_DEFORM_SKIP_AUTORIGID;
-    } else {
-      enRegImg = REGISTER_DEFORM_FINAL;
+    //} else {
+    //  enRegImg = REGISTER_DEFORM_FINAL; <- initialized value
     }
   }
 
@@ -12898,12 +12935,6 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer &spImg,
   it.GoToBegin();
 
   iNumSlice = 0;
-  iPosX = 0;
-  iPosY = 0;
-
-  crntPhysX = 0.0;
-  crntPhysY = 0.0;
-  crntPhysZ = 0.0;
 
   while (!it.IsAtEnd()) {
     iPosY = 0;
@@ -14260,11 +14291,20 @@ bool SaveDoseGrayImage(
 
   FILE *fd = nullptr;
 
+#ifdef WIN32
   if (fopen_s(&fd, filePath, "wb") == 0) {
     std::cerr << "Could not open file: " << filePath << " for writing!"
               << std::endl;
     return false;
   }
+#else
+  fd = fopen(filePath, "wb");
+  if (fd == nullptr) {
+    std::cerr << "Could not open file: " << filePath << " for writing!"
+    << std::endl;
+    return false;
+  }
+#endif
 
   long MarkerUpper;
   long MarkerLower;
@@ -14388,7 +14428,6 @@ bool SaveDoseGrayImage(
     // dataVal이 초기값이면 insert 안함
   }
   if (m_rXResol.a != 0) {
-    offsetX = 0;
     offsetX = 8 + 2 + (12 * IFDSize) + 4;
 
     TIFIFD tififd_tmp{};
@@ -14399,7 +14438,6 @@ bool SaveDoseGrayImage(
     IFDarr.push_back(tififd_tmp);      // dataVal이 초기값이면 insert 안함
   }
   if (m_rYResol.a != 0) {
-    offsetY = 0;
     offsetY = 8 + 2 + (12 * IFDSize) + 4 + 8;
 
     TIFIFD tififd_tmp{};
@@ -14413,7 +14451,6 @@ bool SaveDoseGrayImage(
   // IFDSize 단위 데이터 몇개인지 나타냄
   // 20111226추가 //center를 표시
   if (m_rXPos.a != 0) {
-    offsetX = 0;
     offsetX = 8 + 2 + (12 * IFDSize) + 4 + 8 + 8;
 
     TIFIFD tififd_tmp{};
@@ -14424,7 +14461,6 @@ bool SaveDoseGrayImage(
     IFDarr.push_back(tififd_tmp);      // dataVal이 초기값이면 insert 안함
   }
   if (m_rYPos.a != 0) {
-    offsetY = 0;
     offsetY = 8 + 2 + (12 * IFDSize) + 4 + 8 + 8 + 8;
 
     TIFIFD tififd_tmp{};

@@ -753,7 +753,7 @@ bool YK16GrayImage::CalcImageInfo_ROI() {
 
   double pixel, sumPixel;
 
-  int npixels = m_iWidth * m_iWidth;
+  //int npixels = m_iWidth * m_iWidth;
   nTotal = 0;
   // minPixel = 4095;
   minPixel = 65535;
@@ -1542,7 +1542,7 @@ void YK16GrayImage::UpdateFromItkImage(
 
   UnsignedShortImageType::SizeType size =
       spRefItkImg->GetRequestedRegion().GetSize();
-  UnsignedShortImageType::SpacingType spacing = spRefItkImg->GetSpacing();
+  //UnsignedShortImageType::SpacingType spacing = spRefItkImg->GetSpacing();
 
   m_iWidth = size[0];
   m_iHeight = size[1];
@@ -1574,7 +1574,7 @@ void YK16GrayImage::UpdateFromItkImageFloat(
   }
 
   FloatImageType2D::SizeType size = spRefItkImg->GetRequestedRegion().GetSize();
-  FloatImageType2D::SpacingType spacing = spRefItkImg->GetSpacing();
+  //FloatImageType2D::SpacingType spacing = spRefItkImg->GetSpacing();
 
   m_iWidth = size[0];
   m_iHeight = size[1];

@@ -7793,7 +7793,7 @@ void QCustomPlot::mouseDoubleClickEvent(QMouseEvent *event)
     if (selectTestTitle(event->pos()))
     {
       emit titleDoubleClick(event);
-      foundHit = true;
+      //foundHit = true;
     }
   }
 }
@@ -7918,27 +7918,27 @@ void QCustomPlot::mouseReleaseEvent(QMouseEvent *event)
       // Mouse selection of legend:
       if (mInteractions.testFlag(iSelectLegend)) {
         selectionFound |= legend->handleLegendSelection(event, additiveSelection, emitChangedSignal);
-}
+      }
       // Mouse selection of plottables:
       if (mInteractions.testFlag(iSelectPlottables)) {
         selectionFound |= handlePlottableSelection((!selectionFound || additiveSelection) ? event : nullptr, additiveSelection, emitChangedSignal);
-}
+      }
       // Mouse selection of items:
       if (mInteractions.testFlag(iSelectItems)) {
         selectionFound |= handleItemSelection((!selectionFound || additiveSelection) ? event : nullptr, additiveSelection, emitChangedSignal);
-}
+      }
       // Mouse selection of axes:
       if (mInteractions.testFlag(iSelectAxes)) {
         selectionFound |= handleAxisSelection((!selectionFound || additiveSelection) ? event : nullptr, additiveSelection, emitChangedSignal);
-}
+      }
       // Mouse selection of title:
       if (mInteractions.testFlag(iSelectTitle)) {
         selectionFound |= handleTitleSelection((!selectionFound || additiveSelection) ? event : nullptr, additiveSelection, emitChangedSignal);
-}
+      }
       
       if (emitChangedSignal) {
         emit selectionChangedByUser();
-}
+      }
       doReplot = true;
     }
     
@@ -7992,7 +7992,7 @@ void QCustomPlot::mouseReleaseEvent(QMouseEvent *event)
       if (selectTestTitle(event->pos()))
       {
         emit titleClick(event);
-        foundHit = true;
+        //foundHit = true;
       }
     }
   } // was a click end

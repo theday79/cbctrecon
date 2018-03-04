@@ -123,13 +123,13 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
 
   double VH_ratio = 0.0; // if horizontal is longer than vertical
 
-  bool bHorLonger = false;
+  //bool bHorLonger = false;
 
   double physHor = 0.0;
   double physVer = 0.0;
 
-  int labelNewFixedWidth = 0;
-  int labelNewFixedHeight = 0;
+  //int labelNewFixedWidth = 0;
+  //int labelNewFixedHeight = 0;
 
   if (m_pYK16Image->m_fSpacingX * m_pYK16Image->m_fSpacingY == 0) {
     physHor = (double)m_pYK16Image->m_iWidth;
@@ -142,11 +142,11 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   VH_ratio = physVer / physHor;
 
   if (physHor > physVer) {
-    bHorLonger = true;
+    //bHorLonger = true;
     int newFixedHeight = qRound(this->width() * VH_ratio);
     this->setFixedHeight(newFixedHeight);
   } else {
-    bHorLonger = false;
+    //bHorLonger = false;
     int newFixedWidth = qRound(this->height() / VH_ratio);
     this->setFixedWidth(newFixedWidth);
   }
@@ -233,10 +233,10 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
     painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
     // QPoint crosshair;
 
-    int dispCrossX = (int)(m_pYK16Image->m_ptCrosshair.x() /
-                           (double)m_pYK16Image->m_iWidth * this->width());
-    int dispCrossY = (int)(m_pYK16Image->m_ptCrosshair.y() /
-                           (double)m_pYK16Image->m_iHeight * this->height());
+    //int dispCrossX = (int)(m_pYK16Image->m_ptCrosshair.x() /
+    //                       (double)m_pYK16Image->m_iWidth * this->width());
+    //int dispCrossY = (int)(m_pYK16Image->m_ptCrosshair.y() /
+    //                       (double)m_pYK16Image->m_iHeight * this->height());
 
     QPoint ptDispCrosshair = GetViewPtFromDataPt(
         m_pYK16Image->m_ptCrosshair.x(), m_pYK16Image->m_ptCrosshair.y());

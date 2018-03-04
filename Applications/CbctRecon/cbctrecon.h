@@ -43,6 +43,9 @@
 #include <rtkFieldOfViewImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
+#include <rtkForwardProjectionImageFilter.h>
+#include <rtkJosephForwardProjectionImageFilter.h>
+#include <rtkRayCastInterpolatorForwardProjectionImageFilter.h>
 
 #if USE_CUDA
 #include "rtkCudaFDKConeBeamReconstructionFilter.h"
@@ -57,6 +60,7 @@
 
 // ITK includes
 #include "itkAbsImageFilter.h"
+#include "itkAddImageFilter.h"
 #include "itkBinaryBallStructuringElement.h"
 #include "itkBinaryDilateImageFilter.h"
 #include "itkBinaryErodeImageFilter.h"
@@ -79,6 +83,7 @@
 #include <itkRescaleIntensityImageFilter.h>
 #include <itkSmoothingRecursiveGaussianImageFilter.h>
 #include <itkStreamingImageFilter.h>
+#include <itkStatisticsImageFilter.h>
 
 #ifdef LOWPASS_FFT
 // ITK Low-pass fourier filter

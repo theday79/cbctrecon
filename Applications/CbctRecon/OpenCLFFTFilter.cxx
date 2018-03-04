@@ -35,6 +35,10 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
               << "Changing to CPU mode..." << std::endl;
     err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, nullptr);
   }
+  if (err != CL_SUCCESS) {
+    std::cout << "Could not retrieve OpenCL device info, error code: " << err
+    << std::endl;
+  }
 
   return std::make_tuple(platform, device);
 }
