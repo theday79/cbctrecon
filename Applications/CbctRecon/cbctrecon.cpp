@@ -224,15 +224,16 @@ void CbctRecon::ReleaseMemory() {
   }
 }
 void CbctRecon::SLT_LoadRawImages() {
-  if (ximIsUsed) {
-    LoadRawXimImages();
-  } else if (hisIsUsed) {
-    LoadRawHisImages();
-  } else {
-    LoadRawHndImages();
-  }
+  //if (ximIsUsed) {
+  //  LoadRawXimImages();
+  //} else if (hisIsUsed) {
+  LoadRawHisImages();
+  //} else {
+  //  LoadRawHndImages();
+  //}
 }
 
+/* //Comment out hnd and xim specific code, because it's uneccessary
 // Function for independent projection his images
 void CbctRecon::LoadRawHndImages() {
   // QStringList files = QFileDialog::getOpenFileNames(this,"Select one or more
@@ -357,6 +358,7 @@ void CbctRecon::LoadRawXimImages() {
   SLT_DrawRawImages(); // Change FileName as well.. read spinbox value and draw
                        // image
 }
+*/ //Comment out hnd and xim specific code, because it's uneccessary
 
 // Function for independent projection his images
 void CbctRecon::LoadRawHisImages() {
@@ -366,9 +368,14 @@ void CbctRecon::LoadRawHisImages() {
 
   QStringList files = QFileDialog::getOpenFileNames(
       this, "Select one or more files to open", m_strPathDirDefault,
-      "projection images (*.his)");
+      "projection images (*.his,*.hnd,*.xim)");
 
   m_iImgCnt = files.size();
+  std::vector<std::string> fileVector;
+
+  for (auto &cur_file : files) {
+    fileVector.push_back(cur_file.toStdString());
+  }
 
   if (m_iImgCnt < 1) {
     return;
@@ -377,22 +384,28 @@ void CbctRecon::LoadRawHisImages() {
   ReleaseMemory();
 
   m_arrYKImage.resize(m_iImgCnt);
+  using ReaderType = rtk::ProjectionsReader<FloatImageType>;
+  //using readerType = rtk::HisImageIO;
+  ReaderType::Pointer reader = ReaderType::New();
+  reader->SetFileNames(fileVector);
+  reader->UpdateOutputInformation();
+  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
+  CastFilterType::Pointer castFilter = CastFilterType::New();
+  castFilter->SetInput(reader->GetOutput());
+  castFilter->Update();
 
-  using readerType = rtk::HisImageIO;
-  readerType::Pointer reader = readerType::New();
+  int width = castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0];  // width
+  int height = castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[1]; // height
+  int sizePix = width * height; // reader->GetImageSizeInPixels();
+  int sizeBuf = sizePix * sizeof(FloatImageType::PixelType); // reader->GetImageSizeInBytes();
+  int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
 
   size_t index = 0;
   for (auto &it : m_arrYKImage) {
-    const QString &strFile = files.at(index++);
-
-    reader->SetFileName(strFile.toLocal8Bit().constData());
-    reader->ReadImageInformation();
-
-    int width = reader->GetDimensions(0);  // width
-    int height = reader->GetDimensions(1); // height
-    int sizePix = reader->GetImageSizeInPixels();
-    int sizeBuf = reader->GetImageSizeInBytes();
-    int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
+    const QString &strFile = files.at(index);
+    // Heavily changed to hopefully allow RTK to use shared libs. 09/03/2018 by AGA
+    //reader->SetFileName(strFile.toLocal8Bit().constData());
+    //reader->ReadImageInformation();
 
     if (bytesPerPix != 2) {
       break;
@@ -400,11 +413,14 @@ void CbctRecon::LoadRawHisImages() {
 
     it.CreateImage(width, height, 0);
 
-    reader->Read(it.m_pData);
+    //reader->Read(it.m_pData);
+    it.m_pData = &castFilter->GetOutput()->GetBufferPointer()[sizePix * index];
 
     it.m_strFilePath = strFile;
     // Copy his header - 100 bytes
     it.CopyHisHeader(strFile.toLocal8Bit().constData());
+
+    index++;
   }
 
   m_multiplyFactor = 1.0;
@@ -459,71 +475,6 @@ void CbctRecon::SLT_LoadImageFloat3D() // Dose image for JPhillips
   reader->SetFileName(fileName.toLocal8Bit().constData());
   reader->Update();
 
-  // YK TEMP 20140507 //
-  // Make a mask
-  // Get information to create a mask image that has different resolution
-  // double spacing_mm = 0.5; //used for x,y,z alike
-  // QInputDialog inputDlg;
-
-  // bool ok;
-  // QString text = QInputDialog::getText(this, "Input Dialog","mask resolution
-  // in mm, same for all 3D", QLineEdit::Normal, "mask resolution", &ok);
-
-  // if (ok && !text.isEmpty())
-  //	spacing_mm = text.toLocal8Bit().toDouble();
-  ////typedef itk::Image< float, 3 > ImageType;
-
-  // FloatImageType::Pointer img1 = FloatImageType::New();
-  //
-  ////start index: What is the index of Left Top Inferior corner in DICOM
-  /// coordinate?
-  //
-  // FloatImageType::SizeType oldSize =
-  // reader->GetOutput()->GetBufferedRegion().GetSize();
-  // FloatImageType::SpacingType oldSpacing = reader->GetOutput()->GetSpacing();
-
-  // FloatImageType::SizeType size1;
-  // size1[0] = (double)oldSize[0]*(double)oldSpacing[0] / spacing_mm; // X -->
-  // determines sagittal slice num  size1[1] =
-  // (double)oldSize[1]*(double)oldSpacing[1] / spacing_mm;  size1[2] =
-  // (double)oldSize[2]*(double)oldSpacing[2] / spacing_mm;
-
-  ////std::cout << "mask size = " << size1 << std::endl;
-
-  // FloatImageType::IndexType idxStart; //always should be 0 -->want to shift
-  // center? Use Origin  idxStart[0] = 0;  idxStart[1] = 0;  idxStart[2] = 0;
-
-  // FloatImageType::SpacingType spacing1;
-  // spacing1[0] = spacing_mm;
-  // spacing1[1] = spacing_mm;
-  // spacing1[2] = spacing_mm;
-
-  ////std::cout << "mask spacing = " << spacing1 << std::endl;
-
-  // FloatImageType::PointType origin1; //Top Left Inferior most position
-
-  // Unit of Origin: mm
-  // origin1 = reader->GetOutput()->GetOrigin();
-  //
-  // FloatImageType::RegionType region1;
-  // region1.SetSize(size1);
-  // region1.SetIndex(idxStart);
-  //
-  // img1->SetRegions(region1);
-  // img1->SetSpacing(spacing1);
-  // img1->SetOrigin(origin1);
-
-  // img1->Allocate();
-  // img1->FillBuffer(0);
-
-  // typedef itk::ImageFileWriter<FloatImageType> WriterType;
-  // WriterType::Pointer writer = WriterType::New();
-  // writer->SetFileName("E:\\floatImgMask.mha");
-  // writer->SetUseCompression(true);
-  // writer->SetInput(img1);
-  //
-  // writer->Update();
-  ////YK TEMP 20140507 END//
 
   // Multiply: Gy to mGy
   using MultiplyImageFilterType =

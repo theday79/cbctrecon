@@ -26,15 +26,16 @@
 #include "itk_image_type.h"
 
 // RTK includes
-#include <rtkWin32Header.h> // defines dllimport export based on BUILD_SHARED_LIBS
+// #include <rtkWin32Header.h> // defines dllimport export based on BUILD_SHARED_LIBS
 #include <rtkElektaSynergyGeometryReader.h>
-#include <rtkHisImageIO.h>
-#include <rtkHndImageIO.h>
+//#include <rtkHisImageIO.h>
+//#include <rtkHndImageIO.h>
+#include <rtkProjectionsReader.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkVarianObiGeometryReader.h>
 #include <rtkVarianProBeamGeometryReader.h>
-#include <rtkXimImageIO.h>
+//#include <rtkXimImageIO.h>
 
 #include <rtkConfiguration.h>
 #include <rtkConstantImageSource.h>

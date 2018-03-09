@@ -271,17 +271,20 @@ file(MAKE_DIRECTORY bin) # ${CMAKE_CURRENT_BINARY_DIR}/../bin
 file(MAKE_DIRECTORY lut) # ${CMAKE_CURRENT_BINARY_DIR}/../lut
 
 if(WIN32)
-add_custom_command(
-  TARGET CbctRecon POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#add_custom_command(
+#  TARGET CbctRecon POST_BUILD
+#  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  set(QT_DLLS
     $<TARGET_FILE:Qt5::Widgets>
     $<TARGET_FILE:Qt5::Gui>
     $<TARGET_FILE:Qt5::OpenGL>
     $<TARGET_FILE:Qt5::Core>
     $<TARGET_FILE:Qt5::PrintSupport>
-    ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl
-    ${CMAKE_CURRENT_BINARY_DIR}/../bin
-)
+  )
+#    ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl
+#    ${CMAKE_CURRENT_BINARY_DIR}/../bin
+#)
+  install(FILES ${QT_DLLS} DESTINATION bin)
 elseif(UNIX)
   foreach(target ${QT_LIBRARIES})
     get_target_property(type ${target} TYPE)
@@ -301,19 +304,75 @@ elseif(UNIX)
   endforeach()
 endif()
 
-IF(USE_CLFFT AND WIN32)
-add_custom_command(
-  TARGET CbctRecon POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CLFFT_ROOT_DIR}/bin/clFFT.dll
-    bin # ${CMAKE_CURRENT_BINARY_DIR}/../bin
-)
-ENDIF()
+#IF(USE_CLFFT AND WIN32)
+#add_custom_command(
+#  TARGET CbctRecon POST_BUILD
+#  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#    ${CLFFT_ROOT_DIR}/bin/clFFT.dll
+#    bin # ${CMAKE_CURRENT_BINARY_DIR}/../bin
+#)
+#ENDIF()
 
 
 INSTALL( TARGETS CbctRecon DESTINATION bin )
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
 # ${CMAKE_CURRENT_BINARY_DIR}/../bin
 
+##-----------------------------------------------------------------------------
+##  Additional install files
+##-----------------------------------------------------------------------------
+if (WIN32)
+	if (CUDA_FOUND)
+	  set (DLL_PATTERNS "cufft64*.dll" "cublas64*.dll")
+	  foreach (p ${DLL_PATTERNS})
+		file (GLOB DLLFILES "${CUDA_TOOLKIT_ROOT_DIR}/bin/${p}")
+		if (DLLFILES)
+		  install (FILES ${DLLFILES} DESTINATION bin)
+		endif ()
+	  endforeach ()
+	endif ()
+
+	if (ITK_FOUND)
+	  set (DLL_PATTERNS "ITK*.dll")
+	  foreach (p ${DLL_PATTERNS})
+		file (GLOB DLLFILES "${ITK_DIR}/bin/release/${p}")
+		if (DLLFILES)
+		  install (FILES ${DLLFILES} DESTINATION bin)
+		endif ()
+	  endforeach ()
+	endif ()
+
+	if (RTK_FOUND)
+	  install (FILES ${RTK_DIR}/bin/release/RTK.dll DESTINATION bin)
+	  install (FILES ${RTK_DIR}/bin/release/rtkcuda.dll DESTINATION bin)
+	  install (FILES ${RTK_DIR}/bin/release/ITKCudaCommon.dll DESTINATION bin)
+	  install (FILES ${RTK_DIR}/bin/release/lpsolve55.dll DESTINATION bin) #is 55 a version number?
+	endif ()
+
+	if (Plastimatch_FOUND)
+	  set (DLL_PATTERNS "plm*.dll" "")
+	  foreach (p ${DLL_PATTERNS})
+		file (GLOB DLLFILES "${Plastimatch_BUILD_DIR}/release/${p}")
+		if (DLLFILES)
+		  install (FILES ${DLLFILES} DESTINATION bin)
+		endif ()
+	  endforeach ()
+	endif ()
+
+	IF(USE_CLFFT)
+	  install (FILES ${CLFFT_ROOT_DIR}/bin/clFFT.dll DESTINATION bin)
+	ENDIF()
+
+	#Add FFT dlls to Install
+	if (FFTW_FOUND)
+	  if (EXISTS "${FFTW_DIR}/libfftw3-3.dll")
+		install (FILES "${FFTW_DIR}/libfftw3-3.dll" DESTINATION bin)
+	  endif ()
+	  if (EXISTS "${FFTW_DIR}/libfftw3f-3.dll")
+		install (FILES "${FFTW_DIR}/libfftw3f-3.dll" DESTINATION bin)
+	  endif ()
+	endif ()
+endif()
 
 ##-----------------------------------------------------------------------------
 ##  Packaging - Copied with modification from Plastimatch
