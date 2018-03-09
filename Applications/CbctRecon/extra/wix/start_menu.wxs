@@ -1,0 +1,9 @@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+     <Directory Id="ProgramMenuFolder">
+       <Directory Id="ApplicationProgramsFolder" Name="CbctRecon"/>
+     </Directory>
+    </Directory>
+  </Fragment>
+</Wix>

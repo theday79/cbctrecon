@@ -1,0 +1,7 @@
+<CPackWiXPatch>
+  <CPackWiXFragment Id="TARGETDIR">
+    <Directory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="CbctRecon"/>
+    </Directory>
+  </CPackWiXFragment>
+</CPackWiXPatch>

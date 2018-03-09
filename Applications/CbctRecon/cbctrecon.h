@@ -26,6 +26,7 @@
 #include "itk_image_type.h"
 
 // RTK includes
+#include <rtkWin32Header.h> // defines dllimport export based on BUILD_SHARED_LIBS
 #include <rtkElektaSynergyGeometryReader.h>
 #include <rtkHisImageIO.h>
 #include <rtkHndImageIO.h>

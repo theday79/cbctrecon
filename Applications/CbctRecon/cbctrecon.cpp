@@ -1629,7 +1629,8 @@ void CbctRecon::SLT_DrawReconImage() {
   // strPosZ.sprintf("%4.2f", posZ);
   ui.lineEdit_CurrentPosZ->setText(strPosZ);
 
-  // std::cout << "start point is " << start[0] << "	" << start[1] << "	"
+  // std::cout << "start point is " << start[0] << "	" << start[1] << "
+  // "
   // << start[2] << std::endl;
 
   // Define a region to generate
@@ -1823,9 +1824,10 @@ GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
   double x, z;
   double r = -1.0;
   bool hasOverlap = FOVfilter->ComputeFOVRadius(
-      FOVfilterType::FOVRadiusType::RADIUSBOTH, x, z, r);
+      FOVfilterType::FOVRadiusType::RADIUSINF, x, z, r);
+  // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems to work for fullfan, so we'll use that. 
   if (hasOverlap) {
-    std::cout << "FOV radius was found!" << std::endl;
+    std::cout << "FOV radius was found: x=" << x << ", z=" << z << ", r=" << r << std::endl;
   }
   return r;
 }
@@ -3592,8 +3594,8 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
       auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
       auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
-      std::cout << "Current Min and Max Values are	" << minVal << "	"
-                << maxVal << std::endl;
+      std::cout << "Current Min and Max Values are	" << minVal
+                << "	" << maxVal << std::endl;
 
       auto outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
       auto outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
@@ -4061,8 +4063,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
   ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileNames(m_vSelectedFileNames);
   // TRY_AND_EXIT_ON_ITK_EXCEPTION(
-  //std::thread calc_thread(read_projections, reader);
-  std::thread calc_thread([&reader](){reader->Update();});
+  // std::thread calc_thread(read_projections, reader);
+  std::thread calc_thread([&reader]() { reader->Update(); });
   // calc_thread.detach();
 
   std::cout << "Reader detached from main thread" << std::endl;
@@ -4089,8 +4091,9 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
       std::vector<std::string> filepath;
       filepath.push_back(bowtiePath.toStdString());
       bowtiereader->SetFileNames(filepath);
-      //std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
-      std::thread calc_thread_bowtie([&bowtiereader]{bowtiereader->Update();});
+      // std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
+      std::thread calc_thread_bowtie(
+          [&bowtiereader] { bowtiereader->Update(); });
       answers = probeUser(guessDir.absolutePath());
       calc_thread_bowtie.join();
     } else {
@@ -4440,7 +4443,6 @@ void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
         if (tmpNominalValue >= nextVal && tmpNominalValue <= curVal) {
           double diffCur = fabs(tmpNominalValue - curVal);
           double diffNext = fabs(tmpNominalValue - nextVal);
-
 
           /*	if (diffCur <= diffNext)
                   {
@@ -5382,7 +5384,8 @@ void CbctRecon::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
   // double minVal= (double)(imageCalculatorFilter->GetMinimum());
   // double maxVal= (double)(imageCalculatorFilter->GetMaximum());
 
-  // std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal
+  // std::cout <<"Min and Max Values are	" << minVal << "	" <<
+  // maxVal
   // << std::endl;
 
   ////Min value is always 3024 --> outside the FOV
@@ -5966,7 +5969,8 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   imageCalculatorFilter->Compute();
   auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
   auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-  // std::cout << "Min and Max Values are	" << minVal << "	" << maxVal
+  // std::cout << "Min and Max Values are	" << minVal << "	" <<
+  // maxVal
   // << std::endl; //should be 0 and 4096 std::cout <<"Min and Max Values are
   // " << minVal << "	" << maxVal << std::endl;
 
@@ -6024,7 +6028,8 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   // double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
   // double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
 
-  // std::cout << "Short image Min and Max Values are	" << minVal2 << "	"
+  // std::cout << "Short image Min and Max Values are	" << minVal2 << "
+  // "
   // << maxVal2 << std::endl;
 
   using WriterType = itk::ImageFileWriter<ShortImageType>;
@@ -6216,9 +6221,11 @@ void CbctRecon::SLT_ExportReconSHORT_HU() {
   // imageCalculatorFilter->Compute();
   // double minVal = (double)(imageCalculatorFilter->GetMinimum());
   // double maxVal = (double)(imageCalculatorFilter->GetMaximum());
-  // std::cout << "Min and Max Values are	" << minVal << "	" << maxVal
+  // std::cout << "Min and Max Values are	" << minVal << "	" <<
+  // maxVal
   // << std::endl; //should be 0 and 4096
-  ////std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal
+  ////std::cout <<"Min and Max Values are	" << minVal << "	" <<
+  ///maxVal
   ///<<  std::endl;
 
   ////Min value is always 3024 --> outside the FOV
@@ -6275,7 +6282,8 @@ void CbctRecon::SLT_ExportReconSHORT_HU() {
   // double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
   // double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
 
-  // std::cout << "Short image Min and Max Values are	" << minVal2 << "	"
+  // std::cout << "Short image Min and Max Values are	" << minVal2 << "
+  // "
   // << maxVal2 << std::endl;
 
   // typedef itk::ImageFileWriter<ShortImageType> WriterType;
@@ -6330,7 +6338,7 @@ void CbctRecon::SLT_ExportReconSHORT_HU() {
 // InputImageType, double > InterpolatorType; 	typedef
 // itk::ResampleImageFilter< InputImageType, InputImageType >
 // ResampleFilterType; 	typedef itk::ShiftScaleImageFilter< InputImageType,
-//InputImageType >  ShiftScaleType;*/
+// InputImageType >  ShiftScaleType;*/
 //
 //	typedef itk::ShiftScaleImageFilter< ShortImageType, ShortImageType >
 // ShiftScaleType;
@@ -6662,8 +6670,8 @@ void CbctRecon::DoBeamHardeningCorrection() {
   double poly3_d = 9.727e-01;*/
 
   std::cout << "Beam hardening corrF poly curve:" << poly3_a << "	"
-            << poly3_b << "	" << poly3_c << "	" << poly3_d << "  " << poly3_e
-            << std::endl;
+            << poly3_b << "	" << poly3_c << "	" << poly3_d << "  "
+            << poly3_e << std::endl;
 
   float *pImgBuffer = m_spProjImg3DFloat->GetBufferPointer();
   const itk::Size<3U> pImgSize =
@@ -8207,7 +8215,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
   FloatImageType::Pointer spResultProjImageFloat;
   // Euler Transformation for RTK's weird orientation
 
-  //int iNumOfProjections = 0;
+  // int iNumOfProjections = 0;
 
   if (true) {
     // 0) CT image Transformation
@@ -8347,7 +8355,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     size[1] = m_spProjImg3DFloat->GetBufferedRegion()
                   .GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
     size[2] = spGeometry->GetGantryAngles().size();
-    //iNumOfProjections = size[2];
+    // iNumOfProjections = size[2];
 
     // b) spacing
     spacing[0] = m_fProjSpacingX / m_fResampleF; // typical HIS file
@@ -8533,7 +8541,7 @@ void CbctRecon::SaveProjImageAsHIS(UShortImageType::Pointer &spProj3D,
 #ifdef WIN32
     if (fopen_s(&fd, crntPath.toLocal8Bit().constData(), "wb") == 0) {
       std::cerr << "Could not open file: " << crntPath.toLocal8Bit().constData()
-      << " for writing!" << std::endl;
+                << " for writing!" << std::endl;
       return;
     }
 #else
@@ -9988,7 +9996,8 @@ void CbctRecon::ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
   imageCalculatorFilter->Compute();
   auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
   auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-  // std::cout <<"Min and Max Values are	" << minVal << "	" << maxVal
+  // std::cout <<"Min and Max Values are	" << minVal << "	" <<
+  // maxVal
   // << std::endl; //should be 0 and 4096 std::cout <<"Min and Max Values are
   // " << minVal << "	" << maxVal << std::endl;
 
@@ -10880,11 +10889,11 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
   }
 #else
   FILE *stream;
-  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL){
+  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL) {
     exit(-1);
   }
   FILE *stream_err;
-  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL){
+  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL) {
     exit(-1);
   }
 #endif
@@ -10944,11 +10953,11 @@ for (int i = 0; i < sizeAngles; i++)
   }
 #else
   stream = freopen("CON", "w", stdout);
-  if (stream == nullptr){
+  if (stream == nullptr) {
     exit(-1);
   }
   stream_err = freopen("CON", "w", stderr);
-  if (stream_err == nullptr){
+  if (stream_err == nullptr) {
     exit(-1);
   }
 #endif
@@ -11021,11 +11030,11 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
   }
 #else
   FILE *stream;
-  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL){
+  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL) {
     exit(-1);
   }
   FILE *stream_err;
-  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL){
+  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL) {
     exit(-1);
   }
 #endif
@@ -11225,15 +11234,13 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
 #else
   stream = freopen("CON", "w", stdout);
   if (stream == nullptr) {
-    std::cerr << "Ran into an error: upon changing stdout stream"
-    << std::endl;
+    std::cerr << "Ran into an error: upon changing stdout stream" << std::endl;
     return;
   }
-  
+
   stream_err = freopen("CON", "w", stderr);
   if (stream_err == nullptr) {
-    std::cerr << "Ran into an error: upon changing stderr stream"
-    << std::endl;
+    std::cerr << "Ran into an error: upon changing stderr stream" << std::endl;
     return;
   }
 #endif
@@ -12391,8 +12398,8 @@ void CbctRecon::SLTM_BatchScatterCorrectionMacroAP() {
       enRegImg = REGISTER_MANUAL_RIGID;
     } else if (iRefImgVal == 3) {
       enRegImg = REGISTER_DEFORM_SKIP_AUTORIGID;
-    //} else {
-    //  enRegImg = REGISTER_DEFORM_FINAL; <- initialized value
+      //} else {
+      //  enRegImg = REGISTER_DEFORM_FINAL; <- initialized value
     }
   }
 
@@ -14301,7 +14308,7 @@ bool SaveDoseGrayImage(
   fd = fopen(filePath, "wb");
   if (fd == nullptr) {
     std::cerr << "Could not open file: " << filePath << " for writing!"
-    << std::endl;
+              << std::endl;
     return false;
   }
 #endif

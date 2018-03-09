@@ -811,7 +811,7 @@
                     </size>
                    </property>
                    <property name="text">
-                    <string>0.5</string>
+                    <string>5.0</string>
                    </property>
                   </widget>
                  </item>
@@ -857,7 +857,7 @@
                     </size>
                    </property>
                    <property name="text">
-                    <string>0.5</string>
+                    <string>5.0</string>
                    </property>
                   </widget>
                  </item>
@@ -1884,7 +1884,7 @@
               <item row="1" column="3">
                <widget class="QLineEdit" name="lineEdit_PostTablePosY">
                 <property name="text">
-                 <string>190</string>
+                 <string>120</string>
                 </property>
                </widget>
               </item>
@@ -2023,7 +2023,7 @@
               <item row="1" column="2">
                <widget class="QLineEdit" name="lineEdit_DilateRadius">
                 <property name="text">
-                 <string>5</string>
+                 <string>11</string>
                 </property>
                </widget>
               </item>
@@ -2051,7 +2051,7 @@
               <item row="0" column="2">
                <widget class="QLineEdit" name="lineEdit_ErodeRadius">
                 <property name="text">
-                 <string>2</string>
+                 <string>10</string>
                 </property>
                </widget>
               </item>
@@ -2222,6 +2222,9 @@
                 <layout class="QGridLayout" name="gridLayout_7">
                  <item row="2" column="2" rowspan="2">
                   <widget class="QLineEdit" name="lineEdit_RefmAs">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="text">
                     <string>64,40</string>
                    </property>
@@ -2272,7 +2275,7 @@
                  <item row="1" column="3">
                   <widget class="QLineEdit" name="lineEdit_scaGaussian">
                    <property name="text">
-                    <string>1.5</string>
+                    <string>0.05</string>
                    </property>
                   </widget>
                  </item>
@@ -2302,6 +2305,9 @@
                  </item>
                  <item row="2" column="4" rowspan="2">
                   <widget class="QLineEdit" name="lineEdit_CurmAs">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="text">
                     <string>10,10</string>
                    </property>

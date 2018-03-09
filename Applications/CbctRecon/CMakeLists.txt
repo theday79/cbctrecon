@@ -1,11 +1,11 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.8) # Yes, less won't do.
 
-PROJECT(CbctReconApp)
+PROJECT(App)
 # set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 IF(APPLE)
-  SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_BINARY_DIR}/../bin)
+  SET(CMAKE_INSTALL_RPATH bin) # ${CMAKE_CURRENT_BINARY_DIR}/../bin
 ENDIF(APPLE)
 
 FIND_PACKAGE(DCMTK)
@@ -26,6 +26,12 @@ OPTION(USE_OPENCL "Toggle OpenCL on or off" OFF) # OFF because currently broken
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_GPMC "Toggle gPMC on or off" ON)
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
+
+# Packaging
+option (CbctRecon_PACKAGE_32BIT
+    "Set this when building 32-bit packages on a 64-bit machine" OFF)
+option (CbctRecon_PACKAGE_NSIS "Set to ON when packaging binaries with NSIS" OFF)
+option (CbctRecon_PACKAGE_WIX "Set to ON when packaging binaries with WIX" ON)
 
 include(ProcessorCount)
 ProcessorCount(N)
@@ -119,10 +125,15 @@ SET(CbctRecon_HEADERS
 SET(CbctRecon_FORMS
 	cbctrecon.ui
 	DlgRegistration.ui
-	DlgHistogram.ui
+	DlgHistogram.ui # Kept for example, no longer used
 	DlgExternalCommand.ui
 )
 QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
+
+set_property(SOURCE ui_cbctrecon.h PROPERTY SKIP_AUTOMOC ON)
+set_property(SOURCE ui_DlgRegistration.h PROPERTY SKIP_AUTOMOC ON)
+set_property(SOURCE ui_DlgHistogram.h PROPERTY SKIP_AUTOMOC ON)
+set_property(SOURCE ui_DlgExternalCommand.h PROPERTY SKIP_AUTOMOC ON)
 
 # Executable
 ADD_EXECUTABLE(CbctRecon
@@ -256,8 +267,8 @@ else($<CONFIG:Debug>)
   get_target_property(COREDLL   Qt5::PrintSupport IMPORTED_LOCATION_RELEASE)
 endif($<CONFIG:Debug>)
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../bin)
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../lut)
+file(MAKE_DIRECTORY bin) # ${CMAKE_CURRENT_BINARY_DIR}/../bin
+file(MAKE_DIRECTORY lut) # ${CMAKE_CURRENT_BINARY_DIR}/../lut
 
 if(WIN32)
 add_custom_command(
@@ -284,7 +295,7 @@ elseif(UNIX)
     string(REPLACE ".${_qt_version}" "" QT_LIB_NAME_tmp ${QT_LIB_NAME_tmp})
     message(STATUS "Attmpting installing ${QT_LIB_NAME_tmp} from dir: ${QT_LIB_DIR_tmp}")
     install(DIRECTORY ${QT_LIB_DIR_tmp}/
-      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../bin/${QT_LIB_NAME_tmp}.framework/ COMPONENT Runtime
+      DESTINATION bin/${QT_LIB_NAME_tmp}.framework/ COMPONENT Runtime # ${CMAKE_CURRENT_BINARY_DIR}/../
       FILES_MATCHING PATTERN "${QT_LIB_NAME_tmp}*"
       PATTERN "${QT_LIB_NAME_tmp}*.debug" EXCLUDE)
   endforeach()
@@ -295,9 +306,101 @@ add_custom_command(
   TARGET CbctRecon POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${CLFFT_ROOT_DIR}/bin/clFFT.dll
-    ${CMAKE_CURRENT_BINARY_DIR}/../bin
+    bin # ${CMAKE_CURRENT_BINARY_DIR}/../bin
 )
 ENDIF()
 
 
-INSTALL( TARGETS CbctRecon DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../bin )
+INSTALL( TARGETS CbctRecon DESTINATION bin )
+# ${CMAKE_CURRENT_BINARY_DIR}/../bin
+
+
+##-----------------------------------------------------------------------------
+##  Packaging - Copied with modification from Plastimatch
+##-----------------------------------------------------------------------------
+##  Simple version: "make package_source" to create tarball
+##
+##  Advanced version: to generate...
+##   * zip    : cpack -G ZIP <source tree>
+##   * tar.bz2: cpack -G TBZ2 <source tree>
+##
+##    ...from within your build directory
+##-----------------------------------------------------------------------------
+# Choose generator
+if (CbctRecon_PACKAGE_WIX)
+  set (CPACK_GENERATOR "WIX")
+elseif (CbctRecon_PACKAGE_NSIS)
+  set (CPACK_GENERATOR "NSIS")
+else ()
+  set (CPACK_GENERATOR "ZIP")
+endif ()
+set (CPACK_SOURCE_GENERATOR "TBZ2")
+
+# For WiX install, and possibly for debian -dev targets,
+# we should properly set up the install components.
+# Until then, let's just kill it
+set (CPACK_MONOLITHIC_INSTALL 1)
+
+# General stuff
+set (CPACK_INSTALL_PREFIX "")
+set (CPACK_PACKAGE_CONTACT "cbctrecon@googlegroups.com")
+set (CPACK_PACKAGE_NAME "cbctrecon")
+set (CPACK_PACKAGE_INSTALL_DIRECTORY "CbctRecon")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "CbctRecon - A Medical Imaging Application")
+set (CPACK_PACKAGE_VENDOR "CbctRecon Dev Team")
+set (CPACK_PACKAGE_VERSION_MAJOR "${CbctRecon_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${CbctRecon_VERSION_MINOR}")
+set (CPACK_PACKAGE_VERSION_PATCH "${CbctRecon_VERSION_PATCH}")
+set (CPACK_PACKAGE_VERSION_TWEAK "${CbctRecon_VERSION_TWEAK}")
+set (CPACK_SOURCE_IGNORE_FILES
+  "/\\\\.git"
+  "/\\\\.svn"
+  "~$"
+)
+
+# NSIS stuff
+set(CPACK_NSIS_INSTALLED_ICON_NAME "Icon1.ico")
+set (CPACK_NSIS_HELP_LINK "https://github.com/agravgaard/cbctrecon")
+set (CPACK_NSIS_URL_INFO_ABOUT "https://github.com/agravgaard/cbctrecon")
+set (CPACK_NSIS_CONTACT "andreasga22@gmail.com")
+set (CbctRecon_NSIS_VERSION_STRING "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}")
+
+# WIX stuff
+set (CbctRecon_WINDOWS_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows-install")
+set (CPACK_WIX_HELP_LINK "https://github.com/agravgaard/cbctrecon")
+set (CPACK_WIX_UPGRADE_GUID "43DF18E5-D982-413F-834C-2865B977C145")
+set (CPACK_WIX_LICENSE_RTF  "${CbctRecon_WINDOWS_INSTALL_DIR}/License.rtf")
+set (CPACK_WIX_UI_BANNER  "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo.jpg")
+set (CPACK_WIX_UI_DIALOG  "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo_GUI.jpg")
+
+set (CPACK_WIX_EXTRA_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/cmake_extra_dialog.wxs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/install_dir.wxs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/start_menu.wxs"
+    )
+set (CPACK_WIX_PATCH_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_path_env.xml"
+#    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_start_menu.xml"
+    )
+set (CPACK_WIX_UI_REF "CMakeUI_InstallDir")
+if (CPACK_GENERATOR STREQUAL "WIX")
+  set (CPACK_PACKAGE_NAME "CbctRecon")
+  if (CPACK_PACKAGE_VERSION_TWEAK AND CPACK_PACKAGE_VERSION_TWEAK GREATER "0")
+    set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}.${CPACK_PACKAGE_VERSION_TWEAK}")
+    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+      set (CPACK_SYSTEM_NAME "win64")
+    else ()
+      set (CPACK_SYSTEM_NAME "win32")
+    endif ()
+    set (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
+  endif ()
+  set_property (INSTALL "bin/CbctRecon.exe"
+    PROPERTY CPACK_START_MENU_SHORTCUTS "CbctRecon Application")
+endif ()
+
+# ZIP stuff
+if (CPACK_GENERATOR STREQUAL "ZIP")
+  set (CPACK_SET_DESTDIR ON)
+endif ()
+
+include (CPack)
