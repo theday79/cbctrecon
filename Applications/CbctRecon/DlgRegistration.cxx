@@ -1193,7 +1193,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   // GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed_proc,
   // filePathMoving,
   //						filePathOutput, filePathXform,
-  //PLAST_RIGID,
+  // PLAST_RIGID,
   //"","","");
 
   QString strDummy = "";
@@ -1565,194 +1565,144 @@ void DlgRegistration::GenPlastiRegisterCommandFile(
   QString optionStr;
   QStringList optionList;
 
+  std::string treading_opt = "openmp";
+  if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
+    treading_opt = "cuda";
+  }
+
   switch (regiOption) {
   case PLAST_RIGID:
-    fout << "[STAGE]" << std::endl;
-    fout << "xform="
-         << "rigid" << std::endl;
-    // fout << "xform=" << "affine" << std::endl;
-    fout << "optim="
-         << "versor" << std::endl;
-    // fout << "max_step=" << "0.05" << std::endl;
-    // fout << "optim=" << "amoeba" << std::endl;
-    // fout << "optim=" << "rsg" << std::endl;
-    // fout << "optim=" << "amoeba" << std::endl;
-    // fout << "impl=" << "plastimatch" << std::endl;
-    // fout << "metric=" << "mi" << std::endl; //added
-    // fout << "impl=" << "itk" << std::endl;
+    //         "max_step=" << "0.05\n";
+    //         "optim=" << "amoeba\n";
+    //         "optim=" << "rsg\n";
+    //         "optim=" << "amoeba\n";
+    //         "impl=" << "plastimatch\n";
+    //         "metric=" << "mi\n"; //added
+    //         "impl=" << "itk\n";
 
-    fout << "impl="
-         << "itk" << std::endl;
-    if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
-      fout << "threading="
-           << "openmp" << std::endl;
-    } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
-      fout << "threading="
-           << "cuda" << std::endl;
-    } else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
-      fout << "threading="
-           << "opencl" << std::endl;
-    }
-
-    // fout << "background_val=" << "0" << std::endl;
-    fout << "background_val="
-         << "500" << std::endl; //-600 in HU //added
-    fout << "max_its="
-         << "70" << std::endl;
+    //        "impl="
+    //     << "itk\n";
+    //         "background_val=" << "0\n";
+    fout << "[STAGE]\n"
+            "xform=rigid\n"
+            "optim=versor\n";
+    fout << "threading=" << treading_opt << "\n";
+    fout << "background_val=500\n" //-600 in HU //added
+            "max_its=70\n";
 
     break;
   case PLAST_GRADIENT:
     fout << "#For gradient-based searching, moving image should be smaller "
-            "than fixed image. So, CBCT image might move rather than CT"
-         << std::endl;
+            "than fixed image. So, CBCT image might move rather than CT\n";
 
     optionStr = ui.lineEditGradOption->text();
     optionList = optionStr.split(",");
 
-    fout << "[PROCESS]" << std::endl;
-    fout << "action=adjust" << std::endl;
-    fout << "# only consider within this  intensity values" << std::endl;
-    fout << "parms=-inf,0,-1000,-1000,4000,4000,inf,0" << std::endl;
-    fout << "images=fixed,moving" << std::endl;
-    fout << std::endl;
-    fout << "[STAGE]" << std::endl;
-    fout << "metric=gm" << std::endl;
-    fout << "xform=translation" << std::endl;
-    fout << "optim=grid_search" << std::endl;
+    fout << "[PROCESS]\n"
+            "action=adjust\n"
+            "# only consider within this  intensity values\n"
+            "parms=-inf,0,-1000,-1000,4000,4000,inf,0\n"
+            "images=fixed,moving\n\n"
+            "[STAGE]\n"
+            "metric=gm\n"
+            "xform=translation\n"
+            "optim=grid_search\n";
     fout << "gridsearch_min_overlap=" << optionList.at(0).toDouble() << " "
          << optionList.at(1).toDouble() << " " << optionList.at(2).toDouble()
-         << std::endl;
+         << "\n";
 
-    fout << "num_substages=5" << std::endl;
+    fout << "num_substages=5\n";
     fout << "debug_dir=" << m_strPathPlastimatch.toLocal8Bit().constData()
-         << std::endl;
+         << "\n";
     break;
 
   case PLAST_BSPLINE:
     if (strListOption1.count() == 8) {
-      fout << "[STAGE]" << std::endl;
-      fout << "xform="
-           << "bspline" << std::endl;
-      fout << "impl="
-           << "plastimatch" << std::endl;
-      if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
-        fout << "threading="
-             << "openmp" << std::endl;
-      } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
-        fout << "threading="
-             << "cuda" << std::endl;
-        if (ui.radioButton_mse->isChecked()) {
-          fout << "alg_flavor="
-               << "j" << std::endl;
-        } else {
-          fout << "alg_flavor="
-               << "a" << std::endl;
-        }
-      } else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
-        fout << "threading="
-             << "opencl" << std::endl;
+      fout << "[STAGE]\n"
+              "xform=bspline\n"
+              "impl=plastimatch\n";
+
+      fout << "threading=" << treading_opt << "\n";
+      if (ui.radioButton_mse->isChecked()) {
+        fout << "alg_flavor=j\n";
+      } else {
+        fout << "alg_flavor=a\n";
       }
 
       fout << "regularization_lambda=" << strListOption1.at(4).toDouble()
-           << std::endl;
+           << "\n";
 
       if (strOptim.length() < 1) {
-        fout << "metric="
-             << "mi" << std::endl;
+        fout << "metric=mi\n";
       } else {
-        fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
+        fout << "metric=" << strOptim.toLocal8Bit().constData() << "\n";
       }
 
-      fout << "max_its=" << strListOption1.at(6).toInt() << std::endl;
+      fout << "max_its=" << strListOption1.at(6).toInt() << "\n";
       fout << "grid_spac=" << strListOption1.at(3).toInt() << " "
            << strListOption1.at(3).toInt() << " "
-           << strListOption1.at(3).toInt() << std::endl; // 20 20 20 --> minimum
+           << strListOption1.at(3).toInt() << "\n"; // 20 20 20 --> minimum
       fout << "res=" << strListOption1.at(0).toInt() << " "
            << strListOption1.at(1).toInt() << " "
-           << strListOption1.at(2).toInt() << std::endl;
-      fout << "background_val="
-           << "700" << std::endl; //-600 in HU //added
+           << strListOption1.at(2).toInt() << "\n";
+      fout << "background_val=700\n"; //-600 in HU //added
 
       fout << "img_out=" << strListOption1.at(7).toLocal8Bit().constData()
-           << std::endl;
-      fout << std::endl;
+           << "\n\n";
     }
     if (strListOption2.count() == 8) {
-      fout << "[STAGE]" << std::endl;
-      fout << "xform="
-           << "bspline" << std::endl;
-      fout << "impl="
-           << "plastimatch" << std::endl;
-      if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
-        fout << "threading="
-             << "openmp" << std::endl;
-      } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
-        fout << "threading="
-             << "cuda" << std::endl;
-      } else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
-        fout << "threading="
-             << "opencl" << std::endl;
-      }
+      fout << "[STAGE]\n"
+              "xform=bspline\n"
+              "impl=plastimatch\n";
+
+      fout << "threading=" << treading_opt << "\n";
 
       fout << "regularization_lambda=" << strListOption2.at(4).toDouble()
-           << std::endl;
+           << "\n";
 
       if (strOptim.length() < 1) {
-        fout << "metric="
-             << "mi" << std::endl;
+        fout << "metric=mi\n";
       } else {
-        fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
+        fout << "metric=" << strOptim.toLocal8Bit().constData() << "\n";
       }
 
-      fout << "max_its=" << strListOption2.at(6).toInt() << std::endl;
+      fout << "max_its=" << strListOption2.at(6).toInt() << "\n";
       fout << "grid_spac=" << strListOption2.at(3).toInt() << " "
            << strListOption2.at(3).toInt() << " "
-           << strListOption2.at(3).toInt() << std::endl; // 20 20 20 --> minimum
+           << strListOption2.at(3).toInt() << "\n"; // 20 20 20 --> minimum
       fout << "res=" << strListOption2.at(0).toInt() << " "
            << strListOption2.at(1).toInt() << " "
-           << strListOption2.at(2).toInt() << std::endl;
+           << strListOption2.at(2).toInt() << "\n";
 
       fout << "img_out=" << strListOption2.at(7).toLocal8Bit().constData()
-           << std::endl;
-      fout << std::endl;
+           << "\n\n";
     }
     if (strListOption3.count() == 8) {
-      fout << "[STAGE]" << std::endl;
-      fout << "xform="
-           << "bspline" << std::endl;
-      fout << "impl="
-           << "plastimatch" << std::endl;
-      if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
-        fout << "threading="
-             << "openmp" << std::endl;
-      } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
-        fout << "threading="
-             << "cuda" << std::endl;
-      } else if (m_pParent->ui.radioButton_UseOpenCL->isChecked()) {
-        fout << "threading="
-             << "opencl" << std::endl;
-      }
+      fout << "[STAGE]\n"
+              "xform=bspline\n"
+              "impl=plastimatch\n";
+
+      fout << "threading=" << treading_opt << "\n";
 
       fout << "regularization_lambda=" << strListOption3.at(4).toDouble()
-           << std::endl;
+           << "\n";
 
       if (strOptim.length() < 1) {
-        fout << "metric="
-             << "mi" << std::endl;
+        fout << "metric=mi\n";
       } else {
-        fout << "metric=" << strOptim.toLocal8Bit().constData() << std::endl;
+        fout << "metric=" << strOptim.toLocal8Bit().constData() << "\n";
       }
 
-      fout << "max_its=" << strListOption3.at(6).toInt() << std::endl;
+      fout << "max_its=" << strListOption3.at(6).toInt() << "\n";
       fout << "grid_spac=" << strListOption3.at(3).toInt() << " "
            << strListOption3.at(3).toInt() << " "
-           << strListOption3.at(3).toInt() << std::endl; // 20 20 20 --> minimum
+           << strListOption3.at(3).toInt() << "\n"; // 20 20 20 --> minimum
       fout << "res=" << strListOption3.at(0).toInt() << " "
            << strListOption3.at(1).toInt() << " "
-           << strListOption3.at(2).toInt() << std::endl;
+           << strListOption3.at(2).toInt() << "\n";
 
       fout << "img_out=" << strListOption3.at(7).toLocal8Bit().constData()
-           << std::endl;
+           << "\n";
       fout << std::endl;
     }
 
@@ -2362,6 +2312,7 @@ void DlgRegistration::autoPreprocessCT() {
     return;
   }
   unsigned short air_thresh = 1024 + ui.lineEditBkDetectCT->text().toInt();
+  std::cout << "Thresh: " << air_thresh << std::endl;
   using threshFilterType =
       itk::BinaryThresholdImageFilter<UShortImageType, ShortImageType>;
   threshFilterType::Pointer threshFilter_CT = threshFilterType::New();
@@ -2385,28 +2336,37 @@ void DlgRegistration::autoPreprocessCT() {
   subFilterType::Pointer subFilter = subFilterType::New();
   subFilter->SetInput1(threshFilter_CT->GetOutput());
   subFilter->SetInput2(threshFilter_CBCT->GetOutput());
-  subFilter->Update();
+  std::cout << "Making fill-crop mask..." << std::endl;
+  try {
+    subFilter->Update();
+  } catch (std::exception &e) {
+    std::cerr << "Failed to sub threshold masks: " << e.what() << std::endl;
+    return;
+  }
   // -1 -> should be filled
   // +1 -> should be cropped
+  std::cout << "done." << std::endl;
 
-  using iteratorType = itk::ImageRegionIterator<ShortImageType>;
+  using iteratorType = itk::ImageRegionConstIterator<ShortImageType>;
   iteratorType it(subFilter->GetOutput(),
                   subFilter->GetOutput()->GetLargestPossibleRegion());
 
   using CTiteratorType = itk::ImageRegionIterator<UShortImageType>;
   CTiteratorType CT_it(m_spMoving, m_spMoving->GetLargestPossibleRegion());
 
+  std::cout << "Overwriting values..." << std::endl;
   it.GoToBegin();
   while (!it.IsAtEnd()) {
     int val = it.Get();
     if (val == -1) {
-      CT_it.Set(1024); // water
+      CT_it.Set(1024U); // water
     } else if (val == 1) {
-      CT_it.Set(0); // air
+      CT_it.Set(0U); // air
     }
     ++it;
     ++CT_it;
   }
+  std::cout << "done." << std::endl;
 }
 
 bool DlgRegistration::PreprocessCT() // CT preparation + CBCT preparation only,

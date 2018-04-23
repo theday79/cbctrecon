@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>CBCT Reconstructor (bug report to A. Gravgaard [andreasg@phys.au.dk])</string>
+   <string>CBCT Reconstructor (bug report to A. Gravgaard [agravgaard@protonmail.com])</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_27">
@@ -187,6 +187,13 @@
             </property>
            </widget>
           </item>
+          <item row="4" column="7">
+           <widget class="QPushButton" name="pushButton_reloadProj">
+            <property name="text">
+             <string>ReLoad Proj.</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
@@ -229,6 +236,12 @@
              <size>
               <width>0</width>
               <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>1024</width>
+              <height>1024</height>
              </size>
             </property>
             <property name="mouseTracking">
@@ -747,7 +760,7 @@
            </size>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_10">
            <attribute name="title">
@@ -1300,75 +1313,11 @@
                </property>
                <item row="0" column="0">
                 <layout class="QGridLayout" name="gridLayout_18">
-                 <item row="1" column="9">
-                  <widget class="QLineEdit" name="lineEdit_outImgSp_SI">
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>1</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="5">
-                  <widget class="QLineEdit" name="lineEdit_outImgDim_LR">
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>400</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="0" colspan="3">
-                  <widget class="QLabel" name="label_18">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Output dimension (pixels)</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="6">
-                  <widget class="QLabel" name="label_24">
-                   <property name="text">
-                    <string>y (AP)</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="4">
-                  <widget class="QLabel" name="label_19">
-                   <property name="text">
-                    <string>x (LR)</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="8">
-                  <widget class="QLabel" name="label_21">
-                   <property name="text">
-                    <string>z (SI)</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="8">
-                  <widget class="QLabel" name="label_25">
-                   <property name="text">
-                    <string>z (SI)</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="0" column="9">
                   <widget class="QLineEdit" name="lineEdit_outImgDim_SI">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="maximumSize">
                     <size>
                      <width>40</width>
@@ -1382,6 +1331,9 @@
                  </item>
                  <item row="0" column="7">
                   <widget class="QLineEdit" name="lineEdit_outImgDim_AP">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="maximumSize">
                     <size>
                      <width>40</width>
@@ -1393,15 +1345,11 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="4">
-                  <widget class="QLabel" name="label_23">
-                   <property name="text">
-                    <string>x (LR)</string>
+                 <item row="1" column="7">
+                  <widget class="QLineEdit" name="lineEdit_outImgSp_AP">
+                   <property name="enabled">
+                    <bool>false</bool>
                    </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="5">
-                  <widget class="QLineEdit" name="lineEdit_outImgSp_LR">
                    <property name="maximumSize">
                     <size>
                      <width>40</width>
@@ -1413,8 +1361,88 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="7">
-                  <widget class="QLineEdit" name="lineEdit_outImgSp_AP">
+                 <item row="0" column="5">
+                  <widget class="QLineEdit" name="lineEdit_outImgDim_LR">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>40</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>400</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="3">
+                  <widget class="QLabel" name="label_22">
+                   <property name="text">
+                    <string>Output spacing (mm)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="4">
+                  <widget class="QLabel" name="label_23">
+                   <property name="text">
+                    <string>x (LR)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="2">
+                  <widget class="QPushButton" name="pushButton_SetOutputPath">
+                   <property name="maximumSize">
+                    <size>
+                     <width>30</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>set</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="label_19">
+                   <property name="text">
+                    <string>x (LR)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="3">
+                  <spacer name="horizontalSpacer_8">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="1" column="6">
+                  <widget class="QLabel" name="label_24">
+                   <property name="text">
+                    <string>y (AP)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="8">
+                  <widget class="QLabel" name="label_25">
+                   <property name="text">
+                    <string>z (SI)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="5">
+                  <widget class="QLineEdit" name="lineEdit_outImgSp_LR">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="maximumSize">
                     <size>
                      <width>40</width>
@@ -1433,17 +1461,46 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="0" colspan="3">
-                  <widget class="QLabel" name="label_22">
-                   <property name="text">
-                    <string>Output spacing (mm)</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="2" column="0" colspan="2">
                   <widget class="QLabel" name="label_32">
                    <property name="text">
                     <string>Set path (optional)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0" colspan="3">
+                  <widget class="QLabel" name="label_18">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Output dimension (pixels)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="9">
+                  <widget class="QLineEdit" name="lineEdit_outImgSp_SI">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>40</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>1</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="8">
+                  <widget class="QLabel" name="label_21">
+                   <property name="text">
+                    <string>z (SI)</string>
                    </property>
                   </widget>
                  </item>
@@ -1453,32 +1510,6 @@
                     <string/>
                    </property>
                   </widget>
-                 </item>
-                 <item row="2" column="2">
-                  <widget class="QPushButton" name="pushButton_SetOutputPath">
-                   <property name="maximumSize">
-                    <size>
-                     <width>30</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>set</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="3">
-                  <spacer name="horizontalSpacer_8">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
                  </item>
                 </layout>
                </item>
@@ -2179,7 +2210,7 @@
           </property>
           <widget class="QWidget" name="tab_4">
            <attribute name="title">
-            <string>A priori scatter corr.</string>
+            <string>A priori sca. corr.</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_43">
             <property name="leftMargin">
@@ -2415,7 +2446,7 @@
           </widget>
           <widget class="QWidget" name="tab_5">
            <attribute name="title">
-            <string>Uniform scatter corr.</string>
+            <string>Uniform sca. corr.</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_42">
             <property name="leftMargin">
@@ -2965,30 +2996,42 @@
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuLoad_mha">
+     <property name="title">
+      <string>Load (mha)</string>
+     </property>
+     <addaction name="actionLoad_3D_mha_image_mha_SHORT"/>
+     <addaction name="actionLoad_mha_image"/>
+     <addaction name="actionLoad_Plan_CT_Image_mha_signed"/>
+     <addaction name="actionLoad_Plan_CT_Image_mha_USHORT"/>
+     <addaction name="actionLoad_CBCTcorr_image_mha_SHORT"/>
+     <addaction name="actionLoad_CTrigid_image_mha_SHORT"/>
+     <addaction name="actionLoad_CTdeform_image_mha_SHORT"/>
+     <addaction name="actionLoad_RTK_output_mha_float"/>
+     <addaction name="actionLoad_float_3D_image_mha_float"/>
+    </widget>
+    <widget class="QMenu" name="menuExport">
+     <property name="title">
+      <string>Export</string>
+     </property>
+     <addaction name="actionExport_as_HIS_files"/>
+     <addaction name="actionExport_recon_image_as_USHORT_mha"/>
+     <addaction name="actionExport_recon_image_as_SHORT_mha"/>
+     <addaction name="actionExport_2D_dose_map_tif"/>
+     <addaction name="actionExport_2D_dose_map_as_mha"/>
+     <addaction name="actionExport_Short_DICOM_for_Current_Img"/>
+     <addaction name="actionExport_all_as_DCM_and_mha_with_AP_WEPL_data"/>
+    </widget>
     <addaction name="separator"/>
-    <addaction name="actionLoad_3D_mha_image_mha_SHORT"/>
-    <addaction name="actionLoad_mha_image"/>
-    <addaction name="actionLoad_Plan_CT_Image_mha_signed"/>
-    <addaction name="actionLoad_Plan_CT_Image_mha_USHORT"/>
-    <addaction name="actionLoad_CBCTcorr_image_mha_SHORT"/>
-    <addaction name="actionLoad_CTrigid_image_mha_SHORT"/>
-    <addaction name="actionLoad_CTdeform_image_mha_SHORT"/>
-    <addaction name="actionLoad_RTK_output_mha_float"/>
+    <addaction name="menuLoad_mha"/>
     <addaction name="actionLoad_DICOM_image"/>
-    <addaction name="actionLoad_float_3D_image_mha_float"/>
     <addaction name="actionLoad_NKI_Image_SCAN"/>
-    <addaction name="separator"/>
     <addaction name="actionLoadRawImg"/>
     <addaction name="separator"/>
-    <addaction name="actionExport_as_HIS_files"/>
-    <addaction name="actionExport_recon_image_as_USHORT_mha"/>
-    <addaction name="actionExport_recon_image_as_SHORT_mha"/>
-    <addaction name="actionExport_2D_dose_map_tif"/>
-    <addaction name="actionExport_2D_dose_map_as_mha"/>
+    <addaction name="menuExport"/>
     <addaction name="separator"/>
-    <addaction name="actionExport_Short_DICOM_for_Current_Img"/>
     <addaction name="actionLoad_POI_data_txt"/>
-    <addaction name="actionExport_all_as_DCM_and_mha_with_AP_WEPL_data"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuTool">
     <property name="title">
@@ -3212,6 +3255,9 @@
    </property>
   </action>
   <action name="actionHistograms">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Histograms</string>
    </property>
@@ -3401,8 +3447,8 @@
    <slot>SLT_OpenOffsetFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>180</x>
-     <y>783</y>
+     <x>161</x>
+     <y>662</y>
     </hint>
     <hint type="destinationlabel">
      <x>198</x>
@@ -3417,8 +3463,8 @@
    <slot>SLT_OpenGainFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>170</x>
-     <y>803</y>
+     <x>161</x>
+     <y>664</y>
     </hint>
     <hint type="destinationlabel">
      <x>148</x>
@@ -3433,8 +3479,8 @@
    <slot>SLT_OpenBadpixelFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>180</x>
-     <y>823</y>
+     <x>161</x>
+     <y>668</y>
     </hint>
     <hint type="destinationlabel">
      <x>193</x>
@@ -3449,8 +3495,8 @@
    <slot>SLT_ApplyCalibration()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>500</x>
-     <y>793</y>
+     <x>508</x>
+     <y>666</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -3465,12 +3511,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>494</x>
-     <y>623</y>
+     <x>462</x>
+     <y>570</y>
     </hint>
     <hint type="destinationlabel">
-     <x>488</x>
-     <y>693</y>
+     <x>462</x>
+     <y>596</y>
     </hint>
    </hints>
   </connection>
@@ -3481,12 +3527,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
-     <y>623</y>
+     <x>518</x>
+     <y>570</y>
     </hint>
     <hint type="destinationlabel">
-     <x>545</x>
-     <y>693</y>
+     <x>518</x>
+     <y>596</y>
     </hint>
    </hints>
   </connection>
@@ -3497,12 +3543,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>651</x>
-     <y>843</y>
+     <x>905</x>
+     <y>746</y>
     </hint>
     <hint type="destinationlabel">
-     <x>920</x>
-     <y>843</y>
+     <x>966</x>
+     <y>745</y>
     </hint>
    </hints>
   </connection>
@@ -3513,12 +3559,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>920</x>
-     <y>843</y>
+     <x>966</x>
+     <y>745</y>
     </hint>
     <hint type="destinationlabel">
-     <x>648</x>
-     <y>843</y>
+     <x>905</x>
+     <y>746</y>
     </hint>
    </hints>
   </connection>
@@ -3529,12 +3575,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>654</x>
-     <y>873</y>
+     <x>905</x>
+     <y>774</y>
     </hint>
     <hint type="destinationlabel">
-     <x>920</x>
-     <y>873</y>
+     <x>966</x>
+     <y>773</y>
     </hint>
    </hints>
   </connection>
@@ -3545,12 +3591,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>920</x>
-     <y>873</y>
+     <x>966</x>
+     <y>773</y>
     </hint>
     <hint type="destinationlabel">
-     <x>649</x>
-     <y>873</y>
+     <x>905</x>
+     <y>774</y>
     </hint>
    </hints>
   </connection>
@@ -3561,8 +3607,8 @@
    <slot>SLT_OpenElektaGeomFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>187</x>
-     <y>133</y>
+     <x>223</x>
+     <y>101</y>
     </hint>
     <hint type="destinationlabel">
      <x>808</x>
@@ -3577,8 +3623,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1040</x>
-     <y>433</y>
+     <x>630</x>
+     <y>299</y>
     </hint>
     <hint type="destinationlabel">
      <x>982</x>
@@ -3593,8 +3639,8 @@
    <slot>SLT_CopyTableToClipBoard()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1210</x>
-     <y>643</y>
+     <x>1274</x>
+     <y>628</y>
     </hint>
     <hint type="destinationlabel">
      <x>977</x>
@@ -3609,8 +3655,8 @@
    <slot>SLT_SetHisDir()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>199</x>
-     <y>68</y>
+     <x>223</x>
+     <y>46</y>
     </hint>
     <hint type="destinationlabel">
      <x>577</x>
@@ -3625,8 +3671,8 @@
    <slot>SLT_LoadSelectedProjFiles()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>542</x>
-     <y>154</y>
+     <x>518</x>
+     <y>131</y>
     </hint>
     <hint type="destinationlabel">
      <x>573</x>
@@ -3641,8 +3687,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>647</x>
-     <y>843</y>
+     <x>905</x>
+     <y>746</y>
     </hint>
     <hint type="destinationlabel">
      <x>873</x>
@@ -3657,8 +3703,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>652</x>
-     <y>873</y>
+     <x>905</x>
+     <y>774</y>
     </hint>
     <hint type="destinationlabel">
      <x>971</x>
@@ -3673,8 +3719,8 @@
    <slot>SLT_DrawProjImages()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>523</x>
-     <y>243</y>
+     <x>518</x>
+     <y>218</y>
     </hint>
     <hint type="destinationlabel">
      <x>561</x>
@@ -3689,8 +3735,8 @@
    <slot>SLT_DrawProjImages()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>483</x>
-     <y>387</y>
+     <x>462</x>
+     <y>570</y>
     </hint>
     <hint type="destinationlabel">
      <x>464</x>
@@ -3705,8 +3751,8 @@
    <slot>SLT_DrawProjImages()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>538</x>
-     <y>347</y>
+     <x>518</x>
+     <y>570</y>
     </hint>
     <hint type="destinationlabel">
      <x>554</x>
@@ -3721,12 +3767,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>461</x>
-     <y>693</y>
+     <x>462</x>
+     <y>596</y>
     </hint>
     <hint type="destinationlabel">
-     <x>490</x>
-     <y>506</y>
+     <x>462</x>
+     <y>570</y>
     </hint>
    </hints>
   </connection>
@@ -3737,12 +3783,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>530</x>
-     <y>693</y>
+     <x>518</x>
+     <y>596</y>
     </hint>
     <hint type="destinationlabel">
-     <x>540</x>
-     <y>540</y>
+     <x>518</x>
+     <y>570</y>
     </hint>
    </hints>
   </connection>
@@ -3753,8 +3799,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>868</y>
+     <x>70</x>
+     <y>728</y>
     </hint>
     <hint type="destinationlabel">
      <x>391</x>
@@ -3769,8 +3815,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>889</y>
+     <x>70</x>
+     <y>761</y>
     </hint>
     <hint type="destinationlabel">
      <x>434</x>
@@ -3785,8 +3831,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>822</y>
+     <x>72</x>
+     <y>693</y>
     </hint>
     <hint type="destinationlabel">
      <x>612</x>
@@ -3801,8 +3847,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>942</y>
+     <x>72</x>
+     <y>801</y>
     </hint>
     <hint type="destinationlabel">
      <x>536</x>
@@ -3817,8 +3863,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>150</x>
-     <y>972</y>
+     <x>152</x>
+     <y>827</y>
     </hint>
     <hint type="destinationlabel">
      <x>616</x>
@@ -3833,8 +3879,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>540</x>
-     <y>972</y>
+     <x>509</x>
+     <y>827</y>
     </hint>
     <hint type="destinationlabel">
      <x>1142</x>
@@ -3849,8 +3895,8 @@
    <slot>SLT_InitializeGraphLim()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>868</y>
+     <x>70</x>
+     <y>728</y>
     </hint>
     <hint type="destinationlabel">
      <x>561</x>
@@ -3865,8 +3911,8 @@
    <slot>SLT_InitializeGraphLim()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>889</y>
+     <x>70</x>
+     <y>761</y>
     </hint>
     <hint type="destinationlabel">
      <x>311</x>
@@ -3897,8 +3943,8 @@
    <slot>SLT_GoForcedProbePos()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1221</x>
-     <y>553</y>
+     <x>1274</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
      <x>1165</x>
@@ -3913,8 +3959,8 @@
    <slot>SLT_PostApplyFOVDispParam()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1160</x>
-     <y>143</y>
+     <x>1112</x>
+     <y>137</y>
     </hint>
     <hint type="destinationlabel">
      <x>1152</x>
@@ -3929,8 +3975,8 @@
    <slot>SLT_DoPostProcessing()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1232</x>
-     <y>155</y>
+     <x>1187</x>
+     <y>137</y>
     </hint>
     <hint type="destinationlabel">
      <x>1257</x>
@@ -3977,8 +4023,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1140</x>
-     <y>142</y>
+     <x>1038</x>
+     <y>134</y>
     </hint>
     <hint type="destinationlabel">
      <x>1237</x>
@@ -3993,8 +4039,8 @@
    <slot>SLT_DoBHC()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>360</x>
-     <y>723</y>
+     <x>419</x>
+     <y>627</y>
     </hint>
     <hint type="destinationlabel">
      <x>223</x>
@@ -4073,8 +4119,8 @@
    <slot>SLT_DoScatterCorrection_APRIORI()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1230</x>
-     <y>383</y>
+     <x>1268</x>
+     <y>318</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4105,8 +4151,8 @@
    <slot>SLT_CalcAndSaveAngularWEPL()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1230</x>
-     <y>923</y>
+     <x>1275</x>
+     <y>768</y>
     </hint>
     <hint type="destinationlabel">
      <x>1305</x>
@@ -4121,8 +4167,8 @@
    <slot>SLT_DoScatterCorrectionUniform()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1269</x>
-     <y>223</y>
+     <x>1268</x>
+     <y>239</y>
     </hint>
     <hint type="destinationlabel">
      <x>1318</x>
@@ -4153,8 +4199,8 @@
    <slot>SLT_AddConstHUToCurImg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>894</x>
-     <y>929</y>
+     <x>843</x>
+     <y>822</y>
     </hint>
     <hint type="destinationlabel">
      <x>909</x>
@@ -4169,8 +4215,8 @@
    <slot>SLT_SetCBCTSkinRSPath()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1033</x>
-     <y>829</y>
+     <x>1057</x>
+     <y>95</y>
     </hint>
     <hint type="destinationlabel">
      <x>999</x>
@@ -4185,8 +4231,8 @@
    <slot>SLT_CropSkinUsingRS()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1289</x>
-     <y>854</y>
+     <x>1268</x>
+     <y>133</y>
     </hint>
     <hint type="destinationlabel">
      <x>1312</x>
@@ -4201,8 +4247,8 @@
    <slot>SLT_ExportAngularWEPL_byFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1227</x>
-     <y>950</y>
+     <x>1275</x>
+     <y>826</y>
     </hint>
     <hint type="destinationlabel">
      <x>1326</x>
@@ -4329,8 +4375,8 @@
    <slot>SLT_MedianFilterDoNow()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1044</x>
-     <y>226</y>
+     <x>952</x>
+     <y>152</y>
     </hint>
     <hint type="destinationlabel">
      <x>959</x>
@@ -4393,8 +4439,8 @@
    <slot>SLT_PostProcCropInv()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1292</x>
-     <y>155</y>
+     <x>1269</x>
+     <y>137</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4457,8 +4503,8 @@
    <slot>SLT_OpenPhaseData()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>117</x>
-     <y>188</y>
+     <x>142</x>
+     <y>160</y>
     </hint>
     <hint type="destinationlabel">
      <x>5</x>
@@ -4473,8 +4519,8 @@
    <slot>SLT_Export4DCBCT()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>470</x>
-     <y>215</y>
+     <x>518</x>
+     <y>189</y>
     </hint>
     <hint type="destinationlabel">
      <x>563</x>
@@ -4537,8 +4583,8 @@
    <slot>SLT_DoCouchCorrection()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1282</x>
-     <y>439</y>
+     <x>1274</x>
+     <y>372</y>
     </hint>
     <hint type="destinationlabel">
      <x>1321</x>
@@ -4617,8 +4663,8 @@
    <slot>SLT_SaveCurrentSetting()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>520</x>
-     <y>736</y>
+     <x>518</x>
+     <y>627</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -4633,8 +4679,8 @@
    <slot>SLT_CropSupInf()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1260</x>
-     <y>156</y>
+     <x>1269</x>
+     <y>137</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4649,8 +4695,8 @@
    <slot>SLT_CropSkinUsingThreshold()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1204</x>
-     <y>156</y>
+     <x>1269</x>
+     <y>143</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4665,8 +4711,8 @@
    <slot>SLT_DoBowtieCorrection()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>375</x>
-     <y>753</y>
+     <x>518</x>
+     <y>656</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4681,8 +4727,8 @@
    <slot>SLT_GeneratePOIData()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1230</x>
-     <y>933</y>
+     <x>1275</x>
+     <y>797</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4754,6 +4800,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButton_reloadProj</sender>
+   <signal>released()</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_ReloadProjections()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>463</x>
+     <y>149</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>425</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEdit_OutputFilePath</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>CbctReconClass</receiver>
+   <slot>SLT_OutPathEdited()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>836</x>
+     <y>208</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>425</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_LoadRawImages()</slot>
@@ -4772,6 +4850,7 @@
   <slot>SLT_CopyTableToClipBoard()</slot>
   <slot>SLT_SetHisDir()</slot>
   <slot>SLT_LoadSelectedProjFiles()</slot>
+  <slot>SLT_ReloadProjections()</slot>
   <slot>SLT_DrawProjImages()</slot>
   <slot>SLT_DrawGraph()</slot>
   <slot>SLT_InitializeGraphLim()</slot>
@@ -4829,5 +4908,6 @@
   <slot>SLTM_CropMaskBatch()</slot>
   <slot>SLT_SaveCurrentSetting()</slot>
   <slot>SLT_CropSupInf()</slot>
+  <slot>SLT_OutPathEdited()</slot>
  </slots>
 </ui>

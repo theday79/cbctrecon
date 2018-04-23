@@ -97,8 +97,8 @@ SET(CbctRecon_SOURCES
 	DlgRegistration.cxx
 	StructureSet.cxx
 	DlgExternalCommand.cxx
-    rtkOpenCLUtilities.cxx
-    rtkOpenCLFDKBackProjectionImageFilter.cxx
+  rtkOpenCLUtilities.cxx
+  rtkOpenCLFDKBackProjectionImageFilter.cxx
 	OpenCLFFTFilter.cxx
 	CMakeSetup.rc
 )
@@ -119,7 +119,7 @@ SET(CbctRecon_HEADERS
 	rtkOpenCLFFTConvolutionImageFilter.hxx
 	itkOpenCLImageToImageFilter.h
 	itkOpenCLImageToImageFilter.hxx
-    rtkOpenCLUtilities.h
+  rtkOpenCLUtilities.h
 	OpenCLFFTFilter.h
 )
 SET(CbctRecon_FORMS
@@ -142,6 +142,11 @@ ADD_EXECUTABLE(CbctRecon
   ${CbctRecon_FORMS_HEADERS}
 )
 
+# set_target_properties(CbctRecon PROPERTIES POSITION_INDEPENDENT_CODE ON) #lib only property?
+
+# set_property(TARGET CbctRecon
+#              PROPERTY CUDA_SEPARABLE_COMPILATION ${CUDA_SEPARABLE_COMPILATION})
+
 SET(QT_USE_QTCORE TRUE)
 SET(QT_USE_QTGUI TRUE)
 SET(QT_USE_QTOPENGL TRUE)
@@ -158,10 +163,11 @@ IF(WIN32)
     FOREACH(f ${ARGN})
       GET_FILENAME_COMPONENT(extension ${f} EXT)
       GET_FILENAME_COMPONENT(file_name ${f} NAME)
-      MESSAGE(STATUS ${file_name})
-      IF(${file_name} MATCHES "cudart.lib")
-        MESSAGE(STATUS "cudart.lib was removed from linker")
-      ELSEIF(extension MATCHES ".lib")
+      # MESSAGE(STATUS ${file_name})
+      #IF(${file_name} MATCHES "cudart.lib")
+      #  MESSAGE(STATUS "cudart.lib was removed from linker")
+      #ELSE
+      IF(extension MATCHES ".lib")
         LIST(APPEND listVar "${f}")
       ELSE()
         LIST(APPEND listVar "${prefix}/${f}.lib")
@@ -271,9 +277,6 @@ file(MAKE_DIRECTORY bin) # ${CMAKE_CURRENT_BINARY_DIR}/../bin
 file(MAKE_DIRECTORY lut) # ${CMAKE_CURRENT_BINARY_DIR}/../lut
 
 if(WIN32)
-#add_custom_command(
-#  TARGET CbctRecon POST_BUILD
-#  COMMAND ${CMAKE_COMMAND} -E copy_if_different
   set(QT_DLLS
     $<TARGET_FILE:Qt5::Widgets>
     $<TARGET_FILE:Qt5::Gui>
@@ -281,9 +284,6 @@ if(WIN32)
     $<TARGET_FILE:Qt5::Core>
     $<TARGET_FILE:Qt5::PrintSupport>
   )
-#    ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl
-#    ${CMAKE_CURRENT_BINARY_DIR}/../bin
-#)
   install(FILES ${QT_DLLS} DESTINATION bin)
 elseif(UNIX)
   foreach(target ${QT_LIBRARIES})
@@ -304,14 +304,6 @@ elseif(UNIX)
   endforeach()
 endif()
 
-#IF(USE_CLFFT AND WIN32)
-#add_custom_command(
-#  TARGET CbctRecon POST_BUILD
-#  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#    ${CLFFT_ROOT_DIR}/bin/clFFT.dll
-#    bin # ${CMAKE_CURRENT_BINARY_DIR}/../bin
-#)
-#ENDIF()
 
 
 INSTALL( TARGETS CbctRecon DESTINATION bin )
@@ -322,8 +314,22 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
 ##  Additional install files
 ##-----------------------------------------------------------------------------
 if (WIN32)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/WindeployQt.cmake)
+  if($<CONFIG:Debug>)
+    windeployqt(CbctRecon "debug")
+  else()
+    windeployqt(CbctRecon "release")
+  endif()
+
+  if (OPENMP_FOUND)
+    set(CMAKE_INSTALL_OPENMP_LIBRARIES ON)
+    # install(FILES "${MSVC_REDIST_DIR}/x64/Microsoft.VC140.OpenMP/vcomp140.dll" DESTINATION bin COMPONENT Libraries)
+    # install(FILES "C:/Program Files (x86)/Microsoft Visual Studio 9.0/VC/redist/x86/Microsoft.VC90.OPENMP/Microsoft.VC90.OpenMP.manifest" DESTINATION bin COMPONENT Libraries)
+  endif(OPENMP_FOUND)
+  include(InstallRequiredSystemLibraries)
+
 	if (CUDA_FOUND)
-	  set (DLL_PATTERNS "cufft64*.dll" "cublas64*.dll")
+	  set (DLL_PATTERNS "cufft64*.dll" "cublas64*.dll" "cudart64*.dll")
 	  foreach (p ${DLL_PATTERNS})
 		file (GLOB DLLFILES "${CUDA_TOOLKIT_ROOT_DIR}/bin/${p}")
 		if (DLLFILES)

@@ -9,7 +9,7 @@
 #include <windows.h>
 #endif
 
-#include <stdio.h>
+#include <cstdio>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -58,8 +58,6 @@ struct RATIONAL {
   long b;
 };
 
-void InsertHeaderToArray(TIFIFD *IFDArr, int insertIdx, int TagID, int dataType,
-                         int DataCnt, int dataVal);
 bool SaveDoseGrayImage(const char *filePath, int width, int height,
                        double spacingX, double spacingY, double originLeft_mm,
                        double originTop_mm, unsigned short *pData);
@@ -224,7 +222,7 @@ void CbctRecon::ReleaseMemory() {
   }
 }
 void CbctRecon::SLT_LoadRawImages() {
-  //if (ximIsUsed) {
+  // if (ximIsUsed) {
   //  LoadRawXimImages();
   //} else if (hisIsUsed) {
   LoadRawHisImages();
@@ -232,133 +230,6 @@ void CbctRecon::SLT_LoadRawImages() {
   //  LoadRawHndImages();
   //}
 }
-
-/* //Comment out hnd and xim specific code, because it's uneccessary
-// Function for independent projection his images
-void CbctRecon::LoadRawHndImages() {
-  // QStringList files = QFileDialog::getOpenFileNames(this,"Select one or more
-  // files to open",
-  //	"/home","projection images (*.his)");
-
-  QStringList files = QFileDialog::getOpenFileNames(
-      this, "Select one or more files to open", m_strPathDirDefault,
-      "projection images (*.hnd)");
-
-  m_iImgCnt = files.size();
-
-  if (m_iImgCnt < 1) {
-    return;
-  }
-
-  ReleaseMemory();
-
-  // m_arrYKImage = new YK16GrayImage[m_iImgCnt];
-  m_arrYKImage.resize(m_iImgCnt);
-
-  using readerType = rtk::HndImageIO;
-  readerType::Pointer reader = readerType::New();
-  size_t index = 0;
-  for (auto &it : m_arrYKImage) {
-    const QString &strFile = files.at(index++);
-
-    reader->SetFileName(strFile.toLocal8Bit().constData());
-    reader->ReadImageInformation();
-
-    int width = reader->GetDimensions(0);  // width
-    int height = reader->GetDimensions(1); // height
-    int sizePix = reader->GetImageSizeInPixels();
-    int sizeBuf = reader->GetImageSizeInBytes();
-    int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
-
-    if (bytesPerPix != 2) {
-      break;
-    }
-
-    it.CreateImage(width, height, 0);
-
-    reader->Read(it.m_pData);
-
-    it.m_strFilePath = strFile;
-    // Copy his header - 100 bytes
-    it.CopyHisHeader(strFile.toLocal8Bit().constData());
-  }
-
-  m_multiplyFactor = 1.0;
-
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_iImgCnt - 1);
-  ui.spinBoxImgIdx->setValue(0);
-
-  SetMaxAndMinValueOfProjectionImage();
-  SLT_InitializeGraphLim();
-
-  SLT_DrawRawImages(); // Change FileName as well.. read spinbox value and draw
-                       // image
-}
-
-// Function for independent projection his images
-void CbctRecon::LoadRawXimImages() {
-  // QStringList files = QFileDialog::getOpenFileNames(this,"Select one or more
-  // files to open",
-  //	"/home","projection images (*.his)");
-
-  QStringList files = QFileDialog::getOpenFileNames(
-      this, "Select one or more files to open", m_strPathDirDefault,
-      "projection images (*.xim)");
-
-  m_iImgCnt = files.size();
-
-  if (m_iImgCnt < 1) {
-    return;
-  }
-
-  ReleaseMemory();
-
-  // m_arrYKImage = new YK16GrayImage[m_iImgCnt];
-  m_arrYKImage.resize(m_iImgCnt);
-
-  using readerType = rtk::XimImageIO;
-  readerType::Pointer reader = readerType::New();
-
-  size_t index = 0;
-  for (auto &it : m_arrYKImage) {
-    const QString &strFile = files.at(index++);
-
-    reader->SetFileName(strFile.toLocal8Bit().constData());
-    reader->ReadImageInformation();
-
-    int width = reader->GetDimensions(0);  // width
-    int height = reader->GetDimensions(1); // height
-    int sizePix = reader->GetImageSizeInPixels();
-    int sizeBuf = reader->GetImageSizeInBytes();
-    int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
-
-    if (bytesPerPix != 2) {
-      break;
-    }
-
-    it.CreateImage(width, height, 0);
-
-    reader->Read(it.m_pData);
-
-    it.m_strFilePath = strFile;
-    // Copy his header - 100 bytes
-    it.CopyHisHeader(strFile.toLocal8Bit().constData());
-  }
-
-  m_multiplyFactor = 1.0;
-
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_iImgCnt - 1);
-  ui.spinBoxImgIdx->setValue(0);
-
-  SetMaxAndMinValueOfProjectionImage();
-  SLT_InitializeGraphLim();
-
-  SLT_DrawRawImages(); // Change FileName as well.. read spinbox value and draw
-                       // image
-}
-*/ //Comment out hnd and xim specific code, because it's uneccessary
 
 // Function for independent projection his images
 void CbctRecon::LoadRawHisImages() {
@@ -385,7 +256,7 @@ void CbctRecon::LoadRawHisImages() {
 
   m_arrYKImage.resize(m_iImgCnt);
   using ReaderType = rtk::ProjectionsReader<FloatImageType>;
-  //using readerType = rtk::HisImageIO;
+  // using readerType = rtk::HisImageIO;
   ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileNames(fileVector);
   reader->UpdateOutputInformation();
@@ -394,18 +265,24 @@ void CbctRecon::LoadRawHisImages() {
   castFilter->SetInput(reader->GetOutput());
   castFilter->Update();
 
-  int width = castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0];  // width
-  int height = castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[1]; // height
-  int sizePix = width * height; // reader->GetImageSizeInPixels();
-  int sizeBuf = sizePix * sizeof(FloatImageType::PixelType); // reader->GetImageSizeInBytes();
+  int width =
+      castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0]; // width
+  int height = castFilter->GetOutput()
+                   ->GetLargestPossibleRegion()
+                   .GetSize()[1]; // height
+  int sizePix = width * height;   // reader->GetImageSizeInPixels();
+  int sizeBuf =
+      sizePix *
+      sizeof(FloatImageType::PixelType); // reader->GetImageSizeInBytes();
   int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
 
   size_t index = 0;
   for (auto &it : m_arrYKImage) {
     const QString &strFile = files.at(index);
-    // Heavily changed to hopefully allow RTK to use shared libs. 09/03/2018 by AGA
-    //reader->SetFileName(strFile.toLocal8Bit().constData());
-    //reader->ReadImageInformation();
+    // Heavily changed to hopefully allow RTK to use shared libs. 09/03/2018 by
+    // AGA
+    // reader->SetFileName(strFile.toLocal8Bit().constData());
+    // reader->ReadImageInformation();
 
     if (bytesPerPix != 2) {
       break;
@@ -413,7 +290,7 @@ void CbctRecon::LoadRawHisImages() {
 
     it.CreateImage(width, height, 0);
 
-    //reader->Read(it.m_pData);
+    // reader->Read(it.m_pData);
     it.m_pData = &castFilter->GetOutput()->GetBufferPointer()[sizePix * index];
 
     it.m_strFilePath = strFile;
@@ -474,7 +351,6 @@ void CbctRecon::SLT_LoadImageFloat3D() // Dose image for JPhillips
 
   reader->SetFileName(fileName.toLocal8Bit().constData());
   reader->Update();
-
 
   // Multiply: Gy to mGy
   using MultiplyImageFilterType =
@@ -1773,14 +1649,22 @@ GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
   FOVfilter->SetGeometry(geometry);
   FOVfilter->SetProjectionsStack(ProjStack.GetPointer());
   double x, z;
-  double r = -1.0;
+  double r_inf = -1.0;
   bool hasOverlap = FOVfilter->ComputeFOVRadius(
-      FOVfilterType::FOVRadiusType::RADIUSINF, x, z, r);
-  // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems to work for fullfan, so we'll use that. 
+      FOVfilterType::FOVRadiusType::RADIUSINF, x, z, r_inf);
+  // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems to
+  // work for fullfan, so we'll use that.
+
   if (hasOverlap) {
-    std::cout << "FOV radius was found: x=" << x << ", z=" << z << ", r=" << r << std::endl;
+    std::cout << "FOV (inf) radius was found: r=" << r_inf << std::endl;
   }
-  return r;
+  double r_sup = -1.0;
+  hasOverlap = FOVfilter->ComputeFOVRadius(
+      FOVfilterType::FOVRadiusType::RADIUSSUP, x, z, r_sup);
+  if (hasOverlap) {
+    std::cout << "FOV (sup) radius was found: r=" << r_sup << std::endl;
+  }
+  return std::max(r_inf, r_sup);
 }
 
 template <typename T, typename ImageType>
@@ -1823,12 +1707,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
     return;
   }
 
-#if USE_CUDA
   std::cout << "CUDA method will be used..." << std::endl;
-#else
-  std::cout << "Not compiled with CUDA option..." << std::endl;
-  return;
-#endif
 
   using DuplicatorType = itk::ImageDuplicator<CUDAFloatImageType>;
   DuplicatorType::Pointer duplicator = DuplicatorType::New();
@@ -1988,6 +1867,13 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
                "DICOM coordinate"
             << std::endl;
 
+  using FOVfilterType =
+      rtk::FieldOfViewImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
+  typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
+  FOVfilter->SetGeometry(m_spCustomGeometry);
+  FOVfilter->SetInput(0, streamerBP->GetOutput());
+  FOVfilter->SetProjectionsStack(spCurImg.GetPointer());
+
   /* RTK-produced 3D Volume should be changed in coordination of itk */
   /* Coordination transformation using Euler 3D transformation */
 
@@ -2022,33 +1908,33 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
   region_trans.SetIndex(start_trans);
 
   /* 2) Prepare Target image */
-  CUDAFloatImageType::Pointer targetImg = streamerBP->GetOutput();
+  CUDAFloatImageType::Pointer targetImg =
+      FOVfilter->GetOutput(); // streamerBP->GetOutput();
 
   /* 3) Configure transform */
-  using TransformType = itk::Euler3DTransform<double>;
+  //                            | 0  1  0 |
+  // Rz(-pi/2)*Rx(0)*Ry(pi/2) = | 0  0 -1 |
+  //                            |-1  0  0 |
+  itk::Matrix<double, 3, 3> CoordChangeMatrix;
+  // 1st row
+  CoordChangeMatrix[0][0] = 0.0;
+  CoordChangeMatrix[0][1] = 1.0;
+  CoordChangeMatrix[0][2] = 0.0;
+  // 2nd row
+  CoordChangeMatrix[1][0] = 0.0;
+  CoordChangeMatrix[1][1] = 0.0;
+  CoordChangeMatrix[1][2] = -1.0;
+  // 3rd row
+  CoordChangeMatrix[2][0] = -1.0;
+  CoordChangeMatrix[2][1] = 0.0;
+  CoordChangeMatrix[2][2] = 0.0;
+
+  itk::Vector<double, 3U> offset(0.0);
+
+  using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
   TransformType::Pointer transform = TransformType::New();
-
-  TransformType::ParametersType param;
-  param.SetSize(6);
-  // MAXIMUM PARAM NUMBER: 6!!!
-  param.put(0, 0.0);                  // rot X // 0.5 = PI/2
-  param.put(1, itk::Math::pi / 2.0);  // rot Y
-  param.put(2, itk::Math::pi / -2.0); // rot Z
-  param.put(3, 0.0);                  // Trans X mm
-  param.put(4, 0.0);                  // Trans Y mm
-  param.put(5, 0.0);                  // Trans Z mm
-
-  TransformType::ParametersType fixedParam(3); // rotation center
-  fixedParam.put(0, 0);
-  fixedParam.put(1, 0);
-  fixedParam.put(2, 0);
-
-  transform->SetParameters(param);
-  transform->SetFixedParameters(fixedParam); // Center of the Transform
-
-  std::cout << "Transform matrix:"
-            << "	" << std::endl;
-  std::cout << transform->GetMatrix() << std::endl;
+  transform->SetMatrix(CoordChangeMatrix);
+  transform->SetOffset(offset);
 
   using ResampleFilterType =
       itk::ResampleImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
@@ -2611,6 +2497,14 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target) {
   spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
   spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
 
+  if (GetOutputResolutionFromFOV<FloatImageType, FloatImageType>(
+          sizeOutput, spacing, m_spCustomGeometry, m_spProjImg3DFloat,
+          ui.lineEdit_OutputFilePath->text())) {
+    std::cout << "Reconstruction resolution and image size were set "
+                 "automatically, as no outputfilepath was given."
+              << std::endl;
+  }
+
   double fTruncCorFactor =
       ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
   if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
@@ -2631,6 +2525,14 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target) {
   FloatImageType::Pointer targetImg = RTKOpenCLFDK(
       spCurImg, m_spCustomGeometry, spacing, sizeOutput, fdk_options);
 #endif
+
+  using FOVfilterType =
+      rtk::FieldOfViewImageFilter<FloatImageType, FloatImageType>;
+  typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
+  FOVfilter->SetGeometry(m_spCustomGeometry);
+  FOVfilter->SetInput(0, targetImg);
+  FOVfilter->SetProjectionsStack(spCurImg.GetPointer());
+  targetImg = FOVfilter->GetOutput();
 
   std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard "
                "DICOM coordinate"
@@ -2670,29 +2572,29 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target) {
   region_trans.SetIndex(start_trans);
 
   /* 3) Configure transform */
-  using TransformType = itk::Euler3DTransform<double>;
+  //                            | 0  1  0 |
+  // Rz(-pi/2)*Rx(0)*Ry(pi/2) = | 0  0 -1 |
+  //                            |-1  0  0 |
+  itk::Matrix<double, 3, 3> CoordChangeMatrix;
+  // 1st row
+  CoordChangeMatrix[0][0] = 0.0;
+  CoordChangeMatrix[0][1] = 1.0;
+  CoordChangeMatrix[0][2] = 0.0;
+  // 2nd row
+  CoordChangeMatrix[1][0] = 0.0;
+  CoordChangeMatrix[1][1] = 0.0;
+  CoordChangeMatrix[1][2] = -1.0;
+  // 3rd row
+  CoordChangeMatrix[2][0] = -1.0;
+  CoordChangeMatrix[2][1] = 0.0;
+  CoordChangeMatrix[2][2] = 0.0;
+
+  itk::Vector<double, 3U> offset(0.0);
+
+  using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
   TransformType::Pointer transform = TransformType::New();
-
-  TransformType::ParametersType param;
-  param.SetSize(6);
-  param.put(0, 0.0);                  // rot X // 0.5 = PI/2
-  param.put(1, itk::Math::pi / 2.0);  // rot Y
-  param.put(2, itk::Math::pi / -2.0); // rot Z
-  param.put(3, 0.0);                  // Trans X mm
-  param.put(4, 0.0);                  // Trans Y mm
-  param.put(5, 0.0);                  // Trans Z mm
-
-  TransformType::ParametersType fixedParam(3); // rotation center
-  fixedParam.put(0, 0);
-  fixedParam.put(1, 0);
-  fixedParam.put(2, 0);
-
-  transform->SetParameters(param);
-  transform->SetFixedParameters(fixedParam); // Center of the Transform
-
-  std::cout << "Transform matrix:"
-            << "	" << std::endl;
-  std::cout << transform->GetMatrix() << std::endl;
+  transform->SetMatrix(CoordChangeMatrix);
+  transform->SetOffset(offset);
 
   using ResampleFilterType =
       itk::ResampleImageFilter<FloatImageType, FloatImageType>;
@@ -3545,8 +3447,8 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
       auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
       auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
-      std::cout << "Current Min and Max Values are	" << minVal
-                << "	" << maxVal << std::endl;
+      std::cout << "Current Min and Max Values are	" << minVal << "	"
+                << maxVal << std::endl;
 
       auto outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
       auto outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
@@ -3593,6 +3495,84 @@ void read_bowtie_projection(
   bowtiereader->Update();
 }
 */
+template <typename ImageType>
+void saveImageAsMHA(typename ImageType::Pointer image) {
+  using ImageWriterType = itk::ImageFileWriter<ImageType>;
+  typename ImageWriterType::Pointer writer = ImageWriterType::New();
+  writer->SetInput(image);
+  writer->SetFileName("Projections.mha");
+  writer->Update();
+}
+
+void CbctRecon::SLT_ReloadProjections() {
+  QFile projFile("Projections.mha");
+  if (!projFile.exists()) {
+    std::cerr
+        << "Projections were never saved! i.e. Projections.mha doesn't exist."
+        << std::endl;
+    return;
+  }
+  std::cout << "Reading: " << projFile.fileName().toStdString() << std::endl;
+  using ImageReaderType = itk::ImageFileReader<FloatImageType>;
+  ImageReaderType::Pointer ImageReader = ImageReaderType::New();
+  ImageReader->SetFileName(projFile.fileName().toStdString());
+  ImageReader->Update();
+  m_spProjImg3DFloat = ImageReader->GetOutput();
+
+  // Copied from SLT_LoadSelectedFiles:
+
+  if (m_fResampleF != 1.0) {
+    ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat,
+                     m_fResampleF); // was! BROKEN AF for .his where input size
+                                    // != 1024 (tested with 1016) -> outputs
+                                    // offset -inputoffset/refactor^2 and 4
+                                    // pixels too few in x and y
+  }
+
+  if (!hisIsUsed && !ximIsUsed) { // -> hnd
+    std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
+    SLT_DoBowtieCorrection();
+  }
+
+  ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D,
+                           65535); // if X not 1024 == input size: out_offset =
+                                   // in_offset + (1024*res_f -
+                                   // X*res_f)*out_spacing     <- will still
+                                   // break down at fw_projection
+
+  FloatImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
+  FloatImageType::SizeType FloatImgSize =
+      m_spProjImg3DFloat->GetBufferedRegion().GetSize();
+  FloatImageType::SpacingType FloatImgSpacing =
+      m_spProjImg3DFloat->GetSpacing();
+
+  std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
+            << originPt[2] << std::endl;
+  std::cout << "YKDEBUG: Size" << FloatImgSize[0] << ", " << FloatImgSize[1]
+            << ", " << FloatImgSize[2] << std::endl;
+  std::cout << "YKDEBUG: Spacing" << FloatImgSpacing[0] << ", "
+            << FloatImgSpacing[1] << ", " << FloatImgSpacing[2] << std::endl;
+
+  std::cout << "Raw3DProj dimension "
+            << m_spProjImgRaw3D->GetRequestedRegion().GetSize() << std::endl;
+
+  // m_spProjImgRaw3D is Ushort
+
+  std::cout << "Projection reading succeeded." << m_vSelectedFileNames.size()
+            << " files were read" << std::endl;
+
+  // Because you can load projections from previous run:
+  ui.pushButton_DoRecon->setEnabled(true);
+
+  ui.spinBoxImgIdx->setMinimum(0);
+  ui.spinBoxImgIdx->setMaximum(m_vSelectedFileNames.size() - 1);
+  ui.spinBoxImgIdx->setValue(0);
+
+  SetMaxAndMinValueOfProjectionImage(); // update min max projection image
+  SLT_InitializeGraphLim();
+
+  this->SLT_DrawProjImages(); // Update Table is called
+}
 
 void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
                                             // projection images
@@ -4177,6 +4157,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
   // ui.lineEdit_scaGaussian->setText(QString("%1").arg(defaultScaGaussian));
   // ui.lineEdit_scaPostMedian->setText(QString("%1").arg(defaultScaPostProjMedian));
 
+  std::thread save_thread(saveImageAsMHA<FloatImageType>, m_spProjImg3DFloat);
+
   if (m_fResampleF != 1.0) {
     ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat,
                      m_fResampleF); // was! BROKEN AF for .his where input size
@@ -4270,6 +4252,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
   if (std::get<1>(answers)) { // CT DCM dir was found
     SLT_ViewRegistration();
   }
+  // Make sure the projections are saved before going out of scope.
+  save_thread.join();
 }
 
 //
@@ -6176,7 +6160,7 @@ void CbctRecon::SLT_ExportReconSHORT_HU() {
   // maxVal
   // << std::endl; //should be 0 and 4096
   ////std::cout <<"Min and Max Values are	" << minVal << "	" <<
-  ///maxVal
+  /// maxVal
   ///<<  std::endl;
 
   ////Min value is always 3024 --> outside the FOV
@@ -7846,9 +7830,9 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
   FloatImageType::Pointer spResultProjImageFloat;
   // Euler Transformation for RTK's weird orientation
 
-  int iNumOfProjections = 0;
+  // int iNumOfProjections = 0;
 
-  if (true) {
+  {
     // 0) CT image Transformation
     UShortImageType::SizeType size_original =
         spVolImg3D->GetLargestPossibleRegion().GetSize();
@@ -7988,7 +7972,7 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     size[1] = m_spProjImg3DFloat->GetBufferedRegion()
                   .GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
     size[2] = spGeometry->GetGantryAngles().size();
-    iNumOfProjections = size[2];
+    // iNumOfProjections = size[2];
 
     // b) spacing
     spacing[0] = m_fProjSpacingX / m_fResampleF; // typical HIS file
@@ -8168,7 +8152,7 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
 
   // int iNumOfProjections = 0;
 
-  if (true) {
+  {
     // 0) CT image Transformation
     UShortImageType::SizeType size_original =
         spVolImg3D->GetLargestPossibleRegion().GetSize();
@@ -8743,7 +8727,8 @@ FloatImage2DType::Pointer LowPassFFT(FloatImage2DType::Pointer &input,
 void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
                                       UShortImageType::Pointer &spProjCT3D,
                                       UShortImageType::Pointer &spProjScat3D,
-                                      double medianRadius, double gaussianSigma,
+                                      double /*medianRadius*/,
+                                      double gaussianSigma,
                                       int nonNegativeScatOffset, bool bSave) {
   // Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1) {
@@ -10374,7 +10359,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput) {
           GetAngularWEPL_window(m_spScatCorrReconImg, fAngleGap, fAngleStart,
                                 fAngleEnd, vOutputWEPL_corCBCT, true);
           std::cout << " (COR)";
-        } catch (std::exception e) {
+        } catch (std::exception &e) {
           std::cout << " (COR) failed!!: e=" << e.what() << std::endl;
         }
       }
@@ -10386,7 +10371,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput) {
           GetAngularWEPL_window(m_spManualRigidCT, fAngleGap, fAngleStart,
                                 fAngleEnd, vOutputWEPL_manual, true);
           std::cout << " (MAN)";
-        } catch (std::exception e) {
+        } catch (std::exception &e) {
           std::cout << " (MAN) failed!!: e=" << e.what() << std::endl;
         }
       }
@@ -10398,7 +10383,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput) {
           GetAngularWEPL_window(m_spAutoRigidCT, fAngleGap, fAngleStart,
                                 fAngleEnd, vOutputWEPL_auto_rigid, true);
           std::cout << " (AUT)";
-        } catch (std::exception e) {
+        } catch (std::exception &e) {
           std::cout << " (AUT) failed!!: e=" << e.what() << std::endl;
         }
       }
@@ -10410,7 +10395,7 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput) {
           GetAngularWEPL_window(m_spDeformedCT_Final, fAngleGap, fAngleStart,
                                 fAngleEnd, vOutputWEPL_deform, true);
           std::cout << " (DEF)";
-        } catch (std::exception e) {
+        } catch (std::exception &e) {
           std::cout << " (DEF) failed!!: e=" << e.what() << std::endl;
         }
       }
@@ -10827,28 +10812,15 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
             << isoTarget[2] << " ), sizeAngles: " << sizeAngles << std::endl;
 
   const std::string stdout_file = "WEPL_stdout.txt";
-  const std::string stderr_file = "WEPL_stderr.txt";
 
-#ifdef WIN32
-  FILE *stream;
-  if (freopen_s(&stream, stdout_file.c_str(), "w", stdout) == 0) {
-    exit(-1);
+  std::ofstream ofs(stdout_file); // Open stdout_file for writing
+  if (ofs.is_open()) {
+    std::cerr
+        << "couldn't open file: " << stdout_file << " for writing!\n"
+        << "Are you running this app from a folder without write permissions?"
+        << std::endl;
+    return;
   }
-  FILE *stream_err;
-  if (freopen_s(&stream_err, stderr_file.c_str(), "w", stderr) == 0) {
-    exit(-1);
-  }
-#else
-  FILE *stream;
-  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL) {
-    exit(-1);
-  }
-  FILE *stream_err;
-  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL) {
-    exit(-1);
-  }
-#endif
-
   const std::array<double, 3> pixel_size = {{wepl_image->GetSpacing()[0],
                                              wepl_image->GetSpacing()[1],
                                              wepl_image->GetSpacing()[2]}};
@@ -10866,16 +10838,18 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
 
     const std::array<double, 3> basis = get_basis_from_angles(curAngle, 0.0);
 
-    std::printf("%.2f, [%.2f, %.2f, %.2f]: ", curAngle, basis[0], basis[1],
-                basis[2]);
+    ofs << std::fixed << std::setprecision(3) << curAngle << ", [" << basis[0]
+        << ", " << basis[1] << ", " << basis[2] << "]: ";
 
     it.fWEPL = WEPL_from_point(isoTarget, basis, pixel_size, cube_dim,
                                wepl_image); // get_rgdepth
     it.fGanAngle = curAngle;
     it.ptIndex = curPtIdx;
-    std::printf("%.4f\n", it.fWEPL);
+    ofs << std::fixed << std::setprecision(5) << it.fWEPL << "\n";
     i++;
   }
+
+  ofs.close();
 
   if (!bAppend) {
     vOutputWEPLData.clear();
@@ -10889,29 +10863,6 @@ for (int i = 0; i < sizeAngles; i++)
 }*/
 
   // delete[] stArrWEPL;
-
-#ifdef WIN32
-  errno_t err = freopen_s(&stream, "CON", "w", stdout);
-  if (err == 0) {
-    std::cerr << "Ran into an error: " << err << " upon changing stdout stream"
-              << std::endl;
-  }
-
-  err = freopen_s(&stream_err, "CON", "w", stderr);
-  if (err == 0) {
-    std::cerr << "Ran into an error: " << err << " upon changing stderr stream"
-              << std::endl;
-  }
-#else
-  stream = freopen("CON", "w", stdout);
-  if (stream == nullptr) {
-    exit(-1);
-  }
-  stream_err = freopen("CON", "w", stderr);
-  if (stream_err == nullptr) {
-    exit(-1);
-  }
-#endif
 }
 
 void CbctRecon::GetAngularWEPL_MultiPoint(
@@ -10968,27 +10919,15 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
   // std::cout << "Everything is OK!? Let's calculate WEPL...\n" << std::endl;
 
   const std::string stdout_file = "WEPL_stdout.txt";
-  const std::string stderr_file = "WEPL_stderr.txt";
 
-#ifdef WIN32
-  FILE *stream;
-  if (freopen_s(&stream, stdout_file.c_str(), "w", stdout) == 0) {
-    exit(-1);
+  std::ofstream ofs(stdout_file); // Open stdout_file for writing
+  if (ofs.is_open()) {
+    std::cerr
+        << "couldn't open file: " << stdout_file << " for writing!\n"
+        << "Are you running this app from a folder without write permissions?"
+        << std::endl;
+    return;
   }
-  FILE *stream_err;
-  if (freopen_s(&stream_err, stderr_file.c_str(), "w", stderr) == 0) {
-    exit(-1);
-  }
-#else
-  FILE *stream;
-  if ((stream = freopen(stdout_file.c_str(), "w", stdout)) == NULL) {
-    exit(-1);
-  }
-  FILE *stream_err;
-  if ((stream_err = freopen(stderr_file.c_str(), "w", stderr)) == NULL) {
-    exit(-1);
-  }
-#endif
 
 #pragma omp parallel for
   for (int p = 0; p < static_cast<int>(sizePOI); p++) {
@@ -11018,8 +10957,8 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
     // GetAngularWEPL_MultiPoint(m_spRawReconImg, fAngleGap, fAngleStart,
     // fAngleEnd, curPOI, i, vOutputWEPL_rawCBCT, true);//mandatory
 
-    std::cout << "POI idx: " << p
-              << ", calculation for all given angles startng...\n";
+    ofs << "POI idx: " << p
+        << ", calculation for all given angles startng...\n";
 
     // for (int i = qRound(fAngleStart / fAngleGap); i < (sizeAngles +
     // qRound(fAngleStart / fAngleGap)); i++)
@@ -11130,8 +11069,8 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
 
       plm_long ap_idx_default[2] = {0, 0};
       WEPLData curWEPLData{};
-      curWEPLData.fWEPL = static_cast<float>(
-          rpl_vol->get_value(ap_idx_default, rglength)); // rgdepth
+      curWEPLData.fWEPL =
+          rpl_vol->get_value(ap_idx_default, rglength); // rgdepth
       curWEPLData.fGanAngle = curAngle;
       curWEPLData.ptIndex = p;
 
@@ -11170,31 +11109,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
   delete[] stArrWEPL;
   */
   ct_vol->free();
-#ifdef WIN32
-  errno_t err = freopen_s(&stream, "CON", "w", stdout);
-  if (err == 0) {
-    std::cerr << "Ran into an error: " << err << " upon changing stdout stream"
-              << std::endl;
-  }
-
-  err = freopen_s(&stream_err, "CON", "w", stderr);
-  if (err == 0) {
-    std::cerr << "Ran into an error: " << err << " upon changing stderr stream"
-              << std::endl;
-  }
-#else
-  stream = freopen("CON", "w", stdout);
-  if (stream == nullptr) {
-    std::cerr << "Ran into an error: upon changing stdout stream" << std::endl;
-    return;
-  }
-
-  stream_err = freopen("CON", "w", stderr);
-  if (stream_err == nullptr) {
-    std::cerr << "Ran into an error: upon changing stderr stream" << std::endl;
-    return;
-  }
-#endif
+  ofs.close();
 }
 
 void CbctRecon::SLT_GeneratePOIData() // it fills m_vPOI_DCM
@@ -11353,8 +11268,7 @@ void CbctRecon::SLT_StopSyncFromSharedMem() {
       // The semaphore object was signaled.
     case WAIT_OBJECT_0: // 0 -->This got the semaphore token
       // PERFORM TASK
-      printf("Thread %lu: wait succeeded\n", GetCurrentThreadId());
-      fout << "Thread %lu: wait succeeded " << GetCurrentThreadId()
+      fout << "Thread " << GetCurrentThreadId() << ": wait succeeded "
            << std::endl;
       Sleep(10);
 
@@ -11362,15 +11276,14 @@ void CbctRecon::SLT_StopSyncFromSharedMem() {
                            1,             // increase count by one
                            nullptr) == 0) // not interested in previous count
       {
-        printf("ReleaseSemaphore error: %lu\n",
-               GetLastError()); // Access is denied.
+        fout << "ReleaseSemaphore error: " << GetLastError()
+             << "\n"; // Access is denied.
       }
       break;
 
     case WAIT_TIMEOUT: // no need of release //258
       // Sleep(50);
-      printf("Thread %lu: wait timed out\n", GetCurrentThreadId());
-      fout << "Thread %lu: wait timed out " << GetCurrentThreadId()
+      fout << "Thread " << GetCurrentThreadId() << ": wait timed out "
            << std::endl;
       break;
     }
@@ -11696,6 +11609,27 @@ void CbctRecon::MedianFilterByGUI() {
     std::cout << "Not valid median window" << std::endl;
   }
 }
+
+void CbctRecon::SLT_OutPathEdited()
+{
+  if (!ui.lineEdit_OutputFilePath->text().isEmpty()) {
+    ui.lineEdit_outImgDim_LR->setEnabled(true);
+    ui.lineEdit_outImgDim_AP->setEnabled(true);
+    ui.lineEdit_outImgDim_SI->setEnabled(true);
+    ui.lineEdit_outImgSp_LR->setEnabled(true);
+    ui.lineEdit_outImgSp_AP->setEnabled(true);
+    ui.lineEdit_outImgSp_SI->setEnabled(true);
+  }
+  else {
+    ui.lineEdit_outImgDim_LR->setEnabled(false);
+    ui.lineEdit_outImgDim_AP->setEnabled(false);
+    ui.lineEdit_outImgDim_SI->setEnabled(false);
+    ui.lineEdit_outImgSp_LR->setEnabled(false);
+    ui.lineEdit_outImgSp_AP->setEnabled(false);
+    ui.lineEdit_outImgSp_SI->setEnabled(false);
+  }
+}
+
 // Only can be used for m_spRawRecon
 void CbctRecon::FileExportByGUI() // USHORT
 {
@@ -14179,16 +14113,6 @@ void CbctRecon::SLTM_LoadPerProjRefList() {
 //
 //}
 
-// TIF export
-void InsertHeaderToArray(TIFIFD *IFDArr, int insertIdx, int TagID, int dataType,
-                         int DataCnt, int dataVal) // dataVal이 초기값이면 insert 안함
-{
-  IFDArr[insertIdx].TagID = TagID;
-  IFDArr[insertIdx].DataType = dataType;
-  IFDArr[insertIdx].DataCnt = DataCnt;
-  IFDArr[insertIdx].DataOrOffset = dataVal;
-}
-
 bool SaveDoseGrayImage(
     const char *filePath, int width, int height, double spacingX,
     double spacingY, double originLeft_mm, double originTop_mm,
@@ -14298,8 +14222,6 @@ bool SaveDoseGrayImage(
     tififd_tmp.DataCnt = 1;
     tififd_tmp.DataOrOffset = m_iSubFileType;
     IFDarr.push_back(tififd_tmp);
-    // InsertHeaderToArray(&IFDArr[0], idx, TagID, dataType, DataCnt,
-    // dataVal);//dataVal이 초기값이면 insert 안함  idx++;
   }
 
   if (m_iWidth >= 0) {

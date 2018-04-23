@@ -26,7 +26,8 @@
 #include "itk_image_type.h"
 
 // RTK includes
-// #include <rtkWin32Header.h> // defines dllimport export based on BUILD_SHARED_LIBS
+// #include <rtkWin32Header.h> // defines dllimport export based on
+// BUILD_SHARED_LIBS
 #include <rtkElektaSynergyGeometryReader.h>
 //#include <rtkHisImageIO.h>
 //#include <rtkHndImageIO.h>
@@ -43,10 +44,10 @@
 #include <rtkFDKBackProjectionImageFilter.h>
 #include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkFieldOfViewImageFilter.h>
-#include <rtkParkerShortScanImageFilter.h>
-#include <rtkProjectionsReader.h>
 #include <rtkForwardProjectionImageFilter.h>
 #include <rtkJosephForwardProjectionImageFilter.h>
+#include <rtkParkerShortScanImageFilter.h>
+#include <rtkProjectionsReader.h>
 #include <rtkRayCastInterpolatorForwardProjectionImageFilter.h>
 
 #if USE_CUDA
@@ -84,8 +85,8 @@
 #include <itkResampleImageFilter.h>
 #include <itkRescaleIntensityImageFilter.h>
 #include <itkSmoothingRecursiveGaussianImageFilter.h>
-#include <itkStreamingImageFilter.h>
 #include <itkStatisticsImageFilter.h>
+#include <itkStreamingImageFilter.h>
 
 #ifdef LOWPASS_FFT
 // ITK Low-pass fourier filter
@@ -517,8 +518,6 @@ public:
 
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);
-  void LoadRawHndImages();
-  void LoadRawXimImages();
   void LoadRawHisImages();
 
   // using RTK forward projection algorithm, generate 2D projection image files
@@ -539,6 +538,7 @@ public slots:
   void SLT_LoadNKIImage();
   void SLT_LoadSelectedProjFiles(); // based on presetting values on GUI,
                                     // including geometry files
+  void SLT_ReloadProjections();
   void SLT_ExportHis();
 
   void SLT_LoadImageFloat3D(); // Dose file
@@ -647,7 +647,7 @@ public slots:
   void SLTM_ScatterCorPerProjRef();
   void SLTM_LoadPerProjRefList();
   void SLTM_CropMaskBatch();
-
+  void SLT_OutPathEdited();
   void SLT_SaveCurrentSetting();
 
   void SLT_CropSupInf();
