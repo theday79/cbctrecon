@@ -39,7 +39,7 @@ endif()
 
 # Add commands that copy the required Qt files to the same directory as the
 # target after being built as well as including them in final installation
-function(windeployqt target build_type)
+function(windeployqt target build_type lib_dir)
 
     # Run windeployqt immediately after build
     add_custom_command(TARGET ${target} POST_BUILD
@@ -49,6 +49,7 @@ function(windeployqt target build_type)
                 --no-compiler-runtime
                 --${build_type}
                 \"$<TARGET_FILE:${target}>\"
+                --libdir \"${lib_dir}\"
         COMMENT "Deploying Qt..."
     )
 
