@@ -98,6 +98,7 @@
 #endif
 
 // Plastimatch
+#include <dcmtk_rt_study.h>
 #include <mha_io.h>
 #include <nki_io.h>
 #include <proj_volume.h>
@@ -209,6 +210,7 @@ class QStandardItemModel;
 class DlgRegistration;
 // class DlgHistogram;
 class DlgExternalCommand;
+class StructureSet;
 class QTimer;
 class QXmlStreamReader;
 

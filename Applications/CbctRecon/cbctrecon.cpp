@@ -3406,6 +3406,7 @@ QString getBowtiePath(QWidget *parent, const QDir &calDir) {
       calDir.absolutePath(), "Projection (*.xim)", nullptr, nullptr);
 }
 
+
 std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
 
   QString dirPath = QFileDialog::getExistingDirectory(
@@ -3414,8 +3415,15 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
 
   bool dcm_success = false;
   if (!(dirPath.length() <= 1)) {
+    Dcmtk_rt_study drs(dirPath.toLocal8Bit().constData());
+    drs.parse_directory();
     Plm_image plmImg;
-    if (plmImg.load_native(dirPath.toLocal8Bit().constData())) {
+    plmImg.set(drs.get_image());
+
+    if(plmImg.have_image()){
+    //if (plmImg.load_native(dirPath.toLocal8Bit().constData())) {
+
+      m_structures->set_planCT_ss(drs.get_rtss());
 
       ShortImageType::Pointer spShortImg = plmImg.itk_short();
 
