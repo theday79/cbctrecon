@@ -3406,7 +3406,6 @@ QString getBowtiePath(QWidget *parent, const QDir &calDir) {
       calDir.absolutePath(), "Projection (*.xim)", nullptr, nullptr);
 }
 
-
 std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
 
   QString dirPath = QFileDialog::getExistingDirectory(
@@ -3420,10 +3419,13 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
     Plm_image plmImg;
     plmImg.set(drs.get_image());
 
-    if(plmImg.have_image()){
-    //if (plmImg.load_native(dirPath.toLocal8Bit().constData())) {
-
-      m_structures->set_planCT_ss(drs.get_rtss());
+    if (plmImg.have_image()) {
+      // if (plmImg.load_native(dirPath.toLocal8Bit().constData())) {
+      auto planCT_ss = drs.get_rtss(); // dies at end of scope...
+      if (planCT_ss != nullptr) {
+        // ... so I copy to my own modern-C++ implementation
+        m_structures->set_planCT_ss(planCT_ss.get());
+      }
 
       ShortImageType::Pointer spShortImg = plmImg.itk_short();
 
@@ -3492,17 +3494,6 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
   return std::make_tuple(instaRecon, dcm_success);
 }
 
-/*
-void read_projections(
-    rtk::ProjectionsReader<FloatImageType>::Pointer &m_reader) {
-  m_reader->Update();
-}
-
-void read_bowtie_projection(
-    rtk::ProjectionsReader<FloatImage2DType>::Pointer &bowtiereader) {
-  bowtiereader->Update();
-}
-*/
 template <typename ImageType>
 void saveImageAsMHA(typename ImageType::Pointer image) {
   using ImageWriterType = itk::ImageFileWriter<ImageType>;
@@ -11618,8 +11609,7 @@ void CbctRecon::MedianFilterByGUI() {
   }
 }
 
-void CbctRecon::SLT_OutPathEdited()
-{
+void CbctRecon::SLT_OutPathEdited() {
   if (!ui.lineEdit_OutputFilePath->text().isEmpty()) {
     ui.lineEdit_outImgDim_LR->setEnabled(true);
     ui.lineEdit_outImgDim_AP->setEnabled(true);
@@ -11627,8 +11617,7 @@ void CbctRecon::SLT_OutPathEdited()
     ui.lineEdit_outImgSp_LR->setEnabled(true);
     ui.lineEdit_outImgSp_AP->setEnabled(true);
     ui.lineEdit_outImgSp_SI->setEnabled(true);
-  }
-  else {
+  } else {
     ui.lineEdit_outImgDim_LR->setEnabled(false);
     ui.lineEdit_outImgDim_AP->setEnabled(false);
     ui.lineEdit_outImgDim_SI->setEnabled(false);

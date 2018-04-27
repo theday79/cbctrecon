@@ -1,16 +1,12 @@
 #ifndef STRUCTURESET_H
 #define STRUCTURESET_H
+#include "PlmWrapper.h"
 #include "cbctrecon.h"
 
-#include <rtss.h>
-#include <rtss_contour.h>
-#include <rtss_roi.h>
-
-struct FloatVector {
-  float x;
-  float y;
-  float z;
-};
+#include <bspline_xform.h>
+#include <plm_image.h>
+#include <xform.h>
+#include <xform_convert.h>
 
 enum ctType {
   PLAN_CT = 0,
@@ -23,15 +19,33 @@ public:
   StructureSet();
   ~StructureSet();
 
-  void set_planCT_ss(Rtss::Pointer &struct_set);
-  void set_rigidCT_ss(Rtss::Pointer &struct_set);
-  void set_deformCT_ss(Rtss::Pointer &struct_set);
-  void transform_by_vector(ctType struct_set, FloatVector vec, Rtss *out_ss);
+  void set_planCT_ss(std::unique_ptr<Rtss> struct_set);
+  void set_rigidCT_ss(std::unique_ptr<Rtss> struct_set);
+  void set_deformCT_ss(std::unique_ptr<Rtss> struct_set);
+  void set_planCT_ss(const Rtss *struct_set);
+  void set_rigidCT_ss(const Rtss *struct_set);
+  void set_deformCT_ss(const Rtss *struct_set);
+
+  std::unique_ptr<Rtss_modern> transform_by_vector(ctType struct_set,
+                                                   FloatVector vec);
+
+  std::unique_ptr<Rtss_modern>
+  transform_by_vectorField(ctType struct_set,
+                           const VectorFieldType::Pointer &vf);
+
+  std::unique_ptr<Rtss_modern>
+  transform_by_Lambda(ctType struct_set,
+                      const TransformType &transform_function);
+
+  Rtss_modern *get_ss(ctType struct_set);
+
+  bool ApplyRigidTransformToPlan(QFile rigid_transform_file);
+  bool ApplyDeformTransformToRigid(QFile deform_transform_file);
 
 private:
-  Rtss *m_plan_ss;
-  Rtss *m_rigid_ss;
-  Rtss *m_deform_ss;
+  std::unique_ptr<Rtss_modern> m_plan_ss;
+  std::unique_ptr<Rtss_modern> m_rigid_ss;
+  std::unique_ptr<Rtss_modern> m_deform_ss;
 };
 
 #endif

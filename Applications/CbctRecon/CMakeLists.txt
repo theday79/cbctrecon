@@ -96,9 +96,10 @@ SET(CbctRecon_SOURCES
 	qcustomplot.cpp
 	DlgRegistration.cxx
 	StructureSet.cxx
+	PlmWrapper.cxx
 	DlgExternalCommand.cxx
-  rtkOpenCLUtilities.cxx
-  rtkOpenCLFDKBackProjectionImageFilter.cxx
+	rtkOpenCLUtilities.cxx
+	rtkOpenCLFDKBackProjectionImageFilter.cxx
 	OpenCLFFTFilter.cxx
 	CMakeSetup.rc
 )
@@ -110,6 +111,7 @@ SET(CbctRecon_HEADERS
 	qcustomplot.h
 	DlgRegistration.h
 	StructureSet.h
+	PlmWrapper.h
 	DlgExternalCommand.h
 	rtkOpenCLFDKConeBeamReconstructionFilter.h
 	rtkOpenCLFDKConeBeamReconstructionFilter.hxx
@@ -119,7 +121,7 @@ SET(CbctRecon_HEADERS
 	rtkOpenCLFFTConvolutionImageFilter.hxx
 	itkOpenCLImageToImageFilter.h
 	itkOpenCLImageToImageFilter.hxx
-  rtkOpenCLUtilities.h
+	rtkOpenCLUtilities.h
 	OpenCLFFTFilter.h
 )
 SET(CbctRecon_FORMS

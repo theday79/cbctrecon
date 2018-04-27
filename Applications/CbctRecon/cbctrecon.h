@@ -2,6 +2,7 @@
 #define CBCTRECON_H
 
 #include <array>
+#include <memory> // unique_, shared_ and weak_ptr
 #include <thread>
 
 // Qt
