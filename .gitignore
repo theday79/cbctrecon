@@ -34,5 +34,8 @@
 # Windows generated files
 *.TMP
 
+# MacOS generated files
+*.DS_Store
+
 # Qt generated file
 *.user
