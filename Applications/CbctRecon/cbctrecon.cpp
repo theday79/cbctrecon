@@ -2394,7 +2394,7 @@ FloatImageType::Pointer RTKOpenCLFDK(
   feldkampOCL->GetRampFilter()->SetHammingFrequency(fHamming);
 
   feldkampOCL->Update();
-  feldkampOCL->PrintTiming(std::cout);
+  // feldkampOCL->PrintTiming(std::cout); Deprecated in rtk 1.4
 
   return feldkampOCL->GetOutput();
 }
@@ -3179,8 +3179,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target) {
     std::cout << "Output generation was succeeded" << std::endl;
   }
 
-  dynamic_cast<FDKCPUType *>(feldkamp.GetPointer())->PrintTiming(std::cout);
-
+  // feldkamp->PrintTiming(std::cout); Deprecated in rtk 1.4
   m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
 
   ui.spinBoxReconImgSliceNo->setMinimum(0);
@@ -13897,10 +13896,12 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
     return;
 #endif
     break;
-  case (en_RayCastInterpolator):
-    forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<
-        FloatImageType, FloatImageType>::New();
-    break;
+//#if RTK_MINOR_VERSION < 4
+//  case (en_RayCastInterpolator):
+//    forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<
+//        FloatImageType, FloatImageType>::New();
+//    break;
+//#endif
 
   default:
     std::cerr << "Unhandled --method value." << std::endl;

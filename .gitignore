@@ -33,3 +33,6 @@
 
 # Windows generated files
 *.TMP
+
+# Qt generated file
+*.user

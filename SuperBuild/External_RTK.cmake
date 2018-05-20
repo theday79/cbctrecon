@@ -58,6 +58,8 @@ if(NOT DEFINED RTK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     QUIET
     )
 
+  MESSAGE(STATUS "Hello there!")
+
   ExternalProject_Add(${proj}
     ${${proj}_EP_ARGS}
     GIT_REPOSITORY "${${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY}"

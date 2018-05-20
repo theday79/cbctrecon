@@ -13,6 +13,8 @@ OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
+OPTION(RTK_AS_ITK_EXTERNAL "Build RTK in ITK" ON)
+
 
 OPTION(CbctRecon_SUPERBUILD "Use SUPERBUILD system" ON) # I have not tried setting it "OFF", tbh
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code

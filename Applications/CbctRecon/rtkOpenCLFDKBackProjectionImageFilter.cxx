@@ -146,8 +146,8 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
 
   // Ramp factor is the correction for ramp filter which did not account for the
   // divergence of the beam
-  const GeometryPointer geometry =
-      dynamic_cast<GeometryType *>(this->GetGeometry().GetPointer());
+  //const GeometryPointer geometry =
+  //    dynamic_cast<GeometryType *>(this->GetGeometry().GetPointer());
 
   // Rotation center (assumed to be at 0 yet)
   ImageType::PointType rotCenterPoint;

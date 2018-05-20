@@ -8,6 +8,12 @@ if(CbctRecon_BUILD_ITKPython)
   list(APPEND ${proj}_DEPENDENCIES Swig python)
 endif()
 
+if (RTK_AS_ITK_EXTERNAL)
+  # RTK is now external module
+  set(rtk_proj RTK_EXTERNAL)
+  # list(APPEND ${proj}_DEPENDENCIES  ${rtk_proj})
+endif()
+
 # Include dependent projects if any
 ExternalProject_Include_Dependencies(${proj} PROJECT_VAR proj DEPENDS_VAR ${proj}_DEPENDENCIES)
 
@@ -79,7 +85,6 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       )
   endif()
 
-
   ExternalProject_Add(${proj}
     ${${proj}_EP_ARGS}
     GIT_REPOSITORY "${${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY}"
@@ -93,14 +98,14 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
       -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
       -DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
-	  -DCMAKE_CXX_STANDARD:STRING=${CMAKE_CXX_STANDARD}
+	    -DCMAKE_CXX_STANDARD:STRING=${CMAKE_CXX_STANDARD}
       -DCMAKE_LINKER:FILEPATH=${CMAKE_LINKER}
       -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
       -DITK_INSTALL_ARCHIVE_DIR:PATH=${CbctRecon_INSTALL_LIB_DIR}
       -DITK_INSTALL_LIBRARY_DIR:PATH=${CbctRecon_INSTALL_LIB_DIR}
       -DBUILD_TESTING:BOOL=${BUILD_TESTING}
       -DBUILD_EXAMPLES:BOOL=OFF
-      -DITK_BUILD_DEFAULT_MODULES:BOOL=ON
+      -DITK_BUILD_DEFAULT_MODULES:BOOL=OFF
       -DModule_ITKReview:BOOL=ON
       -DITK_WRAPPING:BOOL=OFF
       -DITK_WRAP_PYTHON:BOOL=${CbctRecon_BUILD_ITKPython}
@@ -116,6 +121,14 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       # -DZLIB_ROOT:PATH=${ZLIB_ROOT}
       # -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
       # -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
+      # RTK
+      -DModule_RTK:BOOL=${RTK_AS_ITK_EXTERNAL}
+      -DCUDA_HAVE_GPU:BOOL=${RTK_USE_CUDA}
+      # Doesn't build if true!
+      -DCUDA_SEPARABLE_COMPILATION:BOOL=OFF
+      -DRTK_USE_CUDA:BOOL=${RTK_USE_CUDA}
+      -DCUDA_TOOLKIT_ROOT_DIR:PATH=${CUDA_TOOLKIT_ROOT_DIR}
+      -DCUDA_HOST_COMPILER:FILEPATH=${CUDA_HOST_COMPILER}
       # TBB
       -DModule_TBBImageToImageFilter:BOOL=OFF #${TBB_FOUND}
       #-DTBB_INCLUDE_DIR:PATH=${TBB_INCLUDE_DIR}
@@ -148,6 +161,7 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     INSTALL_COMMAND ""
     DEPENDS
       ${${proj}_DEPENDENCIES}
+      # ${rtk_proj}
     )
 
   ExternalProject_GenerateProjectDescription_Step(${proj})
@@ -192,6 +206,16 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 else()
   ExternalProject_Add_Empty(${proj} DEPENDS ${${proj}_DEPENDENCIES})
 endif()
+
+if(${RTK_AS_ITK_EXTERNAL})
+  add_custom_command(
+    TARGET ${proj} PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_SOURCE_DIR}/SuperBuild/dcmtk_Win_minmax_patch/ExternalRTK.remote.cmake
+      ${CMAKE_BINARY_DIR}/${proj}/Modules/Remote
+  )
+endif()
+
 
 if(${TBB_FOUND})
   add_custom_command(

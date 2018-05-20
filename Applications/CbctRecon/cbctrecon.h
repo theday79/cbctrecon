@@ -22,9 +22,10 @@
 #include "ui_cbctrecon.h"
 
 //#include "itkImage.h"
-#include "itkImageFileReader.h"
-#include "itkImageFileWriter.h"
-#include "itk_image_type.h"
+#include <itkImageFileReader.h>
+#include <itkImageFileWriter.h>
+#include <itk_image_type.h>
+#include <itkTimeProbe.h>
 
 // RTK includes
 // #include <rtkWin32Header.h> // defines dllimport export based on
@@ -49,7 +50,7 @@
 #include <rtkJosephForwardProjectionImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
-#include <rtkRayCastInterpolatorForwardProjectionImageFilter.h>
+// #include <rtkRayCastInterpolatorForwardProjectionImageFilter.h> // Removed after RTK moved to external module
 
 #if USE_CUDA
 #include "rtkCudaFDKConeBeamReconstructionFilter.h"
@@ -183,7 +184,7 @@ enum enMachineType {
 enum FWD_METHOD {
   en_Joseph = 0,
   en_CudaRayCast,
-  en_RayCastInterpolator,
+  // en_RayCastInterpolator, Deprecated in rtk 1.4
 };
 
 struct WEPLData {
