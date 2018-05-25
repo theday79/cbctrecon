@@ -2102,7 +2102,7 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
     std::cout << "Output generation was succeeded" << std::endl;
   }
 
-  CUDAfeldkamp->PrintTiming(std::cout);
+  // CUDAfeldkamp->PrintTiming(std::cout);
 
   m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
 

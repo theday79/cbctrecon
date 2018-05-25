@@ -53,6 +53,7 @@
 // #include <rtkRayCastInterpolatorForwardProjectionImageFilter.h> // Removed after RTK moved to external module
 
 #if USE_CUDA
+#include "itkCudaImage.h"
 #include "rtkCudaFDKConeBeamReconstructionFilter.h"
 #include "rtkCudaForwardProjectionImageFilter.h"
 #include <rtkCudaDisplacedDetectorImageFilter.h>
