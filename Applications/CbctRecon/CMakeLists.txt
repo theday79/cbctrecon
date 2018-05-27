@@ -297,7 +297,7 @@ if(WIN32)
     $<TARGET_FILE:Qt5::PrintSupport>
   )
   install(FILES ${QT_DLLS} DESTINATION bin)
-elseif(UNIX)
+elseif(APPLE)
   foreach(target ${QT_LIBRARIES})
     get_target_property(type ${target} TYPE)
     if(NOT type STREQUAL "SHARED_LIBRARY")
