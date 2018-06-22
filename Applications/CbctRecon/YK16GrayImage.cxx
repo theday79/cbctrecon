@@ -1405,8 +1405,10 @@ void YK16GrayImage::MedianFilter(int iMedianSizeX, int iMedianSizeY) {
 }
 
 UnsignedShortImageType::Pointer YK16GrayImage::CloneItkImage() {
-  if (m_pData == NULL)
-    return NULL;
+  if (m_pData == NULL){
+    std::cerr << "Could not CloneItkImage" << std::endl;
+    return nullptr;
+  }
 
   UnsignedShortImageType::Pointer spTmpItkImg = UnsignedShortImageType::New();
 
