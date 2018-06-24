@@ -154,7 +154,7 @@ index 86b9031d..2e203dbc 100644
  
  ##-----------------------------------------------------------------------------
 diff --git a/src/plastimatch/base/itk_dicom_load.cxx b/src/plastimatch/base/itk_dicom_load.cxx
-index 56c17ae0..28be552f 100644
+index 56c17ae0..103a53e9 100644
 --- a/src/plastimatch/base/itk_dicom_load.cxx
 +++ b/src/plastimatch/base/itk_dicom_load.cxx
 @@ -99,14 +99,22 @@ load_dicom_dir_rdr(T rdr, const char *dicom_dir)
@@ -166,7 +166,7 @@ index 56c17ae0..28be552f 100644
 +    /* Reject RTDOSE, which can get interpreted as an image (and gets
         read incorretly anyway).  Dose is read by rtds.cxx instead. */
 -    gdcm::SerieHelper* gsh = nameGenerator->GetSeriesHelper ();
-+    gdcm::SerieHelper* gsh = nameGenerator->GetSerieHelper();
++    gdcm::SerieHelper* gsh = nameGenerator->GetSeriesHelper();
      gsh->AddRestriction (0x0008, 0x0060, "RTDOSE", gdcm::GDCM_DIFFERENT);
      /* Reject GE Scouts */
      gsh->AddRestriction (0x0018, 0x0022, "SCOUT MODE", gdcm::GDCM_DIFFERENT);
@@ -183,7 +183,7 @@ index 56c17ae0..28be552f 100644
  
      nameGenerator->SetDirectory (dicom_dir);
 diff --git a/src/plastimatch/base/rasterizer.cxx b/src/plastimatch/base/rasterizer.cxx
-index eb8d363a..770754aa 100644
+index eb8d363a..a130d390 100644
 --- a/src/plastimatch/base/rasterizer.cxx
 +++ b/src/plastimatch/base/rasterizer.cxx
 @@ -227,12 +227,21 @@ Rasterizer::process_next (
@@ -192,7 +192,7 @@ index eb8d363a..770754aa 100644
                  size_t k = 0;
 -                for (idx.m_Index[1] = 0; 
 +#if ITK_VERSION_MAJOR < 5
-+                for (idx.m_Index = 0;
++                for (idx.m_Index[1] = 0;
                       idx.m_Index[1] < this->dim[1]; 
                       idx.m_Index[1]++) {
                      for (idx.m_Index[0] = 0; 
@@ -209,6 +209,68 @@ index eb8d363a..770754aa 100644
                          if (this->acc_img[k]) {
                              itk::VariableLengthVector<unsigned char> v 
                                  = ss_img->GetPixel (idx);
+diff --git a/src/plastimatch/cuda/CMakeLists.txt b/src/plastimatch/cuda/CMakeLists.txt
+index 20858693..df0de381 100644
+--- a/src/plastimatch/cuda/CMakeLists.txt
++++ b/src/plastimatch/cuda/CMakeLists.txt
+@@ -7,11 +7,10 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/register)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../base)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../register)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../sys)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+ 
+diff --git a/src/plastimatch/reconstruct/cuda/CMakeLists.txt b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
+index e8810b1f..c440e6fe 100644
+--- a/src/plastimatch/reconstruct/cuda/CMakeLists.txt
++++ b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
+@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/reconstruct)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../base)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../cuda)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../sys)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${DLIB_INCLUDE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+diff --git a/src/plastimatch/register/cuda/CMakeLists.txt b/src/plastimatch/register/cuda/CMakeLists.txt
+index 5a10bbad..af1a882d 100644
+--- a/src/plastimatch/register/cuda/CMakeLists.txt
++++ b/src/plastimatch/register/cuda/CMakeLists.txt
+@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/register)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../base)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../cuda)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../sys)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${DLIB_INCLUDE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
 diff --git a/src/plastimatch/register/registration.cxx b/src/plastimatch/register/registration.cxx
 index 3865669b..24648ed5 100644
 --- a/src/plastimatch/register/registration.cxx
