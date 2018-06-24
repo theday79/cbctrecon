@@ -18,7 +18,7 @@ In order to compile the software, you must have installed the following prerequi
 
 **Below is downloaded and compiled automatically:**
  - DCMTK - Latest: https://github.com/commontk/DCMTK
- - ITK - 4.13.0**: https://github.com/InsightSoftwareConsortium/ITK
+ - ITK - Latest: https://github.com/InsightSoftwareConsortium/ITK
  - RTK - Latest: https://github.com/SimonRit/RTK
  - Plastimatch - latest - https://gitlab.com/plastimatch/plastimatch
 
@@ -26,7 +26,7 @@ In order to compile the software, you must have installed the following prerequi
 *Before installation consider:
 goPMC binary files and a Visual Studio 2013 Debug Compiler is needed for goPMC support and the goPMC app must be compiled seperately.*
 
-**Plastimatch does not yet support ITK 5.
+Plastimatch does not yet support ITK 5, but we apply a patch as a workaround until official support.
 
 If you want to use Visual Studio 2015, you must use CUDA 8.0 or above due to compiler incompatibilities.
 
