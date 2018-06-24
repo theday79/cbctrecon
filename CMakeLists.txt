@@ -25,6 +25,7 @@ OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
+OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code
@@ -82,14 +83,6 @@ find_package(DCMTK_wrap)
 
 set(ITK_DIR "${CMAKE_BINARY_DIR}/ITK-build")
 find_package(ITK REQUIRED)
-
-#install(TARGETS RTK
-#  EXPORT PlastimatchLibraryDepend
-#  FILE "${CMAKE_BINARY_DIR}/PlastimatchLibraryDepends.cmake"
-#)
-
-# set(Plastimatch_DIR "${CMAKE_BINARY_DIR}")
-# find_package(Plastimatch REQUIRED)
 
 add_subdirectory(Applications)
 

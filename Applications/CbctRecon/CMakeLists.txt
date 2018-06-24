@@ -103,12 +103,6 @@ SET(CbctRecon_FORMS
 	DlgHistogram.ui # Kept for example, no longer used
 	DlgExternalCommand.ui
 )
-# QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
-
-# set_property(SOURCE ui_cbctrecon.h PROPERTY SKIP_AUTOMOC ON)
-# set_property(SOURCE ui_DlgRegistration.h PROPERTY SKIP_AUTOMOC ON)
-# set_property(SOURCE ui_DlgHistogram.h PROPERTY SKIP_AUTOMOC ON)
-# set_property(SOURCE ui_DlgExternalCommand.h PROPERTY SKIP_AUTOMOC ON)
 
 set(PLM_TARGETS
   plmbase
@@ -161,17 +155,7 @@ target_include_directories(CbctRecon
 )
 if(USE_CLFFT)
   INCLUDE_DIRECTORIES(${CLFFT_INCLUDE_DIRS})
-else()
-  SET(CLFFT_LIBRARIES "")
 endif()
-
-message(STATUS "ITK_LIBRARY_DIRS = ${ITK_LIBRARIES}")
-message(STATUS "RTK_LIBRARIES = ${RTK_LIBRARIES}")
-message(STATUS "RTK_LIBRARY_DIRS = ${RTK_LIBRARY_DIRS}")
-message(STATUS "DCMTK_INCLUDE_DIRS = ${DCMTK_INCLUDE_DIRS}")
-message(STATUS "DCMTK_LIBRARIES = ${DCMTK_LIBRARIES}")
-message(STATUS "BZIP_LIBRARY_DIRS = ${BZIP2_LIBRARIES}")
-message(STATUS "CLFFT_LIBRARY_DIRS = ${CLFFT_LIBRARIES}")
 
 if(WIN32)
   SET(WIN_LIB netapi32.lib)
@@ -201,8 +185,8 @@ target_link_libraries(CbctRecon
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
 
-file(MAKE_DIRECTORY bin) # ${CMAKE_CURRENT_BINARY_DIR}/../bin
-file(MAKE_DIRECTORY lut) # ${CMAKE_CURRENT_BINARY_DIR}/../lut
+file(MAKE_DIRECTORY bin)
+file(MAKE_DIRECTORY lut)
 
 if(WIN32)
   set(QT_DLLS
@@ -234,7 +218,7 @@ endif()
 
 
 
-INSTALL( TARGETS CbctRecon DESTINATION bin )
+install( TARGETS CbctRecon DESTINATION bin )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
 # ${CMAKE_CURRENT_BINARY_DIR}/../bin
 
@@ -258,8 +242,6 @@ if(WIN32)
 
   if(OPENMP_FOUND)
     set(CMAKE_INSTALL_OPENMP_LIBRARIES ON)
-    # install(FILES "${MSVC_REDIST_DIR}/x64/Microsoft.VC140.OpenMP/vcomp140.dll" DESTINATION bin COMPONENT Libraries)
-    # install(FILES "C:/Program Files (x86)/Microsoft Visual Studio 9.0/VC/redist/x86/Microsoft.VC90.OPENMP/Microsoft.VC90.OpenMP.manifest" DESTINATION bin COMPONENT Libraries)
   endif(OPENMP_FOUND)
   include(InstallRequiredSystemLibraries)
 
@@ -344,7 +326,7 @@ set (CPACK_MONOLITHIC_INSTALL 1)
 
 # General stuff
 set (CPACK_INSTALL_PREFIX "")
-set (CPACK_PACKAGE_CONTACT "cbctrecon@googlegroups.com")
+set (CPACK_PACKAGE_CONTACT "agravgaard@protonmail.com")
 set (CPACK_PACKAGE_NAME "cbctrecon")
 set (CPACK_PACKAGE_INSTALL_DIRECTORY "CbctRecon")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "CbctRecon - A Medical Imaging Application")
@@ -361,14 +343,14 @@ set (CPACK_SOURCE_IGNORE_FILES
 
 # NSIS stuff
 set(CPACK_NSIS_INSTALLED_ICON_NAME "Icon1.ico")
-set (CPACK_NSIS_HELP_LINK "https://github.com/agravgaard/cbctrecon")
-set (CPACK_NSIS_URL_INFO_ABOUT "https://github.com/agravgaard/cbctrecon")
+set (CPACK_NSIS_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
+set (CPACK_NSIS_URL_INFO_ABOUT "https://gitlab.com/agravgaard/cbctrecon")
 set (CPACK_NSIS_CONTACT "andreasga22@gmail.com")
 set (CbctRecon_NSIS_VERSION_STRING "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}")
 
 # WIX stuff
 set (CbctRecon_WINDOWS_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows-install")
-set (CPACK_WIX_HELP_LINK "https://github.com/agravgaard/cbctrecon")
+set (CPACK_WIX_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
 set (CPACK_WIX_UPGRADE_GUID "43DF18E5-D982-413F-834C-2865B977C145")
 set (CPACK_WIX_LICENSE_RTF  "${CbctRecon_WINDOWS_INSTALL_DIR}/License.rtf")
 set (CPACK_WIX_UI_BANNER  "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo.jpg")
@@ -405,3 +387,16 @@ if(CPACK_GENERATOR STREQUAL "ZIP")
 endif()
 
 include (CPack)
+
+##-----------------------------------------------------------------------------
+## Option to generate .clang_complete for hip Vim users using clang_complete
+##-----------------------------------------------------------------------------
+if (CBCTRECON_CLANG_COMPLETE)
+  get_property(inc_dirs DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
+  set (file_clang_complete "${CMAKE_CURRENT_SOURCE_DIR}/.clang_complete")
+  foreach (arg ${inc_dirs})
+    set (inc_args "${inc_args} -I${arg}\n")
+  endforeach ()
+  file (WRITE "${file_clang_complete}" "${inc_args}")
+  message (STATUS "Generated ${file_clang_complete}")
+endif ()
