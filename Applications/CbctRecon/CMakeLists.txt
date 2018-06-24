@@ -4,6 +4,9 @@ project(App)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH bin)
 endif(APPLE)
@@ -100,12 +103,12 @@ SET(CbctRecon_FORMS
 	DlgHistogram.ui # Kept for example, no longer used
 	DlgExternalCommand.ui
 )
-QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
+# QT5_WRAP_UI(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
 
-set_property(SOURCE ui_cbctrecon.h PROPERTY SKIP_AUTOMOC ON)
-set_property(SOURCE ui_DlgRegistration.h PROPERTY SKIP_AUTOMOC ON)
-set_property(SOURCE ui_DlgHistogram.h PROPERTY SKIP_AUTOMOC ON)
-set_property(SOURCE ui_DlgExternalCommand.h PROPERTY SKIP_AUTOMOC ON)
+# set_property(SOURCE ui_cbctrecon.h PROPERTY SKIP_AUTOMOC ON)
+# set_property(SOURCE ui_DlgRegistration.h PROPERTY SKIP_AUTOMOC ON)
+# set_property(SOURCE ui_DlgHistogram.h PROPERTY SKIP_AUTOMOC ON)
+# set_property(SOURCE ui_DlgExternalCommand.h PROPERTY SKIP_AUTOMOC ON)
 
 set(PLM_TARGETS
   plmbase
@@ -122,7 +125,7 @@ set(PLM_TARGETS
 ADD_EXECUTABLE(CbctRecon
   ${CbctRecon_SOURCES}
   ${CbctRecon_HEADERS}
-  ${CbctRecon_FORMS_HEADERS}
+  ${CbctRecon_FORMS}
 )
 
 SET(QT_USE_QTCORE TRUE)
@@ -150,11 +153,11 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_BUILD_DIR}/")
 
 #this is for "C++ General-> Add below to Additional Include Directories"
-INCLUDE_DIRECTORIES(
-  ${ITK_INCLUDE_DIRS}
-  ${RTK_INCLUDE_DIRS}
-  ${PLASTIMATCH_INCLUDE_DIRS}
-  ${DCMTK_INCLUDE_DIR}
+target_include_directories(CbctRecon
+  PUBLIC ${ITK_INCLUDE_DIRS}
+  PUBLIC ${RTK_INCLUDE_DIRS}
+  PUBLIC ${PLASTIMATCH_INCLUDE_DIRS}
+  PUBLIC ${DCMTK_INCLUDE_DIR}
 )
 if(USE_CLFFT)
   INCLUDE_DIRECTORIES(${CLFFT_INCLUDE_DIRS})
@@ -185,7 +188,7 @@ list(APPEND QT_LIBRARIES
 
 
 #this is for "Linker->Additional dependencies"
-TARGET_LINK_LIBRARIES(CbctRecon
+target_link_libraries(CbctRecon
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
   ${PLM_TARGETS}

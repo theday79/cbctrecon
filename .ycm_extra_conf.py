@@ -38,10 +38,10 @@ import ycm_core
 flags = [
 ]
 
-SOURCEDIR = '/home/andreasga/Projects/cbct_modernCmake'
+SOURCEDIR = '/home/andreas/Projects/cbct-modCmake'
 SRC_DIR = os.path.join(SOURCEDIR, 'src')
 INCLUDE_DIR = os.path.join(SOURCEDIR, 'include', 'CbctRecon')
-BINARY_DIR = '/home/andreasga/Projects/cbct_modernCmake-build'
+BINARY_DIR = '/home/andreas/Projects/cbct_build'
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
 # compile_commands.json file to use that instead of 'flags'. See here for
@@ -53,7 +53,7 @@ BINARY_DIR = '/home/andreasga/Projects/cbct_modernCmake-build'
 #
 # Most projects will NOT need to set this to anything; you can just change the
 # 'flags' list of compilation flags. Notice that YCM itself uses that approach.
-compilation_database_folder = '/home/andreasga/Projects/cbct_modernCmake-build'
+compilation_database_folder = '/home/andreas/Projects/cbct_build'
 
 if os.path.exists( compilation_database_folder ):
   database = ycm_core.CompilationDatabase( compilation_database_folder )
