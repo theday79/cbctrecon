@@ -92,8 +92,10 @@ public:
 
   static void CopyYKImage2ItkImage(YK16GrayImage *pYKImage,
                                    UnsignedShortImageType::Pointer &spTarImage);
-  static void CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
-                                   YK16GrayImage *pYKImage);
+  static void YK16GrayImage::CopyItkImage2YKImage(
+    UnsignedShortImageType::Pointer &spSrcImage, YK16GrayImage* pYKImage);
+  static std::unique_ptr<YK16GrayImage> YK16GrayImage::CopyItkImage2YKImage(
+    UnsignedShortImageType::Pointer &spSrcImage, std::unique_ptr<YK16GrayImage> pYKImage);
 
   QString m_strFilePath;
 

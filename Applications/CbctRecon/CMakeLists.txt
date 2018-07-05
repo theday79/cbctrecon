@@ -115,6 +115,11 @@ set(PLM_TARGETS
   plmsegment
 )
 
+if(MSVC AND NOT(MSVC_VERSION LESS 1400))
+  set_source_files_properties(cbctrecon.cpp
+    PROPERTIES COMPILE_FLAGS "/bigobj")
+endif()
+
 # Executable
 ADD_EXECUTABLE(CbctRecon
   ${CbctRecon_SOURCES}

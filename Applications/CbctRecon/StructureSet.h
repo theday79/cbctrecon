@@ -22,9 +22,9 @@ public:
   void set_planCT_ss(std::unique_ptr<Rtss> struct_set);
   void set_rigidCT_ss(std::unique_ptr<Rtss> struct_set);
   void set_deformCT_ss(std::unique_ptr<Rtss> struct_set);
-  void set_planCT_ss(const Rtss *struct_set);
-  void set_rigidCT_ss(const Rtss *struct_set);
-  void set_deformCT_ss(const Rtss *struct_set);
+  void set_planCT_ss(Rtss *struct_set);
+  void set_rigidCT_ss(Rtss *struct_set);
+  void set_deformCT_ss(Rtss *struct_set);
 
   std::unique_ptr<Rtss_modern> transform_by_vector(ctType struct_set,
                                                    FloatVector vec);

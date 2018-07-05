@@ -78,16 +78,14 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
   // m_iMedianSize = 3;
   // m_arrYKImage = nullptr; std::vectors are good at commiting suicide
 
-  m_dspYKReconImage = new YK16GrayImage();
-  m_dspYKImgProj = new YK16GrayImage();
+  m_dspYKReconImage = std::make_unique<YK16GrayImage>();
+  m_dspYKImgProj = std::make_unique<YK16GrayImage>();
 
-  m_pImgOffset = nullptr;
-  m_pImgGain = nullptr;
   // Badpixmap;
   m_pImgOffset =
-      new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+      std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
   m_pImgGain =
-      new YK16GrayImage(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+      std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
   // Prepare Raw image
 
   // ConvertImg_4030eToElektaProjRaw("C:\\4030eGain_2048_3200.raw",
@@ -137,9 +135,11 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
   ui.radioButton_UseOpenCL->setDisabled(false);
 #endif
   m_pTableModel = nullptr;
-  m_pDlgRegistration = new DlgRegistration(this);
+  m_pDlgRegistration = std::make_unique<DlgRegistration>(this);
   // m_pDlgHistogram = new DlgHistogram(this);
-  m_pDlgExternalCommand = new DlgExternalCommand(this);
+  m_pDlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
+
+  m_structures = std::make_unique<StructureSet>();
 
   m_iFixedOffset_ScatterMap = 10000; // fixed! allows negative value of scatter
   // m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter
@@ -191,13 +191,9 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
 CbctRecon::~CbctRecon() {
   ReleaseMemory();
-  delete m_pImgOffset;
-  delete m_pImgGain;
-  delete m_dspYKReconImage;
-  delete m_dspYKImgProj;
-  delete m_pDlgRegistration;
-  // delete m_Timer;
-  delete m_pDlgExternalCommand;
+  // delete m_pDlgRegistration;
+  delete m_Timer;
+  // delete m_pDlgExternalCommand;
   // delete m_pDlgHistogram;
 }
 
@@ -608,7 +604,7 @@ void CbctRecon::SLT_DrawRawImages() {
   m_dspYKImgProj->CopyFromBuffer(m_arrYKImage[crntIdx].m_pData, width, height);
 
   m_dspYKImgProj->FillPixMapMinMax(windowMin, windowMax);
-  ui.labelImageRaw->SetBaseImage(m_dspYKImgProj);
+  ui.labelImageRaw->SetBaseImage(m_dspYKImgProj.get());
   ui.labelImageRaw->update();
 }
 
@@ -701,7 +697,7 @@ void CbctRecon::SLT_DrawProjImages() {
   m_dspYKImgProj->FillPixMapMinMax(ui.sliderRawMin->value(),
                                    ui.sliderRawMax->value());
 
-  ui.labelImageRaw->SetBaseImage(m_dspYKImgProj);
+  ui.labelImageRaw->SetBaseImage(m_dspYKImgProj.get());
   ui.labelImageRaw->update();
 
   SLT_UpdateTable();
@@ -1495,8 +1491,8 @@ void CbctRecon::SLT_DrawReconImage() {
   // std::cout <<m_dspYKReconImage->m_iWidth << "	" <<
   // m_dspYKReconImage->m_iHeight << std::endl;
   UShortImage2DType::Pointer pCrnt2D = extractFilter->GetOutput();
-  YK16GrayImage::CopyItkImage2YKImage(
-      pCrnt2D, m_dspYKReconImage); // dimension should be same automatically.
+  m_dspYKReconImage = YK16GrayImage::CopyItkImage2YKImage(
+      pCrnt2D, std::move(m_dspYKReconImage)); // dimension should be same automatically.
 
   // m_dspYKReconImage->SaveDataAsRaw("D:\\RawFile.raw"); //410 410 OK
 
@@ -1518,7 +1514,7 @@ void CbctRecon::SLT_DrawReconImage() {
   // m_dspYKReconImage->m_bDrawProfileX = true;
   // m_dspYKReconImage->m_bDrawProfileY = true;
   // m_dspYKReconImage->DrawToLabel(ui.labelReconImage);
-  ui.labelReconImage->SetBaseImage(m_dspYKReconImage);
+  ui.labelReconImage->SetBaseImage(m_dspYKReconImage.get());
   ui.labelReconImage->update();
 
   // SLT_DrawGraph();
@@ -2355,7 +2351,15 @@ FloatImageType::Pointer RTKOpenCLFDK(
     const rtk::ThreeDCircularProjectionGeometry::Pointer &m_spCustomGeometry,
     FloatImageType::SpacingType spacing, FloatImageType::SizeType sizeOutput,
     std::array<const double, 5> fdk_options) {
-  spCurImg->Update();
+
+  try
+  {
+    spCurImg->Update();
+  }
+  catch (const std::exception& err)
+  {
+    std::cerr << "Couldn't update spCurImg: " << err.what() << std::endl;
+  }
   // Generate image sources for cone beam CT reconstruction
   using ConstantImageSourceType = rtk::ConstantImageSource<FloatImageType>;
   ConstantImageSourceType::PointType origin;
@@ -3421,7 +3425,7 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
     if (plmImg.have_image()) {
       // if (plmImg.load_native(dirPath.toLocal8Bit().constData())) {
       auto planCT_ss = drs.get_rtss(); // dies at end of scope...
-      if (planCT_ss != nullptr) {
+      if (planCT_ss.get() != nullptr) {
         // ... so I copy to my own modern-C++ implementation
         m_structures->set_planCT_ss(planCT_ss.get());
       }
@@ -4861,7 +4865,7 @@ void CbctRecon::SLT_UpdateTable() {
   double fMinValue = 0.0;
 
   if (ui.radioButton_graph_proj->isChecked()) {
-    pYKImg = m_dspYKImgProj;
+    pYKImg = m_dspYKImgProj.get(); // you may look, but no touching!
 
     if (m_iImgCnt > 0) { // if indep image
       fMultiPlyFactor = 1.0;
@@ -4870,7 +4874,7 @@ void CbctRecon::SLT_UpdateTable() {
       fMinValue = m_fProjImgValueMin;
     }
   } else {
-    pYKImg = m_dspYKReconImage;
+    pYKImg = m_dspYKReconImage.get();
     fMultiPlyFactor = 1.0;
     fMinValue = 0.0;
   }
@@ -10971,7 +10975,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
       srcProton[2] = isoTarget[2];
 
       // std::cout << "\nDefine scene.." << std::endl;
-      auto *scene = new Rt_plan;
+      auto scene = std::make_shared<Rt_plan>();
       // std::cout << "New beam.." << std::endl;
       Rt_beam *newBeam = scene->append_beam(); // . to ->
       scene->set_patient(ct_vol);              // . to ->
@@ -10993,7 +10997,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
       // newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
       // scene->compute_dose(newBeam);
 
-      std::shared_ptr<Plm_image> ct_hu = Plm_image::New();
+      Plm_image::Pointer ct_hu = Plm_image::New();
       ct_hu->set_volume(scene->get_patient_volume());
 
       using Float_pair_list = std::list<std::pair<float, float>>;
@@ -11005,7 +11009,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
       lookup.emplace_back(NLMAX(float), 0.005011f);
 
       Volume::Pointer psp = volume_adjust(ct_hu->get_volume(), lookup);
-      std::shared_ptr<Plm_image> patient_psp = Plm_image::New(psp);
+      Plm_image::Pointer patient_psp = Plm_image::New(psp);
 
       newBeam->prepare_for_calc(ct_hu, patient_psp, newBeam->get_target());
 
@@ -11083,7 +11087,7 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
       delete newBeam->dose_rv; // rpl_dose_vol;
 
       delete newBeam;
-      delete scene;
+      // delete scene; not necessary for shared_ptr
     }
   }
 

@@ -17,7 +17,7 @@ set(DCMTK_GIT_REPOSITORY "${git_protocol}hub.com/DCMTK/DCMTK.git")
 set(DCMTK_GIT_TAG master)
 
 set(ITK_GIT_REPOSITORY "${git_protocol}hub.com/InsightSoftwareConsortium/ITK.git")
-set(ITK_GIT_TAG master) # "d92873e33e8a54e933e445b92151191f02feab42") #"v4.13.0"
+set(ITK_GIT_TAG "d92873e33e8a54e933e445b92151191f02feab42") #"v4.13.0"
 
 set(plm Plastimatch)
 set(${plm}_GIT_REPOSITORY "${git_protocol}lab.com/plastimatch/plastimatch.git")
