@@ -209,6 +209,31 @@ index eb8d363a..a130d390 100644
                          if (this->acc_img[k]) {
                              itk::VariableLengthVector<unsigned char> v 
                                  = ss_img->GetPixel (idx);
+diff --git a/src/plastimatch/base/rtss_roi.cxx b/src/plastimatch/base/rtss_roi.cxx
+index b0b5e8d1..a0f1aa6e 100644
+--- a/src/plastimatch/base/rtss_roi.cxx
++++ b/src/plastimatch/base/rtss_roi.cxx
+@@ -25,13 +25,16 @@ Rtss_roi::~Rtss_roi ()
+ }
+ 
+ void
+-Rtss_roi::clear ()
++Rtss_roi::clear()
+ {
++  if (this->pslist != nullptr) {
+     for (size_t i = 0; i < this->num_contours; i++) {
+-	delete this->pslist[i];
++      if (this->pslist[i] != nullptr) {
++        delete this->pslist[i];
++      }
+     }
+-    free (this->pslist);
+-
++    free(this->pslist);
++  }
+     this->name = "";
+     this->color = "";
+     this->id = -1;
 diff --git a/src/plastimatch/cuda/CMakeLists.txt b/src/plastimatch/cuda/CMakeLists.txt
 index 20858693..df0de381 100644
 --- a/src/plastimatch/cuda/CMakeLists.txt
