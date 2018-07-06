@@ -5,7 +5,7 @@ USER root
 
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y make gcc g++ git cmake qt5-default libfftw3-dev ocl-icd-opencl-dev bash sudo vi \
+    && apt install -y make gcc g++ git cmake qt5-default libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev bash sudo vim \
     && groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
     && groupadd 2000 -g 2000 \
@@ -24,7 +24,11 @@ RUN git config --global user.email "andreasga22@gmail.com" \
     && git clone https://gitlab.com/agravgaard/cbctrecon.git /home/user/cbctrecon \
     && cd /home/user/cbctrecon \
     && git checkout ModernizeCMake \
-    && git pull
+    && git pull \
+    && mkdir build \
+    && cd build \
+    && cmake .. -DUSE_CUDA=OFF \
+    && cmake .. -DUSE_CUDA=OFF
 
 
-WORKDIR /home/user/cbctrecon
+WORKDIR /home/user/cbctrecon/build
