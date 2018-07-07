@@ -9,4 +9,7 @@ test-x86_64-linux-ubuntu-gcc7:
       - linux
       - docker
     image: andreasga/cbctrecon:gcc7-x86_64
-    script: ./ci/ci.sh
+    script:
+      - pwd
+      - ls
+      - ./ci/ci.sh
