@@ -28,6 +28,10 @@ OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
+if(NOT WIN32)
+  set(BUILD_SHARED_LIBS OFF)
+endif()
+
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code
 
 IF(USE_GPMC)
