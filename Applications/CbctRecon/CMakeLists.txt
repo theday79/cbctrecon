@@ -127,6 +127,13 @@ ADD_EXECUTABLE(CbctRecon
   ${CbctRecon_FORMS}
 )
 
+set_target_properties(CbctRecon
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+)
+
 SET(QT_USE_QTCORE TRUE)
 SET(QT_USE_QTGUI TRUE)
 SET(QT_USE_QTOPENGL TRUE)
@@ -159,11 +166,13 @@ target_include_directories(CbctRecon
   PUBLIC ${DCMTK_INCLUDE_DIR}
 )
 if(USE_CLFFT)
-  INCLUDE_DIRECTORIES(${CLFFT_INCLUDE_DIRS})
+  target_include_directories(CbctRecon
+    ${CLFFT_INCLUDE_DIRS}
+  )
 endif()
 
 if(WIN32)
-  SET(WIN_LIB netapi32.lib)
+  set(WIN_LIB netapi32.lib)
 endif(WIN32)
 
 set(QT_LIBRARIES)
@@ -190,8 +199,8 @@ target_link_libraries(CbctRecon
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
 
-file(MAKE_DIRECTORY bin)
-file(MAKE_DIRECTORY lut)
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin)
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/lut)
 
 if(WIN32)
   set(QT_DLLS

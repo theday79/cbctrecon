@@ -1,7 +1,7 @@
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 # Sorry, but apparently ITK cannot figure out how to download test data.
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING ${BUILD_TESTING} CACHE BOOL "" FORCE)
 
 set(ITK_BUILD_DEFAULT_MODULES OFF CACHE BOOL "" FORCE)
 set(Module_ITKReview ON CACHE BOOL "" FORCE)
