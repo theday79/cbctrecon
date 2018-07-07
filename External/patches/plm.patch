@@ -351,3 +351,15 @@ index 3865669b..24648ed5 100644
  }
  
  void 
+diff --git a/src/plastimatch/util/CMakeLists.txt b/src/plastimatch/util/CMakeLists.txt
+index 56937ec2..e547dc59 100644
+--- a/src/plastimatch/util/CMakeLists.txt
++++ b/src/plastimatch/util/CMakeLists.txt
+@@ -74,6 +74,7 @@ set (PLMUTIL_LIBRARY_DEPENDENCIES
+   devillard
+   plmbase
+   plmsys
++  ${OPENMP_LIBRARIES}
+   )
+ 
+ ##-----------------------------------------------------------------------------
