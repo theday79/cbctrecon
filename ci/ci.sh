@@ -4,7 +4,7 @@ set -xe
 if [[ "$CI_RUNNER_TAGS" = *"agravgaard-runner"* ]]; then
     MAKE_CONCURRENCY="-j13"
 else
-    MAKE_CONCURRENCY="-j1"
+    MAKE_CONCURRENCY="-j3"
 fi;
 
 mkdir build && cd build
