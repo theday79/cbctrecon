@@ -27,8 +27,8 @@ RUN git config --global user.email "andreasga22@gmail.com" \
     && git pull \
     && mkdir build \
     && cd build \
-    && cmake .. -DUSE_CUDA=OFF \
-    && cmake .. -DUSE_CUDA=OFF
+    && cmake .. -DUSE_CUDA=OFF -DCMAKE_INSTALL_PREFIX="/home/user" \
+    && cmake .. 
 
 
 WORKDIR /home/user/cbctrecon/build
