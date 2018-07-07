@@ -26,7 +26,6 @@
 *.exe
 *.out
 *.app
-*.sh
 
 # Binary input files
 *.bin
