@@ -1,18 +1,22 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 7910cc6a..98626ecb 100755
+index 7910cc6a..bda004fd 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -247,8 +247,8 @@ plm_set_pic_flags ()
+@@ -247,10 +247,10 @@ plm_set_pic_flags ()
  ##-----------------------------------------------------------------------------
  ##  Extra paths
  ##-----------------------------------------------------------------------------
 -set (PLM_TESTING_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Testing")
 -set (PLM_TESTING_DATA_DIR "${CMAKE_SOURCE_DIR}/Testing/Data")
+-set (PLM_TESTING_DOWNLOAD_DATA_DIR "${CMAKE_BINARY_DIR}/TestData")
+-set (PLM_BUILD_TESTING_DIR "${CMAKE_BINARY_DIR}/Testing")
 +set (PLM_TESTING_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Testing")
 +set (PLM_TESTING_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Testing/Data")
- set (PLM_TESTING_DOWNLOAD_DATA_DIR "${CMAKE_BINARY_DIR}/TestData")
- set (PLM_BUILD_TESTING_DIR "${CMAKE_BINARY_DIR}/Testing")
++set (PLM_TESTING_DOWNLOAD_DATA_DIR "${PLM_BINARY_DIR}/TestData")
++set (PLM_BUILD_TESTING_DIR "${PLM_BINARY_DIR}/Testing")
  
+ ##-----------------------------------------------------------------------------
+ ##  Set the math library
 @@ -342,7 +342,7 @@ find_package (wxWidgets)
  ##-----------------------------------------------------------------------------
  if (NOT LIBLBFGS_FOUND)
@@ -107,19 +111,34 @@ index 7910cc6a..98626ecb 100755
    install (DIRECTORY "${PLM_WINDOWS_INSTALL_DIR}/sample" DESTINATION bin)
    install (FILES "${PLM_WINDOWS_INSTALL_DIR}/launch_cmd_prompt.bat" DESTINATION bin)
  endif ()
-@@ -831,9 +831,9 @@ macro (PLM_ADD_TEST PLM_TEST_NAME PLM_TEST_COMMAND PARMS)
+@@ -831,21 +831,21 @@ macro (PLM_ADD_TEST PLM_TEST_NAME PLM_TEST_COMMAND PARMS)
      -DPLM_BUILD_TESTING_DIR=${PLM_BUILD_TESTING_DIR}
      "-DPARMS=${TMP_PARMS}"
      ${EXTRA_PARMS}
 -    -P ${CMAKE_SOURCE_DIR}/cmake/RUN_CTEST.cmake
-+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RUN_CTEST.cmake
++    -P ${PLM_SOURCE_DIR}/cmake/RUN_CTEST.cmake
      )
 -#  message (STATUS "${CMAKE_COMMAND} -DPLM_TEST_NAME=${PLM_TEST_NAME} ${PLM_ITK_LIBRARY_PATH_HACK} ${PLM_PLASTIMATCH_PATH_HACK} ${PLM_FFTW_PATH_HACK} -DPLM_TEST_COMMAND=${PLM_TEST_COMMAND} -DPLM_TESTING_SOURCE_DIR=${PLM_TESTING_SOURCE_DIR} -DPLM_BUILD_TESTING_DIR=${PLM_BUILD_TESTING_DIR} \"-DPARMS=${TMP_PARMS}\" ${EXTRA_PARMS} -P ${CMAKE_SOURCE_DIR}/cmake/RUN_CTEST.cmake")
 +#  message (STATUS "${CMAKE_COMMAND} -DPLM_TEST_NAME=${PLM_TEST_NAME} ${PLM_ITK_LIBRARY_PATH_HACK} ${PLM_PLASTIMATCH_PATH_HACK} ${PLM_FFTW_PATH_HACK} -DPLM_TEST_COMMAND=${PLM_TEST_COMMAND} -DPLM_TESTING_SOURCE_DIR=${PLM_TESTING_SOURCE_DIR} -DPLM_BUILD_TESTING_DIR=${PLM_BUILD_TESTING_DIR} \"-DPARMS=${TMP_PARMS}\" ${EXTRA_PARMS} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RUN_CTEST.cmake")
  endmacro ()
  
  # Figure out which tests to ignore
-@@ -853,9 +853,9 @@ if (PLM_BUILD_TESTING)
+ # Note: we need two copies, because unix users might run "make test"
+-# in either directory.  MSVC uses the one in ${CMAKE_BINARY_DIR}.
++# in either directory.  MSVC uses the one in ${PLM_BINARY_DIR}.
+ configure_file (
+   ${PLM_TESTING_SOURCE_DIR}/CTestCustom.cmake.in
+-  ${CMAKE_BINARY_DIR}/CTestCustom.cmake
++  ${PLM_BINARY_DIR}/CTestCustom.cmake
+   @ONLY)
+ configure_file (
+   ${PLM_TESTING_SOURCE_DIR}/CTestCustom.cmake.in
+-  ${CMAKE_BINARY_DIR}/Testing/CTestCustom.cmake
++  ${PLM_BINARY_DIR}/Testing/CTestCustom.cmake
+   @ONLY)
+ 
+ if (PLM_BUILD_TESTING)
+@@ -853,10 +853,10 @@ if (PLM_BUILD_TESTING)
    add_subdirectory (Testing)
  
    # Copy the lconv script
@@ -127,14 +146,100 @@ index 7910cc6a..98626ecb 100755
 +  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extra/devtools/run_lcov.sh")
      configure_file (
 -      "${CMAKE_SOURCE_DIR}/extra/devtools/run_lcov.sh"
+-      "${CMAKE_BINARY_DIR}/run_lcov.sh"
 +      "${CMAKE_CURRENT_SOURCE_DIR}/extra/devtools/run_lcov.sh"
-       "${CMAKE_BINARY_DIR}/run_lcov.sh"
++      "${PLM_BINARY_DIR}/run_lcov.sh"
        COPYONLY)
    endif ()
+ endif ()
+diff --git a/src/fatm/CMakeLists.txt b/src/fatm/CMakeLists.txt
+index ab7cd80c..4d3f9979 100755
+--- a/src/fatm/CMakeLists.txt
++++ b/src/fatm/CMakeLists.txt
+@@ -70,7 +70,7 @@ ENDIF(WIN32 AND NOT UNIX)
+ ##  Include directories
+ ##-----------------------------------------------------------------------------
+ INCLUDE_DIRECTORIES (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+-INCLUDE_DIRECTORIES (BEFORE ${CMAKE_BINARY_DIR})
++INCLUDE_DIRECTORIES (BEFORE ${PLM_BINARY_DIR})
+ 
+ # Build
+ ADD_EXECUTABLE(fatm_bench ${FATM_BENCH_SRC})
+diff --git a/src/mondoshot/CMakeLists.txt b/src/mondoshot/CMakeLists.txt
+index fc6ae084..654ea42d 100755
+--- a/src/mondoshot/CMakeLists.txt
++++ b/src/mondoshot/CMakeLists.txt
+@@ -11,7 +11,7 @@ project (src_mondoshot)
+ include_directories (BEFORE ${src_plastimatch_SOURCE_DIR})
+ include_directories (BEFORE ${src_plastimatch_SOURCE_DIR}/base)
+ include_directories (BEFORE ${src_plastimatch_SOURCE_DIR}/sys)
+-include_directories (BEFORE ${CMAKE_BINARY_DIR})
++include_directories (BEFORE ${PLM_BINARY_DIR})
+ include_directories (BEFORE ${CMAKE_CURRENT_BINARY_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+ include_directories (BEFORE ${wxWidgets_INCLUDE_DIRS})
 diff --git a/src/plastimatch/CMakeLists.txt b/src/plastimatch/CMakeLists.txt
-index 86b9031d..2e203dbc 100644
+index 86b9031d..f87ea9e9 100644
 --- a/src/plastimatch/CMakeLists.txt
 +++ b/src/plastimatch/CMakeLists.txt
+@@ -216,7 +216,7 @@ endif ()
+ ##-----------------------------------------------------------------------------
+ ##  Include directories
+ ##-----------------------------------------------------------------------------
+-include_directories (BEFORE ${CMAKE_BINARY_DIR})
++include_directories (BEFORE ${PLM_BINARY_DIR})
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/base)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/cli)
+@@ -300,9 +300,9 @@ endif ()
+ ##  CONFIGURE INCLUDE FILES
+ ##-----------------------------------------------------------------------------
+ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/sys/plm_config.h.in
+-  ${CMAKE_BINARY_DIR}/plm_config.h)
++  ${PLM_BINARY_DIR}/plm_config.h)
+ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/sys/plm_version.h.in
+-  ${CMAKE_BINARY_DIR}/plm_version.h)
++  ${PLM_BINARY_DIR}/plm_version.h)
+ 
+ ##-----------------------------------------------------------------------------
+ ## Option to generate .clang_complete for hip Vim users using clang_complete
+@@ -380,7 +380,7 @@ if (NOT PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
+     $<INSTALL_INTERFACE:${PLM_INSTALL_INCLUDE_DIR}>
+     )
+   list (APPEND PLASTIMATCH_INCLUDE_DIRECTORIES
+-    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
++    $<BUILD_INTERFACE:${PLM_BINARY_DIR}>
+     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/plastimatch/sys>
+     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/plastimatch/base>
+     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/plastimatch/util>
+@@ -488,7 +488,7 @@ if (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
+ 
+   export (TARGETS
+     ${EXPORT_TARGET_LIST}
+-    FILE "${CMAKE_BINARY_DIR}/PlastimatchLibraryDepends.cmake")
++    FILE "${PLM_BINARY_DIR}/PlastimatchLibraryDepends.cmake")
+ 
+   # Help cmake find the PlastimatchConfig.cmake in the build directory
+   if (NOT ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} VERSION_LESS 2.8)
+@@ -500,15 +500,15 @@ if (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
+     "${PLM_INSTALL_INCLUDE_DIR}")
+   configure_file (
+     "${PROJECT_SOURCE_DIR}/cmake/PlastimatchConfig-Legacy.cmake.in"
+-    "${CMAKE_BINARY_DIR}/PlastimatchConfig.cmake"
++    "${PLM_BINARY_DIR}/PlastimatchConfig.cmake"
+     @ONLY)
+   configure_file (
+     "${PROJECT_SOURCE_DIR}/cmake/PlastimatchBuildTreeSettings.cmake.in"
+-    "${CMAKE_BINARY_DIR}/PlastimatchBuildTreeSettings.cmake" @ONLY)
++    "${PLM_BINARY_DIR}/PlastimatchBuildTreeSettings.cmake" @ONLY)
+ 
+   # Install the PlastimatchConfig.cmake file
+   install (FILES
+-    "${CMAKE_BINARY_DIR}/PlastimatchConfig.cmake"
++    "${PLM_BINARY_DIR}/PlastimatchConfig.cmake"
+     DESTINATION "${PLM_INSTALL_CMAKE_DIR}"
+     # COMPONENT dev
+     )
 @@ -521,7 +521,7 @@ if (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
  
  else (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
@@ -144,7 +249,30 @@ index 86b9031d..2e203dbc 100644
    include (CMakePackageConfigHelpers)
  
    # Make the version file
-@@ -554,7 +554,7 @@ else (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
+@@ -534,14 +534,14 @@ else (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
+   # Make the targets file
+   if (NOT ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} VERSION_LESS 3.0)
+     export (EXPORT PlastimatchLibraryDepends
+-      FILE "${CMAKE_BINARY_DIR}/PlastimatchLibraryDepends.cmake"
++      FILE "${PLM_BINARY_DIR}/PlastimatchLibraryDepends.cmake"
+       )
+   endif ()
+ 
+   # Make the config file
+   configure_file (
+     "${PROJECT_SOURCE_DIR}/cmake/PlastimatchConfig.cmake.in"
+-    "${CMAKE_BINARY_DIR}/PlastimatchConfig.cmake"
++    "${PLM_BINARY_DIR}/PlastimatchConfig.cmake"
+     @ONLY)
+ 
+   # Install the files
+@@ -549,26 +549,26 @@ else (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
+     DESTINATION "${PLM_INSTALL_CMAKE_DIR}"
+     )
+   install (FILES
+-    "${CMAKE_BINARY_DIR}/PlastimatchConfig.cmake"
++    "${PLM_BINARY_DIR}/PlastimatchConfig.cmake"
+     "${CMAKE_CURRENT_BINARY_DIR}/PlastimatchConfigVersion.cmake"
      DESTINATION "${PLM_INSTALL_CMAKE_DIR}"
      COMPONENT Devel
      )
@@ -153,6 +281,44 @@ index 86b9031d..2e203dbc 100644
  endif (PLM_PACKAGE_LEGACY_CMAKE_CONFIG)
  
  ##-----------------------------------------------------------------------------
+ ##  DOXYGEN
+ ##-----------------------------------------------------------------------------
+ if (DOXYGEN_FOUND)
+-  file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/doc")
++  file (MAKE_DIRECTORY "${PLM_BINARY_DIR}/doc")
+   configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+     ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+     @ONLY)
+   add_custom_target (doc
+     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/doc"
++    WORKING_DIRECTORY "${PLM_BINARY_DIR}/doc"
+     COMMENT "Generating API documentation with Doxygen" VERBATIM
+     )
+ endif ()
+diff --git a/src/plastimatch/base/CMakeLists.txt b/src/plastimatch/base/CMakeLists.txt
+index 9585d9ef..b461bc96 100755
+--- a/src/plastimatch/base/CMakeLists.txt
++++ b/src/plastimatch/base/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_base)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmbase_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmbase_config.h
++    ${PLM_BINARY_DIR}/plmbase_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+@@ -212,7 +212,7 @@ else ()
+ endif ()
+ 
+ set (PLMBASE_LIBRARY_HEADERS
+-  "${CMAKE_BINARY_DIR}/plmbase_config.h"
++  "${PLM_BINARY_DIR}/plmbase_config.h"
+   )
+ foreach (ARG ${PLMBASE_LIBRARY_SRC})
+   string (REGEX MATCH ".*\\.h$" TMP "${ARG}")
 diff --git a/src/plastimatch/base/itk_dicom_load.cxx b/src/plastimatch/base/itk_dicom_load.cxx
 index 56c17ae0..103a53e9 100644
 --- a/src/plastimatch/base/itk_dicom_load.cxx
@@ -234,19 +400,34 @@ index b0b5e8d1..a0f1aa6e 100644
      this->name = "";
      this->color = "";
      this->id = -1;
+diff --git a/src/plastimatch/cli/CMakeLists.txt b/src/plastimatch/cli/CMakeLists.txt
+index 8022b762..b9dcc72d 100644
+--- a/src/plastimatch/cli/CMakeLists.txt
++++ b/src/plastimatch/cli/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_cli)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmcli_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmcli_config.h
++    ${PLM_BINARY_DIR}/plmcli_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 diff --git a/src/plastimatch/cuda/CMakeLists.txt b/src/plastimatch/cuda/CMakeLists.txt
-index 20858693..df0de381 100644
+index 20858693..99d205e7 100644
 --- a/src/plastimatch/cuda/CMakeLists.txt
 +++ b/src/plastimatch/cuda/CMakeLists.txt
-@@ -7,11 +7,10 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+@@ -6,12 +6,11 @@ project (src_plastimatch_cuda)
+ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
  set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
  
- include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_BINARY_DIR})
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/register)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_BINARY_DIR})
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../base)
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../register)
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../sys)
@@ -254,19 +435,60 @@ index 20858693..df0de381 100644
  include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
  include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
  
+diff --git a/src/plastimatch/dose/CMakeLists.txt b/src/plastimatch/dose/CMakeLists.txt
+index c79e81db..4f79e3d8 100755
+--- a/src/plastimatch/dose/CMakeLists.txt
++++ b/src/plastimatch/dose/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_dose)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmdose_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmdose_config.h
++    ${PLM_BINARY_DIR}/plmdose_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+diff --git a/src/plastimatch/qt/CMakeLists.txt b/src/plastimatch/qt/CMakeLists.txt
+index 6bc77123..01e54976 100644
+--- a/src/plastimatch/qt/CMakeLists.txt
++++ b/src/plastimatch/qt/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_qt)
+ 
+ configure_file (
+   ${CMAKE_CURRENT_SOURCE_DIR}/plmqt_config.h.in
+-  ${CMAKE_BINARY_DIR}/plmqt_config.h
++  ${PLM_BINARY_DIR}/plmqt_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+diff --git a/src/plastimatch/reconstruct/CMakeLists.txt b/src/plastimatch/reconstruct/CMakeLists.txt
+index a5b1257c..67475faa 100644
+--- a/src/plastimatch/reconstruct/CMakeLists.txt
++++ b/src/plastimatch/reconstruct/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_reconstruct)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmreconstruct_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmreconstruct_config.h
++    ${PLM_BINARY_DIR}/plmreconstruct_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 diff --git a/src/plastimatch/reconstruct/cuda/CMakeLists.txt b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
-index e8810b1f..c440e6fe 100644
+index e8810b1f..ed86e879 100644
 --- a/src/plastimatch/reconstruct/cuda/CMakeLists.txt
 +++ b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
-@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+@@ -6,12 +6,12 @@ project (src_plastimatch_reconstruct_cuda)
+ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
  set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
  
- include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_BINARY_DIR})
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/reconstruct)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_BINARY_DIR})
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../base)
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../cuda)
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -275,19 +497,34 @@ index e8810b1f..c440e6fe 100644
  include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
  include_directories (AFTER ${DLIB_INCLUDE_DIR})
  include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+diff --git a/src/plastimatch/register/CMakeLists.txt b/src/plastimatch/register/CMakeLists.txt
+index 2b7f80fb..c1e974a1 100644
+--- a/src/plastimatch/register/CMakeLists.txt
++++ b/src/plastimatch/register/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_register)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmregister_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmregister_config.h
++    ${PLM_BINARY_DIR}/plmregister_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 diff --git a/src/plastimatch/register/cuda/CMakeLists.txt b/src/plastimatch/register/cuda/CMakeLists.txt
-index 5a10bbad..af1a882d 100644
+index 5a10bbad..f9df1c77 100644
 --- a/src/plastimatch/register/cuda/CMakeLists.txt
 +++ b/src/plastimatch/register/cuda/CMakeLists.txt
-@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+@@ -6,12 +6,12 @@ project (src_plastimatch_register_cuda)
+ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
  set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
  
- include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_BINARY_DIR})
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/register)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
 -include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_BINARY_DIR})
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../base)
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../cuda)
 +include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -351,10 +588,146 @@ index 3865669b..24648ed5 100644
  }
  
  void 
+diff --git a/src/plastimatch/script/CMakeLists.txt b/src/plastimatch/script/CMakeLists.txt
+index 8465210f..1c57805e 100644
+--- a/src/plastimatch/script/CMakeLists.txt
++++ b/src/plastimatch/script/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_script)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmscript_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmscript_config.h
++    ${PLM_BINARY_DIR}/plmscript_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+diff --git a/src/plastimatch/segment/CMakeLists.txt b/src/plastimatch/segment/CMakeLists.txt
+index 75e5d602..08bc8f67 100644
+--- a/src/plastimatch/segment/CMakeLists.txt
++++ b/src/plastimatch/segment/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_segment)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmsegment_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmsegment_config.h
++    ${PLM_BINARY_DIR}/plmsegment_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+diff --git a/src/plastimatch/sys/CMakeLists.txt b/src/plastimatch/sys/CMakeLists.txt
+index 599ee270..928cbc0a 100755
+--- a/src/plastimatch/sys/CMakeLists.txt
++++ b/src/plastimatch/sys/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_sys)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmsys_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmsys_config.h
++    ${PLM_BINARY_DIR}/plmsys_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+@@ -50,8 +50,8 @@ list (APPEND PLMSYS_LIBRARY_SRC
+ endif ()
+ 
+ set (PLMSYS_LIBRARY_HEADERS
+-  "${CMAKE_BINARY_DIR}/plm_config.h"
+-  "${CMAKE_BINARY_DIR}/plmsys_config.h"
++  "${PLM_BINARY_DIR}/plm_config.h"
++  "${PLM_BINARY_DIR}/plmsys_config.h"
+   )
+ foreach (ARG ${PLMSYS_LIBRARY_SRC})
+   string (REGEX MATCH ".*\\.h$" TMP "${ARG}")
+diff --git a/src/plastimatch/test/CMakeLists.txt b/src/plastimatch/test/CMakeLists.txt
+index 9edbdf0d..0c17f9b1 100644
+--- a/src/plastimatch/test/CMakeLists.txt
++++ b/src/plastimatch/test/CMakeLists.txt
+@@ -74,33 +74,33 @@ if (PLM_CONFIG_BUILD_TEST_PROGRAMS)
+ 
+     # Test executable -- matlab
+     if (MATLAB_FOUND)
+-	file (WRITE "${CMAKE_BINARY_DIR}/compile_mex_test.m"
++	file (WRITE "${PLM_BINARY_DIR}/compile_mex_test.m"
+ 	    "mex \"${CMAKE_SOURCE_DIR}/mex_test.c\";exit;\n")
+-	file (WRITE "${CMAKE_BINARY_DIR}/mex_test.cmake"
++	file (WRITE "${PLM_BINARY_DIR}/mex_test.cmake"
+ 	    "EXECUTE_PROCESS (COMMAND ${MATLAB_EXE} -nosplash -nodesktop -nojvm
+             -r compile_mex_test
+             RESULT_VARIABLE RESULT
+             OUTPUT_VARIABLE STDOUT
+             ERROR_VARIABLE STDERR)\n")
+ 	add_custom_command (
+-	    OUTPUT "${CMAKE_BINARY_DIR}/mex_test${MATLAB_MEXEXT}"
+-	    COMMAND ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/mex_test.cmake"
++	    OUTPUT "${PLM_BINARY_DIR}/mex_test${MATLAB_MEXEXT}"
++	    COMMAND ${CMAKE_COMMAND} -P "${PLM_BINARY_DIR}/mex_test.cmake"
+ 	    DEPENDS "${CMAKE_SOURCE_DIR}/mex_test.c")
+ 	add_custom_target (mat_mex_test
+-	    DEPENDS "${CMAKE_BINARY_DIR}/mex_test${MATLAB_MEXEXT}")
++	    DEPENDS "${PLM_BINARY_DIR}/mex_test${MATLAB_MEXEXT}")
+ 	target_link_libraries (mex_test ${MATLAB_LIBRARIES})
+     endif ()
+ 
+     # Test executable -- octave
+     if (OCTAVE_FOUND)
+ 	add_custom_command (
+-	    OUTPUT "${CMAKE_BINARY_DIR}/mex_test.mex"
++	    OUTPUT "${PLM_BINARY_DIR}/mex_test.mex"
+ 	    COMMAND ${OCTAVE_MKOCTFILE} --mex 
+-	    -o "${CMAKE_BINARY_DIR}/mex_test.mex" 
++	    -o "${PLM_BINARY_DIR}/mex_test.mex" 
+ 	    "${CMAKE_SOURCE_DIR}/mex_test.c"
+ 	    DEPENDS "${CMAKE_SOURCE_DIR}/mex_test.c")
+ 	add_custom_target (oct_mex_test
+-	    DEPENDS "${CMAKE_BINARY_DIR}/mex_test.mex")
++	    DEPENDS "${PLM_BINARY_DIR}/mex_test.mex")
+     endif ()
+ 
+     # Test executable -- nlopt
+@@ -119,7 +119,7 @@ if (PLM_CONFIG_BUILD_TEST_PROGRAMS)
+     if (OPENCL_FOUND)
+       set (OPENCL_TEST_SRC
+ 	opencl_test.cxx opencl_test.h opencl_test.cl
+-	"${CMAKE_BINARY_DIR}/opencl_test.cl"
++	"${PLM_BINARY_DIR}/opencl_test.cl"
+ 	)
+       set (OPENCL_TEST_LIBS ${OPENCL_LIBRARIES} ${PLASTIMATCH_LIBS})
+       plm_add_executable_v3 (opencl_test "${OPENCL_TEST_SRC}" 
+@@ -128,10 +128,10 @@ if (PLM_CONFIG_BUILD_TEST_PROGRAMS)
+       # I don't yet know how to bundle the .cl file within the executable.
+       # Therefore, copy the .cl into binary directory.
+       add_custom_command (
+-	OUTPUT "${CMAKE_BINARY_DIR}/opencl_test.cl" 
++	OUTPUT "${PLM_BINARY_DIR}/opencl_test.cl" 
+ 	COMMAND ${CMAKE_COMMAND} "-E" "copy" 
+ 	"${CMAKE_CURRENT_SOURCE_DIR}/opencl_test.cl" 
+-	"${CMAKE_BINARY_DIR}/opencl_test.cl" 
++	"${PLM_BINARY_DIR}/opencl_test.cl" 
+ 	DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/opencl_test.cl")
+     endif ()
+ 
 diff --git a/src/plastimatch/util/CMakeLists.txt b/src/plastimatch/util/CMakeLists.txt
-index 56937ec2..e547dc59 100644
+index 56937ec2..b1c5ee60 100644
 --- a/src/plastimatch/util/CMakeLists.txt
 +++ b/src/plastimatch/util/CMakeLists.txt
+@@ -5,7 +5,7 @@ project (src_plastimatch_util)
+ 
+ configure_file (
+     ${CMAKE_CURRENT_SOURCE_DIR}/plmutil_config.h.in
+-    ${CMAKE_BINARY_DIR}/plmutil_config.h
++    ${PLM_BINARY_DIR}/plmutil_config.h
+ )
+ 
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+@@ -57,7 +57,7 @@ if (FFTW_FOUND)
+ endif ()
+ 
+ set (PLMUTIL_LIBRARY_HEADERS
+-  "${CMAKE_BINARY_DIR}/plmutil_config.h"
++  "${PLM_BINARY_DIR}/plmutil_config.h"
+   )
+ foreach (ARG ${PLMUTIL_LIBRARY_SRC})
+   string (REGEX MATCH ".*\\.h$" TMP "${ARG}")
 @@ -74,6 +74,7 @@ set (PLMUTIL_LIBRARY_DEPENDENCIES
    devillard
    plmbase
