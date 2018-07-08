@@ -79,11 +79,6 @@ public:
 
   void GenerateData();
 
-  // virtual void GraftOutput(DataObject *output);
-
-  // virtual void GraftOutput(const DataObjectIdentifierType & key, DataObject
-  // *output);
-
 protected:
   OpenCLImageToImageFilter();
   ~OpenCLImageToImageFilter();

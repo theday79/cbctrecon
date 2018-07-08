@@ -31,16 +31,16 @@ public:
 class Rtss_contour_modern : public Rtss_contour {
 public:
   Rtss_contour_modern() = default;
-  Rtss_contour_modern(const Rtss_contour *old_contour);
-  Rtss_contour_modern(const Rtss_contour_modern *old_contour);
+  Rtss_contour_modern(Rtss_contour *old_contour);
+  Rtss_contour_modern(Rtss_contour_modern *old_contour);
   std::vector<FloatVector> coordinates;
 };
 
 class Rtss_roi_modern : public Rtss_roi {
 public:
   Rtss_roi_modern() = default;
-  Rtss_roi_modern(const Rtss_roi *old_roi);
-  Rtss_roi_modern(const Rtss_roi_modern *old_roi);
+  Rtss_roi_modern(Rtss_roi *old_roi);
+  Rtss_roi_modern(Rtss_roi_modern *old_roi);
 
   std::vector<Rtss_contour_modern> pslist;
 };
@@ -50,8 +50,8 @@ public:
   Rtss_modern() = default;
   // Unique pointer, to make sure it's killed by its destructor after copy
   Rtss_modern(std::unique_ptr<Rtss> old_rtss);
-  Rtss_modern(const Rtss *old_rtss);
-  Rtss_modern(const Rtss_modern *old_rtss);
+  Rtss_modern(Rtss *old_rtss);
+  Rtss_modern(Rtss_modern *old_rtss);
 
   /* Output geometry */
   std::array<plm_long, 3> m_dim{};

@@ -1,0 +1,13 @@
+variables:
+    GIT_STRATEGY: clone
+    BUILD_TESTING: "NO"
+
+
+test-x86_64-linux-ubuntu-gcc7:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:gcc7-x86_64
+    script:
+      - ./ci/ci.sh

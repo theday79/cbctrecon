@@ -16,13 +16,14 @@ void StructureSet::set_deformCT_ss(std::unique_ptr<Rtss> struct_set) {
   m_deform_ss = std::make_unique<Rtss_modern>(std::move(struct_set));
 }
 
-void StructureSet::set_planCT_ss(const Rtss *struct_set) {
+void StructureSet::set_planCT_ss(Rtss *struct_set) {
+
   m_plan_ss = std::make_unique<Rtss_modern>(struct_set);
 }
-void StructureSet::set_rigidCT_ss(const Rtss *struct_set) {
+void StructureSet::set_rigidCT_ss(Rtss *struct_set) {
   m_rigid_ss = std::make_unique<Rtss_modern>(struct_set);
 }
-void StructureSet::set_deformCT_ss(const Rtss *struct_set) {
+void StructureSet::set_deformCT_ss(Rtss *struct_set) {
   m_deform_ss = std::make_unique<Rtss_modern>(struct_set);
 }
 
@@ -175,7 +176,7 @@ bool StructureSet::ApplyRigidTransformToPlan(QFile rigid_transform_file) {
 }
 
 bool StructureSet::ApplyDeformTransformToRigid(QFile deform_transform_file) {
-  auto xform = std::make_unique<Xform>();
+  auto xform = Xform::New();
   xform->load(deform_transform_file.fileName().toStdString());
 
   auto xform_type = xform->get_type();
@@ -225,12 +226,10 @@ bool StructureSet::ApplyDeformTransformToRigid(QFile deform_transform_file) {
   }
   case XFORM_GPUIT_BSPLINE: {
     auto xform_converter = std::make_unique<Xform_convert>();
-    xform_converter->set_input_xform(
-        std::move(xform)); // we dont need xform anymore after this anyway
+    xform_converter->set_input_xform(xform);
     xform_converter->m_xf_out_type = XFORM_ITK_VECTOR_FIELD;
     xform_converter->run();
-    auto out_xform =
-        std::unique_ptr<Xform>(xform_converter->get_output_xform().get());
+    auto out_xform = xform_converter->get_output_xform();
     vf = out_xform->get_itk_vf();
     break;
   }

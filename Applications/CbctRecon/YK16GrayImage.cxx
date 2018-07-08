@@ -696,12 +696,34 @@ void YK16GrayImage::CopyYKImage2ItkImage(
   // writer->SetFileName("C:\\ThisImageIs_spSrcImage.png");	//It works!
   // writer->Update();
 }
+std::unique_ptr<YK16GrayImage> YK16GrayImage::CopyItkImage2YKImage(
+    UnsignedShortImageType::Pointer &spSrcImage, std::unique_ptr<YK16GrayImage> pYKImage) {
+  if (pYKImage == NULL)
+    return pYKImage;
+  UnsignedShortImageType::RegionType region = spSrcImage->GetRequestedRegion();
+  UnsignedShortImageType::SizeType tmpSize = region.GetSize();
+
+  int sizeX = tmpSize[0];
+  int sizeY = tmpSize[1];
+
+  if (sizeX < 1 || sizeY < 1)
+    return pYKImage;
+
+  itk::ImageRegionIterator<UnsignedShortImageType> it(spSrcImage, region);
+
+  int i = 0;
+  for (it.GoToBegin(); !it.IsAtEnd(); ++it) {
+    pYKImage->m_pData[i] = it.Get();
+    i++;
+  }
+
+  return pYKImage;
+}
+
 void YK16GrayImage::CopyItkImage2YKImage(
-    UnsignedShortImageType::Pointer &spSrcImage, YK16GrayImage *pYKImage) {
+  UnsignedShortImageType::Pointer &spSrcImage, YK16GrayImage* pYKImage) {
   if (pYKImage == NULL)
     return;
-  // Raw File open
-  // UnsignedShortImageType::SizeType tmpSize =
   UnsignedShortImageType::RegionType region = spSrcImage->GetRequestedRegion();
   UnsignedShortImageType::SizeType tmpSize = region.GetSize();
 
@@ -711,8 +733,6 @@ void YK16GrayImage::CopyItkImage2YKImage(
   if (sizeX < 1 || sizeY < 1)
     return;
 
-  // itk::ImageRegionConstIterator<UnsignedShortImageType> it(spSrcImage,
-  // region);
   itk::ImageRegionIterator<UnsignedShortImageType> it(spSrcImage, region);
 
   int i = 0;
@@ -720,15 +740,6 @@ void YK16GrayImage::CopyItkImage2YKImage(
     pYKImage->m_pData[i] = it.Get();
     i++;
   }
-  // int totCnt = i; //Total Count is OK
-
-  // int width = pYKImage->m_iWidth;
-  // int height = pYKImage->m_iHeight;
-
-  // writerType::Pointer writer = writerType::New();
-  // writer->SetInput(spSrcImage);
-  // writer->SetFileName("C:\\ThisImageIs_spSrcImage2.png");	//It works!
-  // writer->Update();
 }
 
 bool YK16GrayImage::CalcImageInfo_ROI() {
@@ -1405,8 +1416,10 @@ void YK16GrayImage::MedianFilter(int iMedianSizeX, int iMedianSizeY) {
 }
 
 UnsignedShortImageType::Pointer YK16GrayImage::CloneItkImage() {
-  if (m_pData == NULL)
-    return NULL;
+  if (m_pData == NULL){
+    std::cerr << "Could not CloneItkImage" << std::endl;
+    return nullptr;
+  }
 
   UnsignedShortImageType::Pointer spTmpItkImg = UnsignedShortImageType::New();
 

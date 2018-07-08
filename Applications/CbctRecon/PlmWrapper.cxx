@@ -54,11 +54,12 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   return itk_img;
 }
 
-Rtss_contour_modern::Rtss_contour_modern(const Rtss_contour *old_contour) {
+Rtss_contour_modern::Rtss_contour_modern(Rtss_contour *old_contour) {
   ct_slice_uid = old_contour->ct_slice_uid;
   slice_no = old_contour->slice_no;
   num_vertices = old_contour->num_vertices;
 
+  coordinates.resize(num_vertices);
   int i = -1;
   std::generate_n(coordinates.begin(), num_vertices, [&i, &old_contour]() {
     i++;
@@ -67,7 +68,7 @@ Rtss_contour_modern::Rtss_contour_modern(const Rtss_contour *old_contour) {
 };
 
 Rtss_contour_modern::Rtss_contour_modern(
-    const Rtss_contour_modern *old_contour) {
+    Rtss_contour_modern *old_contour) {
   ct_slice_uid = old_contour->ct_slice_uid;
   slice_no = old_contour->slice_no;
   num_vertices = old_contour->num_vertices;
@@ -76,16 +77,20 @@ Rtss_contour_modern::Rtss_contour_modern(
             coordinates.begin());
 };
 
-Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi *old_roi) {
+Rtss_roi_modern::Rtss_roi_modern(Rtss_roi *old_roi) {
   name = old_roi->name;
   color = old_roi->color;
   id = old_roi->id;   /* Used for import/export (must be >= 1) */
   bit = old_roi->bit; /* Used for ss-img (-1 for no bit) */
   num_contours = old_roi->num_contours;
-  std::copy_n(&old_roi->pslist[0], num_contours, pslist.begin());
+  pslist.resize(num_contours);
+  // To avoid illegal destruction of objects that migth have been moved:
+  //old_roi->num_contours = 0;
+  std::copy(&old_roi->pslist[0], &old_roi->pslist[num_contours - 1],
+            pslist.begin());  // "Copy" but probably is memmove
 };
 
-Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi_modern *old_roi) {
+Rtss_roi_modern::Rtss_roi_modern(Rtss_roi_modern *old_roi) {
   name = old_roi->name;
   color = old_roi->color;
   id = old_roi->id;   /* Used for import/export (must be >= 1) */
@@ -115,11 +120,12 @@ Rtss_modern::Rtss_modern(std::unique_ptr<Rtss> old_rtss) {
   rast_dc = std::move(unique_rast_dc);
 
   num_structures = old_rtss->num_structures;
-
-  std::copy_n(&old_rtss->slist[0], num_structures, slist.begin());
+  slist.resize(num_structures);
+  std::copy(&old_rtss->slist[0], &old_rtss->slist[num_structures - 1],
+            slist.begin());
 };
 
-Rtss_modern::Rtss_modern(const Rtss *old_rtss) {
+Rtss_modern::Rtss_modern(Rtss *old_rtss) {
   m_dim = {{old_rtss->m_dim[0], old_rtss->m_dim[1], old_rtss->m_dim[2]}};
   m_spacing = {
       {old_rtss->m_spacing[0], old_rtss->m_spacing[1], old_rtss->m_spacing[2]}};
@@ -139,11 +145,12 @@ Rtss_modern::Rtss_modern(const Rtss *old_rtss) {
   rast_dc = std::move(unique_rast_dc);
 
   num_structures = old_rtss->num_structures;
-
-  std::copy_n(&old_rtss->slist[0], num_structures, slist.begin());
+  slist.resize(num_structures);
+  std::copy(&old_rtss->slist[0], &old_rtss->slist[num_structures - 1],
+            slist.begin());
 };
 
-Rtss_modern::Rtss_modern(const Rtss_modern *old_rtss) {
+Rtss_modern::Rtss_modern(Rtss_modern *old_rtss) {
   m_dim = old_rtss->m_dim;
   m_spacing = old_rtss->m_spacing;
   m_offset = old_rtss->m_offset;

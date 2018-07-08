@@ -660,7 +660,7 @@ public slots:
 public:
   // ReaderType::Pointer m_reader;
   // WriterType::Pointer m_writer;
-  StructureSet *m_structures{};
+  std::unique_ptr<StructureSet> m_structures;
   // YK16GrayImage* m_arrYKImage; //independent raw images
   std::vector<YK16GrayImage> m_arrYKImage;
   int m_iImgCnt{}; // for independent raw images --> no relation to Directroy
@@ -670,8 +670,8 @@ public:
   std::vector<YK16GrayImage> m_arrYKBufProj;
   int m_iCntSelectedProj;
 
-  YK16GrayImage *m_pImgOffset;
-  YK16GrayImage *m_pImgGain;
+  std::unique_ptr<YK16GrayImage> m_pImgOffset;
+  std::unique_ptr<YK16GrayImage> m_pImgGain;
   // Badpixmap;
   std::vector<BADPIXELMAP> m_vPixelReplMap{};
 
@@ -719,8 +719,8 @@ public:
   UShortImageType::Pointer m_spDeformedCT3; // AutoDeformCT3
   UShortImageType::Pointer m_spDeformedCT_Final; // AutoDeformCT3
 
-  YK16GrayImage *m_dspYKReconImage{};
-  YK16GrayImage *m_dspYKImgProj{};
+  std::unique_ptr<YK16GrayImage> m_dspYKReconImage{};
+  std::unique_ptr<YK16GrayImage> m_dspYKImgProj{};
   int m_iTmpIdx;
 
   double m_fProjImgValueMax; // value of float image
@@ -728,9 +728,9 @@ public:
 
   double m_multiplyFactor{};
   QStandardItemModel *m_pTableModel;
-  DlgRegistration *m_pDlgRegistration{};
+  std::unique_ptr<DlgRegistration> m_pDlgRegistration;
   // DlgHistogram* m_pDlgHistogram;
-  DlgExternalCommand *m_pDlgExternalCommand{};
+  std::unique_ptr<DlgExternalCommand> m_pDlgExternalCommand;
 
   // Automatically detected relavant file/Dir path when load the projection
   // files (SLT_SetHisDir)
@@ -765,7 +765,7 @@ public:
 
   std::vector<VEC3D> m_vPOI_DCM{}; // initialized by file Load
 
-  QTimer *m_Timer{};
+  QTimer* m_Timer;
   bool m_busyTimer;
 
   std::vector<std::string> m_vSelectedFileNames{};
