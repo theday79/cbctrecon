@@ -3,6 +3,10 @@ CMAKE_MINIMUM_REQUIRED (VERSION 3.8) # Yes, less won't do.
 project(App)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOUIC_SEARCH_PATHS
+  ${CMAKE_AUTOUIC_SEARCH_PATHS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/ui
+  )
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -61,47 +65,50 @@ endif(USE_OPENMP)
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 
 SET(CbctRecon_SOURCES
-	main.cpp
-	cbctrecon.cpp
-	YK16GrayImage.cxx
-	AG17RGBAImage.cxx
-	qyklabel.cpp
-	qcustomplot.cpp
-	DlgRegistration.cxx
-	StructureSet.cxx
-	PlmWrapper.cxx
-	DlgExternalCommand.cxx
-	rtkOpenCLUtilities.cxx
-	rtkOpenCLFDKBackProjectionImageFilter.cxx
-	OpenCLFFTFilter.cxx
-	CMakeSetup.rc
+  main.cpp
+  cbctrecon.cpp
+  qt-utils/YK16GrayImage.cxx
+  qt-utils/AG17RGBAImage.cxx
+  qt-utils/qyklabel.cpp
+  qt-utils/qcustomplot.cpp
+  DlgRegistration.cxx
+  StructureSet.cxx
+  PlmWrapper.cxx
+  DlgExternalCommand.cxx
+  rtkExtension/rtkOpenCLUtilities.cxx
+  rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
+  OpenCLFFTFilter.cxx
+  CMakeSetup.rc
 )
 SET(CbctRecon_HEADERS
-	cbctrecon.h
-	YK16GrayImage.h
-	AG17RGBAImage.h
-	qyklabel.h
-	qcustomplot.h
-	DlgRegistration.h
-	StructureSet.h
-	PlmWrapper.h
-	DlgExternalCommand.h
-	rtkOpenCLFDKConeBeamReconstructionFilter.h
-	rtkOpenCLFDKConeBeamReconstructionFilter.hxx
-	rtkOpenCLFDKBackProjectionImageFilter.h
-	rtkOpenCLFFTRampImageFilter.h
-	rtkOpenCLFFTConvolutionImageFilter.h
-	rtkOpenCLFFTConvolutionImageFilter.hxx
-	itkOpenCLImageToImageFilter.h
-	itkOpenCLImageToImageFilter.hxx
-	rtkOpenCLUtilities.h
-	OpenCLFFTFilter.h
+  cbctrecon.h
+  qt-utils/YK16GrayImage.h
+  qt-utils/AG17RGBAImage.h
+  qt-utils/qyklabel.h
+  qt-utils/qcustomplot.h
+  DlgRegistration.h
+  StructureSet.h
+  PlmWrapper.h
+  DlgExternalCommand.h
+  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
+  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx
+  rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
+  rtkExtension/rtkOpenCLFFTRampImageFilter.h
+  rtkExtension/rtkOpenCLFFTConvolutionImageFilter.h
+  rtkExtension/rtkOpenCLFFTConvolutionImageFilter.hxx
+  rtkExtension/itkOpenCLImageToImageFilter.h
+  rtkExtension/itkOpenCLImageToImageFilter.hxx
+  rtkExtension/rtkOpenCLUtilities.h
+  OpenCLFFTFilter.h
+  io.hxx
+  compute.hxx
+  fdk.hxx
 )
 SET(CbctRecon_FORMS
-	cbctrecon.ui
-	DlgRegistration.ui
-	DlgHistogram.ui # Kept for example, no longer used
-	DlgExternalCommand.ui
+  ui/cbctrecon.ui
+  ui/DlgRegistration.ui
+  ui/DlgHistogram.ui # Kept for example, no longer used
+  ui/DlgExternalCommand.ui
 )
 
 set(PLM_TARGETS
@@ -114,6 +121,11 @@ set(PLM_TARGETS
   plmopencl
   plmsegment
 )
+
+set(LOCAL_INCL_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils
+  ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension
+  )
 
 if(MSVC AND NOT(MSVC_VERSION LESS 1400))
   set_source_files_properties(cbctrecon.cpp
@@ -160,6 +172,7 @@ set(PLASTIMATCH_INCLUDE_DIRS
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 target_include_directories(CbctRecon
+  PUBLIC ${LOCAL_INCL_DIRS}
   PUBLIC ${ITK_INCLUDE_DIRS}
   PUBLIC ${RTK_INCLUDE_DIRS}
   PUBLIC ${PLASTIMATCH_INCLUDE_DIRS}
@@ -259,57 +272,57 @@ if(WIN32)
   endif(OPENMP_FOUND)
   include(InstallRequiredSystemLibraries)
 
-	if(CUDA_FOUND)
-	  set (DLL_PATTERNS "cufft64*.dll" "cublas64*.dll" "cudart64*.dll")
-	  foreach (p ${DLL_PATTERNS})
-		file (GLOB DLLFILES "${CUDA_TOOLKIT_ROOT_DIR}/bin/${p}")
-		if(DLLFILES)
-		  install (FILES ${DLLFILES} DESTINATION bin)
-		endif()
-	  endforeach ()
-	endif()
+  if(CUDA_FOUND)
+    set (DLL_PATTERNS "cufft64*.dll" "cublas64*.dll" "cudart64*.dll")
+    foreach (p ${DLL_PATTERNS})
+    file (GLOB DLLFILES "${CUDA_TOOLKIT_ROOT_DIR}/bin/${p}")
+    if(DLLFILES)
+      install (FILES ${DLLFILES} DESTINATION bin)
+    endif()
+    endforeach ()
+  endif()
 
-	if(ITK_FOUND)
+  if(ITK_FOUND)
     # ITK*.dll might not include RTK_AS_ITK_EXTERNAL libs
     set (DLL_PATTERNS "*.dll")
-	  foreach (p ${DLL_PATTERNS})
+    foreach (p ${DLL_PATTERNS})
       file (GLOB DLLFILES "${ITK_DIR}/bin/release/${p}")
       if(DLLFILES)
         install (FILES ${DLLFILES} DESTINATION bin)
       endif()
-	  endforeach ()
-	endif()
+    endforeach ()
+  endif()
 
-	if(RTK_FOUND)
-	  install (FILES ${RTK_DIR}/bin/release/RTK.dll DESTINATION bin)
-	  install (FILES ${RTK_DIR}/bin/release/rtkcuda.dll DESTINATION bin)
-	  install (FILES ${RTK_DIR}/bin/release/ITKCudaCommon.dll DESTINATION bin)
-	  install (FILES ${RTK_DIR}/bin/release/lpsolve55.dll DESTINATION bin) #is 55 a version number?
-	endif()
+  if(RTK_FOUND)
+    install (FILES ${RTK_DIR}/bin/release/RTK.dll DESTINATION bin)
+    install (FILES ${RTK_DIR}/bin/release/rtkcuda.dll DESTINATION bin)
+    install (FILES ${RTK_DIR}/bin/release/ITKCudaCommon.dll DESTINATION bin)
+    install (FILES ${RTK_DIR}/bin/release/lpsolve55.dll DESTINATION bin) #is 55 a version number?
+  endif()
 
-	if(Plastimatch_FOUND)
-	  set (DLL_PATTERNS "plm*.dll" "")
-	  foreach (p ${DLL_PATTERNS})
+  if(Plastimatch_FOUND)
+    set (DLL_PATTERNS "plm*.dll" "")
+    foreach (p ${DLL_PATTERNS})
       file (GLOB DLLFILES "${Plastimatch_BUILD_DIR}/release/${p}")
       if(DLLFILES)
         install (FILES ${DLLFILES} DESTINATION bin)
       endif()
-	  endforeach ()
-	endif()
+    endforeach ()
+  endif()
 
-	if(USE_CLFFT)
-	  install (FILES ${CLFFT_ROOT_DIR}/bin/clFFT.dll DESTINATION bin)
-	endif()
+  if(USE_CLFFT)
+    install (FILES ${CLFFT_ROOT_DIR}/bin/clFFT.dll DESTINATION bin)
+  endif()
 
-	#Add FFT dlls to Install
-	if(FFTW_FOUND)
-	  if(EXISTS "${FFTW_DIR}/libfftw3-3.dll")
-		  install (FILES "${FFTW_DIR}/libfftw3-3.dll" DESTINATION bin)
-	  endif()
-	  if(EXISTS "${FFTW_DIR}/libfftw3f-3.dll")
-		  install (FILES "${FFTW_DIR}/libfftw3f-3.dll" DESTINATION bin)
-	  endif()
-	endif()
+  #Add FFT dlls to Install
+  if(FFTW_FOUND)
+    if(EXISTS "${FFTW_DIR}/libfftw3-3.dll")
+      install (FILES "${FFTW_DIR}/libfftw3-3.dll" DESTINATION bin)
+    endif()
+    if(EXISTS "${FFTW_DIR}/libfftw3f-3.dll")
+      install (FILES "${FFTW_DIR}/libfftw3f-3.dll" DESTINATION bin)
+    endif()
+  endif()
 endif()
 
 ##-----------------------------------------------------------------------------
