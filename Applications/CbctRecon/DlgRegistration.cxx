@@ -671,6 +671,11 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
   if (m_bPressedLeft[idx]) {
     QPoint xy_point = QPoint(dataX, dataY);
     m_YKDisp[idx].SetSplitCenter(xy_point);
+    /* if (cond) {
+     * calculateAngularWEPL(xy_point);
+     * SLT_DrawWEPLContour(); // Radial (Spiderweb) plot
+     * }
+     */
     SLT_DrawImageInFixedSlice();
   } else if (m_bPressedRight[idx] && ui.checkBoxPan->isChecked()) {
     ////Update offset information of dispImage

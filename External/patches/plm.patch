@@ -721,3 +721,24 @@ index bf743a17..0c6fad71 100644
    )
  
  if (CUDA_FOUND)
+diff --git a/src/plastimatch/util/cuda/CMakeLists.txt b/src/plastimatch/util/cuda/CMakeLists.txt
+index f6b68b69..e452c872 100644
+--- a/src/plastimatch/util/cuda/CMakeLists.txt
++++ b/src/plastimatch/util/cuda/CMakeLists.txt
+@@ -6,11 +6,11 @@ project (src_plastimatch_util_cuda)
+ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+-include_directories (BEFORE ${CMAKE_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_BINARY_DIR})
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../base)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../cuda)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../../sys)
++include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/../)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${DLIB_INCLUDE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
