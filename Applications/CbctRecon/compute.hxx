@@ -413,3 +413,145 @@ double CbctRecon::GetValueFrom3DImageUshort(
 }
 
 
+
+double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
+  const std::array<double, 3> vec_basis,
+  const std::array<double, 3> vec_cubesize,
+  const std::array<size_t, 3> cubedim,
+  const FloatImageType::Pointer &vec_wepl_cube) {
+  const double step_length = 0.1;
+  const std::array<double, 3> step = { {vec_basis.at(0) * step_length,
+                                       vec_basis.at(1) * step_length,
+                                       vec_basis.at(2) * step_length} };
+
+  const std::array<double, 3> inv_cubesize = { {1.0 / vec_cubesize.at(0),
+                                               1.0 / vec_cubesize.at(1),
+                                               1.0 / vec_cubesize.at(2)} };
+
+  std::array<double, 3> point = {
+      {static_cast<double>(cur_point_id.at(0)) * vec_cubesize.at(0),
+       static_cast<double>(cur_point_id.at(1)) * vec_cubesize.at(1),
+       static_cast<double>(cur_point_id.at(2)) * vec_cubesize.at(2)} };
+
+  double out = 0.0;
+
+  while (true) {
+    // point_id = point / cube_size
+    const std::array<int, 3> point_id = {
+        {static_cast<int>(round(point.at(0) * inv_cubesize.at(0))),
+         static_cast<int>(round(point.at(1) * inv_cubesize.at(1))),
+         static_cast<int>(round(point.at(2) * inv_cubesize.at(2)))} };
+
+    if (point_id.at(0) < 0.0 ||
+      point_id.at(0) >= static_cast<int>(cubedim.at(0)) ||
+      point_id.at(1) < 0.0 ||
+      point_id.at(1) >= static_cast<int>(cubedim.at(1)) ||
+      point_id.at(2) < 0.0 ||
+      point_id.at(2) >= static_cast<int>(cubedim.at(2))) {
+      break;
+    }
+
+    // get nearest neighbors:
+    const std::array<double, 3> point_id_pos = {
+        {point.at(0) * inv_cubesize.at(0), point.at(1) * inv_cubesize.at(1),
+         point.at(2) * inv_cubesize.at(2)} };
+
+    int idx_2 = -1;
+    if (point_id.at(0) < (point_id_pos.at(0))) {
+      idx_2 = 1;
+    }
+
+    int idy_2 = -1;
+    if (point_id.at(1) < (point_id_pos.at(1))) {
+      idx_2 = 1;
+    }
+
+    int idz_2 = -1;
+    if (point_id.at(2) < (point_id_pos.at(2))) {
+      idz_2 = 1;
+    }
+
+    if ((point_id.at(0) + idx_2) < 0.0 ||
+      (point_id.at(0) + idx_2) >= static_cast<int>(cubedim.at(0)) ||
+      (point_id.at(1) + idy_2) < 0.0 ||
+      (point_id.at(1) + idy_2) >= static_cast<int>(cubedim.at(1)) ||
+      (point_id.at(2) + idz_2) < 0.0 ||
+      (point_id.at(2) + idz_2) >= static_cast<int>(cubedim.at(2))) {
+      break;
+    }
+
+    std::array<double, 8> weights{};
+    // x                    xyz
+    weights.at(0) = sqrt( // 000 =
+      pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) - point_id_pos.at(2), 2));
+    weights.at(1) = sqrt( // 100 =
+      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) - point_id_pos.at(2), 2));
+    // y
+    weights.at(2) = sqrt( // 010 =
+      pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) - point_id_pos.at(2), 2));
+    weights.at(3) = sqrt( // 110 =
+      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) - point_id_pos.at(2), 2));
+    // z
+    weights.at(4) = sqrt( // 001 =
+      pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+    weights.at(5) = sqrt( // 101 =
+      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+    weights.at(6) = sqrt( // 011 =
+      pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+    weights.at(7) = sqrt( // 111 =
+      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+
+    double sum_weights = 0.0;
+    for (double weight : weights) {
+      sum_weights += weight;
+    }
+    for (double &weight : weights) {
+      weight /= sum_weights;
+    }
+
+    for (int i = 0; i < 8; i++) {
+      // convert point_id to cube_ids
+      FloatImageType::IndexType cube_id{};
+      cube_id[0] = point_id.at(0) + (idx_2 * (i % 2)); // x= 0,1,0,1,0,1,0,1
+      cube_id[1] =
+        point_id.at(1) + (idy_2 * ((i / 2) % 2));      // y= 0,0,1,1,0,0,1,1
+      cube_id[2] = point_id.at(2) + (idz_2 * (i / 4)); // z= 0,0,0,0,1,1,1,1
+
+      out += vec_wepl_cube->GetPixel(cube_id) * weights.at(i);
+    }
+
+    // point = point - step
+    point.at(0) -= step.at(0);
+    point.at(1) -= step.at(1);
+    point.at(2) -= step.at(2);
+  }
+
+  return out * step_length;
+}
+
+std::array<double, 3> get_basis_from_angles(double gantry, double couch) {
+  gantry += 180.0;
+  gantry *= M_PI / 180.0;
+  couch *= M_PI / 180.0;
+
+  std::array<double, 3> basis = {
+      {sin(gantry) * cos(couch), -cos(gantry), sin(couch) * sin(gantry)} };
+  return basis;
+}
+

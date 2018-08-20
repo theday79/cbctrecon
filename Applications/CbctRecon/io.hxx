@@ -533,3 +533,250 @@ void CbctRecon::SLT_ReloadProjections() {
 
   this->SLT_DrawProjImages(); // Update Table is called
 }
+
+bool CbctRecon::LoadShortImageToUshort(QString &strPath,
+  UShortImageType::Pointer &pUshortImage) {
+  using ReaderType = itk::ImageFileReader<ShortImageType>;
+  ReaderType::Pointer reader = ReaderType::New();
+
+  // QString fileName = QFileDialog::getOpenFileName(this, "Open Image","",
+  // "Plan CT file (*.mha)",0,0);
+
+  if (strPath.length() < 1) {
+    return false;
+  }
+
+  reader->SetFileName(strPath.toLocal8Bit().constData());
+  reader->Update();
+
+  // Figure out whether this is NKI
+  using ImageCalculatorFilterType =
+    itk::MinimumMaximumImageCalculator<ShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+    ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(reader->GetOutput());
+  imageCalculatorFilter->Compute();
+
+  auto minVal0 = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  auto maxVal0 = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  std::cout << "Original Min and Max Values are	" << minVal0 << "	"
+    << maxVal0 << std::endl;
+
+  bool bNKI = false;
+  if (minVal0 > -600) // impossible for normal Short image. IN NKI, always -512.
+                      // don't know why
+  {
+    bNKI = true;
+  }
+
+  // Thresholding
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
+  ThresholdImageFilterType::Pointer thresholdFilter =
+    ThresholdImageFilterType::New();
+
+  if (!bNKI) {
+    thresholdFilter->SetInput(reader->GetOutput());
+    thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
+    thresholdFilter->SetOutsideValue(-1024);
+    thresholdFilter->Update();
+  }
+  else {
+    thresholdFilter->SetInput(reader->GetOutput());
+    thresholdFilter->ThresholdOutside(0, 4095); //--> 0 ~ 4095
+    thresholdFilter->SetOutsideValue(0);
+    thresholdFilter->Update();
+  }
+
+  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+  imageCalculatorFilter->Compute();
+
+  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  std::cout << "Current Min and Max Values are	" << minVal << "	"
+    << maxVal << std::endl;
+
+  USHORT_PixelType outputMinVal, outputMaxVal;
+  if (!bNKI) {
+    outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
+    outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
+  }
+  else {
+    outputMinVal = static_cast<USHORT_PixelType>(minVal);
+    outputMaxVal = static_cast<USHORT_PixelType>(maxVal);
+  }
+
+  using RescaleFilterType =
+    itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
+  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+  pUshortImage = spRescaleFilter->GetOutput();
+
+  return true;
+}
+
+void CbctRecon::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
+{
+  // typedef itk::ImageFileReader<ShortImageType> ReaderType;
+  // ReaderType::Pointer reader = ReaderType::New();
+
+  QString fileName =
+    QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault,
+      "Plan CT file (*.mha)", nullptr, nullptr);
+
+  if (fileName.length() < 1) {
+    return;
+  }
+
+  if (!LoadShortImageToUshort(fileName, m_spRefCTImg)) {
+    std::cout << "error! in LoadShortImageToUshort" << std::endl;
+  }
+
+  using ImageCalculatorFilterType2 =
+    itk::MinimumMaximumImageCalculator<UShortImageType>;
+
+  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
+    ImageCalculatorFilterType2::New();
+  imageCalculatorFilter2->SetImage(m_spRefCTImg);
+  imageCalculatorFilter2->Compute();
+
+  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+
+  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
+    << std::endl;
+
+  // Update UI
+  UShortImageType::SizeType imgDim =
+    m_spRefCTImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing = m_spRefCTImg->GetSpacing();
+
+  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
+    << "	" << imgDim[2] << std::endl;
+  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
+    << "	" << spacing[2] << std::endl;
+
+  RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
+  m_spCrntReconImg = m_spRefCTImg;
+
+  ui.lineEdit_Cur3DFileName->setText(fileName);
+  m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+  SLT_InitializeGraphLim();
+  ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
+  ui.radioButton_graph_recon->setChecked(true);
+
+}
+
+
+void CbctRecon::SLT_ExportReconUSHORT() {
+  if (m_spCrntReconImg == nullptr) {
+    std::cout << " no image to export" << std::endl;
+    return;
+  }
+
+  QString strPath = QFileDialog::getSaveFileName(
+    this, "Save Image", "", "unsigned short meta image (*.mha)", nullptr,
+    nullptr);
+  if (strPath.length() <= 1) {
+    return;
+  }
+
+  using WriterType = itk::ImageFileWriter<UShortImageType>;
+  WriterType::Pointer writer = WriterType::New();
+  writer->SetFileName(strPath.toLocal8Bit().constData());
+  writer->SetUseCompression(true); // not exist in original code (rtkfdk)
+  writer->SetInput(m_spCrntReconImg);
+
+  std::cout << "Writing is under progress...: "
+    << strPath.toLocal8Bit().constData() << std::endl;
+  writer->Update();
+  std::cout << "Writing was successfully done" << std::endl;
+
+  QString msgStr = QString("USHORT File Writing was successfully done");
+  QMessageBox::information(this, "Procedure Done", msgStr);
+}
+
+void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
+  QString &outputFilePath) {
+  if (spUsImage == nullptr) {
+    std::cout << " no image to export" << std::endl;
+    return;
+  }
+
+  using DuplicatorType = itk::ImageDuplicator<UShortImageType>;
+  DuplicatorType::Pointer duplicator = DuplicatorType::New();
+  duplicator->SetInputImage(spUsImage);
+  duplicator->Update();
+  UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
+  ShortImageType::Pointer clonedReconImageSHORT;
+
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
+  ThresholdImageFilterType::Pointer thresholdFilterAbove =
+    ThresholdImageFilterType::New();
+  thresholdFilterAbove->SetInput(clonedReconImage);
+  thresholdFilterAbove->ThresholdAbove(4095);
+  thresholdFilterAbove->SetOutsideValue(4095);
+
+  ThresholdImageFilterType::Pointer thresholdFilterBelow =
+    ThresholdImageFilterType::New();
+  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+  thresholdFilterBelow->ThresholdBelow(0);
+  thresholdFilterBelow->SetOutsideValue(0);
+  thresholdFilterBelow->Update();
+
+
+  using ImageCalculatorFilterType =
+    itk::MinimumMaximumImageCalculator<UShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+    ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
+  imageCalculatorFilter->Compute();
+  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  // Min value is always 3024 --> outside the FOV
+  auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
+  auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
+
+  using RescaleFilterType =
+    itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
+  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+
+  spRescaleFilter->Update();
+  // clonedReconImageSHORT = spRescaleFilter->GetOutput();
+
+  // waterHU = 1024;
+
+  using AddImageFilterType =
+    itk::AddImageFilter<ShortImageType, ShortImageType, ShortImageType>;
+  AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
+  addImageFilter->SetInput1(spRescaleFilter->GetOutput());
+
+  int addingVal = 0; // 1024-680
+  addImageFilter->SetConstant2(addingVal);
+  addImageFilter->Update();
+
+  using WriterType = itk::ImageFileWriter<ShortImageType>;
+  WriterType::Pointer writer = WriterType::New();
+  writer->SetFileName(outputFilePath.toLocal8Bit().constData());
+  // writer->SetUseCompression(true);
+  writer->SetUseCompression(false); // for plastimatch
+  writer->SetInput(addImageFilter->GetOutput());
+
+  std::cout << "Writing is under progress...: "
+    << outputFilePath.toLocal8Bit().constData() << std::endl;
+  writer->Update();
+  std::cout << "Writing was successfully done" << std::endl;
+}
