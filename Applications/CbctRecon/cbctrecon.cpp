@@ -3275,7 +3275,6 @@ void CbctRecon::SLT_DoBHC() {
   SLT_DrawProjImages();
 }
 
-template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
 double heaviside(double x) { return .5 * sgn(x) + 0.5; }
 
 double fullFan_subFunction(double a, double b, double c, double d, double x) {
