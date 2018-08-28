@@ -455,7 +455,7 @@ double lin_interpolate(std::array<int, 3> point_id,
       weights.begin(), weights.end(), weights.begin(),
       [&sum_weights](double val) -> double { return val / sum_weights; });
 
-  double out_val;
+  double out_val = 0.0;
   for (int i = 0; i < 8; i++) {
     // convert point_id to cube_ids
     FloatImageType::IndexType cube_id{};
@@ -682,7 +682,7 @@ WEPLContourFromRtssContour(Rtss_contour_modern rt_contour,
                                              static_cast<size_t>(cur_idx[2])}};
     double wepl =
         WEPL_from_point(point_id, vec_basis, pixel_size, cubedim, wepl_cube);
-    WEPL_contour.push_back({ wepl, point });
+    WEPL_contour.push_back({wepl, point});
   }
 
   return WEPL_contour;
@@ -722,8 +722,8 @@ DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
                                        1.0 / pixel_size.z};
 
   DoubleVector point = {start_point.x * pixel_size.x,
-                        point.y = start_point.y * pixel_size.y,
-                        point.z = start_point.z * pixel_size.z};
+                        start_point.y * pixel_size.y,
+                        start_point.z * pixel_size.z};
 
   // Acumulate WEPL until fWEPL is reached
   auto accumWEPL = 0.0;

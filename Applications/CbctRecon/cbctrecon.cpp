@@ -41,10 +41,9 @@
 
 #define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
 
-
-#include "io.hxx"
 #include "compute.hxx"
 #include "fdk.hxx"
+#include "io.hxx"
 
 // using namespace std;
 
@@ -74,10 +73,10 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
   m_dspYKImgProj = std::make_unique<YK16GrayImage>();
 
   // Badpixmap;
-  m_pImgOffset =
-      std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
-  m_pImgGain =
-      std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+  m_pImgOffset = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
+                                                 DEFAULT_ELEKTA_PROJ_HEIGHT);
+  m_pImgGain = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
+                                               DEFAULT_ELEKTA_PROJ_HEIGHT);
   // Prepare Raw image
 
   m_bScanDirectionCW = true;
@@ -194,9 +193,7 @@ void CbctRecon::ReleaseMemory() {
     m_iCntSelectedProj = 0;
   }
 }
-void CbctRecon::SLT_LoadRawImages() {
-  LoadRawHisImages();
-}
+void CbctRecon::SLT_LoadRawImages() { LoadRawHisImages(); }
 
 // Hexa name ->decimal name
 
@@ -426,7 +423,6 @@ void CbctRecon::SLT_MakeElektaXML() {
   std::cout << "Generated ElektaXML path: "
             << genFilePath.toLocal8Bit().constData() << std::endl;
 }
-
 
 void CbctRecon::SLT_OpenOffsetFile() {
   // QString strPath = QFileDialog::getOpenFileNames(this,"Select one or more
@@ -922,7 +918,7 @@ void CbctRecon::SLT_DrawReconImage() {
   UShortImageType::Pointer clonedImage = duplicator->GetOutput();
 
   extractFilter->SetDirectionCollapseToSubmatrix();
-  
+
   UShortImageType::RegionType crntRegion3D = clonedImage->GetBufferedRegion();
 
   crntRegion3D = clonedImage->GetBufferedRegion();
@@ -963,7 +959,8 @@ void CbctRecon::SLT_DrawReconImage() {
 
   UShortImage2DType::Pointer pCrnt2D = extractFilter->GetOutput();
   m_dspYKReconImage = YK16GrayImage::CopyItkImage2YKImage(
-      pCrnt2D, std::move(m_dspYKReconImage)); // dimension should be same automatically.
+      pCrnt2D,
+      std::move(m_dspYKReconImage)); // dimension should be same automatically.
 
   // m_dspYKReconImage->SaveDataAsRaw("D:\\RawFile.raw"); //410 410 OK
 
@@ -1012,7 +1009,6 @@ void CbctRecon::SLT_SetOutputPath() {
 
   ui.lineEdit_OutputFilePath->setText(strPath);
 }
-
 
 void CbctRecon::SLT_DoReconstruction() {
   if (ui.radioButton_UseCUDA->isChecked()) {
@@ -1289,7 +1285,6 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
   return std::make_tuple(instaRecon, dcm_success);
 }
 
-
 void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
                                             // projection images
 {
@@ -1363,15 +1358,14 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
     return;
   }
 
-  if (geomFileInfo.fileName() ==
-      "_Frames.xml") // this is XVI XML. 
+  if (geomFileInfo.fileName() == "_Frames.xml") // this is XVI XML.
   {
     std::cout << "XVI Geometry File was found. This will be temporarily used:"
               << geomPath.toLocal8Bit().constData() << std::endl;
     LoadXVIGeometryFile(
         geomPath.toLocal8Bit().constData()); // will generate m_spFullGeometry
   } else if (geomFileInfo.fileName() ==
-             "ProjectionInfo.xml") // this is OBI XML. 
+             "ProjectionInfo.xml") // this is OBI XML.
   {
     std::cout
         << "Varian XML Geometry File was found. This will be temporarily used:"
@@ -1394,8 +1388,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
     LoadRTKGeometryFile("RTKgeometry.xml");
     // ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData());
     // //will generate m_spFullGeometry
-  } else if (geomFileInfo.fileName() ==
-             "Scan.xml") // this is XIM XML. 
+  } else if (geomFileInfo.fileName() == "Scan.xml") // this is XIM XML.
   {
     std::cout << "Varian Xim XML Geometry File was found. This will be "
                  "temporarily used:"
@@ -2119,8 +2112,8 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(
   fProjImgValueMax = MinMaxFilter->GetMaximum();
   clock_t end_time = std::clock();
 
-  std::cout << "Min: " << fProjImgValueMin
-            << " max: " << fProjImgValueMax << std::endl;
+  std::cout << "Min: " << fProjImgValueMin << " max: " << fProjImgValueMax
+            << std::endl;
 
   return fProjImgValueMin;
 }
@@ -2212,7 +2205,6 @@ void CbctRecon::SLT_DataProbeRecon() {
   // iProbeValue);
   ui.lineEdit_DataProbe_Recon->setText(dspText);
 }
-
 
 void CbctRecon::SLT_DrawGraph() // based on profile
 {
@@ -2618,8 +2610,6 @@ void CbctRecon::SLT_CalculateROI_Proj() {
 
   SLT_DrawProjImages();
 }
-
-
 
 void CbctRecon::SLT_GoForcedProbePos() // when forced probe button was clicked
 {
@@ -3043,7 +3033,6 @@ void CbctRecon::SLT_PostProcCropInv() {
   SLT_DrawReconImage();
 }
 
-
 void CbctRecon::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 
   if (m_spCrntReconImg == nullptr) {
@@ -3130,7 +3119,6 @@ void CbctRecon::SLT_ExportReconSHORT_HU() {
     return;
   }
   ExportReconSHORT_HU(m_spCrntReconImg, strPath);
-
 }
 
 void CbctRecon::CopyDictionary(itk::MetaDataDictionary &fromDict,
@@ -4462,25 +4450,29 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     flipFilter->SetFlipAxes(arrFlipAxes);
     flipFilter->SetInput(spVolImg3D); // plan CT, USHORT image
 
-    using TransformType = itk::Euler3DTransform<double>;
+    //                            | 0  0 -1 |
+    // Rz(pi/2)*Rx(-pi/2)*Ry(0) = | 1  0  0 |
+    //                            | 0 -1  0 |
+    itk::Matrix<double, 3, 3> CoordChangeMatrix;
+    // 1st row
+    CoordChangeMatrix[0][0] = 0.0;
+    CoordChangeMatrix[0][1] = 0.0;
+    CoordChangeMatrix[0][2] = -1.0;
+    // 2nd row
+    CoordChangeMatrix[1][0] = 1.0;
+    CoordChangeMatrix[1][1] = 0.0;
+    CoordChangeMatrix[1][2] = 0.0;
+    // 3rd row
+    CoordChangeMatrix[2][0] = 0.0;
+    CoordChangeMatrix[2][1] = -1.0;
+    CoordChangeMatrix[2][2] = 0.0;
+
+    itk::Vector<double, 3U> offset(0.0);
+
+    using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
     TransformType::Pointer transform = TransformType::New();
-
-    TransformType::ParametersType param;
-    param.SetSize(6);
-    param.put(0, itk::Math::pi / -2.0); // rot X // 0.5 = PI/2
-    param.put(1, 0);                    // rot Y
-    param.put(2, itk::Math::pi / 2.0);  // rot Z
-    param.put(3, 0.0);                  // Trans X mm
-    param.put(4, 0.0);                  // Trans Y mm
-    param.put(5, 0.0);                  // Trans Z mm
-
-    TransformType::ParametersType fixedParam(3); // rotation center
-    fixedParam.put(0, 0);
-    fixedParam.put(1, 0);
-    fixedParam.put(2, 0);
-
-    transform->SetParameters(param);
-    transform->SetFixedParameters(fixedParam); // Center of the Transform
+    transform->SetMatrix(CoordChangeMatrix);
+    transform->SetOffset(offset);
 
     std::cout << "Transform matrix:"
               << "\n"
@@ -4782,25 +4774,29 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     flipFilter->SetFlipAxes(arrFlipAxes);
     flipFilter->SetInput(spVolImg3D); // plan CT, USHORT image
 
-    using TransformType = itk::Euler3DTransform<double>;
+    //                            | 0  0 -1 |
+    // Rz(pi/2)*Rx(-pi/2)*Ry(0) = | 1  0  0 |
+    //                            | 0 -1  0 |
+    itk::Matrix<double, 3, 3> CoordChangeMatrix;
+    // 1st row
+    CoordChangeMatrix[0][0] = 0.0;
+    CoordChangeMatrix[0][1] = 0.0;
+    CoordChangeMatrix[0][2] = -1.0;
+    // 2nd row
+    CoordChangeMatrix[1][0] = 1.0;
+    CoordChangeMatrix[1][1] = 0.0;
+    CoordChangeMatrix[1][2] = 0.0;
+    // 3rd row
+    CoordChangeMatrix[2][0] = 0.0;
+    CoordChangeMatrix[2][1] = -1.0;
+    CoordChangeMatrix[2][2] = 0.0;
+
+    itk::Vector<double, 3U> offset(0.0);
+
+    using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
     TransformType::Pointer transform = TransformType::New();
-
-    TransformType::ParametersType param;
-    param.SetSize(6);
-    param.put(0, itk::Math::pi / -2.0); // rot X // 0.5 = PI/2
-    param.put(1, 0);                    // rot Y
-    param.put(2, itk::Math::pi / 2.0);  // rot Z
-    param.put(3, 0.0);                  // Trans X mm
-    param.put(4, 0.0);                  // Trans Y mm
-    param.put(5, 0.0);                  // Trans Z mm
-
-    TransformType::ParametersType fixedParam(3); // rotation center
-    fixedParam.put(0, 0);
-    fixedParam.put(1, 0);
-    fixedParam.put(2, 0);
-
-    transform->SetParameters(param);
-    transform->SetFixedParameters(fixedParam); // Center of the Transform
+    transform->SetMatrix(CoordChangeMatrix);
+    transform->SetOffset(offset);
 
     std::cout << "Transform matrix:"
               << "\n"
@@ -4824,29 +4820,6 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     CastFilterType::Pointer castFilter = CastFilterType::New();
     castFilter->SetInput(resampler->GetOutput());
 
-    /*
-    //Default value
-    double calibF_A = 1.0;
-    double calibF_B = 0.0;
-
-    std::cout << "Temporary forcing CT# applied for tissue" << std::endl;
-
-    std::cout << "CBCT calibration Factor(Recommended: 1, 0): A = " << calibF_A
-    << "  B= " << calibF_B << std::endl; typedef
-    itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>
-    MultiplyImageFilterType; MultiplyImageFilterType::Pointer
-    multiplyImageFilter = MultiplyImageFilterType::New();
-    multiplyImageFilter->SetInput(castFilter->GetOutput());
-    multiplyImageFilter->SetConstant(calibF_A / 65535.0);
-
-    typedef itk::AddImageFilter <FloatImageType, FloatImageType, FloatImageType>
-    AddImageFilterType; AddImageFilterType::Pointer addImageFilter =
-    AddImageFilterType::New();
-    addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
-    double addingVal = calibF_B / 65535.0;
-    addImageFilter->SetConstant2(addingVal);
-    addImageFilter->Update(); //will generate map of real_mu (att.coeff)
-    */
     FloatImageType::Pointer spCTImg_mu;
     spCTImg_mu = castFilter->GetOutput(); // addImageFilter->GetOutput();
 
@@ -5447,8 +5420,8 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
       gaussianFilter->SetSigmaArray(
           gaussianSigmaArray); // filter specific setting for 512x384 (varian/2)
     }
-      // gaussianFilter->Update();
-      // spImg2DScat = gaussianFilter->GetOutput();
+    // gaussianFilter->Update();
+    // spImg2DScat = gaussianFilter->GetOutput();
 #endif
 
     using AddImageFilterType =
@@ -10254,12 +10227,13 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
     return;
 #endif
     break;
-//#if RTK_MINOR_VERSION < 4
-//  case (en_RayCastInterpolator):
-//    forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<
-//        FloatImageType, FloatImageType>::New();
-//    break;
-//#endif
+    //#if RTK_MINOR_VERSION < 4
+    //  case (en_RayCastInterpolator):
+    //    forwardProjection =
+    //    rtk::RayCastInterpolatorForwardProjectionImageFilter<
+    //        FloatImageType, FloatImageType>::New();
+    //    break;
+    //#endif
 
   default:
     std::cerr << "Unhandled --method value." << std::endl;
