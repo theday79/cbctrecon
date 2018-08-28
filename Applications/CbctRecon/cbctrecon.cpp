@@ -41,6 +41,10 @@
 
 #define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
 
+#include "compute.hxx"
+#include "fdk.hxx"
+#include "io.hxx"
+
 // using namespace std;
 
 // extern "C" void YKCudaMedianWrapFloat(float* CPUinput, float* CPUoutput,
@@ -58,9 +62,6 @@ struct RATIONAL {
   long b;
 };
 
-bool SaveDoseGrayImage(const char *filePath, int width, int height,
-                       double spacingX, double spacingY, double originLeft_mm,
-                       double originTop_mm, unsigned short *pData);
 double vectorMean(const std::vector<double> &vDouble);
 double vectorSum(const std::vector<double> &vDouble);
 
@@ -68,33 +69,16 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
     : QMainWindow(parent, flags) {
   ui.setupUi(this);
 
-  // m_iWidth = 2304;
-  // m_iHeight = 3200;
-
-  // m_pImageYKDark = new YK16GrayImage(2304,3200);
-  // m_pImageYKGain = new YK16GrayImage(2304, 3200);
-  ////m_pMedianYKImg = new YK16GrayImage(2304, 3200);
-  // m_fPercentThre = 30.0; //30% increase is mandatory
-  // m_iMedianSize = 3;
-  // m_arrYKImage = nullptr; std::vectors are good at commiting suicide
-
   m_dspYKReconImage = std::make_unique<YK16GrayImage>();
   m_dspYKImgProj = std::make_unique<YK16GrayImage>();
 
   // Badpixmap;
-  m_pImgOffset =
-      std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
-  m_pImgGain =
-      std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH, DEFAULT_ELEKTA_PROJ_HEIGHT);
+  m_pImgOffset = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
+                                                 DEFAULT_ELEKTA_PROJ_HEIGHT);
+  m_pImgGain = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
+                                               DEFAULT_ELEKTA_PROJ_HEIGHT);
   // Prepare Raw image
 
-  // ConvertImg_4030eToElektaProjRaw("C:\\4030eGain_2048_3200.raw",
-  // "C:\\TestGain_1024_1024.raw");
-  // ConvertImg_4030eToElektaProjRaw("C:\\4030eOffset_2048_3200.raw",
-  // "C:\\TestOffset_1024_1024.raw");
-
-  // m_reader = ReaderType::New();
-  // m_writer = WriterType::New();
   m_bScanDirectionCW = true;
 
   // Disable cuda & opencl as defaults
@@ -191,123 +175,25 @@ CbctRecon::CbctRecon(QWidget *parent, Qt::WindowFlags flags)
 
 CbctRecon::~CbctRecon() {
   ReleaseMemory();
-  // delete m_pDlgRegistration;
   delete m_Timer;
-  // delete m_pDlgExternalCommand;
-  // delete m_pDlgHistogram;
 }
 
 void CbctRecon::ReleaseMemory() {
   if (!m_arrYKImage.empty()) {
-    // delete[] m_arrYKImage;
-    // m_arrYKImage = nullptr;
     // m_iImgCnt = 0;
     m_arrYKImage.clear();
   }
 
   if (m_pTableModel != nullptr) {
-    // delete m_pTableModel;
     m_pTableModel = nullptr;
   }
 
   if (!m_arrYKBufProj.empty()) {
-    // delete[] m_arrYKBufProj;
-    // m_arrYKBufProj = nullptr;
     m_arrYKBufProj.clear();
     m_iCntSelectedProj = 0;
   }
 }
-void CbctRecon::SLT_LoadRawImages() {
-  // if (ximIsUsed) {
-  //  LoadRawXimImages();
-  //} else if (hisIsUsed) {
-  LoadRawHisImages();
-  //} else {
-  //  LoadRawHndImages();
-  //}
-}
-
-// Function for independent projection his images
-void CbctRecon::LoadRawHisImages() {
-  // QStringList files = QFileDialog::getOpenFileNames(this,"Select one or more
-  // files to open",
-  //	"/home","projection images (*.his)");
-
-  QStringList files = QFileDialog::getOpenFileNames(
-      this, "Select one or more files to open", m_strPathDirDefault,
-      "projection images (*.his,*.hnd,*.xim)");
-
-  m_iImgCnt = files.size();
-  std::vector<std::string> fileVector;
-
-  for (auto &cur_file : files) {
-    fileVector.push_back(cur_file.toStdString());
-  }
-
-  if (m_iImgCnt < 1) {
-    return;
-  }
-
-  ReleaseMemory();
-
-  m_arrYKImage.resize(m_iImgCnt);
-  using ReaderType = rtk::ProjectionsReader<FloatImageType>;
-  // using readerType = rtk::HisImageIO;
-  ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileNames(fileVector);
-  reader->UpdateOutputInformation();
-  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
-  castFilter->SetInput(reader->GetOutput());
-  castFilter->Update();
-
-  int width =
-      castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0]; // width
-  int height = castFilter->GetOutput()
-                   ->GetLargestPossibleRegion()
-                   .GetSize()[1]; // height
-  int sizePix = width * height;   // reader->GetImageSizeInPixels();
-  int sizeBuf =
-      sizePix *
-      sizeof(FloatImageType::PixelType); // reader->GetImageSizeInBytes();
-  int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
-
-  size_t index = 0;
-  for (auto &it : m_arrYKImage) {
-    const QString &strFile = files.at(index);
-    // Heavily changed to hopefully allow RTK to use shared libs. 09/03/2018 by
-    // AGA
-    // reader->SetFileName(strFile.toLocal8Bit().constData());
-    // reader->ReadImageInformation();
-
-    if (bytesPerPix != 2) {
-      break;
-    }
-
-    it.CreateImage(width, height, 0);
-
-    // reader->Read(it.m_pData);
-    it.m_pData = &castFilter->GetOutput()->GetBufferPointer()[sizePix * index];
-
-    it.m_strFilePath = strFile;
-    // Copy his header - 100 bytes
-    it.CopyHisHeader(strFile.toLocal8Bit().constData());
-
-    index++;
-  }
-
-  m_multiplyFactor = 1.0;
-
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_iImgCnt - 1);
-  ui.spinBoxImgIdx->setValue(0);
-
-  SetMaxAndMinValueOfProjectionImage();
-  SLT_InitializeGraphLim();
-
-  SLT_DrawRawImages(); // Change FileName as well.. read spinbox value and draw
-                       // image
-}
+void CbctRecon::SLT_LoadRawImages() { LoadRawHisImages(); }
 
 // Hexa name ->decimal name
 
@@ -331,258 +217,6 @@ void CbctRecon::RenameFromHexToDecimal(QStringList &filenameList) {
     QFile::rename(crntFilePath, newPath);
   }
   // Extract
-}
-void CbctRecon::SLT_LoadImageFloat3D() // Dose image for JPhillips
-{
-  using ReaderType = itk::ImageFileReader<FloatImageType>;
-  ReaderType::Pointer reader = ReaderType::New();
-
-  QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_strPathDirDefault, "3D dose float file (*.mha)",
-      nullptr, nullptr);
-
-  if (fileName.length() < 1) {
-    return;
-  }
-
-  reader->SetFileName(fileName.toLocal8Bit().constData());
-  reader->Update();
-
-  // Multiply: Gy to mGy
-  using MultiplyImageFilterType =
-      itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
-  MultiplyImageFilterType::Pointer multiplyImageFilter =
-      MultiplyImageFilterType::New();
-  multiplyImageFilter->SetInput(reader->GetOutput());
-  multiplyImageFilter->SetConstant(100.0); // calculated already //Gy to cGy
-
-  // typedef unsigned short FinalPixelType;
-  // typedef itk::Image< FinalPixelType, 3 > FinalImageType;
-
-  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
-  castFilter->SetInput(multiplyImageFilter->GetOutput());
-
-  castFilter->Update();
-
-  m_spRawReconImg = castFilter->GetOutput();
-  m_spCrntReconImg = m_spRawReconImg;
-
-  // Update UI
-  UShortImageType::SizeType imgDim =
-      m_spRawReconImg->GetBufferedRegion().GetSize();
-  UShortImageType::SpacingType spacing = m_spRawReconImg->GetSpacing();
-
-  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
-            << "	" << imgDim[2] << std::endl;
-  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
-            << "	" << spacing[2] << std::endl;
-
-  ui.lineEdit_Cur3DFileName->setText(fileName);
-
-  m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
-
-  SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
-      initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
-
-  /*QString strMsg = "Do you want to create a ?";
-  QMessageBox msgBox;
-  msgBox.setText(strMsg);
-  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-  int res = msgBox.exec();
-  if (res == QMessageBox::Yes)
-  RenameFromHexToDecimal(files);*/
-
-  SLT_DrawReconImage();
-}
-
-void CbctRecon::SLT_Load3DImage() // mha reconstructed file, from external
-                                  // source
-{
-  // typedef itk::ImageFileWriter<FloatImageType> WriterType;
-  using ReaderType = itk::ImageFileReader<UShortImageType>;
-  ReaderType::Pointer reader = ReaderType::New();
-
-  QString fileName =
-      QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault,
-                                   "Projection file (*.mha)", nullptr, nullptr);
-
-  if (fileName.length() < 1) {
-    return;
-  }
-
-  reader->SetFileName(fileName.toLocal8Bit().constData());
-  reader->Update();
-
-  m_spRawReconImg = reader->GetOutput();
-  m_spCrntReconImg = m_spRawReconImg;
-
-  /*UpdateUIAfterLoading(fileName);
-  return;*/
-  // Update UIAFter Loading
-
-  UShortImageType::SizeType imgDim =
-      m_spRawReconImg->GetBufferedRegion().GetSize();
-  UShortImageType::SpacingType spacing = m_spRawReconImg->GetSpacing();
-
-  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
-            << "	" << imgDim[2] << std::endl;
-  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
-            << "	" << spacing[2] << std::endl;
-
-  ui.lineEdit_Cur3DFileName->setText(fileName);
-
-  m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
-
-  SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
-      initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
-
-  SLT_DrawReconImage();
-}
-
-void CbctRecon::SLT_Load3DImageShort() {
-  QString fileName =
-      QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault,
-                                   "short mha file (*.mha)", nullptr, nullptr);
-
-  if (fileName.length() < 1) {
-    return;
-  }
-
-  if (!LoadShortImageToUshort(fileName, m_spRawReconImg)) {
-    std::cout << "error! in LoadShortImageToUshort" << std::endl;
-  }
-
-  using ImageCalculatorFilterType2 =
-      itk::MinimumMaximumImageCalculator<UShortImageType>;
-
-  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
-      ImageCalculatorFilterType2::New();
-  // imageCalculatorFilter2->SetImage(m_spReconImg);
-  imageCalculatorFilter2->SetImage(m_spRawReconImg);
-  imageCalculatorFilter2->Compute();
-
-  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
-  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
-  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
-            << std::endl;
-
-  // Update UI
-  m_spCrntReconImg = m_spRawReconImg;
-
-  UShortImageType::SizeType imgDim =
-      m_spCrntReconImg->GetBufferedRegion().GetSize();
-  UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
-
-  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
-            << "	" << imgDim[2] << std::endl;
-  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
-            << "	" << spacing[2] << std::endl;
-
-  ui.lineEdit_Cur3DFileName->setText(fileName);
-
-  m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
-
-  SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
-      initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
-
-  SLT_DrawReconImage();
-}
-
-void CbctRecon::SLT_LoadNKIImage() {
-  QString filePath =
-      QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault,
-                                   "NKI file (*.SCAN)", nullptr, nullptr);
-
-  if (filePath.length() < 1) {
-    return;
-  }
-
-  Volume *v =
-      nki_load(filePath.toLocal8Bit().constData()); // NKI is unsigned short!!!
-  if (v == nullptr) {
-    std::cerr << "file reading error" << std::endl;
-    return;
-  }
-
-  QString endFix = "_conv";
-  QFileInfo srcFileInfo = QFileInfo(filePath);
-  QDir dir = srcFileInfo.absoluteDir();
-  QString baseName = srcFileInfo.completeBaseName();
-  QString extName = "mha";
-
-  QString newFileName = baseName.append(endFix).append(".").append(extName);
-  QString newPath = dir.absolutePath() + "/" + newFileName;
-
-  write_mha(newPath.toLocal8Bit().constData(), v);
-  std::cout << "File conversion is done. Trying to read mha file.."
-            << std::endl;
-  // corrImg.ReleaseBuffer();
-  // NKI to mha
-
-  if (!LoadShortImageToUshort(newPath, m_spRawReconImg)) {
-    std::cout << "error! in LoadShortImageToUshort" << std::endl;
-  }
-
-  using ImageCalculatorFilterType2 =
-      itk::MinimumMaximumImageCalculator<UShortImageType>;
-
-  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
-      ImageCalculatorFilterType2::New();
-  // imageCalculatorFilter2->SetImage(m_spReconImg);
-  imageCalculatorFilter2->SetImage(m_spRawReconImg);
-  imageCalculatorFilter2->Compute();
-
-  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
-  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
-  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
-            << std::endl;
-
-  // Update UI
-  m_spCrntReconImg = m_spRawReconImg;
-
-  UShortImageType::SizeType imgDim =
-      m_spCrntReconImg->GetBufferedRegion().GetSize();
-  UShortImageType::SpacingType spacing = m_spCrntReconImg->GetSpacing();
-
-  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
-            << "	" << imgDim[2] << std::endl;
-  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
-            << "	" << spacing[2] << std::endl;
-
-  ui.lineEdit_Cur3DFileName->setText(newFileName);
-
-  m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
-
-  SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
-      initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
-
-  SLT_DrawReconImage();
 }
 
 void CbctRecon::SLT_DrawRawImages() {
@@ -633,24 +267,10 @@ void CbctRecon::SLT_DrawProjImages() {
 
   FloatImageType::SizeType imgSize =
       m_spProjImg3DFloat->GetRequestedRegion().GetSize(); // 1016x1016 x z
-  // FloatImageType::SizeType imgSizeBuf =
-  // m_spProjImg3DFloat->GetBufferedRegion().GetSize(); //1016x1016 x z
-  // FloatImageType::SizeType imgSizeLargest =
-  // m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
 
   int width = imgSize[0];
   int height = imgSize[1];
   m_dspYKImgProj->CreateImage(width, height, 0);
-
-  // std::cout << "img Size_Requested: " << imgSize[0] << "	" << imgSize[1]
-  // <<"	" << imgSize[2] << std::endl; //same  std::cout << "img
-  // Size_Buffered: "
-  // << imgSizeBuf[0] << "	" << imgSizeBuf[1] <<"	" << imgSizeBuf[2] <<
-  // std::endl; //same  std::cout << "img Size_LargestPossible: " <<
-  // imgSizeLargest[0] << "	" << imgSizeLargest[1] <<"	" <<
-  // imgSizeLargest[2] << std::endl; //same
-  //-->this means that projection Reader modifies the original image a little
-  // bit (1024 --> 1016)
 
   it.SetFirstDirection(0);  // x?
   it.SetSecondDirection(1); // y?
@@ -702,19 +322,7 @@ void CbctRecon::SLT_DrawProjImages() {
 
   SLT_UpdateTable();
 }
-//
-// void CbctRecon::SLT_Draw3DImage()
-//{
-//	//if (m_pImageYKGain->IsEmpty())
-//	//	return;
-//
-//	//m_pImageYKGain->FillPixMapMinMax(ui.sliderGainMin->value(),
-// ui.sliderGainMax->value());
-//	////m_pImageYKGain->DrawToLabel(ui.labelImageGain);
-//
-//	//ui.labelImageGain->SetBaseImage(m_pImageYKGain);
-//	//ui.labelImageGain->update();
-//}
+
 QString CbctRecon::HexStr2IntStr(QString &strHex) {
   int len = strHex.length();
 
@@ -814,67 +422,6 @@ void CbctRecon::SLT_MakeElektaXML() {
       MakeElektaXML(filePath_ImageDBF, filePath_FrameDBF, DICOM_UID);
   std::cout << "Generated ElektaXML path: "
             << genFilePath.toLocal8Bit().constData() << std::endl;
-}
-
-QString CbctRecon::MakeElektaXML(const QString &filePath_ImageDBF,
-                                 const QString &filePath_FrameDBF,
-                                 const QString &DICOM_UID) {
-  std::cout << "Elekta geometry XML file is being generated." << std::endl;
-  // Define FRAME.DBF path
-  rtk::ElektaSynergyGeometryReader::Pointer reader =
-      rtk::ElektaSynergyGeometryReader::New();
-  // string strDicomUID = DICOM_UID.toLocal8Bit().constData();
-  // //DICOM_UID.toStdString()  string strDicomUID = DICOM_UID.toStdString();
-  // string strDbfImg = filePath_ImageDBF.toStdString();
-  // string strDbfFrame = filePath_FrameDBF.toStdString();
-
-  QFileInfo info = QFileInfo(filePath_ImageDBF);
-  QString dirPath = info.absolutePath();
-
-  QString fileName = "ElektaGeom_" + DICOM_UID + ".xml";
-
-  QString strOutput = dirPath + "/" + fileName;
-
-  reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
-  reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
-  reader->SetFrameDbfFileName(filePath_FrameDBF.toLocal8Bit().constData());
-
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->UpdateOutputData());
-
-  // Write
-  rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
-      rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-  xmlWriter->SetFilename(strOutput.toLocal8Bit().constData());
-  xmlWriter->SetObject(reader->GetGeometry());
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile())
-
-  std::cout << "Reading succeed" << std::endl;
-
-  return strOutput;
-}
-
-void CbctRecon::SLT_ExportHis() {
-  if (m_iImgCnt < 1) {
-    std::cout << "Error: Load raw his images first" << std::endl;
-    return;
-  }
-
-  // Get Folder Name!
-
-  // For displaying Dir only..
-  QString dir = QFileDialog::getExistingDirectory(
-      this, "Open Directory", "/home",
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-
-  // FileName should be same, only selected folder
-
-  for (int i = 0; i < m_iImgCnt; i++) {
-    QFileInfo tmpInfo = QFileInfo(m_arrYKImage[i].m_strFilePath);
-    QString newPath = dir + "/" + tmpInfo.fileName();
-    m_arrYKImage[i].SaveDataAsHis(newPath.toLocal8Bit().constData(), false);
-  }
-
-  std::cout << "File export was done successfully" << std::endl;
 }
 
 void CbctRecon::SLT_OpenOffsetFile() {
@@ -1265,29 +812,9 @@ void CbctRecon::CorrectSingleFile(YK16GrayImage *pYKRawImg) {
     }   // end if not bRawImage
 
     // Apply Single Calib. Factor
-    /*double CalibF = 0.0;
-
-    for (int i = 0; i < xSize * ySize; i++) {
-    CalibF =
-    m_pParent->m_dlgControl->lineEditSingleCalibFactor->text().toDouble();
-    pImageCorr[i] = (unsigned short)(pImageCorr[i] * CalibF);
-    }*/
 
   } // else if (m_bDarkCorrApply && m_bGainCorrApply)
 
-  /*******************Customized Thresholding after Gain Corr
-   * ****************/
-  // unsigned short customThreVal = ui.lineEdit_customThre->text().toDouble();
-  // //13000  bool enableCustomThre = ui.checkBox_customThre->isChecked();
-
-  /*if (enableCustomThre)
-  {
-  for (int i = 0; i < IMG_WIDTH* IMG_HEIGHT; i++)
-  {
-  if (corrImg.m_pData[i] >= customThreVal)
-  corrImg.m_pData[i] = customThreVal;
-  }
-  }*/
   if (bDefectMapApply && !m_vPixelReplMap.empty()) // pixel replacement
   {
     BadPixReplacement(&corrImg);
@@ -1363,13 +890,6 @@ void CbctRecon::SLT_ApplyCalibration() {
   for (int i = 0; i < m_iImgCnt; i++) {
     CorrectSingleFile(&m_arrYKImage[i]); // pixel value will be changed
   }
-  //	for (int i = 0 ; i<listSize ; i++)
-  //	{
-  //		QString filePath = m_strlistPath.at(i);
-  //		QString corrFilePath =
-  // CorrectSingleFile(filePath.toLocal8Bit().constData());
-  //		ui.plainTextEdit_Corrected->appendPlainText(corrFilePath);
-  //	}
   SLT_DrawRawImages();
 }
 
@@ -1397,36 +917,11 @@ void CbctRecon::SLT_DrawReconImage() {
   duplicator->Update();
   UShortImageType::Pointer clonedImage = duplicator->GetOutput();
 
-  // UShortImageType::Pointer cloned3DImg = UShortImageType::New();
-
-  // cloned3DImg->Clone()
-  // m_spReconImg->Clone();
-
-  // InPlaceImageFilter: This overwrites output on input buffer.
-  // so original reconImg will be= gone after running once.
-  // use less memory than standard ImageToImageFilters
-
-  // std::cout <<"is InPlace going in extractFilter?  " <<
-  // extractFilter->GetInPlace() << std::endl;  std::cout << "InPlace Possible?
-  // "
-  // << extractFilter->CanRunInPlace() << std::endl;
   extractFilter->SetDirectionCollapseToSubmatrix();
-  // std::cout <<"is InPlace still going?  " << extractFilter->GetInPlace() <<
-  // std::endl;
 
-  // return;
-
-  // memory check:
-  // UShortImageType::RegionType crntRegion3D =
-  // m_spReconImg->GetBufferedRegion();
   UShortImageType::RegionType crntRegion3D = clonedImage->GetBufferedRegion();
 
   crntRegion3D = clonedImage->GetBufferedRegion();
-  // std::cout << crntRegion3D.GetSize()[2] << std::endl; // 01
-
-  // std::cout << crntRegion3D.size[0] << std::endl;
-  // std::cout << crntRegion3D.size[1] << std::endl;
-  // UShortImageType::RegionType crntRegion3D;
 
   //  We take the size from the region and collapse the size in the $Z$
   //  component by setting its value to $1$.
@@ -1435,13 +930,8 @@ void CbctRecon::SLT_DrawReconImage() {
   UShortImageType::SizeType size = crntRegion3D.GetSize();
   size[2] = 0; // z size number = 0 --> should not be 1
 
-  // std::cout << "size is " << size[0] << "	" << size[1] << "	" <<
-  // size[2]
-  // << std::endl;
-
   UShortImageType::IndexType start = crntRegion3D.GetIndex();
   const int iSliceNumber = ui.spinBoxReconImgSliceNo->value();
-  // const int iSliceNumber = m_iTmpIdx;
   start[2] = iSliceNumber; // 60
 
   double originZ = m_spCrntReconImg->GetOrigin()[2];
@@ -1451,10 +941,6 @@ void CbctRecon::SLT_DrawReconImage() {
   QString strPosZ = QString("%1").arg(posZ, 0, 'f', 2);
   // strPosZ.sprintf("%4.2f", posZ);
   ui.lineEdit_CurrentPosZ->setText(strPosZ);
-
-  // std::cout << "start point is " << start[0] << "	" << start[1] << "
-  // "
-  // << start[2] << std::endl;
 
   // Define a region to generate
   UShortImageType::RegionType desiredRegion;
@@ -1469,30 +955,12 @@ void CbctRecon::SLT_DrawReconImage() {
   //  processing pipeline.
   extractFilter->SetInput(clonedImage);
 
-  // bool bCanRunInPlace = extractFilter->CanRunInPlace();
-  // Error Here Again! --> solved by extractFilter->SetInput(
-
-  // ui.spinBoxReconImg_Min->setMinimum(0);
-  // ui.spinBoxReconImg_Max->setMaximum(119);
   extractFilter->Update();
 
-  /*typedef itk::ImageFileWriter<UShortImageType2D> WriterType;
-  WriterType::Pointer writer = WriterType::New();
-  writer->SetFileName("D:\\tmpExtractedImg.mha");
-  writer->SetUseCompression(true);
-  writer->SetInput(extractFilter->GetOutput());
-  writer->Update();	*/
-
-  // crntRegion3D = m_spReconImg->GetLargestPossibleRegion();
-  // std::cout << crntRegion3D.GetSize()[2] << std::endl; // 120
-  // crntRegion3D = m_spReconImg->GetBufferedRegion();
-  // std::cout << crntRegion3D.GetSize()[2] << std::endl; // 01
-
-  // std::cout <<m_dspYKReconImage->m_iWidth << "	" <<
-  // m_dspYKReconImage->m_iHeight << std::endl;
   UShortImage2DType::Pointer pCrnt2D = extractFilter->GetOutput();
   m_dspYKReconImage = YK16GrayImage::CopyItkImage2YKImage(
-      pCrnt2D, std::move(m_dspYKReconImage)); // dimension should be same automatically.
+      pCrnt2D,
+      std::move(m_dspYKReconImage)); // dimension should be same automatically.
 
   // m_dspYKReconImage->SaveDataAsRaw("D:\\RawFile.raw"); //410 410 OK
 
@@ -1511,9 +979,6 @@ void CbctRecon::SLT_DrawReconImage() {
 
   m_dspYKReconImage->FillPixMapMinMax(ui.sliderReconImgMin->value(),
                                       ui.sliderReconImgMax->value());
-  // m_dspYKReconImage->m_bDrawProfileX = true;
-  // m_dspYKReconImage->m_bDrawProfileY = true;
-  // m_dspYKReconImage->DrawToLabel(ui.labelReconImage);
   ui.labelReconImage->SetBaseImage(m_dspYKReconImage.get());
   ui.labelReconImage->update();
 
@@ -1521,106 +986,16 @@ void CbctRecon::SLT_DrawReconImage() {
   SLT_UpdateTable();
 }
 
-// Get the projection geometry
-void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
-  rtk::ThreeDCircularProjectionGeometryXMLFileReader::Pointer geometryReader;
-  geometryReader = rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
-  geometryReader->SetFilename(filePath);
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(geometryReader->GenerateOutputInformation())
-  std::cout << "Geometry reading succeed" << std::endl;
-
-  m_spFullGeometry = geometryReader->GetOutputObject();
-
-  // fullGeometry->GetGantryAngles();
-  int geoDataSize =
-      m_spFullGeometry->GetGantryAngles().size(); // This is MV gantry angle!!!
-  std::cout << "Geometry data size(projection gantry angles): " << geoDataSize
-            << std::endl;
-  if (geoDataSize < 1) {
-    return;
-  }
-
-  // CW: continuously ascending except 360 - 0 interface, no negative value
-  // CCW: continuously descending except 0 - 360 interface, no negative value
-
-  // m_bScanDirectionCW
-
-  /*for (int i = 0 ; i<geoDataSize ; i++)
-  {
-  std::cout << "Projection gantry angle " << i << ": " <<
-  m_spFullGeometry->GetGantryAngles().at(i) << std::endl;
-  }
-  std::cout << "Coordination is following IEC coordinate (e.g. 190 deg = RPO,
-  170 LPO, 30 = LAO supposing HFS) no and kV source position (not MV gantry)" <<
-  std::endl;*/
-
-  std::vector<double> vTempConvAngles;
-
-  auto itBegin = (m_spFullGeometry->GetGantryAngles()).begin();
-  auto itEnd = (m_spFullGeometry->GetGantryAngles()).end();
-
-  for (auto it = itBegin; it != itEnd; it++) {
-    double tmpAngle = (*it);
-
-    if (tmpAngle > 180.0) {
-      tmpAngle = tmpAngle - 360.0;
-    }
-
-    vTempConvAngles.push_back(tmpAngle);
-  }
-
-  // compare 2 points in the middle of the angle list
-  auto iLowerIdx = static_cast<int>(geoDataSize * 1.0 / 3.0);
-  auto iUpperIdx = static_cast<int>(geoDataSize * 2.0 / 3.0);
-
-  if (vTempConvAngles.at(iLowerIdx) <
-      vTempConvAngles.at(iUpperIdx)) // ascending
-  {
-    m_bScanDirectionCW = true;
-    std::cout << "The scan direction is CW" << std::endl;
-  }
-
-  else {
-    m_bScanDirectionCW = false;
-    std::cout << "The scan direction is CCW" << std::endl;
-  }
-  // std::cout << "AngularGapsWithNext Size: " <<
-  // custGeometry->GetAngularGapsWithNext().size() << std::endl;  std::cout <<
-  // "AngularGapsWithNext Mean (deg): " <<
-  // std::vectorMean(custGeometry->GetAngularGapsWithNext())/itk::Math::pi *
-  // 180.0<< std::endl;
-  std::cout << "AngularGaps Size: "
-            << m_spFullGeometry
-                   ->GetAngularGaps(m_spFullGeometry->GetSourceAngles())
-                   .size()
-            << std::endl;
-
-  // SLT_DoReconstruction();
-
-  // double meanGap =
-  // std::vectorMean(m_spFullGeometry->GetAngularGaps())/itk::Math::pi * 180.0;
-  // std::cout << "AngularGaps Mean (deg): " << meanGap << std::endl;
-  // double angleSum =
-  // std::vectorSum(m_spFullGeometry->GetAngularGaps())/itk::Math::pi *
-  // 180.0;//total rot. range from first angle  std::cout << "AngularGaps Sum
-  // (deg): " << angleSum  << std::endl;
-}
 void CbctRecon::SLT_OpenElektaGeomFile() {
   QString strPath = QFileDialog::getOpenFileName(
       this, "Select a single file to open", m_strPathDirDefault,
       "Geometry file (*.xml)");
-
-  //	QFileDialog::getOpenFileName(this, "Select FRAME.DBF file", "", "Elekta
-  // DB file (*.dbf)", 0,0);
 
   if (strPath.length() <= 1) {
     return;
   }
 
   ui.lineEdit_ElektaGeomPath->setText(strPath);
-  // m_pImgOffset->LoadRawImage(strPath.toLocal8Bit().constData(),IMG_WIDTH,
-  // IMG_HEIGHT);  LoadElektaGeometryFile(strPath.toLocal8Bit().constData());
-  // SLT_DoReconstruction();
 }
 
 void CbctRecon::SLT_SetOutputPath() {
@@ -1633,1593 +1008,6 @@ void CbctRecon::SLT_SetOutputPath() {
   }
 
   ui.lineEdit_OutputFilePath->setText(strPath);
-}
-
-template <typename ImageType>
-double
-GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
-             const typename ImageType::Pointer &ProjStack) {
-
-  using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, ImageType>;
-  typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
-  FOVfilter->SetGeometry(geometry);
-  FOVfilter->SetProjectionsStack(ProjStack.GetPointer());
-  double x, z;
-  double r_inf = -1.0;
-  bool hasOverlap = FOVfilter->ComputeFOVRadius(
-      FOVfilterType::FOVRadiusType::RADIUSINF, x, z, r_inf);
-  // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems to
-  // work for fullfan, so we'll use that.
-
-  if (hasOverlap) {
-    std::cout << "FOV (inf) radius was found: r=" << r_inf << std::endl;
-  }
-  double r_sup = -1.0;
-  hasOverlap = FOVfilter->ComputeFOVRadius(
-      FOVfilterType::FOVRadiusType::RADIUSSUP, x, z, r_sup);
-  if (hasOverlap) {
-    std::cout << "FOV (sup) radius was found: r=" << r_sup << std::endl;
-  }
-  return std::max(r_inf, r_sup);
-}
-
-template <typename T, typename ImageType>
-bool GetOutputResolutionFromFOV(
-    typename T::SizeType &sizeOutput, typename T::SpacingType &spacing,
-    const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
-    const typename ImageType::Pointer &ProjStack,
-    const QString &outputFilePath) {
-
-  QFileInfo outFileInfo(outputFilePath);
-  QDir outFileDir = outFileInfo.absoluteDir();
-
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
-    double radius = GetFOVRadius<ImageType>(geometry, ProjStack);
-    if (radius != -1.0) {
-      sizeOutput[0] = 512; // AP
-      sizeOutput[1] = 200; // SI
-      sizeOutput[2] = 512; // LR
-      spacing[0] = 2.0 * radius / sizeOutput[0];
-      spacing[1] = 1.0;
-      spacing[2] = 2.0 * radius / sizeOutput[2];
-      return true;
-    }
-  }
-
-  return false;
-}
-
-#if USE_CUDA
-void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
-  using castToCudaType =
-      itk::CastImageFilter<FloatImageType, CUDAFloatImageType>;
-  castToCudaType::Pointer castToCuda = castToCudaType::New();
-  castToCuda->SetInput(m_spProjImg3DFloat);
-  castToCuda->Update();
-  CUDAFloatImageType::Pointer cuda_spProjImg3DFloat = castToCuda->GetOutput();
-
-  if (cuda_spProjImg3DFloat == nullptr) {
-    std::cout << "processed Projection image is not ready yet" << std::endl;
-    return;
-  }
-
-  std::cout << "CUDA method will be used..." << std::endl;
-
-  using DuplicatorType = itk::ImageDuplicator<CUDAFloatImageType>;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  duplicator->SetInputImage(cuda_spProjImg3DFloat);
-  duplicator->Update();
-
-  CUDAFloatImageType::Pointer spCurImg =
-      duplicator->GetOutput(); // already down sampled
-
-  // Displaced detector weighting // set pipeline //inplace filter
-  using DDFType = rtk::CudaDisplacedDetectorImageFilter;
-  DDFType::Pointer ddf = DDFType::New();
-  if (ui.checkBox_UseDDF->isChecked()) {
-    ddf->SetInput(spCurImg);
-    ddf->SetGeometry(m_spCustomGeometry);
-    std::cout << "DDF was set in pipeline" << std::endl;
-
-    if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-      ddf->Update(); // no mememory increas: InPlace Filter
-    }
-
-    spCurImg = ddf->GetOutput();
-  }
-
-  using PSSFType = rtk::CudaParkerShortScanImageFilter;
-  PSSFType::Pointer pssf = PSSFType::New();
-  if (ui.checkBox_UsePSSF->isChecked()) {
-    // Short scan image filter
-    pssf->SetInput(spCurImg);
-    // pssf->SetGeometry( geometryReader->GetOutputObject() );
-    pssf->SetGeometry(m_spCustomGeometry);
-    // pssf->InPlaceOff(); //YKComments: Do not overwrite input image buffer for
-    // output
-
-    pssf->GlobalWarningDisplayOff(); // I don't care about any of the potential
-                                     // warnings
-
-    if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-      pssf->Update(); // no mememory increas: InPlace Filter
-    }
-
-    spCurImg = pssf->GetOutput();
-  }
-
-  // Just Before going to FDK recon,
-  // Update Projection data and delete old data.
-
-  // Let's duplicate this
-  // Original m_spProjImg3D will be deleted after update
-
-  if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-    using DuplicatorType = itk::ImageDuplicator<CUDAFloatImageType>;
-    DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
-    ImDuplicator->SetInputImage(spCurImg);
-    ImDuplicator->Update();
-
-    using CastFilterType =
-        itk::CastImageFilter<CUDAFloatImageType, FloatImageType>;
-    CastFilterType::Pointer CastFilter = CastFilterType::New();
-    CastFilter->SetInput(ImDuplicator->GetOutput());
-    CastFilter->Update();
-
-    m_spProjImg3DFloat = CastFilter->GetOutput();
-
-    SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update
-                                          // m_fProjImgValueMin, max
-    SLT_DrawProjImages();
-  }
-
-  // Generate image sources for cone beam CT reconstruction
-  using ConstantImageSourceType = rtk::ConstantImageSource<CUDAFloatImageType>;
-
-  ConstantImageSourceType::SizeType sizeOutput{};
-  sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); // pixel
-  sizeOutput[1] =
-      ui.lineEdit_outImgDim_SI->text()
-          .toInt(); // Caution!: direction is different in NKI SCAN FIle
-  sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
-
-  ConstantImageSourceType::SpacingType spacing;
-  spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
-  spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
-  spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
-  if (GetOutputResolutionFromFOV<ConstantImageSourceType, FloatImageType>(
-          sizeOutput, spacing, m_spCustomGeometry, m_spProjImg3DFloat,
-          ui.lineEdit_OutputFilePath->text())) {
-    std::cout << "Reconstruction resolution and image size were set "
-                 "automatically, as no outputfilepath was given."
-              << std::endl;
-  }
-
-  ConstantImageSourceType::PointType origin;
-  origin[0] = -0.5 * sizeOutput[0] * spacing[0]; // Y in DCM?
-  origin[1] = -0.5 * sizeOutput[1] * spacing[1]; // Z in DCM?
-  origin[2] = -0.5 * sizeOutput[2] * spacing[2]; // X in DCM?
-
-  ConstantImageSourceType::Pointer constantImageSource =
-      ConstantImageSourceType::New();
-  constantImageSource->SetOrigin(origin);
-  constantImageSource->SetSpacing(spacing);
-  constantImageSource->SetSize(sizeOutput);
-  constantImageSource->SetConstant(0.0); // initial value
-
-  double fTruncCorFactor =
-      ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-  const double fHannCut = ui.lineEdit_Ramp_HannCut->text().toDouble();
-  const double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
-  const double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
-  const double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
-
-  if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
-    std::cout << "Warning! Truncation factor is " << fTruncCorFactor
-              << ". Regardless of previous setting, this factor should not be "
-                 "0 for scatter corrected CBCT. Now zero value is applied."
-              << std::endl;
-    fTruncCorFactor = 0.0;
-  }
-
-  using StreamerType =
-      itk::StreamingImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
-  // FDK reconstruction filtering
-  using FDKCUDAType = rtk::CudaFDKConeBeamReconstructionFilter;
-  FDKCUDAType::Pointer CUDAfeldkamp = FDKCUDAType::New();
-
-  std::cout << "CUDA will be used for FDK reconstruction" << std::endl;
-  CUDAfeldkamp->SetInput(0, constantImageSource->GetOutput());
-  CUDAfeldkamp->SetInput(1, spCurImg);
-  CUDAfeldkamp->SetGeometry(m_spCustomGeometry);
-  CUDAfeldkamp->GetRampFilter()->SetTruncationCorrection(fTruncCorFactor);
-  CUDAfeldkamp->GetRampFilter()->SetHannCutFrequency(fHannCut);
-  CUDAfeldkamp->GetRampFilter()->SetCosineCutFrequency(fCosineCut);
-  CUDAfeldkamp->GetRampFilter()->SetHammingFrequency(fHamming);
-  CUDAfeldkamp->GetRampFilter()->SetHannCutFrequencyY(fHannCutY);
-
-  // SET_CUDA_FELDKAMP_OPTIONS(static_cast<FDKCUDAType*>(CUDAfeldkamp.GetPointer()));
-  if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-    CUDAfeldkamp->Update();
-  } else {
-    CUDAfeldkamp->UpdateOutputInformation();
-  }
-
-  std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
-
-  // Streaming depending on streaming capability of writer --> not affect the
-  // calc. speed
-
-  using StreamerType =
-      itk::StreamingImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
-  StreamerType::Pointer streamerBP = StreamerType::New();
-
-  streamerBP->SetInput(CUDAfeldkamp->GetOutput());
-  streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from
-                                             // "rtkfdk" //AG: stated in test: 4
-                                             // for ITK MAJOR >= 4
-
-  std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard "
-               "DICOM coordinate"
-            << std::endl;
-
-  using FOVfilterType =
-      rtk::FieldOfViewImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
-  typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
-  FOVfilter->SetGeometry(m_spCustomGeometry);
-  FOVfilter->SetInput(0, streamerBP->GetOutput());
-  FOVfilter->SetProjectionsStack(spCurImg.GetPointer());
-
-  /* RTK-produced 3D Volume should be changed in coordination of itk */
-  /* Coordination transformation using Euler 3D transformation */
-
-  // 1) Prepare Canvas parameter
-  // FloatImageType::Pointer fixedImg = FloatImageType::New();
-  // start index: What is the index of Left Top Inferior corner in DICOM
-  // coordinate?
-
-  // Same image type from original image -3D & float
-  FloatImageType::IndexType start_trans{};
-  start_trans[0] = 0;
-  start_trans[1] = 0;
-  start_trans[2] = 0;
-
-  FloatImageType::SizeType size_trans{};
-  size_trans[0] = sizeOutput[0]; // X //410
-  size_trans[1] = sizeOutput[2]; // Y  // 410
-  size_trans[2] = sizeOutput[1]; // Z // 120?
-
-  FloatImageType::SpacingType spacing_trans;
-  spacing_trans[0] = spacing[0];
-  spacing_trans[1] = spacing[2];
-  spacing_trans[2] = spacing[1];
-
-  FloatImageType::PointType Origin_trans;
-  Origin_trans[0] = -0.5 * size_trans[0] * spacing_trans[0];
-  Origin_trans[1] = -0.5 * size_trans[1] * spacing_trans[1];
-  Origin_trans[2] = -0.5 * size_trans[2] * spacing_trans[2];
-
-  FloatImageType::RegionType region_trans;
-  region_trans.SetSize(size_trans);
-  region_trans.SetIndex(start_trans);
-
-  /* 2) Prepare Target image */
-  CUDAFloatImageType::Pointer targetImg =
-      FOVfilter->GetOutput(); // streamerBP->GetOutput();
-
-  /* 3) Configure transform */
-  //                            | 0  1  0 |
-  // Rz(-pi/2)*Rx(0)*Ry(pi/2) = | 0  0 -1 |
-  //                            |-1  0  0 |
-  itk::Matrix<double, 3, 3> CoordChangeMatrix;
-  // 1st row
-  CoordChangeMatrix[0][0] = 0.0;
-  CoordChangeMatrix[0][1] = 1.0;
-  CoordChangeMatrix[0][2] = 0.0;
-  // 2nd row
-  CoordChangeMatrix[1][0] = 0.0;
-  CoordChangeMatrix[1][1] = 0.0;
-  CoordChangeMatrix[1][2] = -1.0;
-  // 3rd row
-  CoordChangeMatrix[2][0] = -1.0;
-  CoordChangeMatrix[2][1] = 0.0;
-  CoordChangeMatrix[2][2] = 0.0;
-
-  itk::Vector<double, 3U> offset(0.0);
-
-  using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
-  TransformType::Pointer transform = TransformType::New();
-  transform->SetMatrix(CoordChangeMatrix);
-  transform->SetOffset(offset);
-
-  using ResampleFilterType =
-      itk::ResampleImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
-  // FloatImageType::RegionType fixedImg_Region =
-  // fixedImg->GetLargestPossibleRegion().GetSize();
-
-  resampler->SetInput(targetImg);
-  resampler->SetSize(size_trans);
-  resampler->SetOutputOrigin(Origin_trans);   // Lt Top Inf of Large Canvas
-  resampler->SetOutputSpacing(spacing_trans); // 1 1 1
-  resampler->SetOutputDirection(targetImg->GetDirection()); // image normal?
-  resampler->SetTransform(transform);
-  // resampler->Update();//yktemp Error 2
-
-  // LR flip
-
-  std::cout << "Flip filter is being applied" << std::endl;
-  using FilterType = itk::FlipImageFilter<CUDAFloatImageType>;
-  FilterType::Pointer flipFilter = FilterType::New();
-  using FlipAxesArrayType = FilterType::FlipAxesArrayType;
-  FlipAxesArrayType arrFlipAxes;
-  arrFlipAxes[0] = true;
-  arrFlipAxes[1] = false;
-  arrFlipAxes[2] = false;
-  flipFilter->SetFlipAxes(arrFlipAxes);
-  flipFilter->SetInput(resampler->GetOutput());
-
-  /*FloatImageType::Pointer floatImg = flipFilter->GetOutput();*/
-  // const unsigned int Dimension = 3;
-  // FinalImageType::Pointer finalImg ;
-
-  using AbsImageFilterType =
-      itk::AbsImageFilter<CUDAFloatImageType, CUDAFloatImageType>;
-  AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
-  absImgFilter->SetInput(
-      flipFilter
-          ->GetOutput()); // 20140206 modified it was a bug
-                          // absImgFilter->SetInput(resampler->GetOutput());
-
-  using MultiplyImageFilterType = itk::MultiplyImageFilter<CUDAFloatImageType>;
-  MultiplyImageFilterType::Pointer multiplyImageFilter =
-      MultiplyImageFilterType::New();
-  multiplyImageFilter->SetInput(absImgFilter->GetOutput());
-  multiplyImageFilter->SetConstant(65536); // calculated already
-
-  // typedef unsigned short FinalPixelType;
-  // typedef itk::Image< FinalPixelType, 3 > FinalImageType;
-  using CastFilterType =
-      itk::CastImageFilter<CUDAFloatImageType, UShortImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
-  /*Total Variation Filter*/
-  castFilter->SetInput(multiplyImageFilter->GetOutput());
-  try {
-    castFilter->Update(); // YK20150109
-  } catch (const std::exception &e) {
-    std::cerr << "std::exception thrown: " << e.what() << std::endl;
-    return;
-  }
-
-  UShortImageType::Pointer tmpReconImg;
-  // if all 0 0 0 don't do the median filtering
-
-  itk::TimeProbe reconTimeProbe;
-  reconTimeProbe.Start();
-
-  std::cout << "Reconstructing the image.. please wait..." << std::endl;
-  UShortImageType::SizeType indexRadius{};
-  indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
-  indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
-  indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
-  if (ui.checkBox_PostMedianOn->isChecked() &&
-      (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0)) {
-    using MedianFilterType =
-        itk::MedianImageFilter<UShortImageType,
-                               UShortImageType>; // TODO(AGA): CUDA THIS!!
-
-    MedianFilterType::Pointer medFilter = MedianFilterType::New();
-    // this is radius. 1 --> median window 3
-    std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X "
-                 "Y Z) is = "
-              << indexRadius << std::endl;
-
-    medFilter->SetRadius(indexRadius);
-    medFilter->SetInput(castFilter->GetOutput());
-    medFilter->Update(); // Error here!g
-
-    tmpReconImg = medFilter->GetOutput();
-    std::cout << "median filtering has been done" << std::endl;
-  } else {
-    std::cout << "No post median filtering is used" << std::endl;
-    castFilter->Update();
-    tmpReconImg = castFilter->GetOutput();
-  }
-
-  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
-  thresholdFilterAbove->SetInput(tmpReconImg);
-  thresholdFilterAbove->ThresholdAbove(4095);
-  thresholdFilterAbove->SetOutsideValue(4095);
-
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
-  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
-  thresholdFilterBelow->ThresholdBelow(0);
-  thresholdFilterBelow->SetOutsideValue(0);
-  thresholdFilterBelow->Update();
-  tmpReconImg = thresholdFilterBelow->GetOutput();
-
-  std::cout << "After Filtering" << std::endl;
-
-  reconTimeProbe.Stop();
-  std::cout << "It took " << reconTimeProbe.GetMean() << ' '
-            << reconTimeProbe.GetUnit() << std::endl;
-  ui.lineEdit_ReconstructionTime->setText(
-      QString("%1").arg(reconTimeProbe.GetMean()));
-
-  // std::cout << "TestYK" << std::endl;
-  // std::cout << tmpReconImg->GetRequestedRegion().GetSize() << std::endl;
-  // std::cout << "Before InPlace Off: " <<  castFilter->GetInPlace() <<
-  // std::endl;	//0  castFilter->InPlaceOff();  std::cout << "After InPlace
-  // Off: "
-  // <<  castFilter->GetInPlace() << std::endl; //0  Because Input Output format
-  // are different, this filter cannot do InPlace function.
-
-  // By default CanRunInPlace checks whether the input and output image type
-  // match.
-  switch (target) {
-  case REGISTER_RAW_CBCT:
-    m_spRawReconImg = tmpReconImg; // Checked.. successfully alive.
-    m_spCrntReconImg = m_spRawReconImg;
-    break;
-  case REGISTER_COR_CBCT:
-    m_spScatCorrReconImg = tmpReconImg; // Checked.. successfully alive.
-    m_spCrntReconImg = m_spScatCorrReconImg;
-    break;
-  default:
-    std::cerr << "You are using a non-valid target!" << std::endl;
-    return;
-  }
-  QString outputFilePath = ui.lineEdit_OutputFilePath->text();
-
-  QFileInfo outFileInfo(outputFilePath);
-  QDir outFileDir = outFileInfo.absoluteDir();
-
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
-    std::cout << "No available output path. Should be exported later"
-              << std::endl;
-    ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
-  } else {
-    using WriterType = itk::ImageFileWriter<UShortImageType>;
-    WriterType::Pointer writer = WriterType::New();
-    writer->SetFileName(outputFilePath.toLocal8Bit().constData());
-    writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-    writer->SetInput(m_spCrntReconImg);
-
-    std::cout << "Writing the image to: "
-              << outputFilePath.toLocal8Bit().constData() << std::endl;
-
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
-
-    ui.lineEdit_Cur3DFileName->setText(outputFilePath);
-    std::cout << std::endl;
-    std::cout << "Output generation was succeeded" << std::endl;
-  }
-
-  // CUDAfeldkamp->PrintTiming(std::cout);
-
-  m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(size_trans[2] - 1);
-  ui.spinBoxReconImgSliceNo->setValue(
-      qRound(size_trans[2] / 2.0)); // DrawReconImage is called automatically
-
-  // SLT_ViewRegistration();
-  if (target == REGISTER_COR_CBCT) {
-    QString update_text("SCATTER_COR_CBCT");
-    UpdateReconImage(m_spCrntReconImg, update_text);
-  } else if (target == REGISTER_RAW_CBCT) {
-    QString update_text("RAW_CBCT");
-    UpdateReconImage(m_spCrntReconImg, update_text);
-  }
-
-  using CastBackType = itk::CastImageFilter<CUDAFloatImageType, FloatImageType>;
-  CastBackType::Pointer castBack = CastBackType::New();
-  castBack->SetInput(cuda_spProjImg3DFloat);
-  castBack->Update();
-  m_spProjImg3DFloat = castBack->GetOutput();
-
-  std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
-  // if not found, just skip
-
-  // SLT_DrawGraph();
-  // 2) Load Geometry file.
-  // 3) Prepare all parameters from GUI components
-}
-#else
-void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
-  std::cout << "This program were not compiled with the CUDA option, please "
-               "select OpenCL or CPU instead!"
-            << std::endl;
-  return;
-}
-#endif
-
-#if USE_OPENCL_PLM
-FloatImageType::Pointer PlastimatchOpenCLFDK(
-    const FloatImageType::Pointer &spCurImg,
-    const rtk::ThreeDCircularProjectionGeometry::Pointer &m_spCustomGeometry,
-    std::array<float, 3> spacing, std::array<plm_long, 3> sizeOutput) {
-  spCurImg->Update();
-
-  //////////////////////// start PLM fdk /////////////////////////////
-  // Copy of opencl_reconstruct_conebeam from fdk_opencl.cxx in plastimatch
-  // (because we already have loaded projections into memory)
-  Opencl_device ocl_dev{};
-  Opencl_buf *ocl_buf_vol;
-  Opencl_buf *ocl_buf_img;
-  Opencl_buf *ocl_buf_matrix;
-  cl_int4 ocl_vol_dim{};
-  Opencl_buf *ocl_buf_vol_origin;
-  Opencl_buf *ocl_buf_vol_spacing;
-  cl_int2 ocl_proj_dim{};
-  Opencl_buf *ocl_buf_nrm;
-  Opencl_buf *ocl_buf_ic;
-  // Proj_image *proj;
-  // int image_num;
-  // float scale;
-  std::cout << "Loading plmopencl..." << std::endl;
-  LOAD_LIBRARY_SAFE(libplmopencl);
-  LOAD_SYMBOL(opencl_open_device, libplmopencl);
-  LOAD_SYMBOL(opencl_load_programs, libplmopencl);
-  LOAD_SYMBOL(opencl_kernel_create, libplmopencl);
-  LOAD_SYMBOL(opencl_buf_create, libplmopencl);
-  LOAD_SYMBOL(opencl_buf_write, libplmopencl);
-  LOAD_SYMBOL(opencl_set_kernel_args, libplmopencl);
-  LOAD_SYMBOL(opencl_kernel_enqueue, libplmopencl);
-  LOAD_SYMBOL(opencl_buf_read, libplmopencl);
-
-  std::cout << "Start opencl environment and enqueue kernels..." << std::endl;
-  /* Set up devices and kernels */
-  opencl_open_device(&ocl_dev);
-  opencl_load_programs(&ocl_dev, "fdk_opencl.cl");
-  opencl_kernel_create(&ocl_dev, "fdk_kernel_nn");
-
-  /* Retrieve 2D image to get dimensions */
-  const itk::Size<3U> proj_dim = spCurImg->GetLargestPossibleRegion().GetSize();
-  // proj = proj_dir->load_image(0);
-
-  // Generate image sources for cone beam CT reconstruction
-  std::array<float, 3> offset = {
-      {static_cast<float>(-0.5 * sizeOutput[0] * spacing[0]),
-       static_cast<float>(-0.5 * sizeOutput[1] * spacing[1]),
-       static_cast<float>(-0.5 * sizeOutput[2] * spacing[2])}};
-
-  auto *vol =
-      new Volume(&sizeOutput[0], &offset[0], &spacing[0], nullptr, PT_FLOAT, 1);
-  std::cout << "Buffer vol: " << vol->pix_size * vol->npix << std::endl;
-  std::cout << "Buffer proj: " << proj_dim[1] * proj_dim[0] * sizeof(float)
-            << std::endl;
-  /* Set up device memory */
-  ocl_buf_vol =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-                        vol->pix_size * vol->npix, vol->img);
-
-  ocl_buf_img =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                        proj_dim[1] * proj_dim[0] * sizeof(float), // is 0
-                        nullptr);
-
-  ocl_buf_matrix =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                        12 * sizeof(float), nullptr);
-
-  /* Copy volume dim (convert from size_t to int) */
-  ocl_vol_dim.x = vol->dim[0];
-  ocl_vol_dim.y = vol->dim[1];
-  ocl_vol_dim.z = vol->dim[2];
-
-  ocl_buf_vol_origin =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                        3 * sizeof(float), &vol->origin[0]);
-
-  ocl_buf_vol_spacing =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                        3 * sizeof(float), &vol->spacing[0]);
-
-  /* Copy projection image dim (convert from size_t to int) */
-  ocl_proj_dim.x = proj_dim[0];
-  ocl_proj_dim.y = proj_dim[1];
-
-  ocl_buf_nrm =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                        3 * sizeof(float), nullptr);
-
-  ocl_buf_ic =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                        2 * sizeof(float), nullptr);
-
-  /* Calculate the scale */
-  const float scale =
-      static_cast<float>(sqrt(3.0) / static_cast<double>(1 + proj_dim[2])) *
-      10.0f;
-
-  std::vector<double>::const_iterator itShiftX, itShiftY;
-  itShiftX = m_spCustomGeometry->GetProjectionOffsetsX().begin();
-  itShiftY = m_spCustomGeometry->GetProjectionOffsetsY().begin();
-  std::cout << "Proj. # " << std::endl;
-  /* Project each image into the volume one at a time */
-  for (int image_num = 0; image_num < static_cast<int>(proj_dim[2]);
-       image_num++) {
-    /* Translate image and properties to PLM */
-    auto *proj = new Proj_image;
-    proj->init();
-    proj->dim[0] = proj_dim[0];
-    proj->dim[1] = proj_dim[1];
-    proj->xy_offset[0] = *itShiftX;
-    proj->xy_offset[1] = *itShiftY;
-    itk::Index<3U> cur_idx = {{0, 0, image_num}};
-    proj->img = &spCurImg->GetPixel(cur_idx);
-    if (proj->img == ITK_NULLPTR) {
-      std::cout << "No image!" << std::endl;
-    }
-
-    proj->pmat = new Proj_matrix;
-    proj->pmat->ic[0] = 0.5 * proj_dim[0] - 0.5 + proj->xy_offset[0];
-    proj->pmat->ic[1] = 0.5 * proj_dim[1] - 0.5 + proj->xy_offset[1];
-    proj->pmat->sad =
-        m_spCustomGeometry->GetSourceToIsocenterDistances()[image_num];
-
-    const double sid =
-        m_spCustomGeometry->GetSourceToDetectorDistances()[image_num];
-    const double angle = m_spCustomGeometry->GetGantryAngles()[image_num];
-    const double tgt[] = {0.0, 0.0, 0.0};
-    const double cam[] = {tgt[0] + proj->pmat->sad * cos(angle),
-                          tgt[1] - proj->pmat->sad * sin(angle), tgt[2]};
-    const double vup[] = {0, 0, 1}; // R U sure about that?
-    const double ps[] = {spCurImg->GetSpacing()[0], spCurImg->GetSpacing()[1]};
-
-    proj->pmat->set(&cam[0], &tgt[0], &vup[0], sid, &proj->pmat->ic[0],
-                    &ps[0]); // , proj->dim);
-
-    if (image_num % (proj_dim[2] / 10) == 0) {
-      std::cout << image_num << "::" << angle * 180 * itk::Math::one_over_pi
-                << std::endl;
-      proj->stats();
-      std::cout << "Cam::" << proj->pmat->cam[0] << ", " << proj->pmat->cam[1]
-                << ", " << proj->pmat->cam[2] << std::endl;
-    }
-
-    /* Apply ramp filter */
-    proj_image_filter(proj);
-
-    /* Copy image bytes to device */
-    opencl_buf_write(&ocl_dev, ocl_buf_img,
-                     proj_dim[1] * proj_dim[0] * sizeof(float), proj->img);
-
-    /* Copy matrix to device (convert from double to float) */
-    std::array<float, 12> matrix{};
-    std::memcpy(matrix.data(), &proj->pmat->matrix[0], 12);
-
-    opencl_buf_write(&ocl_dev, ocl_buf_matrix, 12 * sizeof(float), &matrix[0]);
-
-    /* Copy ic to device (convert from double to float) */
-    float ic[] = {static_cast<float>(proj->pmat->ic[0]),
-                  static_cast<float>(proj->pmat->ic[1])};
-    opencl_buf_write(&ocl_dev, ocl_buf_ic, 2 * sizeof(float), &ic[0]);
-
-    /* Copy nrm to device (convert from double to float) */
-    float nrm[] = {static_cast<float>(proj->pmat->nrm[0]),
-                   static_cast<float>(proj->pmat->nrm[1]),
-                   static_cast<float>(proj->pmat->nrm[2])};
-    opencl_buf_write(&ocl_dev, ocl_buf_nrm, 3 * sizeof(float), &nrm[0]);
-
-    /* Convert sad from double to float */
-    const cl_float sad = proj->pmat->sad;
-
-    /* Set fdk kernel arguments */
-    opencl_set_kernel_args( // Marked as "dangerous" c-style function by
-                            // cppcoreguidelines-pro-type-vararg
-        &ocl_dev, sizeof(cl_mem), &ocl_buf_vol[0], sizeof(cl_mem),
-        &ocl_buf_img[0], sizeof(cl_mem), &ocl_buf_matrix[0], sizeof(cl_int4),
-        &ocl_vol_dim, sizeof(cl_mem), &ocl_buf_vol_origin[0], sizeof(cl_mem),
-        &ocl_buf_vol_spacing[0], sizeof(cl_int2), &ocl_proj_dim, sizeof(cl_mem),
-        &ocl_buf_nrm[0], sizeof(cl_mem), &ocl_buf_ic[0], sizeof(cl_float), &sad,
-        sizeof(cl_float), &scale, static_cast<size_t>(0));
-
-    /* Compute workgroup size */
-    /* (Max local_work_size for (Greg's?) ATI RV710 is 128) */
-    size_t local_work_size = 128;
-    size_t global_work_size = static_cast<float>(vol->npix);
-
-    /* Invoke kernel */
-    opencl_kernel_enqueue(&ocl_dev, global_work_size, local_work_size);
-    itShiftX++;
-    itShiftY++;
-
-    delete proj->pmat;
-    delete proj;
-  }
-  std::cout << std::endl;
-  std::cout << "Reading results..." << std::endl;
-  /* Read back results */
-  opencl_buf_read(&ocl_dev, ocl_buf_vol, vol->pix_size * vol->npix, vol->img);
-
-  UNLOAD_LIBRARY(libplmopencl);
-  return Plm_image(vol).itk_float();
-  // End of opencl_reconstruct_conebeam
-  //////////////////////// end PLM fdk /////////////////////////////
-}
-#endif
-
-#if USE_OPENCL_RTK
-FloatImageType::Pointer RTKOpenCLFDK(
-    const FloatImageType::Pointer &spCurImg,
-    const rtk::ThreeDCircularProjectionGeometry::Pointer &m_spCustomGeometry,
-    FloatImageType::SpacingType spacing, FloatImageType::SizeType sizeOutput,
-    std::array<const double, 5> fdk_options) {
-
-  try
-  {
-    spCurImg->Update();
-  }
-  catch (const std::exception& err)
-  {
-    std::cerr << "Couldn't update spCurImg: " << err.what() << std::endl;
-  }
-  // Generate image sources for cone beam CT reconstruction
-  using ConstantImageSourceType = rtk::ConstantImageSource<FloatImageType>;
-  ConstantImageSourceType::PointType origin;
-
-  origin[0] = -0.5 * sizeOutput[0] * spacing[0]; // Y in DCM?
-  origin[1] = -0.5 * sizeOutput[1] * spacing[1]; // Z in DCM?
-  origin[2] = -0.5 * sizeOutput[2] * spacing[2]; // X in DCM?
-
-  ConstantImageSourceType::Pointer constantImageSource =
-      ConstantImageSourceType::New();
-  constantImageSource->SetOrigin(origin);
-  constantImageSource->SetSpacing(spacing);
-  constantImageSource->SetSize(sizeOutput);
-  constantImageSource->SetConstant(0.0); // initial value
-  // constantImageSource->Update();
-
-  // just for expressiveness
-  const double fTruncCorFactor = fdk_options.at(0);
-  const double fHannCut = fdk_options.at(1);
-  const double fCosineCut = fdk_options.at(2);
-  const double fHamming = fdk_options.at(3);
-  const double fHannCutY = fdk_options.at(4);
-
-  // FDK reconstruction filtering
-  using FDKOPENCLType = rtk::OpenCLFDKConeBeamReconstructionFilter;
-  FDKOPENCLType::Pointer feldkampOCL;
-  feldkampOCL = FDKOPENCLType::New();
-
-  feldkampOCL->SetInput(0, constantImageSource->GetOutput());
-  feldkampOCL->SetInput(1, spCurImg);
-  feldkampOCL->SetGeometry(m_spCustomGeometry);
-  feldkampOCL->GetRampFilter()->SetTruncationCorrection(fTruncCorFactor);
-  feldkampOCL->GetRampFilter()->SetHannCutFrequency(fHannCut);
-  feldkampOCL->GetRampFilter()->SetHannCutFrequencyY(fHannCutY);
-  feldkampOCL->GetRampFilter()->SetCosineCutFrequency(fCosineCut);
-  feldkampOCL->GetRampFilter()->SetHammingFrequency(fHamming);
-
-  feldkampOCL->Update();
-  // feldkampOCL->PrintTiming(std::cout); Deprecated in rtk 1.4
-
-  return feldkampOCL->GetOutput();
-}
-#endif
-
-#if (USE_OPENCL_PLM || USE_OPENCL_RTK)
-// Using plastimatch and not RTK
-void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target) {
-  if (m_spProjImg3DFloat == nullptr) {
-    std::cout << "processed Projection image is not ready yet" << std::endl;
-    return;
-  }
-
-  using DuplicatorType = itk::ImageDuplicator<FloatImageType>;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  duplicator->SetInputImage(m_spProjImg3DFloat);
-  duplicator->Update();
-
-  FloatImageType::Pointer spCurImg =
-      duplicator->GetOutput(); // already down sampled
-  using DDFType = rtk::DisplacedDetectorImageFilter<FloatImageType>;
-  DDFType::Pointer ddf = DDFType::New();
-
-  if (ui.checkBox_UseDDF->isChecked()) {
-    ddf->SetInput(spCurImg);
-    ddf->SetGeometry(m_spCustomGeometry);
-    std::cout << "DDF was set in pipeline" << std::endl;
-
-    if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-      ddf->Update(); // no mememory increas: InPlace Filter
-    }
-
-    spCurImg = ddf->GetOutput();
-  }
-
-  using PSSFType = rtk::ParkerShortScanImageFilter<FloatImageType>;
-  PSSFType::Pointer pssf = PSSFType::New();
-
-  if (ui.checkBox_UsePSSF->isChecked()) {
-    // Short scan image filter
-    pssf->SetInput(spCurImg);
-    // pssf->SetGeometry( geometryReader->GetOutputObject() );
-    pssf->SetGeometry(m_spCustomGeometry);
-    // pssf->InPlaceOff(); //YKComments: Do not overwrite input image buffer for
-    // output
-    std::cout << "short scan image filter success" << std::endl;
-
-    if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-      pssf->Update(); // no mememory increas: InPlace Filter
-    }
-
-    spCurImg = pssf->GetOutput();
-  }
-  // Just Before going to FDK recon,
-  // Update Projection data and delete old data.
-
-  // Let's duplicate this
-  // Original m_spProjImg3D will be deleted after update
-
-  if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-    using DuplicatorType = itk::ImageDuplicator<FloatImageType>;
-    DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
-    ImDuplicator->SetInputImage(spCurImg);
-    ImDuplicator->Update();
-    m_spProjImg3DFloat = ImDuplicator->GetOutput();
-
-    SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update
-                                          // m_fProjImgValueMin, max
-    SLT_DrawProjImages();
-  }
-
-#if DISABLE_USE_OPENCL_PLM
-  float spacing[3];
-  plm_long sizeOutput[3];
-
-  sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); // pixel
-  sizeOutput[1] =
-      ui.lineEdit_outImgDim_SI->text()
-          .toInt(); // Caution!: direction is different in NKI SCAN FIle
-  sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
-
-  spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
-  spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
-  spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
-  FloatImageType::Pointer targetImg =
-      PlastimatchOpenCLFDK(spCurImg, m_spCustomGeometry, spacing,
-                           sizeOutput); // streamerBP->GetOutput();
-#endif
-
-#if USE_OPENCL_RTK
-  FloatImageType::SpacingType spacing;
-  FloatImageType::SizeType sizeOutput{};
-  sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); // pixel
-  sizeOutput[1] =
-      ui.lineEdit_outImgDim_SI->text()
-          .toInt(); // Caution!: direction is different in NKI SCAN FIle
-  sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
-
-  spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
-  spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
-  spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
-
-  if (GetOutputResolutionFromFOV<FloatImageType, FloatImageType>(
-          sizeOutput, spacing, m_spCustomGeometry, m_spProjImg3DFloat,
-          ui.lineEdit_OutputFilePath->text())) {
-    std::cout << "Reconstruction resolution and image size were set "
-                 "automatically, as no outputfilepath was given."
-              << std::endl;
-  }
-
-  double fTruncCorFactor =
-      ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-  if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
-    std::cout << "Warning! Truncation factor is " << fTruncCorFactor
-              << ". Regardless of previous setting, this factor should not be "
-                 "0 for scatter corrected CBCT. Now zero value is applied."
-              << std::endl;
-    fTruncCorFactor = 0.0;
-  }
-
-  std::array<const double, 5> fdk_options = {
-      {fTruncCorFactor, ui.lineEdit_Ramp_HannCut->text().toDouble(),
-       ui.lineEdit_Ramp_CosineCut->text().toDouble(),
-       ui.lineEdit_Ramp_Hamming->text().toDouble(),
-       ui.lineEdit_Ramp_HannCutY->text().toDouble()}};
-
-  std::cout << "Starting RTK fdk" << std::endl;
-  FloatImageType::Pointer targetImg = RTKOpenCLFDK(
-      spCurImg, m_spCustomGeometry, spacing, sizeOutput, fdk_options);
-#endif
-
-  using FOVfilterType =
-      rtk::FieldOfViewImageFilter<FloatImageType, FloatImageType>;
-  typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
-  FOVfilter->SetGeometry(m_spCustomGeometry);
-  FOVfilter->SetInput(0, targetImg);
-  FOVfilter->SetProjectionsStack(spCurImg.GetPointer());
-  targetImg = FOVfilter->GetOutput();
-
-  std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard "
-               "DICOM coordinate"
-            << std::endl;
-
-  /* RTK-produced 3D Volume should be changed in coordination of itk */
-  /* Coordination transformation using Euler 3D transformation */
-
-  // 1) Prepare Canvas parameter
-  // FloatImageType::Pointer fixedImg = FloatImageType::New();
-  // start index: What is the index of Left Top Inferior corner in DICOM
-  // coordinate?
-
-  // Same image type from original image -3D & float
-  FloatImageType::IndexType start_trans{};
-  start_trans[0] = 0;
-  start_trans[1] = 0;
-  start_trans[2] = 0;
-
-  FloatImageType::SizeType size_trans{};
-  size_trans[0] = sizeOutput[0]; // X //410
-  size_trans[1] = sizeOutput[2]; // Y  // 410
-  size_trans[2] = sizeOutput[1]; // Z // 120?
-
-  FloatImageType::SpacingType spacing_trans;
-  spacing_trans[0] = spacing[0];
-  spacing_trans[1] = spacing[2];
-  spacing_trans[2] = spacing[1];
-
-  FloatImageType::PointType Origin_trans;
-  Origin_trans[0] = -0.5 * size_trans[0] * spacing_trans[0];
-  Origin_trans[1] = -0.5 * size_trans[1] * spacing_trans[1];
-  Origin_trans[2] = -0.5 * size_trans[2] * spacing_trans[2];
-
-  FloatImageType::RegionType region_trans;
-  region_trans.SetSize(size_trans);
-  region_trans.SetIndex(start_trans);
-
-  /* 3) Configure transform */
-  //                            | 0  1  0 |
-  // Rz(-pi/2)*Rx(0)*Ry(pi/2) = | 0  0 -1 |
-  //                            |-1  0  0 |
-  itk::Matrix<double, 3, 3> CoordChangeMatrix;
-  // 1st row
-  CoordChangeMatrix[0][0] = 0.0;
-  CoordChangeMatrix[0][1] = 1.0;
-  CoordChangeMatrix[0][2] = 0.0;
-  // 2nd row
-  CoordChangeMatrix[1][0] = 0.0;
-  CoordChangeMatrix[1][1] = 0.0;
-  CoordChangeMatrix[1][2] = -1.0;
-  // 3rd row
-  CoordChangeMatrix[2][0] = -1.0;
-  CoordChangeMatrix[2][1] = 0.0;
-  CoordChangeMatrix[2][2] = 0.0;
-
-  itk::Vector<double, 3U> offset(0.0);
-
-  using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
-  TransformType::Pointer transform = TransformType::New();
-  transform->SetMatrix(CoordChangeMatrix);
-  transform->SetOffset(offset);
-
-  using ResampleFilterType =
-      itk::ResampleImageFilter<FloatImageType, FloatImageType>;
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
-  // FloatImageType::RegionType fixedImg_Region =
-  // fixedImg->GetLargestPossibleRegion().GetSize();
-
-  resampler->SetInput(targetImg);
-  resampler->SetSize(size_trans);
-  resampler->SetOutputOrigin(Origin_trans);   // Lt Top Inf of Large Canvas
-  resampler->SetOutputSpacing(spacing_trans); // 1 1 1
-  resampler->SetOutputDirection(targetImg->GetDirection()); // image normal?
-  resampler->SetTransform(transform);
-  // resampler->Update();//yktemp Error 2
-
-  // LR flip
-
-  std::cout << "Flip filter is being applied" << std::endl;
-  using FilterType = itk::FlipImageFilter<FloatImageType>;
-  FilterType::Pointer flipFilter = FilterType::New();
-  using FlipAxesArrayType = FilterType::FlipAxesArrayType;
-  FlipAxesArrayType arrFlipAxes;
-  arrFlipAxes[0] = true;
-  arrFlipAxes[1] = false;
-  arrFlipAxes[2] = false;
-  flipFilter->SetFlipAxes(arrFlipAxes);
-  flipFilter->SetInput(resampler->GetOutput());
-
-  /*FloatImageType::Pointer floatImg = flipFilter->GetOutput();*/
-  // const unsigned int Dimension = 3;
-  // FinalImageType::Pointer finalImg ;
-
-  using AbsImageFilterType =
-      itk::AbsImageFilter<FloatImageType, FloatImageType>;
-  AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
-  absImgFilter->SetInput(
-      flipFilter->GetOutput()); // 20140206 modified it was a bug
-
-  using MultiplyImageFilterType =
-      itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
-  MultiplyImageFilterType::Pointer multiplyImageFilter =
-      MultiplyImageFilterType::New();
-  multiplyImageFilter->SetInput(absImgFilter->GetOutput());
-  multiplyImageFilter->SetConstant(65536); // calculated already
-
-  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
-  /*Total Variation Filter*/
-  castFilter->SetInput(multiplyImageFilter->GetOutput());
-  castFilter->Update(); // YK20150109
-
-  UShortImageType::Pointer tmpReconImg;
-  // if all 0 0 0 don't do the median filtering
-
-  itk::TimeProbe reconTimeProbe;
-  reconTimeProbe.Start();
-
-  std::cout << "Reconstructing the image.. please wait..." << std::endl;
-  UShortImageType::SizeType indexRadius{};
-  indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
-  indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
-  indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
-  if (ui.checkBox_PostMedianOn->isChecked() &&
-      (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0)) {
-    using MedianFilterType =
-        itk::MedianImageFilter<UShortImageType,
-                               UShortImageType>; // TODO(AGA): CUDA THIS!!
-
-    MedianFilterType::Pointer medFilter = MedianFilterType::New();
-
-    // YKTEMP20141218 S
-    // typedef itk::MeanImageFilter<UShortImageType, UShortImageType >
-    // FilterType; FilterType::Pointer medFilter = FilterType::New();
-    // YKTEMP20141218 E
-
-    // this is radius. 1 --> median window 3
-    std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X "
-                 "Y Z) is = "
-              << indexRadius << std::endl;
-
-    medFilter->SetRadius(indexRadius);
-    medFilter->SetInput(castFilter->GetOutput());
-    medFilter->Update(); // Error here!g
-
-    tmpReconImg = medFilter->GetOutput();
-    std::cout << "median filtering has been done" << std::endl;
-  } else {
-    std::cout << "No post median filtering is used" << std::endl;
-    castFilter->Update();
-    tmpReconImg = castFilter->GetOutput();
-  }
-
-  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
-  thresholdFilterAbove->SetInput(tmpReconImg);
-  thresholdFilterAbove->ThresholdAbove(4095);
-  thresholdFilterAbove->SetOutsideValue(4095);
-
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
-  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
-  thresholdFilterBelow->ThresholdBelow(0);
-  thresholdFilterBelow->SetOutsideValue(0);
-  thresholdFilterBelow->Update();
-  tmpReconImg = thresholdFilterBelow->GetOutput();
-
-  std::cout << "After Filtering" << std::endl;
-
-  reconTimeProbe.Stop();
-  std::cout << "It took " << reconTimeProbe.GetMean() << ' '
-            << reconTimeProbe.GetUnit() << std::endl;
-  ui.lineEdit_ReconstructionTime->setText(
-      QString("%1").arg(reconTimeProbe.GetMean()));
-
-  // By default CanRunInPlace checks whether the input and output image type
-  // match.
-  switch (target) {
-  case REGISTER_RAW_CBCT:
-    m_spRawReconImg = tmpReconImg; // Checked.. successfully alive.
-    m_spCrntReconImg = m_spRawReconImg;
-    break;
-  case REGISTER_COR_CBCT:
-    m_spScatCorrReconImg = tmpReconImg; // Checked.. successfully alive.
-    m_spCrntReconImg = m_spScatCorrReconImg;
-    break;
-  default:
-    std::cerr << "You are using a non-valid target!" << std::endl;
-    return;
-  }
-  QString outputFilePath = ui.lineEdit_OutputFilePath->text();
-
-  QFileInfo outFileInfo(outputFilePath);
-  QDir outFileDir = outFileInfo.absoluteDir();
-
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
-    std::cout << "No available output path. Should be exported later"
-              << std::endl;
-    ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
-  } else {
-    using WriterType = itk::ImageFileWriter<UShortImageType>;
-    WriterType::Pointer writer = WriterType::New();
-    writer->SetFileName(outputFilePath.toLocal8Bit().constData());
-    writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-    writer->SetInput(m_spCrntReconImg);
-
-    std::cout << "Writing the image to: "
-              << outputFilePath.toLocal8Bit().constData() << std::endl;
-
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
-
-    ui.lineEdit_Cur3DFileName->setText(outputFilePath);
-    std::cout << std::endl;
-    std::cout << "Output generation was succeeded" << std::endl;
-  }
-
-  m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(size_trans[2] - 1);
-  ui.spinBoxReconImgSliceNo->setValue(
-      qRound(size_trans[2] / 2.0)); // DrawReconImage is called automatically
-
-  // SLT_ViewRegistration();
-  if (target == REGISTER_COR_CBCT) {
-    QString updated_text = QString("SCATTER_COR_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  } else if (target == REGISTER_RAW_CBCT) {
-    QString updated_text = QString("RAW_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  }
-
-  std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
-  // if not found, just skip
-
-  // SLT_DrawGraph();
-  // 2) Load Geometry file.
-  // 3) Prepare all parameters from GUI components
-}
-#else
-void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target) {
-  std::cout << "This program were not compiled with the CUDA option, please "
-               "select OpenCL or CPU instead!"
-            << std::endl;
-  return;
-}
-#endif
-
-void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target) {
-  if (m_spProjImg3DFloat == nullptr) {
-    std::cout << "processed Projection image is not ready yet" << std::endl;
-    return;
-  }
-  // Resampling first --> to save the recon time. 1024 --> 512
-
-  // std::cout << m_spProjImg3DFloat->GetRequestedRegion().GetSize() <<
-  // std::endl;  std::cout << spTmpImage->GetRequestedRegion().GetSize() <<
-  // std::endl;  return;
-
-  using DuplicatorType = itk::ImageDuplicator<FloatImageType>;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  duplicator->SetInputImage(m_spProjImg3DFloat);
-  duplicator->Update();
-
-  FloatImageType::Pointer spCurImg =
-      duplicator->GetOutput(); // already down sampled
-  // FloatImageType::Pointer spCurImg = m_spProjImg3D;
-  // spCurImg = duplicator->GetOutput();
-
-  // ResampleItkImage(m_spProjImg3DFloat, spCurImg, resampleFactor);
-
-  // Displaced detector weighting // set pipeline //inplace filter
-  using DDFType = rtk::DisplacedDetectorImageFilter<FloatImageType>;
-  DDFType::Pointer ddf = DDFType::New();
-
-  if (ui.checkBox_UseDDF->isChecked()) {
-    ddf->SetInput(spCurImg);
-    // ddf->SetGeometry( geometryReader->GetOutputObject() );
-    ddf->SetGeometry(m_spCustomGeometry);
-    std::cout << "DDF was set in pipeline" << std::endl;
-
-    if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-      ddf->Update(); // no mememory increas: InPlace Filter
-    }
-
-    spCurImg = ddf->GetOutput();
-  }
-
-  using PSSFType = rtk::ParkerShortScanImageFilter<FloatImageType>;
-  PSSFType::Pointer pssf = PSSFType::New();
-
-  if (ui.checkBox_UsePSSF->isChecked()) {
-    // Short scan image filter
-    pssf->SetInput(spCurImg);
-    // pssf->SetGeometry( geometryReader->GetOutputObject() );
-    pssf->SetGeometry(m_spCustomGeometry);
-    // pssf->InPlaceOff(); //YKComments: Do not overwrite input image buffer for
-    // output
-    std::cout << "short scan image filter success" << std::endl;
-
-    if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-      pssf->Update(); // no mememory increas: InPlace Filter
-    }
-
-    spCurImg = pssf->GetOutput();
-  }
-
-  // Just Before going to FDK recon,
-  // Update Projection data and delete old data.
-
-  // Let's duplicate this
-  // Original m_spProjImg3D will be deleted after update
-
-  if (ui.checkBox_UpdateAfterFiltering->isChecked()) {
-    using DuplicatorType = itk::ImageDuplicator<FloatImageType>;
-    DuplicatorType::Pointer duplicator = DuplicatorType::New();
-    duplicator->SetInputImage(spCurImg);
-    duplicator->Update();
-    m_spProjImg3DFloat = duplicator->GetOutput();
-
-    SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update
-                                          // m_fProjImgValueMin, max
-    SLT_DrawProjImages();
-  }
-
-  // Generate image sources for cone beam CT reconstruction
-  using ConstantImageSourceType = rtk::ConstantImageSource<FloatImageType>;
-
-  ConstantImageSourceType::PointType origin;
-  ConstantImageSourceType::SpacingType spacing;
-  ConstantImageSourceType::SizeType sizeOutput{};
-
-  sizeOutput[0] = ui.lineEdit_outImgDim_AP->text().toInt(); // pixel
-  sizeOutput[1] =
-      ui.lineEdit_outImgDim_SI->text()
-          .toInt(); // Caution!: direction is different in NKI SCAN FIle
-  sizeOutput[2] = ui.lineEdit_outImgDim_LR->text().toInt();
-
-  spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
-  spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
-  spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
-
-  origin[0] = -0.5 * sizeOutput[0] * spacing[0]; // Y in DCM?
-  origin[1] = -0.5 * sizeOutput[1] * spacing[1]; // Z in DCM?
-  origin[2] = -0.5 * sizeOutput[2] * spacing[2]; // X in DCM?
-
-  ConstantImageSourceType::Pointer constantImageSource =
-      ConstantImageSourceType::New();
-  constantImageSource->SetOrigin(origin);
-  constantImageSource->SetSpacing(spacing);
-  constantImageSource->SetSize(sizeOutput);
-  constantImageSource->SetConstant(0.0); // initial value
-
-  double fTruncCorFactor =
-      ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-  double fHannCut = ui.lineEdit_Ramp_HannCut->text().toDouble();
-  double fCosineCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
-  double fHamming = ui.lineEdit_Ramp_Hamming->text().toDouble();
-  double fHannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
-
-  if (fTruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
-    std::cout << "Warning! Truncation factor is " << fTruncCorFactor
-              << ". Regardless of previous setting, this factor should not be "
-                 "0 for scatter corrected CBCT. Now zero value is applied."
-              << std::endl;
-    fTruncCorFactor = 0.0;
-  }
-
-  // YKTEMP
-  std::cout << "fTruncCorFactor =" << fTruncCorFactor << std::endl;
-  // This macro sets options for fdk filter which I can not see how to do better
-  // because TFFTPrecision is not the same, e.g. for CPU and CUDA (SR)
-#define SET_FELDKAMP_OPTIONS(f)                                                \
-  f->SetInput(0, constantImageSource->GetOutput());                            \
-  f->SetInput(1, spCurImg);                                                    \
-  f->SetGeometry(m_spCustomGeometry);                                          \
-  f->GetRampFilter()->SetTruncationCorrection(fTruncCorFactor);                \
-  f->GetRampFilter()->SetHannCutFrequency(fHannCut);                           \
-  f->GetRampFilter()->SetCosineCutFrequency(fCosineCut);                       \
-  f->GetRampFilter()->SetHammingFrequency(fHamming);                           \
-  f->GetRampFilter()->SetHannCutFrequencyY(fHannCutY);
-
-  // FDK reconstruction filtering
-  itk::ImageToImageFilter<FloatImageType, FloatImageType>::Pointer feldkamp;
-  using FDKCPUType = rtk::FDKConeBeamReconstructionFilter<FloatImageType>;
-
-  feldkamp = FDKCPUType::New();
-  SET_FELDKAMP_OPTIONS(dynamic_cast<FDKCPUType *>(feldkamp.GetPointer()));
-
-  //// Motion compensated CBCT settings
-  // if(args_info.signal_given && args_info.dvf_given)
-  //{
-  // dvfReader->SetFileName(args_info.dvf_arg);
-  // def->SetSignalFilename(args_info.signal_arg);
-  // dynamic_cast<FDKCPUType*>(feldkamp.GetPointer())->SetBackProjectionFilter(
-  // bp.GetPointer() );
-  //}
-
-  std::cout << "Cone beam reconstruction pipeline is ready" << std::endl;
-
-  // Streaming depending on streaming capability of writer --> not affect the
-  // calc. speed
-  using StreamerType =
-      itk::StreamingImageFilter<FloatImageType, FloatImageType>;
-  StreamerType::Pointer streamerBP = StreamerType::New();
-  streamerBP->SetInput(feldkamp->GetOutput());
-  streamerBP->SetNumberOfStreamDivisions(
-      1); // YK: 1 in example code from "rtkfdk"
-
-  std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard "
-               "DICOM coordinate"
-            << std::endl;
-
-  /* RTK-produced 3D Volume should be changed in coordination of itk */
-  /* Coordination transformation using Euler 3D transformation */
-
-  // 1) Prepare Canvas parameter
-  // FloatImageType::Pointer fixedImg = FloatImageType::New();
-  // start index: What is the index of Left Top Inferior corner in DICOM
-  // coordinate?
-
-  // Same image type from original image -3D & float
-  FloatImageType::IndexType start_trans{};
-  start_trans[0] = 0;
-  start_trans[1] = 0;
-  start_trans[2] = 0;
-
-  FloatImageType::SizeType size_trans{};
-  size_trans[0] = sizeOutput[0]; // X //410
-  size_trans[1] = sizeOutput[2]; // Y  // 410
-  size_trans[2] = sizeOutput[1]; // Z // 120?
-
-  FloatImageType::SpacingType spacing_trans;
-  spacing_trans[0] = spacing[0];
-  spacing_trans[1] = spacing[2];
-  spacing_trans[2] = spacing[1];
-
-  FloatImageType::PointType Origin_trans;
-  Origin_trans[0] = -0.5 * size_trans[0] * spacing_trans[0];
-  Origin_trans[1] = -0.5 * size_trans[1] * spacing_trans[1];
-  Origin_trans[2] = -0.5 * size_trans[2] * spacing_trans[2];
-
-  FloatImageType::RegionType region_trans;
-  region_trans.SetSize(size_trans);
-  region_trans.SetIndex(start_trans);
-
-  /* 2) Prepare Target image */
-  FloatImageType::Pointer targetImg = streamerBP->GetOutput();
-
-  /* 3) Configure transform */
-  using TransformType = itk::Euler3DTransform<double>;
-  TransformType::Pointer transform = TransformType::New();
-
-  TransformType::ParametersType param;
-  param.SetSize(6);
-  // MAXIMUM PARAM NUMBER: 6!!!
-  param.put(0, 0.0);                  // rot X // 0.5 = PI/2
-  param.put(1, itk::Math::pi / 2.0);  // rot Y
-  param.put(2, itk::Math::pi / -2.0); // rot Z
-  param.put(3, 0.0);                  // Trans X mm
-  param.put(4, 0.0);                  // Trans Y mm
-  param.put(5, 0.0);                  // Trans Z mm
-
-  TransformType::ParametersType fixedParam(3); // rotation center
-  fixedParam.put(0, 0);
-  fixedParam.put(1, 0);
-  fixedParam.put(2, 0);
-
-  transform->SetParameters(param);
-  transform->SetFixedParameters(fixedParam); // Center of the Transform
-
-  std::cout << "Transform matrix:"
-            << "	" << std::endl;
-  std::cout << transform->GetMatrix() << std::endl;
-
-  using ResampleFilterType =
-      itk::ResampleImageFilter<FloatImageType, FloatImageType>;
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
-  // FloatImageType::RegionType fixedImg_Region =
-  // fixedImg->GetLargestPossibleRegion().GetSize();
-
-  resampler->SetInput(targetImg);
-  resampler->SetSize(size_trans);
-  resampler->SetOutputOrigin(Origin_trans);   // Lt Top Inf of Large Canvas
-  resampler->SetOutputSpacing(spacing_trans); // 1 1 1
-  resampler->SetOutputDirection(targetImg->GetDirection()); // image normal?
-  resampler->SetTransform(transform);
-  // resampler->Update();//yktemp Error 2
-
-  // LR flip
-
-  std::cout << "LR flip filter is being applied" << std::endl;
-
-  using FilterType = itk::FlipImageFilter<FloatImageType>;
-
-  FilterType::Pointer flipFilter = FilterType::New();
-  using FlipAxesArrayType = FilterType::FlipAxesArrayType;
-
-  FlipAxesArrayType arrFlipAxes;
-  arrFlipAxes[0] = true;
-  arrFlipAxes[1] = false;
-  arrFlipAxes[2] = false;
-
-  flipFilter->SetFlipAxes(arrFlipAxes);
-  flipFilter->SetInput(resampler->GetOutput());
-
-  /*FloatImageType::Pointer floatImg = flipFilter->GetOutput();*/
-  // const unsigned int Dimension = 3;
-  // FinalImageType::Pointer finalImg ;
-
-  using AbsImageFilterType =
-      itk::AbsImageFilter<FloatImageType, FloatImageType>;
-  AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
-  absImgFilter->SetInput(
-      flipFilter->GetOutput()); // 20140206 modified it was a bug
-  // absImgFilter->SetInput(resampler->GetOutput());
-
-  using MultiplyImageFilterType =
-      itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
-  MultiplyImageFilterType::Pointer multiplyImageFilter =
-      MultiplyImageFilterType::New();
-  multiplyImageFilter->SetInput(absImgFilter->GetOutput());
-  multiplyImageFilter->SetConstant(65536); // calculated already
-
-  // typedef unsigned short FinalPixelType;
-  // typedef itk::Image< FinalPixelType, 3 > FinalImageType;
-
-  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
-  castFilter->SetInput(multiplyImageFilter->GetOutput());
-  // castFilter->Update(); //YK20150109
-
-  UShortImageType::SizeType indexRadius{};
-  indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
-  indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
-  indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
-
-  UShortImageType::Pointer tmpReconImg;
-  // if all 0 0 0 don't do the median filtering
-
-  itk::TimeProbe reconTimeProbe;
-  reconTimeProbe.Start();
-
-  std::cout << "Reconstructing the image.. please wait..." << std::endl;
-
-  if (ui.checkBox_PostMedianOn->isChecked() &&
-      (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0)) {
-    using MedianImageFilterType =
-        itk::MedianImageFilter<UShortImageType, UShortImageType>;
-    MedianImageFilterType::Pointer medFilter = MedianImageFilterType::New();
-
-    // YKTEMP20141218 S
-    // typedef itk::MeanImageFilter<UShortImageType, UShortImageType >
-    // FilterType; FilterType::Pointer medFilter = FilterType::New();
-    // YKTEMP20141218 E
-
-    // this is radius. 1 --> median window 3
-    std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X "
-                 "Y Z) is = "
-              << indexRadius << std::endl;
-
-    medFilter->SetRadius(indexRadius);
-    medFilter->SetInput(castFilter->GetOutput());
-    medFilter->Update(); // Error here!
-
-    tmpReconImg = medFilter->GetOutput();
-    std::cout << "median filtering has been done" << std::endl;
-  } else {
-    std::cout << "No post median filtering is used" << std::endl;
-    castFilter->Update();
-    tmpReconImg = castFilter->GetOutput();
-  }
-
-  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
-  thresholdFilterAbove->SetInput(tmpReconImg);
-  thresholdFilterAbove->ThresholdAbove(4095);
-  thresholdFilterAbove->SetOutsideValue(4095);
-
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
-  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
-  thresholdFilterBelow->ThresholdBelow(0);
-  thresholdFilterBelow->SetOutsideValue(0);
-  thresholdFilterBelow->Update();
-
-  tmpReconImg = thresholdFilterBelow->GetOutput();
-
-  reconTimeProbe.Stop();
-  std::cout << "It took " << reconTimeProbe.GetMean() << ' '
-            << reconTimeProbe.GetUnit() << std::endl;
-  ui.lineEdit_ReconstructionTime->setText(
-      QString("%1").arg(reconTimeProbe.GetMean()));
-
-  // std::cout << "TestYK" << std::endl;
-  // std::cout << tmpReconImg->GetRequestedRegion().GetSize() << std::endl;
-  // std::cout << "Before InPlace Off: " <<  castFilter->GetInPlace() <<
-  // std::endl;	//0  castFilter->InPlaceOff();  std::cout << "After InPlace
-  // Off: "
-  // <<  castFilter->GetInPlace() << std::endl; //0  Because Input Output format
-  // are different, this filter cannot do InPlace function.
-
-  // By default CanRunInPlace checks whether the input and output image type
-  // match.
-  switch (target) {
-  case REGISTER_RAW_CBCT:
-    m_spRawReconImg = tmpReconImg; // Checked.. successfully alive.
-    m_spCrntReconImg = m_spRawReconImg;
-    break;
-  case REGISTER_COR_CBCT:
-    m_spScatCorrReconImg = tmpReconImg; // Checked.. successfully alive.
-    m_spCrntReconImg = m_spScatCorrReconImg;
-    break;
-  default:
-    std::cerr << "You are using a non-valid target!" << std::endl;
-    return;
-  }
-  QString outputFilePath = ui.lineEdit_OutputFilePath->text();
-
-  QFileInfo outFileInfo(outputFilePath);
-  QDir outFileDir = outFileInfo.absoluteDir();
-
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
-    std::cout << "No available output path. Should be exported later"
-              << std::endl;
-    ui.lineEdit_Cur3DFileName->setText("FDK-reconstructed volume");
-  } else {
-    using WriterType = itk::ImageFileWriter<UShortImageType>;
-    WriterType::Pointer writer = WriterType::New();
-    writer->SetFileName(outputFilePath.toLocal8Bit().constData());
-    writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-    writer->SetInput(m_spCrntReconImg);
-
-    std::cout << "Writing the image to: "
-              << outputFilePath.toLocal8Bit().constData() << std::endl;
-
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
-
-    ui.lineEdit_Cur3DFileName->setText(outputFilePath);
-    std::cout << std::endl;
-    std::cout << "Output generation was succeeded" << std::endl;
-  }
-
-  // feldkamp->PrintTiming(std::cout); Deprecated in rtk 1.4
-  m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(size_trans[2] - 1);
-  ui.spinBoxReconImgSliceNo->setValue(
-      qRound(size_trans[2] / 2.0)); // DrawReconImage is called automatically
-
-  // For 2D image display
-  // SLT_DrawReconImage();
-  // m_spReconImg = writer->GetOutput();
-
-  /*FloatImageType::SizeType AfterReconSize =
-  m_spProjImg3D->GetBufferedRegion().GetSize(); std::cout << "AfterReconSize  "
-  << AfterReconSize[0] << "	"
-  << AfterReconSize[1] << "	"
-  << AfterReconSize[2] << std::endl;*/
-
-  /*ui.radioButton_graph_recon->setChecked(true);
-  SLT_InitializeGraphLim();
-  SLT_DrawReconImage();	*/
-
-  // SLT_ViewRegistration();
-  if (target == REGISTER_COR_CBCT) {
-    QString updated_text = QString("SCATTER_COR_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  } else if (target == REGISTER_RAW_CBCT) {
-    QString updated_text = QString("RAW_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  }
-
-  std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
-  // if not found, just skip
-
-  // SLT_DrawGraph();
-  // 2) Load Geometry file.
-  // 3) Prepare all parameters from GUI components
 }
 
 void CbctRecon::SLT_DoReconstruction() {
@@ -3418,7 +1206,7 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
   bool dcm_success = false;
   if (!(dirPath.length() <= 1)) {
     Dcmtk_rt_study drs(dirPath.toLocal8Bit().constData());
-    drs.parse_directory();
+    drs.load_directory(); // parse_directory();
     Plm_image plmImg;
     plmImg.set(drs.get_image());
 
@@ -3497,85 +1285,6 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
   return std::make_tuple(instaRecon, dcm_success);
 }
 
-template <typename ImageType>
-void saveImageAsMHA(typename ImageType::Pointer image) {
-  using ImageWriterType = itk::ImageFileWriter<ImageType>;
-  typename ImageWriterType::Pointer writer = ImageWriterType::New();
-  writer->SetInput(image);
-  writer->SetFileName("Projections.mha");
-  writer->Update();
-}
-
-void CbctRecon::SLT_ReloadProjections() {
-  QFile projFile("Projections.mha");
-  if (!projFile.exists()) {
-    std::cerr
-        << "Projections were never saved! i.e. Projections.mha doesn't exist."
-        << std::endl;
-    return;
-  }
-  std::cout << "Reading: " << projFile.fileName().toStdString() << std::endl;
-  using ImageReaderType = itk::ImageFileReader<FloatImageType>;
-  ImageReaderType::Pointer ImageReader = ImageReaderType::New();
-  ImageReader->SetFileName(projFile.fileName().toStdString());
-  ImageReader->Update();
-  m_spProjImg3DFloat = ImageReader->GetOutput();
-
-  // Copied from SLT_LoadSelectedFiles:
-
-  if (m_fResampleF != 1.0) {
-    ResampleItkImage(m_spProjImg3DFloat, m_spProjImg3DFloat,
-                     m_fResampleF); // was! BROKEN AF for .his where input size
-                                    // != 1024 (tested with 1016) -> outputs
-                                    // offset -inputoffset/refactor^2 and 4
-                                    // pixels too few in x and y
-  }
-
-  if (!hisIsUsed && !ximIsUsed) { // -> hnd
-    std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
-    SLT_DoBowtieCorrection();
-  }
-
-  ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D,
-                           65535); // if X not 1024 == input size: out_offset =
-                                   // in_offset + (1024*res_f -
-                                   // X*res_f)*out_spacing     <- will still
-                                   // break down at fw_projection
-
-  FloatImageType::PointType originPt = m_spProjImg3DFloat->GetOrigin();
-  FloatImageType::SizeType FloatImgSize =
-      m_spProjImg3DFloat->GetBufferedRegion().GetSize();
-  FloatImageType::SpacingType FloatImgSpacing =
-      m_spProjImg3DFloat->GetSpacing();
-
-  std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
-            << originPt[2] << std::endl;
-  std::cout << "YKDEBUG: Size" << FloatImgSize[0] << ", " << FloatImgSize[1]
-            << ", " << FloatImgSize[2] << std::endl;
-  std::cout << "YKDEBUG: Spacing" << FloatImgSpacing[0] << ", "
-            << FloatImgSpacing[1] << ", " << FloatImgSpacing[2] << std::endl;
-
-  std::cout << "Raw3DProj dimension "
-            << m_spProjImgRaw3D->GetRequestedRegion().GetSize() << std::endl;
-
-  // m_spProjImgRaw3D is Ushort
-
-  std::cout << "Projection reading succeeded." << m_vSelectedFileNames.size()
-            << " files were read" << std::endl;
-
-  // Because you can load projections from previous run:
-  ui.pushButton_DoRecon->setEnabled(true);
-
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_vSelectedFileNames.size() - 1);
-  ui.spinBoxImgIdx->setValue(0);
-
-  SetMaxAndMinValueOfProjectionImage(); // update min max projection image
-  SLT_InitializeGraphLim();
-
-  this->SLT_DrawProjImages(); // Update Table is called
-}
-
 void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
                                             // projection images
 {
@@ -3649,20 +1358,14 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
     return;
   }
 
-  if (geomFileInfo.fileName() ==
-      "_Frames.xml") // this is XVI XML. this code
-                     // will be deleted later ,instead
-                     // RTK XML will be used as a sole
-                     // solution
+  if (geomFileInfo.fileName() == "_Frames.xml") // this is XVI XML.
   {
     std::cout << "XVI Geometry File was found. This will be temporarily used:"
               << geomPath.toLocal8Bit().constData() << std::endl;
     LoadXVIGeometryFile(
         geomPath.toLocal8Bit().constData()); // will generate m_spFullGeometry
   } else if (geomFileInfo.fileName() ==
-             "ProjectionInfo.xml") // this is OBI XML. this code will be deleted
-                                   // later ,instead RTK XML will be used as a
-                                   // sole solution
+             "ProjectionInfo.xml") // this is OBI XML.
   {
     std::cout
         << "Varian XML Geometry File was found. This will be temporarily used:"
@@ -3685,11 +1388,7 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
     LoadRTKGeometryFile("RTKgeometry.xml");
     // ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData());
     // //will generate m_spFullGeometry
-  } else if (geomFileInfo.fileName() ==
-             "Scan.xml") // this is XIM XML. this
-                         // code will be deleted later
-                         // ,instead RTK XML will be
-                         // used as a sole solution
+  } else if (geomFileInfo.fileName() == "Scan.xml") // this is XIM XML.
   {
     std::cout << "Varian Xim XML Geometry File was found. This will be "
                  "temporarily used:"
@@ -4063,34 +1762,8 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
         bowtiereader->GetOutput()->GetLargestPossibleRegion().GetSize());
   }
 
-  // QString strMsg = "Do you want to save the projection files as meta
-  // file(*.mha)";
-
-  // QMessageBox msgBox;
-  // msgBox.setText(strMsg);
-  // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-  // int res = msgBox.exec();
-
-  // if (res == QMessageBox::Yes)
-  //{
-  // QString filePath = QFileDialog::getSaveFileName(this, "Save Image", "",
-  // "meta image file (*.mha)",0,0); //Filename don't need to exist
-  //
-  // typedef itk::ImageFileWriter<  FloatImageType > WriterType2;
-  // WriterType2::Pointer writer2 = WriterType2::New();
-  // writer2->SetFileName(filePath.toLocal8Bit().constData());
-  // writer2->SetUseCompression(true);
-  // writer2->SetInput( reader->GetOutput() );
-  // TRY_AND_EXIT_ON_ITK_EXCEPTION( writer2->Update() );
-  // std::cout << "proj meta file was saved " << std::endl;
-  //}
-
   std::cout << "ProjectionReader Get Spacing : "
             << reader->GetOutput()->GetSpacing() << std::endl;
-  // 0.4 0.4 1 (spacing[2] --> means nothing)
-  // To reduce the size,resample the image
-  //// Calculate output size and spacing
 
   m_fProjSpacingX = reader->GetOutput()->GetSpacing()[0];
   m_fProjSpacingY = reader->GetOutput()->GetSpacing()[1];
@@ -4147,17 +1820,6 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
     ui.lineEdit_DownResolFactor->setText("1.0");
     m_fResampleF = 1.0;
   }
-  // UPdate default scatter correction params
-  // double defaultScaResampleF = m_fResampleF;
-  // double defaultScaMedian = DEFAULT_SCA_MEDIAN * defaultScaResampleF;//25.0
-  // --> 12.5  double defaultScaGaussian = DEFAULT_SCA_GAUSSIAN *
-  // defaultScaResampleF;//25.0 --> 12.5  double defaultScaPostProjMedian =
-  // DEFAULT_SCA_POST_PROJ_MEDIAN * defaultScaResampleF; // 6 --> 3
-
-  // ui.lineEdit_scaResam->setText(QString("%1").arg(defaultScaResampleF));
-  // ui.lineEdit_scaMedian->setText(QString("%1").arg(defaultScaMedian));
-  // ui.lineEdit_scaGaussian->setText(QString("%1").arg(defaultScaGaussian));
-  // ui.lineEdit_scaPostMedian->setText(QString("%1").arg(defaultScaPostProjMedian));
 
   std::thread save_thread(saveImageAsMHA<FloatImageType>, m_spProjImg3DFloat);
 
@@ -4196,52 +1858,21 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
   std::cout << "Raw3DProj dimension "
             << m_spProjImgRaw3D->GetRequestedRegion().GetSize() << std::endl;
 
-  // m_spProjImgRaw3D is Ushort
-
-  // 20140214: Norminal I_0 --> I_0_user : No effect in image quality of
-  // Recon.image  m_spProjImg3D = mu_t value  double wanted_I0 = 40000;  double
-  // addingValue = log(1/(65536/wanted_I0)); //if 50000: -0.27058  typedef
-  // itk::AddImageFilter<FloatImageType> AddImageFilterType;
-  // AddImageFilterType::Pointer addFilter = AddImageFilterType::New();
-  // typedef itk::AddImageFilter <FloatImageType, FloatImageType,
-  // FloatImageType> AddImageFilterType;  AddImageFilterType::Pointer
-  // addImageFilter = AddImageFilterType::New();
-  // addImageFilter->SetInput1(m_spProjImg3D);
-  // std::cout << "adding value=" << addingValue << std::endl;
-  // addImageFilter->SetConstant2(addingValue); // + ~0.5
-  // addImageFilter->Update();
-  // m_spProjImg3D = addImageFilter->GetOutput();
-  // Error occurss. tmpe inactivated
-  // std::cout << vSelectedFileNames.size() << std::endl;
   std::cout << "Projection reading succeeded." << m_vSelectedFileNames.size()
             << " files were read" << std::endl;
 
-  // Following macro
-  // set default 3D median filter
-  /*ui.lineEdit_PostMedSizeX->setText(QString("%1").arg(1.0));
-  ui.lineEdit_PostMedSizeY->setText(QString("%1").arg(1.0));
-  ui.lineEdit_PostMedSizeZ->setText(QString("%1").arg(1.0));*/
-
-  // std::cout << "before button enabled" << std::endl;
   ui.pushButton_DoRecon->setEnabled(true);
 
-  // std::cout << "before setMinMax" << std::endl;
   ui.spinBoxImgIdx->setMinimum(0);
   ui.spinBoxImgIdx->setMaximum(m_vSelectedFileNames.size() - 1);
   ui.spinBoxImgIdx->setValue(0); // it doesn't call Draw Event .. don't know
                                  // why.
 
-  // std::cout << "before SetMaxAndMinValueOfProjectionImage" << std::endl;
-
   SetMaxAndMinValueOfProjectionImage(); // update min max projection image
 
-  // std::cout << "before SLT_InitializeGraphLim" << std::endl;
   SLT_InitializeGraphLim();
 
-  // std::cout << "before SLT_DrawProjImages" << std::endl;
   this->SLT_DrawProjImages(); // Update Table is called
-  // SLT_DrawGraph();
-  // SLT_UpdateTable();
 
   if (!std::get<0>(answers)) { // instaRecon
     std::cout
@@ -4258,28 +1889,10 @@ void CbctRecon::SLT_LoadSelectedProjFiles() // main loading fuction for
   save_thread.join();
 }
 
-//
-// void CbctRecon::SLT_DrawGainImage()
-//{
-//	if (m_pImgGain->IsEmpty())
-//		return;
-//
-//	m_pImgGain->FillPixMapMinMax(ui.sliderGainMin->value(),
-// ui.sliderGainMax->value());
-//	//m_pImageYKGain->DrawToLabel(ui.labelImageGain);
-//
-//	ui.labelImageGain->SetBaseImage(m_pImgGain);
-//	ui.labelImageGain->update();
-//
-//}
-
 void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
                                    std::vector<double> &vNormAngles,
                                    std::vector<int> &vTargetIdx, bool bCW,
                                    std::vector<int> &vExcludingIdx) {
-  // std::vector<double>::iterator nomIt;
-
-  // std::vector<double>::const_iterator full_It;//assumption, sorted by
   // projection time. Begins with 179.xxx (CW)
   int latest_Idx = 0;
 
@@ -4380,18 +1993,6 @@ void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
         if (tmpNominalValue >= nextVal && tmpNominalValue <= curVal) {
           double diffCur = fabs(tmpNominalValue - curVal);
           double diffNext = fabs(tmpNominalValue - nextVal);
-
-          /*	if (diffCur <= diffNext)
-                  {
-                  vTargetIdx.push_back(j);
-                  }
-                  else
-                  {
-                  if (j != sizeFull-2)
-                  {
-                  vTargetIdx.push_back(j+1);
-                  }
-                  }*/
 
           if (diffCur <= diffNext || enExcludingMode == 0 ||
               enExcludingMode == 1) {
@@ -4496,13 +2097,6 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(
     double &fProjImgValueMax, double &fProjImgValueMin,
     const FloatImageType::Pointer &projImage) //, const double theoreticalMin)
 {
-  /*if (m_iImgCnt > 0)
-  {
-  m_fProjImgValueMax = 65535;
-  m_fProjImgValueMin = 0;
-  return;
-  }*/
-
   if (projImage == nullptr) {
     fProjImgValueMax = -1.0;
     fProjImgValueMin = -1.0;
@@ -4518,80 +2112,10 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(
   fProjImgValueMax = MinMaxFilter->GetMaximum();
   clock_t end_time = std::clock();
 
-  std::cout << "CPU took: " << (end_time - begin)
-            << " clocks to find min: " << fProjImgValueMin
-            << " max: " << fProjImgValueMax << std::endl;
+  std::cout << "Min: " << fProjImgValueMin << " max: " << fProjImgValueMax
+            << std::endl;
 
   return fProjImgValueMin;
-  /*
-  cl_float2 minMax = { 65535.0, -9999.0 };
-  clock_t begin = std::clock();
-
-  minMax = OpenCL_min_max(
-          static_cast<cl_float*>(projImage->GetBufferPointer()),
-          projImage->GetLargestPossibleRegion().GetSize());
-
-  clock_t end_time = std::clock();
-  std::cout << "OpenCL took: " << (end_time - begin) << " clocks to find min: "
-  << minMax.x << " max: " << minMax.y << std::endl;
-
-  fProjImgValueMin = minMax.x;
-  fProjImgValueMax = minMax.y;
-
-  return minMax.x;*/
-
-  // Min and max from below may not be the same, but these are better for what
-  // we need and found faster.
-
-  /*
-  itk::ImageSliceConstIteratorWithIndex<FloatImageType> it(projImage,
-projImage->GetRequestedRegion());
-
-it.SetFirstDirection(0); //x?
-it.SetSecondDirection(1); //y?
-it.GoToBegin();
-
-fProjImgValueMin = 65535.0;
-fProjImgValueMax = -9999.0;
-  unsigned int n_under_thoreticalMin = 0;
-  std::vector<double> v_under_theoreticalMin;
-
-while (!it.IsAtEnd())
-{
-  while (!it.IsAtEndOfSlice())
-  {
-      while (!it.IsAtEndOfLine())
-      {
-          double tmpVal = it.Get();
-
-          if (fProjImgValueMax < tmpVal)
-              fProjImgValueMax = tmpVal;
-
-          if (fProjImgValueMin > tmpVal)
-              fProjImgValueMin = tmpVal;
-
-                          if (theoreticalMin > tmpVal)
-                                  v_under_theoreticalMin.push_back(tmpVal);
-
-          ++it;
-      }
-      it.NextLine();
-  }
-  it.NextSlice();
-}
-  end_time = std::clock();
-  std::cout << "CPU took: " << (end_time - begin) << " clocks to find min: " <<
-fProjImgValueMin << " max: " << fProjImgValueMax << std::endl;
-
-  if (v_under_theoreticalMin.size() > 2048) // expected max size of one column +
-one row
-  {
-          std::sort(v_under_theoreticalMin.begin(),
-v_under_theoreticalMin.end()); //inplace quicksort return
-v_under_theoreticalMin[2048];
-  }
-  return 10.0;
-  */
 }
 
 void CbctRecon::SLT_DataProbeProj() {
@@ -4680,95 +2204,6 @@ void CbctRecon::SLT_DataProbeRecon() {
   // dspText.sprintf("(%03d, %03d, %03d): %d", dataX, dataY, dataZ,
   // iProbeValue);
   ui.lineEdit_DataProbe_Recon->setText(dspText);
-}
-
-double
-CbctRecon::GetValueFrom3DImageFloat(int reqX, int reqY, int reqZ,
-                                    FloatImageType::Pointer &sp3DFloatImage) {
-  if (sp3DFloatImage == nullptr) {
-    return -1.0;
-  }
-
-  itk::ImageSliceConstIteratorWithIndex<FloatImageType> it(
-      sp3DFloatImage, sp3DFloatImage->GetBufferedRegion());
-
-  it.SetFirstDirection(0);  // x?
-  it.SetSecondDirection(1); // y?
-  it.GoToBegin();
-
-  int idxX, idxY, idxZ;
-  idxZ = 0;
-
-  while (!it.IsAtEnd()) {
-    if (idxZ == reqZ) {
-      idxY = 0;
-      while (!it.IsAtEndOfSlice()) {
-        if (idxY == reqY) {
-          idxX = 0;
-          while (!it.IsAtEndOfLine()) {
-            if (idxX == reqX) {
-              double tmpVal = it.Get();
-              return tmpVal;
-            }
-            ++it;
-            idxX++;
-          }
-          break;
-        }
-        it.NextLine();
-        idxY++;
-      }
-      break;
-    }
-    it.NextSlice();
-    idxZ++;
-  }
-
-  return -2.0;
-}
-
-double CbctRecon::GetValueFrom3DImageUshort(
-    int reqX, int reqY, int reqZ, UShortImageType::Pointer &sp3DUshortImage) {
-  if (sp3DUshortImage == nullptr) {
-    return 0;
-  }
-
-  itk::ImageSliceConstIteratorWithIndex<UShortImageType> it(
-      sp3DUshortImage, sp3DUshortImage->GetBufferedRegion());
-
-  it.SetFirstDirection(0);  // x?
-  it.SetSecondDirection(1); // y?
-  it.GoToBegin();
-
-  int idxX, idxY, idxZ;
-  idxZ = 0;
-
-  while (!it.IsAtEnd()) {
-    if (idxZ == reqZ) {
-      idxY = 0;
-      while (!it.IsAtEndOfSlice()) {
-        if (idxY == reqY) {
-
-          idxX = 0;
-          while (!it.IsAtEndOfLine()) {
-            if (idxX == reqX) {
-              unsigned short tmpVal = it.Get();
-              return tmpVal;
-            }
-            ++it;
-            idxX++;
-          }
-          break;
-        }
-        it.NextLine();
-        idxY++;
-      }
-      break;
-    }
-    it.NextSlice();
-    idxZ++;
-  }
-  return 65535;
 }
 
 void CbctRecon::SLT_DrawGraph() // based on profile
@@ -5053,10 +2488,6 @@ void CbctRecon::SLT_CalculateROI_Recon() {
   double posY = originY + dataY * spacingY;
   double posZ = originZ + dataZ * spacingZ;
 
-  // ui.lineEdit_ForcedProbePosX->setText(QString("%1").arg(dataX));
-  // ui.lineEdit_ForcedProbePosY->setText(QString("%1").arg(dataY));
-  // ui.lineEdit_ForcedProbePosZ->setText(QString("%1").arg(dataZ));
-
   QString tmpStr1, tmpStr2, tmpStr3;
   tmpStr1 = QString("%1").arg(posX, 0, 'f', 2);
   tmpStr2 = QString("%1").arg(posY, 0, 'f', 2);
@@ -5123,14 +2554,6 @@ void CbctRecon::SLT_CalculateROI_Proj() {
   int dataY = qRound(ui.labelImageRaw->y / dspHeight * dataHeight);
   int dataZ = ui.spinBoxImgIdx->value();
 
-  // double originX = (double)(m_spProjImg3D->GetOrigin()[0]);//0
-  // double originY = (double)(m_spProjImg3D->GetOrigin()[1]);//0
-  // double originZ = (double)(m_spProjImg3D->GetOrigin()[2]);//0
-
-  // double spacingX = (double)(m_spProjImg3D->GetSpacing()[0]);//1
-  // double spacingY = (double)(m_spProjImg3D->GetSpacing()[1]);//1
-  // double spacingZ = (double)(m_spProjImg3D->GetSpacing()[2]);	//1
-
   double originX = 0.0; // 0
   double originY = 0.0; // 0
   double originZ = 0.0; // 0
@@ -5147,12 +2570,7 @@ void CbctRecon::SLT_CalculateROI_Proj() {
   ui.lineEdit_ForcedProbePosY->setText(QString("%1").arg(posY));
   ui.lineEdit_ForcedProbePosZ->setText(QString("%1").arg(posZ));
 
-  // ui.lineEdit_ForcedProbePosX->setText(QString("%1").arg(dataX));
-  // ui.lineEdit_ForcedProbePosY->setText(QString("%1").arg(dataY));
-
   m_dspYKImgProj->SetProfileProbePos(dataX, dataY);
-  // m_dspYKImgProj->m_bDrawProfileX = true;
-  // m_dspYKImgProj->m_bDrawProfileY = true;
 
   if (ui.radioButton_Profile_Hor->isChecked()) {
     m_dspYKImgProj->m_bDrawProfileX = true;
@@ -5191,213 +2609,6 @@ void CbctRecon::SLT_CalculateROI_Proj() {
   }
 
   SLT_DrawProjImages();
-}
-
-bool CbctRecon::LoadShortImageToUshort(QString &strPath,
-                                       UShortImageType::Pointer &pUshortImage) {
-  using ReaderType = itk::ImageFileReader<ShortImageType>;
-  ReaderType::Pointer reader = ReaderType::New();
-
-  // QString fileName = QFileDialog::getOpenFileName(this, "Open Image","",
-  // "Plan CT file (*.mha)",0,0);
-
-  if (strPath.length() < 1) {
-    return false;
-  }
-
-  reader->SetFileName(strPath.toLocal8Bit().constData());
-  reader->Update();
-
-  // Figure out whether this is NKI
-  using ImageCalculatorFilterType =
-      itk::MinimumMaximumImageCalculator<ShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
-  imageCalculatorFilter->SetImage(reader->GetOutput());
-  imageCalculatorFilter->Compute();
-
-  auto minVal0 = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal0 = static_cast<double>(imageCalculatorFilter->GetMaximum());
-
-  std::cout << "Original Min and Max Values are	" << minVal0 << "	"
-            << maxVal0 << std::endl;
-
-  bool bNKI = false;
-  if (minVal0 > -600) // impossible for normal Short image. IN NKI, always -512.
-                      // don't know why
-  {
-    bNKI = true;
-  }
-
-  // Thresholding
-  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilter =
-      ThresholdImageFilterType::New();
-
-  if (!bNKI) {
-    thresholdFilter->SetInput(reader->GetOutput());
-    thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-    thresholdFilter->SetOutsideValue(-1024);
-    thresholdFilter->Update();
-  } else {
-    thresholdFilter->SetInput(reader->GetOutput());
-    thresholdFilter->ThresholdOutside(0, 4095); //--> 0 ~ 4095
-    thresholdFilter->SetOutsideValue(0);
-    thresholdFilter->Update();
-  }
-
-  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
-  imageCalculatorFilter->Compute();
-
-  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-
-  std::cout << "Current Min and Max Values are	" << minVal << "	"
-            << maxVal << std::endl;
-
-  // Min value is always 3024 --> outside the FOV
-  // USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
-  // USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
-  // USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal + 1024);
-  // USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal + 1024);
-
-  USHORT_PixelType outputMinVal, outputMaxVal;
-  if (!bNKI) {
-    outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
-    outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
-  } else {
-    outputMinVal = static_cast<USHORT_PixelType>(minVal);
-    outputMaxVal = static_cast<USHORT_PixelType>(maxVal);
-  }
-
-  using RescaleFilterType =
-      itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
-  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
-  spRescaleFilter->SetOutputMinimum(outputMinVal);
-  spRescaleFilter->SetOutputMaximum(outputMaxVal);
-  spRescaleFilter->Update();
-  pUshortImage = spRescaleFilter->GetOutput();
-
-  return true;
-}
-
-void CbctRecon::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
-{
-  // typedef itk::ImageFileReader<ShortImageType> ReaderType;
-  // ReaderType::Pointer reader = ReaderType::New();
-
-  QString fileName =
-      QFileDialog::getOpenFileName(this, "Open Image", m_strPathDirDefault,
-                                   "Plan CT file (*.mha)", nullptr, nullptr);
-
-  if (fileName.length() < 1) {
-    return;
-  }
-
-  // reader->SetFileName(fileName.toLocal8Bit().constData());
-  // reader->Update();
-
-  ////Thresholding
-
-  // typedef itk::ThresholdImageFilter <ShortImageType>
-  // ThresholdImageFilterType;
-
-  // ThresholdImageFilterType::Pointer thresholdFilter =
-  // ThresholdImageFilterType::New();
-  // thresholdFilter->SetInput(reader->GetOutput());
-  // thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-  // thresholdFilter->SetOutsideValue(-1024);
-  // thresholdFilter->Update();
-
-  // typedef itk::MinimumMaximumImageCalculator <ShortImageType>
-  //	ImageCalculatorFilterType;
-
-  // ImageCalculatorFilterType::Pointer imageCalculatorFilter
-  //	= ImageCalculatorFilterType::New ();
-  // imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
-  // imageCalculatorFilter->Compute();
-
-  // double minVal= (double)(imageCalculatorFilter->GetMinimum());
-  // double maxVal= (double)(imageCalculatorFilter->GetMaximum());
-
-  // std::cout <<"Min and Max Values are	" << minVal << "	" <<
-  // maxVal
-  // << std::endl;
-
-  ////Min value is always 3024 --> outside the FOV
-  ////USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
-  ////USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
-  // USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal + 1024);
-  // USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal + 1024);
-
-  // typedef itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>
-  // RescaleFilterType;  RescaleFilterType::Pointer spRescaleFilter =
-  // RescaleFilterType::New();
-  // spRescaleFilter->SetInput(thresholdFilter->GetOutput());
-  // spRescaleFilter->SetOutputMinimum(outputMinVal);
-  // spRescaleFilter->SetOutputMaximum(outputMaxVal);
-
-  // spRescaleFilter->Update();
-  ////m_spReconImg = spRescaleFilter->GetOutput();
-  //   m_spRefCTImg = spRescaleFilter->GetOutput();
-
-  if (!LoadShortImageToUshort(fileName, m_spRefCTImg)) {
-    std::cout << "error! in LoadShortImageToUshort" << std::endl;
-  }
-
-  using ImageCalculatorFilterType2 =
-      itk::MinimumMaximumImageCalculator<UShortImageType>;
-
-  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
-      ImageCalculatorFilterType2::New();
-  // imageCalculatorFilter2->SetImage(m_spReconImg);
-  imageCalculatorFilter2->SetImage(m_spRefCTImg);
-  imageCalculatorFilter2->Compute();
-
-  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
-  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
-
-  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
-            << std::endl;
-
-  // Update UI
-  UShortImageType::SizeType imgDim =
-      m_spRefCTImg->GetBufferedRegion().GetSize();
-  UShortImageType::SpacingType spacing = m_spRefCTImg->GetSpacing();
-
-  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
-            << "	" << imgDim[2] << std::endl;
-  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
-            << "	" << spacing[2] << std::endl;
-
-  RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
-  m_spCrntReconImg = m_spRefCTImg;
-
-  ui.lineEdit_Cur3DFileName->setText(fileName);
-  m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
-
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
-
-  SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
-  ui.radioButton_graph_recon->setChecked(true);
-
-  // Duplication for registration. Starting point is manual Rigid CT image
-  /*typedef itk::ImageDuplicator<UShortImageType> DuplicatorType;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  duplicator->SetInputImage(m_spRefCTImg);
-  duplicator->Update();
-  m_spManualRigidCT = duplicator->GetOutput();*/
-  // Duplication for : End
-
-  /*if (!m_spReconImg)
-  {
-  m_spReconImg = m_spRefCTImg;
-  SLT_DrawReconImage();
-  }*/
 }
 
 void CbctRecon::SLT_GoForcedProbePos() // when forced probe button was clicked
@@ -5822,166 +3033,6 @@ void CbctRecon::SLT_PostProcCropInv() {
   SLT_DrawReconImage();
 }
 
-void CbctRecon::SLT_ExportReconUSHORT() {
-  if (m_spCrntReconImg == nullptr) {
-    std::cout << " no image to export" << std::endl;
-    return;
-  }
-
-  QString strPath = QFileDialog::getSaveFileName(
-      this, "Save Image", "", "unsigned short meta image (*.mha)", nullptr,
-      nullptr);
-  if (strPath.length() <= 1) {
-    return;
-  }
-
-  using WriterType = itk::ImageFileWriter<UShortImageType>;
-  WriterType::Pointer writer = WriterType::New();
-  writer->SetFileName(strPath.toLocal8Bit().constData());
-  writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-  writer->SetInput(m_spCrntReconImg);
-
-  std::cout << "Writing is under progress...: "
-            << strPath.toLocal8Bit().constData() << std::endl;
-  writer->Update();
-  std::cout << "Writing was successfully done" << std::endl;
-
-  QString msgStr = QString("USHORT File Writing was successfully done");
-  QMessageBox::information(this, "Procedure Done", msgStr);
-}
-
-void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
-                                    QString &outputFilePath) {
-  /*if (!m_spCrntReconImg)
-  {
-  std::cout << " no image to export" << std::endl;
-  return;
-  }
-  */
-  if (spUsImage == nullptr) {
-    std::cout << " no image to export" << std::endl;
-    return;
-  }
-
-  using DuplicatorType = itk::ImageDuplicator<UShortImageType>;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  duplicator->SetInputImage(spUsImage);
-  duplicator->Update();
-  UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
-  ShortImageType::Pointer clonedReconImageSHORT;
-
-  // int tissueCBCT = 0;
-  // int tissueCT_USHORT = 0;
-  // int HighDensityCBCT = 0;
-  // int HighDensityHU = 0;
-  // bool bCBCT2HU_mapping = false;
-  // int crntTissueVal = 0;
-
-  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
-  thresholdFilterAbove->SetInput(clonedReconImage);
-  thresholdFilterAbove->ThresholdAbove(4095);
-  thresholdFilterAbove->SetOutsideValue(4095);
-
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
-  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
-  thresholdFilterBelow->ThresholdBelow(0);
-  thresholdFilterBelow->SetOutsideValue(0);
-  thresholdFilterBelow->Update();
-
-  ////thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
-  //
-  // thresholdFilter->Set
-  ////	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-  // thresholdFilter->SetOutsideValue(0);
-  // thresholdFilter->Update();
-
-  using ImageCalculatorFilterType =
-      itk::MinimumMaximumImageCalculator<UShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
-  imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
-  imageCalculatorFilter->Compute();
-  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-  // std::cout << "Min and Max Values are	" << minVal << "	" <<
-  // maxVal
-  // << std::endl; //should be 0 and 4096 std::cout <<"Min and Max Values are
-  // " << minVal << "	" << maxVal << std::endl;
-
-  // Min value is always 3024 --> outside the FOV
-  auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
-  auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
-
-  // USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
-  // USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
-
-  using RescaleFilterType =
-      itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
-  spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
-  spRescaleFilter->SetOutputMinimum(outputMinVal);
-  spRescaleFilter->SetOutputMaximum(outputMaxVal);
-
-  /*typedef itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>
-  RescaleFilterType; RescaleFilterType::Pointer spRescaleFilter =
-  RescaleFilterType::New();
-  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
-  spRescaleFilter->SetOutputMinimum(outputMinVal);
-  spRescaleFilter->SetOutputMaximum(outputMaxVal);	*/
-  spRescaleFilter->Update();
-  // clonedReconImageSHORT = spRescaleFilter->GetOutput();
-
-  // waterHU = 1024;
-
-  using AddImageFilterType =
-      itk::AddImageFilter<ShortImageType, ShortImageType, ShortImageType>;
-  AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
-  addImageFilter->SetInput1(spRescaleFilter->GetOutput());
-
-  int addingVal = 0; // 1024-680
-  // if (bCBCT2HU_mapping)
-  //{
-  //    addingVal = tissueCT_USHORT - tissueCBCT;//1024-680
-  //}
-  // else
-  //{
-
-  //}
-  addImageFilter->SetConstant2(addingVal);
-  addImageFilter->Update();
-  // m_spReconImg = spRescaleFilter->GetOutput();
-
-  // typedef itk::MinimumMaximumImageCalculator <ShortImageType>
-  //    ImageCalculatorFilterType2;
-
-  // ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
-  //    = ImageCalculatorFilterType2::New();
-  // imageCalculatorFilter2->SetImage(addImageFilter->GetOutput());
-  // imageCalculatorFilter2->Compute();
-
-  // double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
-  // double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
-
-  // std::cout << "Short image Min and Max Values are	" << minVal2 << "
-  // "
-  // << maxVal2 << std::endl;
-
-  using WriterType = itk::ImageFileWriter<ShortImageType>;
-  WriterType::Pointer writer = WriterType::New();
-  writer->SetFileName(outputFilePath.toLocal8Bit().constData());
-  // writer->SetUseCompression(true);
-  writer->SetUseCompression(false); // for plastimatch
-  writer->SetInput(addImageFilter->GetOutput());
-
-  std::cout << "Writing is under progress...: "
-            << outputFilePath.toLocal8Bit().constData() << std::endl;
-  writer->Update();
-  std::cout << "Writing was successfully done" << std::endl;
-}
-
 void CbctRecon::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 
   if (m_spCrntReconImg == nullptr) {
@@ -6061,12 +3112,6 @@ void CbctRecon::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 }
 
 void CbctRecon::SLT_ExportReconSHORT_HU() {
-  /*if (!m_spCrntReconImg)
-  {
-  std::cout << " no image to export" << std::endl;
-  return;
-  }
-  */
   QString strPath = QFileDialog::getSaveFileName(
       this, "Save Image", "", "signed short meta image (*.mha)", nullptr,
       nullptr);
@@ -6074,423 +3119,7 @@ void CbctRecon::SLT_ExportReconSHORT_HU() {
     return;
   }
   ExportReconSHORT_HU(m_spCrntReconImg, strPath);
-
-  // if (!m_spCrntReconImg)
-  //{
-  //    std::cout << " no image to export" << std::endl;
-  //    return;
-  //}
-
-  // typedef itk::ImageDuplicator< UShortImageType > DuplicatorType;
-  // DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  // duplicator->SetInputImage(m_spCrntReconImg);
-  // duplicator->Update();
-  // UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
-  // ShortImageType::Pointer clonedReconImageSHORT;
-
-  ////Convert image first...
-  ////to keep the original daa,
-
-  // QString strMsg = "Do you want to set soft-tissue to HU=0?";
-
-  // QMessageBox msgBox;
-  // msgBox.setText(strMsg);
-  // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-  // int res = msgBox.exec();
-
-  // int tissueCBCT = 0;
-  // int tissueCT_USHORT = 0;
-  // int HighDensityCBCT = 0;
-  // int HighDensityHU = 0;
-  // bool bCBCT2HU_mapping = false;
-
-  // int crntTissueVal = 0;
-  // if (res == QMessageBox::Yes)
-  //{
-  //    bool ok = false;
-  //    //QString text = QInputDialog::getText(this, "Input Dialog","CBCT to CT
-  //    Mapping Value (e.g. [WaterCBCT#, WaterHU, HighDensityCBCT#,
-  //    HighDensityHU]",
-  //    //QLineEdit::Normal, "775,0,871,370",&ok);
-
-  //    QString text = QInputDialog::getText(this, "Input Dialog", "CBCT to CT
-  //    Mapping Value",
-  //        QLineEdit::Normal, "1012,1036", &ok);
-
-  //    //Parsing
-  //    QStringList strlistParam = text.split(",");
-  //    if (strlistParam.length() != 2)
-  //    {
-  //        std::cout << "Error! 2 mapping values are required." << std::endl;
-  //        return;
-  //    }
-  //    bCBCT2HU_mapping = true;
-  //    //waterCBCT = text.toInt();
-  //    tissueCBCT = strlistParam.at(0).toInt();
-  //    tissueCT_USHORT = strlistParam.at(1).toInt();
-  //    //HighDensityCBCT = strlistParam.at(2).toInt();// bone or something
-  //    //HighDensityHU = strlistParam.at(3).toInt();
-  //}
-
-  // typedef itk::AddImageFilter<FloatImageType> AddImageFilterType;
-  // AddImageFilterType::Pointer addFilter = AddImageFilterType::New();
-  // typedef itk::AddImageFilter <FloatImageType, FloatImageType,
-  // FloatImageType> AddImageFilterType;  AddImageFilterType::Pointer
-  // addImageFilter = AddImageFilterType::New();
-  // addImageFilter->SetInput1(m_spProjImg3D);
-
-  // Thresholding
-
-  // typedef itk::ThresholdImageFilter <UShortImageType>
-  // ThresholdImageFilterType;  ThresholdImageFilterType::Pointer
-  // thresholdFilter = ThresholdImageFilterType::New();
-  // thresholdFilter->SetInput(clonedReconImage);
-  // thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
-  ////	thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-  // thresholdFilter->SetOutsideValue(0);
-  // thresholdFilter->Update();
-
-  // typedef itk::MinimumMaximumImageCalculator <UShortImageType>
-  // ImageCalculatorFilterType;  ImageCalculatorFilterType::Pointer
-  // imageCalculatorFilter = ImageCalculatorFilterType::New();
-  // imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
-  // imageCalculatorFilter->Compute();
-  // double minVal = (double)(imageCalculatorFilter->GetMinimum());
-  // double maxVal = (double)(imageCalculatorFilter->GetMaximum());
-  // std::cout << "Min and Max Values are	" << minVal << "	" <<
-  // maxVal
-  // << std::endl; //should be 0 and 4096
-  ////std::cout <<"Min and Max Values are	" << minVal << "	" <<
-  /// maxVal
-  ///<<  std::endl;
-
-  ////Min value is always 3024 --> outside the FOV
-  // SHORT_PixelType outputMinVal = (SHORT_PixelType)(minVal - 1024);
-  // SHORT_PixelType outputMaxVal = (SHORT_PixelType)(maxVal - 1024);
-
-  ////USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
-  ////USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
-
-  // typedef itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>
-  // RescaleFilterType;  RescaleFilterType::Pointer spRescaleFilter =
-  // RescaleFilterType::New();
-  // spRescaleFilter->SetInput(thresholdFilter->GetOutput());
-  // spRescaleFilter->SetOutputMinimum(outputMinVal);
-  // spRescaleFilter->SetOutputMaximum(outputMaxVal);
-
-  ///*typedef itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>
-  /// RescaleFilterType;
-  // RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
-  // spRescaleFilter->SetInput(thresholdFilter->GetOutput());
-  // spRescaleFilter->SetOutputMinimum(outputMinVal);
-  // spRescaleFilter->SetOutputMaximum(outputMaxVal);	*/
-  // spRescaleFilter->Update();
-  ////clonedReconImageSHORT = spRescaleFilter->GetOutput();
-
-  ////waterHU = 1024;
-
-  // typedef itk::AddImageFilter <ShortImageType, ShortImageType,
-  // ShortImageType> AddImageFilterType;  AddImageFilterType::Pointer
-  // addImageFilter = AddImageFilterType::New();
-  // addImageFilter->SetInput1(spRescaleFilter->GetOutput());
-
-  // int addingVal = 0;//1024-680
-  // if (bCBCT2HU_mapping)
-  //{
-  //    addingVal = tissueCT_USHORT - tissueCBCT;//1024-680
-  //}
-  // else
-  //{
-
-  //}
-  // addImageFilter->SetConstant2(addingVal);
-  // addImageFilter->Update();
-  ////m_spReconImg = spRescaleFilter->GetOutput();
-
-  // typedef itk::MinimumMaximumImageCalculator <ShortImageType>
-  //    ImageCalculatorFilterType2;
-
-  // ImageCalculatorFilterType2::Pointer imageCalculatorFilter2
-  //    = ImageCalculatorFilterType2::New();
-  // imageCalculatorFilter2->SetImage(addImageFilter->GetOutput());
-  // imageCalculatorFilter2->Compute();
-
-  // double minVal2 = (double)(imageCalculatorFilter2->GetMinimum());
-  // double maxVal2 = (double)(imageCalculatorFilter2->GetMaximum());
-
-  // std::cout << "Short image Min and Max Values are	" << minVal2 << "
-  // "
-  // << maxVal2 << std::endl;
-
-  // typedef itk::ImageFileWriter<ShortImageType> WriterType;
-  // WriterType::Pointer writer = WriterType::New();
-  // writer->SetFileName(strPath.toLocal8Bit().constData());
-  ////writer->SetUseCompression(true);
-  // writer->SetUseCompression(false); //for plastimatch
-  // writer->SetInput(addImageFilter->GetOutput());
-
-  // std::cout << "Writing is under progress...: " <<
-  // strPath.toLocal8Bit().constData() << std::endl;  writer->Update();
-  // std::cout
-  // << "Writing was successfully done" << std::endl;
-
-  // QString msgStr = QString("SHORT File Writing was successfully done");
-  // QMessageBox::information(this, "Procedure Done", msgStr);
-
-  //----------------------------------------------------------------------------export
-  // DICOM--------------------------------------------
-
-  /*QString strMsg2 = "Do you want to export DICOM slices as well?";
-  msgBox.setText(strMsg2);
-  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-  int res2 = msgBox.exec();
-
-  if (res2 == QMessageBox::Yes)
-  {
-  std::std::cout << "DICOM export is under progress." << std::endl;
-  ShortImageType::Pointer spTmpImgResult = spRescaleFilter->GetOutput();
-  ExportDICOM_SHORT(spTmpImgResult);
-
-  std::std::cout << "DICOM export is completed." << std::endl;
-  }*/
-
-  // return;
 }
-
-// void CbctRecon::ExportDICOM_SHORT( ShortImageType::Pointer& sp3DshortImage )
-// //NOT COMPLETED YET!! Export DICOM without Source DICOM is not possible
-//{
-//	typedef itk::ImageSeriesReader< ShortImageType >ReaderType;
-//	typedef itk::GDCMImageIO ImageIOType;
-//	typedef itk::GDCMSeriesFileNames InputNamesGeneratorType;
-//	typedef itk::NumericSeriesFileNames OutputNamesGeneratorType;
-//
-//	typedef itk::ImageSeriesWriter< ShortImageType, ShortImageType2D >
-// SeriesWriterType;
-//
-//	/*typedef itk::IdentityTransform< double, InputDimension >
-// TransformType; 	typedef itk::LinearInterpolateImageFunction<
-// InputImageType, double > InterpolatorType; 	typedef
-// itk::ResampleImageFilter< InputImageType, InputImageType >
-// ResampleFilterType; 	typedef itk::ShiftScaleImageFilter< InputImageType,
-// InputImageType >  ShiftScaleType;*/
-//
-//	typedef itk::ShiftScaleImageFilter< ShortImageType, ShortImageType >
-// ShiftScaleType;
-//
-//	// 1) Read the input series
-//	ImageIOType::Pointer gdcmIO = ImageIOType::New();
-//	InputNamesGeneratorType::Pointer inputNames =
-// InputNamesGeneratorType::New(); 	inputNames->SetInputDirectory(
-//"D:\\DICOMINPUT" ); 	const ReaderType::FileNamesContainer & filenames =
-// inputNames->GetInputFileNames();
-//
-//	ReaderType::Pointer reader = ReaderType::New();
-//
-//	reader->SetImageIO( gdcmIO );
-//	reader->SetFileNames( filenames );
-//
-//	reader->Update();
-//
-//	ReaderType::DictionaryRawPointer inputDict =
-//(*(reader->GetMetaDataDictionaryArray()))[0];
-//	ReaderType::DictionaryArrayType outputArray;
-//
-//	// To keep the new series in the same study as the original we need
-//	// to keep the same study UID. But we need new series and frame of
-//	// reference UID's.
-//#if ITK_VERSION_MAJOR >= 4
-//	gdcm::UIDGenerator suid;
-//	std::string seriesUID = suid.Generate();
-//	gdcm::UIDGenerator fuid;
-//	std::string frameOfReferenceUID = fuid.Generate();
-//#else
-//	std::string seriesUID = gdcm::Util::CreateUniqueUID(
-// gdcmIO->GetUIDPrefix()); 	std::string frameOfReferenceUID =
-// gdcm::Util::CreateUniqueUID( gdcmIO->GetUIDPrefix()); #endif
-// std::string  studyUID; 	std::string sopClassUID;
-//	itk::ExposeMetaData<std::string>(*inputDict, "0020|000d", studyUID);
-//	itk::ExposeMetaData<std::string>(*inputDict, "0008|0016", sopClassUID);
-//
-//	gdcmIO->KeepOriginalUIDOn();
-//
-//	ShortImageType::SizeType outputSize =
-// sp3DshortImage->GetBufferedRegion().GetSize(); 	for (unsigned int f = 0;
-// f < outputSize[2]; f++)
-//	{
-//		// Create a new dictionary for this slice
-//		ReaderType::DictionaryRawPointer dict = new
-// ReaderType::DictionaryType;
-//
-//		// Copy the dictionary from the first slice
-//		CopyDictionary (*inputDict, *dict);
-//
-//		// Set the UID's for the study, series, SOP  and frame of
-// reference 		itk::EncapsulateMetaData<std::string>(*dict,"0020|000d",
-// studyUID); 		itk::EncapsulateMetaData<std::string>(*dict,"0020|000e",
-// seriesUID); 		itk::EncapsulateMetaData<std::string>(*dict,"0020|0052",
-// frameOfReferenceUID);
-//
-//#if ITK_VERSION_MAJOR >= 4
-//		gdcm::UIDGenerator sopuid;
-//		std::string sopInstanceUID = sopuid.Generate();
-//#else
-//		std::string sopInstanceUID = gdcm::Util::CreateUniqueUID(
-// gdcmIO->GetUIDPrefix()); #endif
-//		itk::EncapsulateMetaData<std::string>(*dict,"0008|0018",
-// sopInstanceUID);
-//		itk::EncapsulateMetaData<std::string>(*dict,"0002|0003",
-// sopInstanceUID);
-//
-//		// Change fields that are slice specific
-//		itksys_ios::ostringstream value;
-//		value.str("");
-//		value << f + 1;
-//
-//		// Image Number
-//		itk::EncapsulateMetaData<std::string>(*dict,"0020|0013",
-// value.str());
-//
-//		// Series Description - Append new description to current series
-//		// description
-//		std::string oldSeriesDesc;
-//		itk::ExposeMetaData<std::string>(*inputDict, "0008|103e",
-// oldSeriesDesc);
-//
-//		value.str("");
-//		value << "Test";
-//		/*value << oldSeriesDesc
-//			<< ": Resampled with pixel spacing "
-//			<< outputSpacing[0] << ", "
-//			<< outputSpacing[1] << ", "
-//			<< outputSpacing[2];*/
-//		// This is an long string and there is a 64 character limit in
-// the
-//		// standard
-//		unsigned lengthDesc = value.str().length();
-//
-//		std::string seriesDesc( value.str(), 0,
-//			lengthDesc > 64 ? 64
-//			: lengthDesc);
-//		itk::EncapsulateMetaData<std::string>(*dict,"0008|103e",
-// seriesDesc);
-//
-//		// Series Number
-//		value.str("");
-//		value << 1001;
-//		itk::EncapsulateMetaData<std::string>(*dict,"0020|0011",
-// value.str());
-//
-//		// Derivation Description - How this image was derived
-//		value.str("");
-//		value << "Derivation Description" << std::endl;
-//
-//		/*for (int i = 0; i < argc; i++)
-//		{
-//			value << argv[i] << " ";
-//		}*/
-//		value << ": " << ITK_SOURCE_VERSION;
-//
-//		lengthDesc = value.str().length();
-//		std::string derivationDesc( value.str(), 0,
-//			lengthDesc > 1024 ? 1024
-//			: lengthDesc);
-//		itk::EncapsulateMetaData<std::string>(*dict,"0008|2111",
-// derivationDesc);
-//
-//		// Image Position Patient: This is calculated by computing the
-//		// physical coordinate of the first pixel in each slice.
-//		ShortImageType::PointType position;
-//		ShortImageType::IndexType index;
-//		index[0] = 0;
-//		index[1] = 0;
-//		index[2] = f;
-//		sp3DshortImage->TransformIndexToPhysicalPoint(index, position);
-//
-//		value.str("");
-//		value << position[0] << "/" << position[1] << "/" <<
-// position[2];
-// itk::EncapsulateMetaData<std::string>(*dict,"0020|0032",  value.str());
-//		// Slice Location: For now, we store the z component of the
-// Image
-//		// Position Patient.
-//		value.str("");
-//		value << position[2];
-//		itk::EncapsulateMetaData<std::string>(*dict,"0020|1041",
-// value.str());
-//
-//
-//		ShortImageType::SpacingType outputSpacing =
-// sp3DshortImage->GetSpacing();
-//
-//		// Slice Thickness: For now, we store the z spacing
-//		value.str("");
-//		value << outputSpacing[2];
-//		itk::EncapsulateMetaData<std::string>(*dict,"0018|0050",value.str());
-//		// Spacing Between Slices
-//		itk::EncapsulateMetaData<std::string>(*dict,"0018|0088",value.str());
-//
-//		// Save the dictionary
-//		outputArray.push_back(dict);
-//	}
-//
-//	////////////////////////////////////////////////
-//	// 4) Shift data to undo the effect of a rescale intercept by the
-//	//    DICOM reader
-//	std::string interceptTag("0028|1052");
-//	typedef itk::MetaDataObject< std::string > MetaDataStringType;
-//	itk::MetaDataObjectBase::Pointer entry = (*inputDict)[interceptTag];
-//
-//	MetaDataStringType::ConstPointer interceptValue =
-//		dynamic_cast<const MetaDataStringType *>( entry.GetPointer() ) ;
-//
-//	int interceptShift = 0;
-//	if( interceptValue )
-//	{
-//		std::string tagValue = interceptValue->GetMetaDataObjectValue();
-//		interceptShift = -atoi ( tagValue.c_str() );
-//	}
-//
-//	ShiftScaleType::Pointer shiftScale = ShiftScaleType::New();
-//	shiftScale->SetInput( sp3DshortImage);
-//	shiftScale->SetShift( interceptShift );
-//
-//	////////////////////////////////////////////////
-//	// 5) Write the new DICOM series
-//
-//	// Make the output directory and generate the file names.
-//	itksys::SystemTools::MakeDirectory("D:\\testITKDICOM" );
-//
-//	// Generate the file names
-//	OutputNamesGeneratorType::Pointer outputNames =
-// OutputNamesGeneratorType::New(); 	std::string seriesFormat("test");
-//	seriesFormat = seriesFormat + "/" + "IM%d.dcm";
-//	outputNames->SetSeriesFormat (seriesFormat.c_str());
-//	outputNames->SetStartIndex (1);
-//	outputNames->SetEndIndex (outputSize[2]);
-//
-//	SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
-//	seriesWriter->SetInput( shiftScale->GetOutput() );
-//	seriesWriter->SetImageIO( gdcmIO );
-//	seriesWriter->SetFileNames( outputNames->GetFileNames() );
-//	seriesWriter->SetMetaDataDictionaryArray( &outputArray );
-//	try
-//	{
-//		seriesWriter->Update();
-//	}
-//	catch( itk::ExceptionObject & excp )
-//	{
-//		std::cerr << "Exception thrown while writing the series " <<
-// std::endl; 		std::cerr << excp << std::endl; 		return;
-//	}
-//	/*std::std::cout << "The output series in directory " << argv[2]
-//	<< " has " << outputSize[2] << " files with spacing "
-//		<< outputSpacing
-//		<< std::endl;*/
-//
-//}
 
 void CbctRecon::CopyDictionary(itk::MetaDataDictionary &fromDict,
                                itk::MetaDataDictionary &toDict) {
@@ -6623,53 +3252,9 @@ void CbctRecon::DoBeamHardeningCorrection() {
   } else {
     hndBeamHardening(pImgBuffer, nPix);
   }
-  /*
-#pragma omp parallel for simd private(i,corrF)
-  for (unsigned int i = 0; i < nPix; i++) {
-          const double crntVal = (double)pImgBuffer[i];
-          if (crntVal < 1.189){ //corresponding to 5 cm of water depth
-                  corrF = 1.0;
-          }
-          else{
-                  corrF = BeamHardModel(crntVal, poly3_a, poly3_b, poly3_c,
-poly3_d);
-          }
-          pImgBuffer[i] = (float)(crntVal*corrF + poly3_e);
-  }
-  */
-
-  /*
-  typedef itk::ImageRegionIteratorWithIndex<FloatImageType> iteratorType;
-  iteratorType it(m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
-it.GoToBegin();
-
-while (!it.IsAtEnd())
-{
-  crntVal = (double)(it.Get()); //raw mu_t
-
-  if (crntVal < 1.189) //corresponding to 5 cm of water depth
-  {
-      //corrF = 1+(1-crntVal);
-      corrF = 1.0;
-  }
-
-  else
-  {
-      corrF = poly3_a * pow(crntVal, 3.0) +
-          poly3_b * pow(crntVal, 2.0) +
-          poly3_c * crntVal +
-          poly3_d;
-  }
-  it.Set((float)(crntVal*corrF + poly3_e));
-  ++it;
-}
-  */
 }
 
 void CbctRecon::SLT_DoBHC() {
-  // Temp
-  // SLT_TempAudit();
-  // return;
 
   std::cout << "Beam hardening correction is under progress.." << std::endl;
   DoBeamHardeningCorrection(); // only for m_spProjImg3D
@@ -6678,7 +3263,6 @@ void CbctRecon::SLT_DoBHC() {
   SLT_DrawProjImages();
 }
 
-template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
 double heaviside(double x) { return .5 * sgn(x) + 0.5; }
 
 double fullFan_subFunction(double a, double b, double c, double d, double x) {
@@ -6792,19 +3376,9 @@ void CbctRecon::SLT_DoBowtieCorrection() {
 
 void CbctRecon::SLT_ViewRegistration() // default showing function
 {
-  // if (!m_spReconImg)
-  /*{
-    std::cout << "No fixed image is ready" << std::endl;
-    return;
-    }*/
   m_pDlgRegistration->UpdateListOfComboBox(0); // combo selection signalis
                                                // called
   m_pDlgRegistration->UpdateListOfComboBox(1);
-
-  // if not found, just skip
-  // m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call
-  // fixedImageSelected  m_pDlgRegistration->SelectComboExternal(1,
-  // REGISTER_MANUAL_RIGID );
   m_pDlgRegistration->show();
 }
 
@@ -6866,14 +3440,9 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   filter->SetInterpolator(interpolator);
   filter->SetDefaultPixelValue(0);
 
-  // const double outputSpacing[2] = { 1.0, 1.0 };
-  // const double outputOrigin[2] = { 0.0, 0.0 };
-
   UShortImageType::DirectionType direction;
   direction.SetIdentity();
   filter->SetOutputDirection(direction);
-
-  // ResampledImgType2D::SizeType outSize;
 
   UShortImageType::SpacingType movingSpacing = imgSpacing;
   UShortImageType::PointType movingOrigin = imgOrigin;
@@ -7881,25 +4450,29 @@ void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     flipFilter->SetFlipAxes(arrFlipAxes);
     flipFilter->SetInput(spVolImg3D); // plan CT, USHORT image
 
-    using TransformType = itk::Euler3DTransform<double>;
+    //                            | 0  0 -1 |
+    // Rz(pi/2)*Rx(-pi/2)*Ry(0) = | 1  0  0 |
+    //                            | 0 -1  0 |
+    itk::Matrix<double, 3, 3> CoordChangeMatrix;
+    // 1st row
+    CoordChangeMatrix[0][0] = 0.0;
+    CoordChangeMatrix[0][1] = 0.0;
+    CoordChangeMatrix[0][2] = -1.0;
+    // 2nd row
+    CoordChangeMatrix[1][0] = 1.0;
+    CoordChangeMatrix[1][1] = 0.0;
+    CoordChangeMatrix[1][2] = 0.0;
+    // 3rd row
+    CoordChangeMatrix[2][0] = 0.0;
+    CoordChangeMatrix[2][1] = -1.0;
+    CoordChangeMatrix[2][2] = 0.0;
+
+    itk::Vector<double, 3U> offset(0.0);
+
+    using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
     TransformType::Pointer transform = TransformType::New();
-
-    TransformType::ParametersType param;
-    param.SetSize(6);
-    param.put(0, itk::Math::pi / -2.0); // rot X // 0.5 = PI/2
-    param.put(1, 0);                    // rot Y
-    param.put(2, itk::Math::pi / 2.0);  // rot Z
-    param.put(3, 0.0);                  // Trans X mm
-    param.put(4, 0.0);                  // Trans Y mm
-    param.put(5, 0.0);                  // Trans Z mm
-
-    TransformType::ParametersType fixedParam(3); // rotation center
-    fixedParam.put(0, 0);
-    fixedParam.put(1, 0);
-    fixedParam.put(2, 0);
-
-    transform->SetParameters(param);
-    transform->SetFixedParameters(fixedParam); // Center of the Transform
+    transform->SetMatrix(CoordChangeMatrix);
+    transform->SetOffset(offset);
 
     std::cout << "Transform matrix:"
               << "\n"
@@ -8201,25 +4774,29 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     flipFilter->SetFlipAxes(arrFlipAxes);
     flipFilter->SetInput(spVolImg3D); // plan CT, USHORT image
 
-    using TransformType = itk::Euler3DTransform<double>;
+    //                            | 0  0 -1 |
+    // Rz(pi/2)*Rx(-pi/2)*Ry(0) = | 1  0  0 |
+    //                            | 0 -1  0 |
+    itk::Matrix<double, 3, 3> CoordChangeMatrix;
+    // 1st row
+    CoordChangeMatrix[0][0] = 0.0;
+    CoordChangeMatrix[0][1] = 0.0;
+    CoordChangeMatrix[0][2] = -1.0;
+    // 2nd row
+    CoordChangeMatrix[1][0] = 1.0;
+    CoordChangeMatrix[1][1] = 0.0;
+    CoordChangeMatrix[1][2] = 0.0;
+    // 3rd row
+    CoordChangeMatrix[2][0] = 0.0;
+    CoordChangeMatrix[2][1] = -1.0;
+    CoordChangeMatrix[2][2] = 0.0;
+
+    itk::Vector<double, 3U> offset(0.0);
+
+    using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
     TransformType::Pointer transform = TransformType::New();
-
-    TransformType::ParametersType param;
-    param.SetSize(6);
-    param.put(0, itk::Math::pi / -2.0); // rot X // 0.5 = PI/2
-    param.put(1, 0);                    // rot Y
-    param.put(2, itk::Math::pi / 2.0);  // rot Z
-    param.put(3, 0.0);                  // Trans X mm
-    param.put(4, 0.0);                  // Trans Y mm
-    param.put(5, 0.0);                  // Trans Z mm
-
-    TransformType::ParametersType fixedParam(3); // rotation center
-    fixedParam.put(0, 0);
-    fixedParam.put(1, 0);
-    fixedParam.put(2, 0);
-
-    transform->SetParameters(param);
-    transform->SetFixedParameters(fixedParam); // Center of the Transform
+    transform->SetMatrix(CoordChangeMatrix);
+    transform->SetOffset(offset);
 
     std::cout << "Transform matrix:"
               << "\n"
@@ -8243,29 +4820,6 @@ void CbctRecon::CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     CastFilterType::Pointer castFilter = CastFilterType::New();
     castFilter->SetInput(resampler->GetOutput());
 
-    /*
-    //Default value
-    double calibF_A = 1.0;
-    double calibF_B = 0.0;
-
-    std::cout << "Temporary forcing CT# applied for tissue" << std::endl;
-
-    std::cout << "CBCT calibration Factor(Recommended: 1, 0): A = " << calibF_A
-    << "  B= " << calibF_B << std::endl; typedef
-    itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>
-    MultiplyImageFilterType; MultiplyImageFilterType::Pointer
-    multiplyImageFilter = MultiplyImageFilterType::New();
-    multiplyImageFilter->SetInput(castFilter->GetOutput());
-    multiplyImageFilter->SetConstant(calibF_A / 65535.0);
-
-    typedef itk::AddImageFilter <FloatImageType, FloatImageType, FloatImageType>
-    AddImageFilterType; AddImageFilterType::Pointer addImageFilter =
-    AddImageFilterType::New();
-    addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
-    double addingVal = calibF_B / 65535.0;
-    addImageFilter->SetConstant2(addingVal);
-    addImageFilter->Update(); //will generate map of real_mu (att.coeff)
-    */
     FloatImageType::Pointer spCTImg_mu;
     spCTImg_mu = castFilter->GetOutput(); // addImageFilter->GetOutput();
 
@@ -8866,8 +5420,8 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
       gaussianFilter->SetSigmaArray(
           gaussianSigmaArray); // filter specific setting for 512x384 (varian/2)
     }
-      // gaussianFilter->Update();
-      // spImg2DScat = gaussianFilter->GetOutput();
+    // gaussianFilter->Update();
+    // spImg2DScat = gaussianFilter->GetOutput();
 #endif
 
     using AddImageFilterType =
@@ -10482,233 +7036,6 @@ void CbctRecon::SLT_ExportAngularWEPL_byFile() {
   }
 
   ExportAngularWEPL_byFile(filePath);
-}
-
-/*
-double plastimatchWEPL() {
-        Rt_beam* newBeam = scene->append_beam();
-        newBeam->get_aperture()->set_distance(ap_distance);
-        // newBeam->get_aperture()->set_distance(ap_distance); is there a
-reason YK did this twice? newBeam->get_aperture()->set_spacing(ap_spacing);
-        newBeam->get_aperture()->set_dim(ap_dim);
-        newBeam->get_aperture()->set_center(ap_center);
-
-        newBeam->set_step_length(ray_step);
-        newBeam->set_isocenter_position(isoTarget);
-        newBeam->set_source_position(srcProton);
-
-        //scene.prepare_beam_for_calc(newBeam);
-        //scene->create_patient_psp(); // hu to stopping power //not necessary
-when practically copied below
-        //std::string flavor("b");
-        //newBeam->set_flavor(flavor); // b for beta to get fastest dose calc
-        //scene->compute_dose(newBeam);
-
-
-        newBeam->prepare_for_calc(ct_hu, patient_psp, newBeam->get_target());
-        // ONLY way to call prepare_for_calc from the "outside" (without ugly
-tricks)
-        // newBeam->prepare_for_calc(ct_vol, newBeam->get_ct_psp(),
-newBeam->get_target());
-
-        //wed_ct_compute in wed_main
-        Rpl_volume* rpl_vol = newBeam->rsp_accum_vol; //rpl_vol;
-
-        Proj_volume *proj_vol = rpl_vol->get_proj_volume();
-
-        const double *src = proj_vol->get_src();
-        const double *iso = proj_vol->get_iso();
-        const double sid_length = proj_vol->get_proj_matrix()->sid; //distance
-from source to aperture double src_iso_vec[3]; vec3_sub3(src_iso_vec, src,
-iso); const double src_iso_distance = vec3_len(src_iso_vec); const double
-ap_iso_distance = src_iso_distance - sid_length;
-
-        double base_rg_dist = ap_iso_distance -
-rpl_vol->get_front_clipping_plane();
-
-        const double base_dist = proj_vol->get_proj_matrix()->sid; //distance
-from source to aperture
-
-                                                                                                                           //const plm_long *ires = proj_vol->get_image_dim();
-
-                                                                                                                           //int ap_ij[2]; //ray index of rvol
-        plm_long ap_idx = 0;  //ray number always 0 here
-
-        Ray_data *ray_data;
-        double ray_ap[3]; //std::vector from src to ray intersection with ap
-plane double ray_ap_length; //length of std::vector from src to ray
-intersection with ap plane double rglength; //length that we insert into
-get_rgdepth for each ray
-
-        rpl_vol->compute_ray_data(); //computes p2 <- called in compute dose
-for some flavors of beam ray_data = rpl_vol->get_ray_data();
-
-        Ray_data *ray_data_single = &ray_data[ap_idx];
-
-        //Coordinate of ray intersection with aperture plane
-        double *ap_xyz = ray_data_single->p2;
-        vec3_sub3(ray_ap, ap_xyz, src);
-        ray_ap_length = vec3_len(ray_ap);
-        rglength = base_rg_dist*(ray_ap_length / base_dist);
-
-        plm_long ap_idx_default[2] = { 0, 0 };
-
-        double WEPL = rpl_vol->get_value(ap_idx_default, rglength);
-
-        // This should be in the Rt_beam destructor, but it isn't
-        delete newBeam->rsp_accum_vol;
-        delete newBeam->hu_samp_vol;
-        delete newBeam->sigma_vol;
-        delete newBeam->rpl_vol_lg;
-        delete newBeam->rpl_vol_samp_lg;
-        delete newBeam->sigma_vol_lg;
-        delete newBeam->dose_rv; //rpl_dose_vol;
-
-        delete newBeam;
-
-        return WEPL;
-}
-*/
-
-double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
-                       const std::array<double, 3> vec_basis,
-                       const std::array<double, 3> vec_cubesize,
-                       const std::array<size_t, 3> cubedim,
-                       const FloatImageType::Pointer &vec_wepl_cube) {
-  const double step_length = 0.1;
-  const std::array<double, 3> step = {{vec_basis.at(0) * step_length,
-                                       vec_basis.at(1) * step_length,
-                                       vec_basis.at(2) * step_length}};
-
-  const std::array<double, 3> inv_cubesize = {{1.0 / vec_cubesize.at(0),
-                                               1.0 / vec_cubesize.at(1),
-                                               1.0 / vec_cubesize.at(2)}};
-
-  std::array<double, 3> point = {
-      {static_cast<double>(cur_point_id.at(0)) * vec_cubesize.at(0),
-       static_cast<double>(cur_point_id.at(1)) * vec_cubesize.at(1),
-       static_cast<double>(cur_point_id.at(2)) * vec_cubesize.at(2)}};
-
-  double out = 0.0;
-
-  while (true) {
-    // point_id = point / cube_size
-    const std::array<int, 3> point_id = {
-        {static_cast<int>(round(point.at(0) * inv_cubesize.at(0))),
-         static_cast<int>(round(point.at(1) * inv_cubesize.at(1))),
-         static_cast<int>(round(point.at(2) * inv_cubesize.at(2)))}};
-
-    if (point_id.at(0) < 0.0 ||
-        point_id.at(0) >= static_cast<int>(cubedim.at(0)) ||
-        point_id.at(1) < 0.0 ||
-        point_id.at(1) >= static_cast<int>(cubedim.at(1)) ||
-        point_id.at(2) < 0.0 ||
-        point_id.at(2) >= static_cast<int>(cubedim.at(2))) {
-      break;
-    }
-
-    // get nearest neighbors:
-    const std::array<double, 3> point_id_pos = {
-        {point.at(0) * inv_cubesize.at(0), point.at(1) * inv_cubesize.at(1),
-         point.at(2) * inv_cubesize.at(2)}};
-
-    int idx_2 = -1;
-    if (point_id.at(0) < (point_id_pos.at(0))) {
-      idx_2 = 1;
-    }
-
-    int idy_2 = -1;
-    if (point_id.at(1) < (point_id_pos.at(1))) {
-      idx_2 = 1;
-    }
-
-    int idz_2 = -1;
-    if (point_id.at(2) < (point_id_pos.at(2))) {
-      idz_2 = 1;
-    }
-
-    if ((point_id.at(0) + idx_2) < 0.0 ||
-        (point_id.at(0) + idx_2) >= static_cast<int>(cubedim.at(0)) ||
-        (point_id.at(1) + idy_2) < 0.0 ||
-        (point_id.at(1) + idy_2) >= static_cast<int>(cubedim.at(1)) ||
-        (point_id.at(2) + idz_2) < 0.0 ||
-        (point_id.at(2) + idz_2) >= static_cast<int>(cubedim.at(2))) {
-      break;
-    }
-
-    std::array<double, 8> weights{};
-    // x                    xyz
-    weights.at(0) = sqrt( // 000 =
-        pow(point_id.at(0) - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) - point_id_pos.at(2), 2));
-    weights.at(1) = sqrt( // 100 =
-        pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) - point_id_pos.at(2), 2));
-    // y
-    weights.at(2) = sqrt( // 010 =
-        pow(point_id.at(0) - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) - point_id_pos.at(2), 2));
-    weights.at(3) = sqrt( // 110 =
-        pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) - point_id_pos.at(2), 2));
-    // z
-    weights.at(4) = sqrt( // 001 =
-        pow(point_id.at(0) - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-    weights.at(5) = sqrt( // 101 =
-        pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-    weights.at(6) = sqrt( // 011 =
-        pow(point_id.at(0) - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-    weights.at(7) = sqrt( // 111 =
-        pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-        pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-        pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-
-    double sum_weights = 0.0;
-    for (double weight : weights) {
-      sum_weights += weight;
-    }
-    for (double &weight : weights) {
-      weight /= sum_weights;
-    }
-
-    for (int i = 0; i < 8; i++) {
-      // convert point_id to cube_ids
-      FloatImageType::IndexType cube_id{};
-      cube_id[0] = point_id.at(0) + (idx_2 * (i % 2)); // x= 0,1,0,1,0,1,0,1
-      cube_id[1] =
-          point_id.at(1) + (idy_2 * ((i / 2) % 2));    // y= 0,0,1,1,0,0,1,1
-      cube_id[2] = point_id.at(2) + (idz_2 * (i / 4)); // z= 0,0,0,0,1,1,1,1
-
-      out += vec_wepl_cube->GetPixel(cube_id) * weights.at(i);
-    }
-
-    // point = point - step
-    point.at(0) -= step.at(0);
-    point.at(1) -= step.at(1);
-    point.at(2) -= step.at(2);
-  }
-
-  return out * step_length;
-}
-
-std::array<double, 3> get_basis_from_angles(double gantry, double couch) {
-  gantry += 180.0;
-  gantry *= M_PI / 180.0;
-  couch *= M_PI / 180.0;
-
-  std::array<double, 3> basis = {
-      {sin(gantry) * cos(couch), -cos(gantry), sin(couch) * sin(gantry)}};
-  return basis;
 }
 
 void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
@@ -13900,12 +10227,13 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
     return;
 #endif
     break;
-//#if RTK_MINOR_VERSION < 4
-//  case (en_RayCastInterpolator):
-//    forwardProjection = rtk::RayCastInterpolatorForwardProjectionImageFilter<
-//        FloatImageType, FloatImageType>::New();
-//    break;
-//#endif
+    //#if RTK_MINOR_VERSION < 4
+    //  case (en_RayCastInterpolator):
+    //    forwardProjection =
+    //    rtk::RayCastInterpolatorForwardProjectionImageFilter<
+    //        FloatImageType, FloatImageType>::New();
+    //    break;
+    //#endif
 
   default:
     std::cerr << "Unhandled --method value." << std::endl;
