@@ -95,7 +95,7 @@ build_script:
   - ps: dir $env:AMDAPPSDKROOT; dir $env:AMDAPPSDKROOT/lib; dir $env:AMDAPPSDKROOT/include;
   - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
   # Configure CbctRecon and dependencies
-  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/"
+  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.11.1/msvc2015_64/lib/cmake/Qt5"
   # Configure twice to make sure RTK is downloaded by ITK
   - cmake "%APPVEYOR_BUILD_FOLDER%"
   # Fetch ExternalData. (Retried up to 3 times if network errors occured) <- TODO:this step must be added!!
