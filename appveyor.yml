@@ -16,6 +16,9 @@ os:
 platform:
   - x64
 
+# Only clone the top level commit; don't bother with history
+shallow_clone: true
+
 environment:
   # Environment variables
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
@@ -56,8 +59,8 @@ install:
   - ps: mv ./OpenCL-ICD-Loader/* .
   # This downloads all the opencl header files
   # The cmake build files expect a directory called inc
-  - ps: mkdir inc/CL_headers_repo
-  - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git inc/CL
+  - ps: mkdir inc
+  - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git inc
   # Create the static import lib in a directory called lib, so findopencl() will find it
   - ps: mkdir lib
   - ps: pushd lib
