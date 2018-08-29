@@ -59,8 +59,8 @@ install:
   - ps: mv ./OpenCL-ICD-Loader/* .
   # This downloads all the opencl header files
   # The cmake build files expect a directory called inc
-  - ps: mkdir inc
-  - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git inc
+  - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git include
+  - ps: cp -r ./include/* ./inc/
   # Create the static import lib in a directory called lib, so findopencl() will find it
   - ps: mkdir lib
   - ps: pushd lib
@@ -70,8 +70,6 @@ install:
   - ps: mkdir x64; cp OpenCL.lib x64\
   - ps: popd
   #   } #2 back to $env:OPENCL_ROOT
-  # Rename the inc directory to include, so FindOpencl() will find it
-  - ps: ren inc include
   - ps: popd
   # } #1 back to %APPVEYOR_BUILD_FOLDER%
 
