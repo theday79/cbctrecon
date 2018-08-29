@@ -90,7 +90,11 @@ build:
 
 
 build_script:
+  # For CMake to find OpenCL:
+  - ps: $env:AMDAPPSDKROOT = "$env:OPENCL_ROOT"
+  - ps: dir $env:AMDAPPSDKROOT; dir $env:AMDAPPSDKROOT/lib; dir $env:AMDAPPSDKROOT/include;
   - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
+  # Configure CbctRecon and dependencies
   - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/"
   # Configure twice to make sure RTK is downloaded by ITK
   - cmake "%APPVEYOR_BUILD_FOLDER%"
