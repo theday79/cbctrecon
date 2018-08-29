@@ -138,6 +138,14 @@ ADD_EXECUTABLE(CbctRecon
   ${CbctRecon_HEADERS}
   ${CbctRecon_FORMS}
 )
+if (CBCTRECON_BUILD_TESTS)
+# Lib for tests
+  ADD_LIBRARY(CbctReconLib
+    ${CbctRecon_SOURCES}
+    ${CbctRecon_HEADERS}
+    ${CbctRecon_FORMS}
+    )
+endif()
 
 set_target_properties(CbctRecon
   PROPERTIES
@@ -171,16 +179,20 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_BUILD_DIR}/")
 
 #this is for "C++ General-> Add below to Additional Include Directories"
-target_include_directories(CbctRecon
-  PUBLIC ${LOCAL_INCL_DIRS}
-  PUBLIC ${ITK_INCLUDE_DIRS}
-  PUBLIC ${RTK_INCLUDE_DIRS}
-  PUBLIC ${PLASTIMATCH_INCLUDE_DIRS}
-  PUBLIC ${DCMTK_INCLUDE_DIR}
+set(CBCTRECON_DEP_INCLUDES
+  ${LOCAL_INCL_DIRS}
+  ${ITK_INCLUDE_DIRS}
+  ${RTK_INCLUDE_DIRS}
+  ${PLASTIMATCH_INCLUDE_DIRS}
+  ${DCMTK_INCLUDE_DIR}
+  ${CLFFT_INCLUDE_DIRS}
 )
-if(USE_CLFFT)
-  target_include_directories(CbctRecon
-    ${CLFFT_INCLUDE_DIRS}
+target_include_directories(CbctRecon
+  PUBLIC ${CBCTRECON_DEP_INCLUDES}
+)
+if(CBCTRECON_BUILD_TESTS)
+  target_include_directories(CbctReconLib
+    PUBLIC ${CBCTRECON_DEP_INCLUDES}
   )
 endif()
 
@@ -199,7 +211,7 @@ list(APPEND QT_LIBRARIES
 
 
 #this is for "Linker->Additional dependencies"
-target_link_libraries(CbctRecon
+set(CBCTRECON_DEP_LIBS
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
   ${PLM_TARGETS}
@@ -208,6 +220,14 @@ target_link_libraries(CbctRecon
   ${TBB_LIBRARIES}
   OpenCL::OpenCL
 )
+target_link_libraries(CbctRecon
+  ${CBCTRECON_DEP_LIBS}
+)
+if (CBCTRECON_BUILD_TESTS)
+  target_link_libraries(CbctReconLib
+    ${CBCTRECON_DEP_LIBS}
+  )
+endif()
 
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##

@@ -33,6 +33,11 @@ environment:
   matrix:
     - GENERATOR: "%CTEST_CMAKE_GENERATOR%"
 
+  global:
+    OPENCL_ROOT: "%APPVEYOR_BUILD_FOLDER%\\bin\\opencl"
+    FFTW_ROOT: "%APPVEYOR_BUILD_FOLDER%\\bin\\fftw"
+    OPENCL_REGISTRY: "https://www.khronos.org/registry/cl"
+
 
 # We need to create an opencl import library that clfft can link against
 # Vendor based OpenCL packages are hard to use because of download size, registration requirements
@@ -102,4 +107,13 @@ build_script:
 
 test: off
 
-deploy: off
+# Appveyor will push the artifacts it has saved to GitHub 'releases' tab
+deploy:
+  provider: GitLab
+  auth_token:
+    secure: dRXIWJKpU7h2RsHX7RqmyYCtCw+Q9O3X5MArloY6p34GZC1w7bp+jQYTZqbdO7bw
+  artifact: binary_zip
+  draft: true
+  prerelease: true
+  on:
+    appveyor_repo_tag: true
