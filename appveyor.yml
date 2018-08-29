@@ -1,18 +1,16 @@
 #------------------------------------------------------------------------------
 #  AppVeyor Continous Integration (CI) configuration file
 #
-# Configures a Windows-like environment for building RTK on AppVeyor.
+# Configures a Windows-like environment for building CbctRecon on AppVeyor.
 #
-# Only ITK is being built the first time to ensure the build time is less
-# than appveyor's 1 hour limit. ITK is then cached and retrieved at the
-# beginning of every RTK build.
-# To reduce build time, ITK is built with the option BUILD_TESTING set to OFF.
-# We then rebuild the itkTestDriver target on its own as it is required by RTK.
-#
-# The ITKData target is also built appart from RTK as many network errors could
-# occur on appveyor. If a network error occurs, preventing RTK to fetch its
-# test data, then the appveyor-retry command will re-build this target up to
-# three times.
+
+
+# Windows Server 2012 R2 (x64) <== Appveyor default image
+# Visual Studio 2015
+
+# os: expands the build matrix to include multiple os's
+os:
+  - Windows Server 2012
 
 # Target platform
 platform:
@@ -39,7 +37,12 @@ environment:
     OPENCL_REGISTRY: "https://www.khronos.org/registry/cl"
 
 
-# We need to create an opencl import library that clfft can link against
+init:
+  - echo init step
+  - cmake --version
+  - C:\"Program Files (x86)"\"Microsoft Visual Studio 14.0"\VC\vcvarsall.bat %PLATFORM%
+
+# We need to create an opencl import library that cbctrecon can link against
 # Vendor based OpenCL packages are hard to use because of download size, registration requirements
 # and unattended installs not well supported
 install:

@@ -7,9 +7,17 @@ add_cbctrecon_test(CbctRecon_test
   )
 
 set(APP_DIR ${CbctRecon_SOURCE_DIR}/Applications/CbctRecon)
+set(APP_FOLDERS
+  ${APP_DIR}
+  ${APP_DIR}/qt-utils/
+  ${APP_DIR}/rtkExtension/
+  ${APP_DIR}/ui/
+)
 
 target_link_libraries(CbctRecon_test PRIVATE CbctReconLib)
-target_include_directories(CbctRecon_test PUBLIC ${APP_DIR})
+target_include_directories(CbctRecon_test
+  PRIVATE ${APP_FOLDERS}
+  )
 
 if(USE_TINYREFL)
   tinyrefl_tool(TARGET CbctRecon_test
