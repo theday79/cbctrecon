@@ -13,7 +13,7 @@ function(add_cbctrecon_test NAME)
 endfunction()
 
 function(add_cbctrecon_example NAME)
-    add_tinyrefl_test(${NAME} ${ARGN})
+    add_cbctrecon_test(${NAME} ${ARGN})
 endfunction()
 
 enable_testing()

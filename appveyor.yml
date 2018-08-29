@@ -107,12 +107,14 @@ build_script:
 
 test: off
 
-# Appveyor will push the artifacts it has saved to GitHub 'releases' tab
+# Appveyor will push the artifacts it has saved to GitLab 'releases' tab
 deploy:
-  provider: GitLab
+  provider: GitHub
+  repository: agravgaard/CbctRecon
+  description: "Windows installer from AppVeyor CI"
   auth_token:
-    secure: dRXIWJKpU7h2RsHX7RqmyYCtCw+Q9O3X5MArloY6p34GZC1w7bp+jQYTZqbdO7bw
-  artifact: binary_zip
+    secure: Wcahfcb8RTeiEypo/pM0fLnLU+Pd7Hd2UV1tQbJfihQEayaz/Ucb0am78msCC0yy
+  artifact: /.*\.msi/
   draft: true
   prerelease: true
   on:
