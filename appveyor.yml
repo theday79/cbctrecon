@@ -1,0 +1,54 @@
+#------------------------------------------------------------------------------
+#  AppVeyor Continous Integration (CI) configuration file
+#
+# Configures a Windows-like environment for building RTK on AppVeyor.
+#
+# Only ITK is being built the first time to ensure the build time is less
+# than appveyor's 1 hour limit. ITK is then cached and retrieved at the
+# beginning of every RTK build.
+# To reduce build time, ITK is built with the option BUILD_TESTING set to OFF.
+# We then rebuild the itkTestDriver target on its own as it is required by RTK.
+#
+# The ITKData target is also built appart from RTK as many network errors could
+# occur on appveyor. If a network error occurs, preventing RTK to fetch its
+# test data, then the appveyor-retry command will re-build this target up to
+# three times.
+
+# Target platform
+platform:
+  - x64
+
+environment:
+  # Environment variables
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
+  BUILD_TYPE: Release
+  CTEST_SOURCE_DIRECTORY: "%APPVEYOR_BUILD_FOLDER%"
+  CTEST_BINARY_DIRECTORY: "%APPVEYOR_BUILD_FOLDER%/build"
+  CTEST_CMAKE_GENERATOR: "Visual Studio 14 2015 Win64"
+  CTEST_TEST_TIMEOUT: "300"
+  CTEST_BUILD_CONFIGURATION: Release
+  CTEST_CONFIGURATION_TYPE: Release
+
+  # Build matrix. (defines different configuration for multiple jobs)
+  matrix:
+    - GENERATOR: "%CTEST_CMAKE_GENERATOR%"
+
+build:
+  parallel: true
+  verbosity: minimal
+
+
+build_script:
+  - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
+  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/"
+  # Configure twice to make sure RTK is downloaded by ITK
+  - cmake "%APPVEYOR_BUILD_FOLDER%"
+  # Fetch ExternalData. (Retried up to 3 times if network errors occured) <- TODO:this step must be added!!
+  - appveyor-retry cmake --build . --config %BUILD_TYPE%
+  # Build CbctRecon
+  - ctest -V -C %CTEST_CONFIGURATION_TYPE%
+  - cpack
+
+test: off
+
+deploy: off

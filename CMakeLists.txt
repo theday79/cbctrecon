@@ -26,13 +26,17 @@ OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
+OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
+OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
 if(NOT WIN32)
   set(BUILD_SHARED_LIBS OFF)
+  set(USE_TINYREFL ON)
 endif()
 
-OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" ON) # ON by default, because you should test your code
+OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
+# BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests
 
 IF(USE_GPMC)
   message (STATUS "Compiling with GPMC option")
@@ -42,6 +46,11 @@ IF(USE_LOWPASS_FFT)
   message (STATUS "Compiling with Gauss FFT as low-pass filter for scatter smoothing option")
   ADD_DEFINITIONS(-DLOWPASS_FFT=TRUE)
 ENDIF(USE_LOWPASS_FFT)
+
+IF(USE_TINYREFL)
+  message (STATUS "Compiling with tinyrefl enabled")
+  ADD_DEFINITIONS(-DUSE_TINYREFL=TRUE)
+ENDIF(USE_TINYREFL)
 
 FIND_PACKAGE(OpenCL REQUIRED)
 
@@ -95,6 +104,11 @@ find_package(ITK REQUIRED)
 
 add_subdirectory(Applications)
 
+if(CBCTRECON_BUILD_TESTS)
+  include(${CbctRecon_SOURCE_DIR}/Testing/ctest_setup.cmake)
+  message(STATUS "Configuring CbctRecon tests...")
+  add_subdirectory(Testing)
+endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     message(STATUS "Generate vim YCM config file for CbctRecon at ${CbctRecon_SOURCE_DIR} ...")

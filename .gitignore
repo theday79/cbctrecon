@@ -43,3 +43,5 @@
 .clang_complete
 .ycm_extra_conf.py
 
+# Ignore tinyrefl generated files
+*.tinyrefl
