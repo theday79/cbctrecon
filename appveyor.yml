@@ -105,7 +105,11 @@ before_build:
   # Build ITK
   - if not exist "%ITK_BINARY_DIR%" (
       cd C:/projects/ &
-      mkdir "%ITK_BINARY_DIR%" & cd "%ITK_BINARY_DIR%" & cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK & cmake --build . --config %BUILD_TYPE% &
+      mkdir "%ITK_BINARY_DIR%" &
+      cd "%ITK_BINARY_DIR%" &
+      cp "%APPVEYOR_BUILD_FOLDER%/External/patches/ExternalRTK.remote.cmake" "%ITK_SOURCE_DIR%/Modules/Remote/"
+      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="$env:FFTW_ROOT/libfftw3f-3.lib" -DFFTW_INCLUDE_PATH="$env:FFTW_ROOT" -DITK_USE_GPU=ON -DOPENCL_INCLUDE_DIRS="$env:OPENCL_ROOT/include" -DOPENCL_LIBRARIES="$env:OPENCL_ROOT/lib/x64/OpenCL.lib" -DITK_BUILD_DEFAULT_MODULES=OFF &
+      cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
   # Build itkTestDriver for RTK tests

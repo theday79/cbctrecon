@@ -37,11 +37,13 @@ external_proj(DCMTK)
 
 # ITK/RTK
 external_proj(ITK)
-configure_file(
-  ${CbctRecon_SOURCE_DIR}/External/patches/ExternalRTK.remote.cmake
-  ${ITK_SOURCE_DIR}/Modules/Remote/
-  COPYONLY
-)
+if (NOT USE_SYSTEM_ITK)
+  configure_file(
+    ${CbctRecon_SOURCE_DIR}/External/patches/ExternalRTK.remote.cmake
+    ${ITK_SOURCE_DIR}/Modules/Remote/
+    COPYONLY
+  )
+endif()
 
 # Plastimatch
 external_proj(${plm})
