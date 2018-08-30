@@ -103,7 +103,7 @@ before_build:
       git clone --depth 1 --branch %ITK_VERSION% https://github.com/InsightSoftwareConsortium/ITK.git ITK
     )
   # Build ITK
-  - if not exist "%ITK_BINARY_DIR%" (
+  - if not exist "%ITK_BINARY_DIR%/Modules/Remote/RTK/RTKConfig.cmake" (
       cd C:/projects/ &
       mkdir "%ITK_BINARY_DIR%" &
       cd "%ITK_BINARY_DIR%" &
