@@ -97,6 +97,10 @@ build:
   verbosity: minimal
 
 before_build:
+  # For CMake to find OpenCL:
+  - ps: $env:AMDAPPSDKROOT = "$env:OPENCL_ROOT"
+  - ps: dir $env:AMDAPPSDKROOT; dir $env:AMDAPPSDKROOT/lib; dir $env:AMDAPPSDKROOT/include;
+  - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
   # Checkout ITK source tree
   - if not exist "%ITK_SOURCE_DIR%" (
       cd C:/projects/ &
@@ -110,7 +114,13 @@ before_build:
   - if not exist "%ITK_BINARY_DIR%/Modules/Remote/RTK/RTKConfig.cmake" (
       cd "%ITK_BINARY_DIR%" &
       cp "%APPVEYOR_BUILD_FOLDER%/External/patches/ExternalRTK.remote.cmake" "%ITK_SOURCE_DIR%/Modules/Remote/" &
-      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="$env:FFTW_ROOT/libfftw3f-3.lib" -DFFTW_INCLUDE_PATH="$env:FFTW_ROOT" -DITK_USE_GPU=ON -DOPENCL_INCLUDE_DIRS="$env:OPENCL_ROOT/include" -DOPENCL_LIBRARIES="$env:OPENCL_ROOT/lib/x64/OpenCL.lib" -DITK_BUILD_DEFAULT_MODULES=OFF &
+      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="$env:FFTW_ROOT/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="$env:FFTW_ROOT/libfftw3d-3.lib" -DFFTW_INCLUDE_PATH="$env:FFTW_ROOT" -DFFTW_INCLUDE_DIR="$env:FFTW_ROOT" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF &
+      cmake --build . --config %BUILD_TYPE% &
+      exit 1
+    )
+  # Build ITK again if necessary
+  - if not exist "%ITK_BINARY_DIR%/lib/libitkRTK-4.13.lib" (
+      cd "%ITK_BINARY_DIR%" &
       cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
@@ -123,10 +133,6 @@ before_build:
 build_script:
   - git config --global user.email "andreasga22@gmail.com"
   - git config --global user.name "Andreas Gravgaard Andersen"
-  # For CMake to find OpenCL:
-  - ps: $env:AMDAPPSDKROOT = "$env:OPENCL_ROOT"
-  - ps: dir $env:AMDAPPSDKROOT; dir $env:AMDAPPSDKROOT/lib; dir $env:AMDAPPSDKROOT/include;
-  - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
   # Configure CbctRecon and dependencies
   - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.11.1/msvc2015_64/lib/cmake/Qt5" -DITK_DIR="%ITK_BINARY_DIR%" -DUSE_SYSTEM_ITK=ON
   # Configure twice to make sure RTK is downloaded by ITK
