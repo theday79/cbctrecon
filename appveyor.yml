@@ -25,6 +25,8 @@ environment:
   ITK_VERSION: v4.13.1
   ITK_SOURCE_DIR: "C:/projects/ITK"
   ITK_BINARY_DIR: "C:/projects/ITK-build"
+  FFTW_DIR: "C:/projects/cbctrecon/bin/fftw"
+  OPENCL_DIR: "C:/projects/cbctrecon/bin/opencl/include"
   BUILD_TYPE: Release
   CTEST_SOURCE_DIRECTORY: "%APPVEYOR_BUILD_FOLDER%"
   CTEST_BINARY_DIRECTORY: "%APPVEYOR_BUILD_FOLDER%/build"
@@ -64,7 +66,7 @@ install:
   # The cmake build files expect a directory called inc
   - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git include
   - ps: cp -r ./include/* ./inc/
-  - ps: ls ./include
+  - ps: ls ./include/CL
   # Create the static import lib in a directory called lib, so findopencl() will find it
   - ps: mkdir lib
   - ps: pushd lib
@@ -116,13 +118,14 @@ before_build:
   - if not exist "%ITK_BINARY_DIR%/Modules/Remote/RTK/RTKConfig.cmake" (
       cd "%ITK_BINARY_DIR%" &
       cp "%APPVEYOR_BUILD_FOLDER%/External/patches/ExternalRTK.remote.cmake" "%ITK_SOURCE_DIR%/Modules/Remote/" &
-      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="$env:FFTW_ROOT/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="$env:FFTW_ROOT/libfftw3d-3.lib" -DFFTW_INCLUDE_PATH="$env:FFTW_ROOT" -DFFTW_INCLUDE_DIR="$env:FFTW_ROOT" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF &
+      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="%FFTW_DIR%/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="%FFTW_DIR%/libfftw3d-3.lib" -DFFTW_INCLUDE_PATH="%FFTW_DIR%" -DFFTW_INCLUDE_DIR="%FFTW_DIR%" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DOPENCL_INCLUDE_DIR="%OPENCL_DIR%" &
       cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
   # Build ITK again if necessary
   - if not exist "%ITK_BINARY_DIR%/lib/Release/libitkRTK-4.13.lib" (
       cd "%ITK_BINARY_DIR%" &
+      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="%FFTW_DIR%/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="%FFTW_DIR%/libfftw3d-3.lib" -DFFTW_INCLUDE_PATH="%FFTW_DIR%" -DFFTW_INCLUDE_DIR="%FFTW_DIR%" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DOPENCL_INCLUDE_DIR="%OPENCL_DIR%" &
       cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
