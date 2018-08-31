@@ -119,13 +119,13 @@ before_build:
       exit 1
     )
   # Build ITK again if necessary
-  - if not exist "%ITK_BINARY_DIR%/lib/libitkRTK-4.13.lib" (
+  - if not exist "%ITK_BINARY_DIR%/lib/Release/libitkRTK-4.13.lib" (
       cd "%ITK_BINARY_DIR%" &
       cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
   # Build itkTestDriver for RTK tests
-  - if not exist "%ITK_BINARY_DIR%/bin/itkTestDriver" (
+  - if not exist "%ITK_BINARY_DIR%/bin/Release/itkTestDriver" (
       cd "%ITK_BINARY_DIR%" &
       cmake -DBUILD_TESTING:BOOL=ON . & cmake --build . --config %BUILD_TYPE% --target itkTestDriver
     )
