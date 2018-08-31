@@ -64,6 +64,7 @@ install:
   # The cmake build files expect a directory called inc
   - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git include
   - ps: cp -r ./include/* ./inc/
+  - ps: ls ./include
   # Create the static import lib in a directory called lib, so findopencl() will find it
   - ps: mkdir lib
   - ps: pushd lib
@@ -86,6 +87,7 @@ install:
   - ps: lib /machine:x64 /def:libfftw3-3.def
   - ps: lib /machine:x64 /def:libfftw3f-3.def
   - ps: lib /machine:x64 /def:libfftw3l-3.def
+  - ps: ls
 
 cache:
   # Caching ITK source and build tree
