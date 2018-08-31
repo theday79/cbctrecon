@@ -6,7 +6,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # BASIC CMAKE
 set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
 set(CbctRecon_VERSION_MINOR "3") # bump at functionality change
-set(CbctRecon_VERSION_PATCH "0") # bump at minor change
+set(CbctRecon_VERSION_PATCH "1") # bump at minor change
 
 project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
@@ -101,8 +101,10 @@ add_subdirectory(External)
 set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
 find_package(DCMTK_wrap)
 
-set(ITK_DIR "${CMAKE_BINARY_DIR}/ITK-build")
-find_package(ITK REQUIRED)
+if(NOT ITK_FOUND)
+  set(ITK_DIR "${CMAKE_BINARY_DIR}/ITK-build")
+  find_package(ITK REQUIRED)
+endif()
 
 add_subdirectory(Applications)
 

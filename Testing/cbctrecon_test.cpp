@@ -1,10 +1,14 @@
 // For testing CbctRecon
-#include "cbctrecon.h"
 #if USE_TINYREFL
 #include <tinyrefl/api.hpp>
+#include "cbctrecon_test.hpp"
+#endif
+
+#include "cbctrecon.h"
+
+#if USE_TINYREFL
 #include "cbctrecon.h.tinyrefl"
 #endif
-#include "cbctrecon_test.h"
 
 int main()
 {

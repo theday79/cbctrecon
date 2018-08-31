@@ -65,7 +65,6 @@ endif(USE_OPENMP)
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
 
 SET(CbctRecon_SOURCES
-  main.cpp
   cbctrecon.cpp
   qt-utils/YK16GrayImage.cxx
   qt-utils/AG17RGBAImage.cxx
@@ -133,14 +132,15 @@ if(MSVC AND NOT(MSVC_VERSION LESS 1400))
 endif()
 
 # Executable
-ADD_EXECUTABLE(CbctRecon
+add_executable(CbctRecon
+  main.cpp
   ${CbctRecon_SOURCES}
   ${CbctRecon_HEADERS}
   ${CbctRecon_FORMS}
 )
 if (CBCTRECON_BUILD_TESTS)
 # Lib for tests
-  ADD_LIBRARY(CbctReconLib
+  add_library(CbctReconLib
     ${CbctRecon_SOURCES}
     ${CbctRecon_HEADERS}
     ${CbctRecon_FORMS}
@@ -193,6 +193,7 @@ target_include_directories(CbctRecon
 if(CBCTRECON_BUILD_TESTS)
   target_include_directories(CbctReconLib
     PUBLIC ${CBCTRECON_DEP_INCLUDES}
+    PUBLIC ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctRecon_autogen/include
   )
 endif()
 
@@ -221,12 +222,20 @@ set(CBCTRECON_DEP_LIBS
   OpenCL::OpenCL
 )
 target_link_libraries(CbctRecon
-  ${CBCTRECON_DEP_LIBS}
+  PUBLIC ${CBCTRECON_DEP_LIBS}
 )
 if (CBCTRECON_BUILD_TESTS)
   target_link_libraries(CbctReconLib
-    ${CBCTRECON_DEP_LIBS}
+    PUBLIC ${CBCTRECON_DEP_LIBS}
   )
+  if(USE_TINYREFL)
+    tinyrefl_tool(TARGET CbctReconLib
+      HEADERS
+      cbctrecon.h
+      COMPILE_OPTIONS
+      -fPIC
+      )
+  endif()
 endif()
 
 ############## INSTALL ##############
