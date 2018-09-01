@@ -123,14 +123,14 @@ before_build:
       exit 1
     )
   # Build ITK again if necessary
-  - if not exist "%ITK_BINARY_DIR%/lib/Release/libitkRTK-4.13.lib" (
+  - if not exist "%ITK_BINARY_DIR%/lib/Release/itkRTK-4.13.lib" (
       cd "%ITK_BINARY_DIR%" &
       cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="%FFTW_DIR%/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="%FFTW_DIR%/libfftw3-3.lib" -DFFTW_INCLUDE_PATH="%FFTW_DIR%" -DFFTW_INCLUDE_DIR="%FFTW_DIR%" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DOPENCL_INCLUDE_DIRS="%OPENCL_DIR%/include" -DOPENCL_LIBRARIES="%OPENCL_DIR%/lib/x64/OpenCL.lib" -DOPENCL_ROOT_DIR="%OPENCL_DIR%" &
       cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
   # Build itkTestDriver for RTK tests
-  - if not exist "%ITK_BINARY_DIR%/bin/Release/itkTestDriver" (
+  - if not exist "%ITK_BINARY_DIR%/bin/Release/itkTestDriver.exe" (
       cd "%ITK_BINARY_DIR%" &
       cmake -DBUILD_TESTING:BOOL=ON . & cmake --build . --config %BUILD_TYPE% --target itkTestDriver
     )
