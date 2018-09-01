@@ -4,7 +4,7 @@ set(git_protocol https://git)
 
 macro(external_proj NAME)
   if(USE_SYSTEM_${NAME})
-    unset(${NAME}_DIR CACHE)
+    # unset(${NAME}_DIR CACHE)
     find_package(${NAME} REQUIRED)
   else()
     include(External_${NAME}.cmake)
