@@ -39,8 +39,8 @@ flags = [
 ]
 
 SOURCEDIR = '${CMAKE_SOURCE_DIR}'
-SRC_DIR = SOURCEDIR
-INCLUDE_DIR = SOURCEDIR
+SRC_DIR = os.path.join(SOURCEDIR, 'Testing')
+INCLUDE_DIR = os.path.join(SOURCEDIR, 'Testing')
 BINARY_DIR = '${CMAKE_BINARY_DIR}'
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

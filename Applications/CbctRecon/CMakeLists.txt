@@ -457,3 +457,9 @@ if (CBCTRECON_CLANG_COMPLETE)
   file (WRITE "${file_clang_complete}" "${inc_args}")
   message (STATUS "Generated ${file_clang_complete}")
 endif ()
+
+message(STATUS "Generate vim YCM config file for CbctRecon at ${CMAKE_CURRENT_SOURCE_DIR} ...")
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/.ycm_extra_conf.py.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/.ycm_extra_conf.py
+)
