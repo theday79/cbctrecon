@@ -6,7 +6,7 @@ macro(external_proj NAME)
   if(USE_SYSTEM_${NAME})
     # unset(${NAME}_DIR CACHE)
     find_package(${NAME} REQUIRED)
-    set(ITK_BINARY_DIR ${ITK_DIR})
+    set(ITK_BINARY_DIR ${ITK_DIR} CACHE PATH "" FORCE)
   else()
     include(External_${NAME}.cmake)
     external_dependency(${NAME} ${${NAME}_GIT_REPOSITORY} ${${NAME}_GIT_TAG})
@@ -30,11 +30,6 @@ set(TINYREFL_GIT_TAG master)
 
 # DCMTK
 external_proj(DCMTK)
-#configure_file(
-#  ${CbctRecon_SOURCE_DIR}/External/patches/oflimits.h
-#  ${DCMTK_SOURCE_DIR}/ofstd/include/dcmtk/ofstd/
-#  COPYONLY
-#)
 
 # ITK/RTK
 external_proj(ITK)
