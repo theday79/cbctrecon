@@ -98,8 +98,13 @@ set(EXECUTEABLE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "" FORCE)
 
 add_subdirectory(External)
 
-set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
-find_package(DCMTK_wrap)
+if(NOT DCMTK_FOUND)
+  set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
+  find_package(DCMTK_wrap)
+elseif(NOT DCMTK_DIR)
+  set(DCMTK_DIR ${DCMTK_BINARY_DIR} CACHE PATH "" FORCE)
+  find_package(DCMTK_wrap)
+endif()
 
 if(NOT ITK_FOUND)
   if(NOT ITK_BINARY_DIR)
