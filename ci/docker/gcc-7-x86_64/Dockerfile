@@ -6,7 +6,7 @@ USER root
 # Useful for debugging docker: bash sudo vim \
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y make gcc g++ git cmake qt5-default libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev \ 
+    && apt install -y make gcc g++ git cmake qt5-default libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev libtinfo-dev valgrind libhdf5-dev \ 
     && groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
     && groupadd 2000 -g 2000 \
@@ -20,7 +20,7 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
 USER user
 
 RUN git config --global user.email "andreasga22@gmail.com" \
-    && git config --global user.name "Andreas Gravgaard Andersen" 
+    && git config --global user.name "Andreas Gravgaard Andersen"
 #    && mkdir -p /home/user/cbctrecon \
 #    && git clone https://gitlab.com/agravgaard/cbctrecon.git /home/user/cbctrecon \
 #    && cd /home/user/cbctrecon \
@@ -29,7 +29,7 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 #    && mkdir build \
 #    && cd build \
 #    && cmake .. -DUSE_CUDA=OFF -DCMAKE_INSTALL_PREFIX="/home/user" \
-#    && cmake .. 
+#    && cmake ..
 
 
 WORKDIR /home/user/cbctrecon

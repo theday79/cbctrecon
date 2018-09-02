@@ -1,6 +1,3 @@
-if (USE_TINYREFL)
-  include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
-endif()
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -26,4 +23,3 @@ target_include_directories(CbctRecon_test
   PRIVATE ${APP_FOLDERS}
   PRIVATE ${GEN_UI_INCLUDE_DIR}
   )
-

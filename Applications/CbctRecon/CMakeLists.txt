@@ -229,6 +229,7 @@ if (CBCTRECON_BUILD_TESTS)
     PUBLIC ${CBCTRECON_DEP_LIBS}
   )
   if(USE_TINYREFL)
+    include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
     tinyrefl_tool(TARGET CbctReconLib
       HEADERS
       cbctrecon.h
