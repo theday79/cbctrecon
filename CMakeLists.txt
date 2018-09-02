@@ -102,7 +102,11 @@ set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
 find_package(DCMTK_wrap)
 
 if(NOT ITK_FOUND)
-  set(ITK_DIR "${CMAKE_BINARY_DIR}/ITK-build")
+  if(NOT ITK_BINARY_DIR)
+    set(ITK_DIR "${CMAKE_BINARY_DIR}/ITK-build")
+  elseif(NOT ITK_DIR)
+    set(ITK_DIR ${ITK_BINARY_DIR} CACHE PATH "" FORCE)
+  endif()
   find_package(ITK REQUIRED)
 endif()
 
