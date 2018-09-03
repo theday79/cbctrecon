@@ -15,9 +15,6 @@ if(APPLE)
   SET(CMAKE_INSTALL_RPATH bin)
 endif(APPLE)
 
-set(DCMTK_DIR ${CMAKE_BINARY_DIR})
-find_package(DCMTK_wrap)
-
 # Packaging
 option(CbctRecon_PACKAGE_32BIT "Set this when building 32-bit packages on a 64-bit machine" OFF)
 option(CbctRecon_PACKAGE_NSIS "Set to ON when packaging binaries with NSIS" OFF)
@@ -134,6 +131,7 @@ endif()
 # Executable
 add_executable(CbctRecon
   main.cpp
+  ${CbctRecon_FORMS}
 )
 
 add_library(CbctReconLib
