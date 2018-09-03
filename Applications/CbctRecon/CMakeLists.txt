@@ -134,18 +134,13 @@ endif()
 # Executable
 add_executable(CbctRecon
   main.cpp
+)
+
+add_library(CbctReconLib
   ${CbctRecon_SOURCES}
   ${CbctRecon_HEADERS}
   ${CbctRecon_FORMS}
-)
-if (CBCTRECON_BUILD_TESTS)
-# Lib for tests
-  add_library(CbctReconLib
-    ${CbctRecon_SOURCES}
-    ${CbctRecon_HEADERS}
-    ${CbctRecon_FORMS}
-    )
-endif()
+  )
 
 set_target_properties(CbctRecon
   PROPERTIES
@@ -221,22 +216,20 @@ set(CBCTRECON_DEP_LIBS
   ${TBB_LIBRARIES}
   OpenCL::OpenCL
 )
-target_link_libraries(CbctRecon
+target_link_libraries(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_LIBS}
 )
-if (CBCTRECON_BUILD_TESTS)
-  target_link_libraries(CbctReconLib
-    PUBLIC ${CBCTRECON_DEP_LIBS}
-  )
-  if(USE_TINYREFL)
-    include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
-    tinyrefl_tool(TARGET CbctReconLib
-      HEADERS
-      cbctrecon.h
-      COMPILE_OPTIONS
-      -fPIC
-      )
-  endif()
+target_link_libraries(CbctRecon
+  PUBLIC CbctReconLib
+)
+if(USE_TINYREFL)
+  include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
+  tinyrefl_tool(TARGET CbctReconLib
+    HEADERS
+    cbctrecon.h
+    COMPILE_OPTIONS
+    -fPIC
+    )
 endif()
 
 ############## INSTALL ##############

@@ -1,4 +1,11 @@
+#if USE_TINYREFL
+#include <tinyrefl/api.hpp>
 #include "cbctrecon.h"
+#include "cbctrecon.h.tinyrefl"
+#else
+#include "cbctrecon.h"
+#endif
+
 #define USE_AVX false
 #if USE_AVX
 #include <immintrin.h>
