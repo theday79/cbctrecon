@@ -180,15 +180,20 @@ set(CBCTRECON_DEP_INCLUDES
   ${DCMTK_INCLUDE_DIR}
   ${CLFFT_INCLUDE_DIRS}
 )
-target_include_directories(CbctRecon
+target_include_directories(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
 )
-if(CBCTRECON_BUILD_TESTS)
-  target_include_directories(CbctReconLib
-    PUBLIC ${CBCTRECON_DEP_INCLUDES}
-    PUBLIC ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctRecon_autogen/include
-  )
+
+if(GENERATOR_IS_MULTI_CONFIG)
+  set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include_<CONFIG>)
+else()
+  set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
 endif()
+
+target_include_directories(CbctRecon
+  PUBLIC ${CBCTRECON_DEP_INCLUDES}
+  PUBLIC ${GEN_UI_HEADER_DIR}
+)
 
 if(WIN32)
   set(WIN_LIB netapi32.lib)
@@ -208,6 +213,8 @@ list(APPEND QT_LIBRARIES
 set(CBCTRECON_DEP_LIBS
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
+  ${ITK_LIBRARIES}
+  ${RTK_LIBRARIES}
   ${PLM_TARGETS}
   ${CLFFT_LIBRARIES}
   ${QT_LIBRARIES}

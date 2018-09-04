@@ -19,6 +19,9 @@ if(GENERATOR_IS_MULTI_CONFIG)
 else()
   set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
 endif()
+if(NOT EXISTS ${GEN_UI_INCLUDE_DIR}/ui_cbctrecon.h)
+  message(STATUS "AutoUIC file not found in ${GEN_UI_INCLUDE_DIR}")
+endif()
 
 target_link_libraries(CbctRecon_test
   PRIVATE CbctReconLib
