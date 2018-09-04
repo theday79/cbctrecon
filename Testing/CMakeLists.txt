@@ -14,7 +14,11 @@ set(APP_FOLDERS
   ${APP_DIR}/rtkExtension/
   ${APP_DIR}/ui/
 )
-set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
+if(GENERATOR_IS_MULTI_CONFIG)
+  set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include_<CONFIG>)
+else()
+  set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
+endif()
 
 target_link_libraries(CbctRecon_test
   PRIVATE CbctReconLib
