@@ -208,13 +208,11 @@ list(APPEND QT_LIBRARIES
   "Qt5::Widgets"
   )
 
-
 #this is for "Linker->Additional dependencies"
 set(CBCTRECON_DEP_LIBS
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
-  ${ITK_LIBRARIES}
-  ${RTK_LIBRARIES}
+  lpsolve55 # Has to be added manually on windows?
   ${PLM_TARGETS}
   ${CLFFT_LIBRARIES}
   ${QT_LIBRARIES}
