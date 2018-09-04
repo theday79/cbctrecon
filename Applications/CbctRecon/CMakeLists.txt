@@ -184,7 +184,8 @@ target_include_directories(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
 )
 
-if(GENERATOR_IS_MULTI_CONFIG)
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(is_multi_config)
   set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include_<CONFIG>)
 else()
   set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)

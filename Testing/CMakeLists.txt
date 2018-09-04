@@ -14,7 +14,8 @@ set(APP_FOLDERS
   ${APP_DIR}/rtkExtension/
   ${APP_DIR}/ui/
 )
-if(GENERATOR_IS_MULTI_CONFIG)
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(is_multi_config)
   set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include_<CONFIG>)
 else()
   set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
@@ -28,5 +29,5 @@ target_link_libraries(CbctRecon_test
   )
 target_include_directories(CbctRecon_test
   PRIVATE ${APP_FOLDERS}
-  PRIVATE ${GEN_UI_INCLUDE_DIR}
+  PUBLIC ${GEN_UI_INCLUDE_DIR}
   )
