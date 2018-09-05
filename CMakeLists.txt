@@ -112,11 +112,7 @@ if(NOT ITK_FOUND)
   elseif(NOT ITK_DIR)
     set(ITK_DIR ${ITK_BINARY_DIR} CACHE PATH "" FORCE)
   endif()
-  if(USE_SYSTEM_ITK)
-  find_package(ITK REQUIRED COMPONENTS RTK)
-  else() # RTK is created on second config in Superbuild mode
   find_package(ITK REQUIRED)
-  endif()
   include(${ITK_USE_FILE})
 endif()
 
