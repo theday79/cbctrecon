@@ -19,7 +19,7 @@ set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_a
 
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(is_multi_config)
-  add_custom_command(TARGET CbctReconLib POST_BUILD
+  add_custom_command(TARGET CbctRecon_test PRE_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${GEN_UI_INCLUDE_DIR}_$<CONFIG>/ui_cbctrecon.h" "${CMAKE_CURRENT_BINARY_DIR}"
   )
 endif()
