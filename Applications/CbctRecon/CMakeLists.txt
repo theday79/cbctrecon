@@ -180,16 +180,17 @@ set(CBCTRECON_DEP_INCLUDES
   ${DCMTK_INCLUDE_DIR}
   ${CLFFT_INCLUDE_DIRS}
 )
-target_include_directories(CbctReconLib
-  PUBLIC ${CBCTRECON_DEP_INCLUDES}
-)
-
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(is_multi_config)
   set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include_<CONFIG>)
 else()
   set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
 endif()
+
+target_include_directories(CbctReconLib
+  PUBLIC ${CBCTRECON_DEP_INCLUDES}
+  PUBLIC ${GEN_UI_HEADER_DIR}
+)
 
 target_include_directories(CbctRecon
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
