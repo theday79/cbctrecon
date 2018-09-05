@@ -16,29 +16,22 @@
 #include <qtimer.h>
 #include <qxmlstream.h>
 
-//#include <QTimer>
 #include "StructureSet.h"
 #include "YK16GrayImage.h"
 #include "ui_cbctrecon.h"
 
-//#include "itkImage.h"
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #include <itk_image_type.h>
 #include <itkTimeProbe.h>
 
 // RTK includes
-// #include <rtkWin32Header.h> // defines dllimport export based on
-// BUILD_SHARED_LIBS
 #include <rtkElektaSynergyGeometryReader.h>
-//#include <rtkHisImageIO.h>
-//#include <rtkHndImageIO.h>
 #include <rtkProjectionsReader.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
 #include <rtkVarianObiGeometryReader.h>
 #include <rtkVarianProBeamGeometryReader.h>
-//#include <rtkXimImageIO.h>
 
 #include <rtkConfiguration.h>
 #include <rtkConstantImageSource.h>
@@ -50,7 +43,6 @@
 #include <rtkJosephForwardProjectionImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
-// #include <rtkRayCastInterpolatorForwardProjectionImageFilter.h> // Removed after RTK moved to external module
 
 #if USE_CUDA
 #include "itkCudaImage.h"
@@ -58,22 +50,18 @@
 #include "rtkCudaForwardProjectionImageFilter.h"
 #include <rtkCudaDisplacedDetectorImageFilter.h>
 #include <rtkCudaParkerShortScanImageFilter.h>
-#endif
-
-#if USE_OPENCL
-//# include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
-#endif
+#endif // USE_CUDA
 
 // ITK includes
-#include "itkAbsImageFilter.h"
-#include "itkAddImageFilter.h"
-#include "itkBinaryBallStructuringElement.h"
-#include "itkBinaryDilateImageFilter.h"
-#include "itkBinaryErodeImageFilter.h"
-#include "itkBinaryFillholeImageFilter.h"
-#include "itkBinaryThresholdImageFilter.h"
-#include "itkCastImageFilter.h"
-#include "itkMaskImageFilter.h"
+#include <itkAbsImageFilter.h>
+#include <itkAddImageFilter.h>
+#include <itkBinaryBallStructuringElement.h>
+#include <itkBinaryDilateImageFilter.h>
+#include <itkBinaryErodeImageFilter.h>
+#include <itkBinaryFillholeImageFilter.h>
+#include <itkBinaryThresholdImageFilter.h>
+#include <itkCastImageFilter.h>
+#include <itkMaskImageFilter.h>
 #include <itkEuler3DTransform.h>
 #include <itkFlipImageFilter.h>
 #include <itkImageDuplicator.h>
@@ -98,7 +86,7 @@
 #include "itkGaussianImageSource.h"
 #include "itkInverseFFTImageFilter.h"
 #include "itkWrapPadImageFilter.h"
-#endif
+#endif // LOWPASS_FFT
 
 // Plastimatch
 #include <dcmtk_rt_study.h>
@@ -123,14 +111,14 @@
 #include <proj_image.h>
 #include <proj_image_filter.h>
 #include <proj_matrix.h>
-#endif
+#endif // USE_OPENCL_PLM
 
 using FloatPixelType = float;
 // typedef itk::Image< FloatPixelType, 3 > FloatImageType;
 // typedef itk::Image< FloatPixelType, 2 > FloatImage2DType;
 #if USE_CUDA
 using CUDAFloatImageType = itk::CudaImage<FloatPixelType, 3>;
-#endif // CUDA_FOUND
+#endif // USE_CUDA
 
 using FloatReaderType = itk::ImageFileReader<FloatImageType>;
 using FloatWriterType = itk::ImageFileWriter<FloatImageType>;
@@ -138,12 +126,7 @@ using FloatWriterType = itk::ImageFileWriter<FloatImageType>;
 using GeometryType = rtk::ThreeDCircularProjectionGeometry;
 
 using USHORT_PixelType = unsigned short;
-// typedef itk::Image< USHORT_PixelType, 3 > UShortImageType;
-// typedef itk::Image< USHORT_PixelType, 2 > UShortImage2DType;
-
 using SHORT_PixelType = short;
-// typedef itk::Image< SHORT_PixelType, 3 > ShortImageType;
-// typedef itk::Image< SHORT_PixelType, 2 > ShortImage2DType;
 
 #define DEFAULT_ELEKTA_PROJ_WIDTH 1024
 #define DEFAULT_ELEKTA_PROJ_HEIGHT 1024
@@ -318,21 +301,11 @@ public:
                               UShortImageType::Pointer &spProjCT3D, bool bSave);
 #endif
   // to be implemented: Save projection3D to *.his files
-  // void GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D,
-  // USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer&
-  // spProjScat3D, bool bSave);	//void GenScatterMap2D_PriorCT()  void
-  // GenScatterMap_PriorCT(USHORT_ImageType::Pointer& spProjRaw3D,
-  // USHORT_ImageType::Pointer& spProjCT3D, USHORT_ImageType::Pointer&
-  // spProjScat3D, double resF2D, double medianRadius, double gaussianSigma,
-  // bool bSave);
   void GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
                              UShortImageType::Pointer &spProjCT3D,
                              UShortImageType::Pointer &spProjScat3D,
                              double medianRadius, double gaussianSigma,
                              int nonNegativeScatOffset, bool bSave);
-  // void ScatterCorr_PrioriCT(USHORT_ImageType::Pointer& spProjRaw3D,
-  // USHORT_ImageType::Pointer& spProjScat3D, USHORT_ImageType::Pointer&
-  // m_spProjCorr3D, int nonNegativeScatOffset, bool bSave);
   void ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
                             UShortImageType::Pointer &spProjScat3D,
                             UShortImageType::Pointer &m_spProjCorr3D,
@@ -658,15 +631,12 @@ public slots:
   void SLT_CropSupInf();
 
 public:
-  // ReaderType::Pointer m_reader;
-  // WriterType::Pointer m_writer;
   std::unique_ptr<StructureSet> m_structures;
-  // YK16GrayImage* m_arrYKImage; //independent raw images
+  //independent raw images
   std::vector<YK16GrayImage> m_arrYKImage;
   int m_iImgCnt{}; // for independent raw images --> no relation to Directroy
                    // based projections
 
-  // YK16GrayImage* m_arrYKBufProj;
   std::vector<YK16GrayImage> m_arrYKBufProj;
   int m_iCntSelectedProj;
 

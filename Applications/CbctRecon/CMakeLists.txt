@@ -153,8 +153,6 @@ SET(QT_USE_QTGUI TRUE)
 SET(QT_USE_QTOPENGL TRUE)
 ############## Qt end wrapping ##############
 
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)
 
@@ -194,11 +192,13 @@ endif()
 target_include_directories(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
   PUBLIC ${GEN_UI_HEADER_DIR}
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 target_include_directories(CbctRecon
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
   PUBLIC ${GEN_UI_HEADER_DIR}
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 if(WIN32)
@@ -233,12 +233,21 @@ target_link_libraries(CbctRecon
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
-  tinyrefl_tool(TARGET CbctReconLib
-    HEADERS
-    cbctrecon.h
-    COMPILE_OPTIONS
-    -fPIC
-    )
+  if(EXISTS ${GEN_UI_HEADER_DIR}/ui_cbctrecon.h
+     AND NOT is_multi_config)
+    tinyrefl_tool(
+      TARGET CbctReconLib
+      HEADERS cbctrecon.h
+      COMPILE_OPTIONS -fPIC
+      )
+  elseif(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/ui_cbctrecon.h
+     AND is_multi_config)
+    tinyrefl_tool(
+      TARGET CbctReconLib
+      HEADERS cbctrecon.h
+      COMPILE_OPTIONS -fPIC
+      )
+  endif()
 endif()
 
 ############## INSTALL ##############
