@@ -11,3 +11,12 @@ test-x86_64-linux-ubuntu-gcc7:
     image: andreasga/cbctrecon:gcc7-x86_64
     script:
       - ./ci/ci.sh
+
+test-x86_64-linux-ubuntu-gcc7-prebuild-DCM-I-RTK:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:gcc7-x86_64-DCMTK3.6.3-ITKv4.13.1-RTKmaster
+    script:
+      - ./ci/ci.sh
