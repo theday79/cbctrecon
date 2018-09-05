@@ -57,10 +57,7 @@ if(USE_OPENMP)
   endif()
 endif(USE_OPENMP)
 
-if(WIN32 AND NOT RTK_FOUND)
-  find_package(RTK REQUIRED)
-  link_directories(${RTK_LIBRARY_DIRS})
-endif()
+include(${ITK_USE_FILE}) # For RTK libraries
 
 ############## Qt start wrapping ##############
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
@@ -221,7 +218,7 @@ list(APPEND QT_LIBRARIES
 set(CBCTRECON_DEP_LIBS
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
-  lpsolve55 # Has to be added manually on windows?
+  ${RTK_LIBRARIES}
   ${PLM_TARGETS}
   ${CLFFT_LIBRARIES}
   ${QT_LIBRARIES}
