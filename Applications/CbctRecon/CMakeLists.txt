@@ -57,6 +57,10 @@ if(USE_OPENMP)
   endif()
 endif(USE_OPENMP)
 
+if(WIN32 AND NOT RTK_FOUND)
+  find_package(RTK REQUIRED)
+  link_directories(${RTK_LIBRARY_DIRS})
+endif()
 
 ############## Qt start wrapping ##############
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
@@ -180,11 +184,14 @@ set(CBCTRECON_DEP_INCLUDES
   ${DCMTK_INCLUDE_DIR}
   ${CLFFT_INCLUDE_DIRS}
 )
+
+set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
+
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(is_multi_config)
-  set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include_<CONFIG>)
-else()
-  set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
+  add_custom_command(TARGET CbctReconLib POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${GEN_UI_INCLUDE_DIR}_$<CONFIG>/ui_cbctrecon.h" "${CMAKE_CURRENT_BINARY_DIR}"
+  )
 endif()
 
 target_include_directories(CbctReconLib
