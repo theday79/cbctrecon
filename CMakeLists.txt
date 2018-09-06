@@ -27,12 +27,13 @@ OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't 
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
-OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
 if(NOT WIN32)
   set(BUILD_SHARED_LIBS OFF)
-  set(USE_TINYREFL ON)
+  OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" ON)
+else()
+  OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
 
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
