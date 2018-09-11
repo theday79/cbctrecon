@@ -10,6 +10,7 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH bin)
@@ -106,6 +107,7 @@ SET(CbctRecon_FORMS
   ui/DlgRegistration.ui
   ui/DlgHistogram.ui # Kept for example, no longer used
   ui/DlgExternalCommand.ui
+  ui/style.qrc
 )
 
 set(PLM_TARGETS
