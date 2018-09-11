@@ -2113,11 +2113,9 @@ double CbctRecon::GetMaxAndMinValueOfProjectionImage(
   using MinMaxCalcType = itk::MinimumMaximumImageCalculator<FloatImageType>;
   MinMaxCalcType::Pointer MinMaxFilter = MinMaxCalcType::New();
   MinMaxFilter->SetImage(projImage);
-  clock_t begin = std::clock();
   MinMaxFilter->Compute();
   fProjImgValueMin = MinMaxFilter->GetMinimum();
   fProjImgValueMax = MinMaxFilter->GetMaximum();
-  clock_t end_time = std::clock();
 
   std::cout << "Min: " << fProjImgValueMin << " max: " << fProjImgValueMax
             << std::endl;

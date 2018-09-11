@@ -640,7 +640,7 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
 
   std::vector<double> out_vec;
   double revWEPL = cumWEPL.at(cumWEPL.size() - 1);
-  size_t idx = 0;
+  
   for (auto val : vdiff) {
     revWEPL -= val;
     out_vec.push_back(revWEPL * step_length);
