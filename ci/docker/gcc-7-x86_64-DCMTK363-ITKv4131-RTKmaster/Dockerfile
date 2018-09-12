@@ -24,7 +24,7 @@ RUN git config --global user.email "andreasga22@gmail.com" \
     && mkdir -p /home/user/ITK-build \
     && cd /home/user/ \
     && git clone --depth 1 --branch "v4.13.1" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
-    && echo "itk_fetch_module(RTK \"RTK\" GIT_REPOSITORY \"https://github.com/SimonRit/RTK.git\" GIT_TAG master)" > ITK/Modules/Remote/ExternalRTK.remote.cmake \
+    && echo "itk_fetch_module(RTK \"RTK\" GIT_REPOSITORY \"https://github.com/SimonRit/RTK.git\" GIT_TAG 0a2d4d573ab7bcf028c1f63d1dd417db29aa8a04)" > ITK/Modules/Remote/ExternalRTK.remote.cmake \
     && cd ITK-build \
     && cmake ../ITK -DBUILD_TESTING:BOOL=OFF -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DModule_ITKIODCMTK=ON -DITK_USE_SYSTEM_HDF5=ON -DRTK_BUILD_APPLICATIONS=OFF -DModule_ITKMathematicalMorphology=ON \
     && cmake --build .
