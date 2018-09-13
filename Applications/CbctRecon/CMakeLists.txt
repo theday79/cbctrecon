@@ -231,6 +231,7 @@ target_link_libraries(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_LIBS}
 )
 target_link_libraries(CbctRecon
+  PUBLIC ${CBCTRECON_DEP_LIBS} # Because USE_SYSTEM_ITK gets confused
   PUBLIC CbctReconLib
 )
 if(USE_TINYREFL)
