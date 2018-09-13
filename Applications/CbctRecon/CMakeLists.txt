@@ -220,7 +220,6 @@ list(APPEND QT_LIBRARIES
 set(CBCTRECON_DEP_LIBS
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
-  ${ITK_LIBRARIES}
   ${PLM_TARGETS}
   ${CLFFT_LIBRARIES}
   ${QT_LIBRARIES}
@@ -230,8 +229,10 @@ set(CBCTRECON_DEP_LIBS
 target_link_libraries(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_LIBS}
 )
+if(USE_SYSTEM_ITK)
+  link_directories(${ITK_LIBRARY_DIRS})
+endif()
 target_link_libraries(CbctRecon
-  PUBLIC ${CBCTRECON_DEP_LIBS} # Because USE_SYSTEM_ITK gets confused
   PUBLIC CbctReconLib
 )
 if(USE_TINYREFL)
