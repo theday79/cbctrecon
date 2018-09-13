@@ -33,4 +33,4 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 #    && cmake ..
 
 
-WORKDIR /home/user/cbctrecon
+WORKDIR /home/user/

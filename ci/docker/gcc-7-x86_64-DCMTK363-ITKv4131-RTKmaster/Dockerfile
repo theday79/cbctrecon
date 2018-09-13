@@ -35,4 +35,4 @@ RUN git config --global user.email "andreasga22@gmail.com" \
     && cmake --build .
 
 
-WORKDIR /home/user/cbctrecon
+WORKDIR /home/user/
