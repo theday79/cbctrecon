@@ -4,7 +4,7 @@ set(git_protocol https://git)
 
 macro(external_proj NAME)
   if(USE_SYSTEM_${NAME})
-    find_package(${NAME} REQUIRED)
+    # find_package(${NAME} REQUIRED)
     set(${NAME}_BINARY_DIR ${${NAME}_DIR} CACHE PATH "" FORCE)
     set(${NAME}_SOURCE_DIR ${${NAME}_SRC} CACHE PATH "" FORCE)
     add_subdirectory(${${NAME}_SOURCE_DIR} ${${NAME}_BINARY_DIR} EXCLUDE_FROM_ALL)
