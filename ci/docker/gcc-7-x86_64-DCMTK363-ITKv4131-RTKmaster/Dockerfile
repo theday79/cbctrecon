@@ -20,19 +20,40 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
 USER user
 
 RUN git config --global user.email "andreasga22@gmail.com" \
-    && git config --global user.name "Andreas Gravgaard Andersen" \
-    && mkdir -p /home/user/DCMTK-build \
-    && mkdir -p /home/user/ITK-build \
-    && cd /home/user/ \
+    && git config --global user.name "Andreas Gravgaard Andersen"
+
+# DCMTK
+RUN cd /home/user/ \
     && git clone --depth 1 --branch "DCMTK-3.6.3" https://github.com/DCMTK/DCMTK.git DCMTK \
-    && git clone --depth 1 --branch "v4.13.1" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
-    && echo "itk_fetch_module(RTK \"RTK\" GIT_REPOSITORY \"https://github.com/SimonRit/RTK.git\" GIT_TAG 0a2d4d573ab7bcf028c1f63d1dd417db29aa8a04)" > ITK/Modules/Remote/ExternalRTK.remote.cmake \
+    && mkdir -p /home/user/DCMTK-build \
     && cd DCMTK-build \
-    && cmake ../DCMTK -DBUILD_TESTING:BOOL=OFF -DBUILD_EXAMPLES=OFF -DDCMTK_WITH_DOXYGEN=OFF -DDCMTK_ENABLE_CXX11=ON -DDCMTK_ENABLE_STL=ON -DDCMTK_OVERWRITE_WIN32_COMPILER_FLAGS=OFF -DDCMTK_WITH_XML=OFF -DDCMTK_WITH_PNG=OFF -DDCMTK_WITH_TIFF=OFF -DDCMTK_WITH_OPENSSL=OFF -DDCMTK_WITH_SNDFILE=OFF -DDCMTK_WITH_ICONV=OFF \
-    && cmake --build . \
-    && cd ../ITK-build \
-    && cmake ../ITK -DBUILD_TESTING:BOOL=OFF -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DUSE_SYSTEM_DCMTK=ON -DDCMTK_DIR=/home/user/DCMTK-build -DITK_USE_SYSTEM_HDF5=ON -DRTK_BUILD_APPLICATIONS=OFF -DModule_ITKMathematicalMorphology=ON \
-    && cmake --build .
+    && cmake ../DCMTK \
+      -DDCMTK_WITH_DOXYGEN=OFF -DDCMTK_ENABLE_CXX11=ON -DDCMTK_ENABLE_STL=ON \
+      -DDCMTK_OVERWRITE_WIN32_COMPILER_FLAGS=OFF -DDCMTK_WITH_XML=OFF -DDCMTK_WITH_PNG=OFF \
+      -DDCMTK_WITH_TIFF=OFF -DDCMTK_WITH_OPENSSL=OFF -DDCMTK_WITH_SNDFILE=OFF -DDCMTK_WITH_ICONV=OFF \
+    && cmake --build . -- -j13
+
+# ITK
+RUN cd /home/user/ \
+    && git clone --depth 1 --branch "v4.13.1" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    && mkdir -p /home/user/ITK-build \
+    && cd ITK-build \
+    && cmake ../ITK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
+      -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
+      -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
+      -DUSE_SYSTEM_DCMTK=ON -DDCMTK_DIR=/home/user/DCMTK-build -DITK_USE_SYSTEM_HDF5=ON \
+      -DModule_ITKMathematicalMorphology=ON -DModule_ITKConvolution=ON -DModule_ITKIOCSV=ON -DModule_ITKImageNoise=ON \
+    && cmake --build . -- -j13
+
+# RTK
+RUN cd /home/user/ \
+    && git clone --depth 1 https://github.com/SimonRit/RTK.git RTK \
+    && mkdir -p /home/user/RTK-build \
+    && cd RTK-build \
+    && cmake ../RTK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
+      -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
+      -DITK_DIR=/home/user/ITK-build \
+    && cmake --build . -- -j13
 
 
 WORKDIR /home/user/

@@ -217,9 +217,16 @@ list(APPEND QT_LIBRARIES
   )
 
 #this is for "Linker->Additional dependencies"
+if(USE_SYSTEM_ITK)
+set(RITK_LIBS
+  ${ITK_LIBRARIES}
+  ${RTK_LIBRARIES}
+  )
+endif()
 set(CBCTRECON_DEP_LIBS
   ${WIN_LIB}
   ${DCMTK_LIBRARIES}
+  ${RITK_LIBS}
   ${PLM_TARGETS}
   ${CLFFT_LIBRARIES}
   ${QT_LIBRARIES}
@@ -229,9 +236,6 @@ set(CBCTRECON_DEP_LIBS
 target_link_libraries(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_LIBS}
 )
-if(USE_SYSTEM_ITK)
-  link_directories(${ITK_LIBRARY_DIRS})
-endif()
 target_link_libraries(CbctRecon
   PUBLIC CbctReconLib
 )

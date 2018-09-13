@@ -117,6 +117,11 @@ if(NOT ITK_FOUND)
   include(${ITK_USE_FILE})
 endif()
 
+if(USE_SYSTEM_ITK)
+  find_package(RTK REQUIRED)
+  include(${RTK_USE_FILE})
+endif()
+
 add_subdirectory(Applications)
 
 if(CBCTRECON_BUILD_TESTS)
