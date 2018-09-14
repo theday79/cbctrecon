@@ -238,6 +238,7 @@ target_link_libraries(CbctReconLib
 )
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
+  PRIVATE ${CBCTRECON_DEP_LIBS}
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
