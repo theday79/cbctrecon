@@ -96,11 +96,11 @@ install:
 
 cache:
   # Caching DCMTK source and build tree
-  - '%DCMTK_SOURCE_DIR%'
-  - '%DCMTK_BINARY_DIR%'
+  - '%DCMTK_SOURCE_DIR%' -> appveyor.yml
+  - '%DCMTK_BINARY_DIR%' -> appveyor.yml
   # Caching ITK source and build tree
-  - '%ITK_SOURCE_DIR%'
-  - '%ITK_BINARY_DIR%'
+  - '%ITK_SOURCE_DIR%' -> appveyor.yml
+  - '%ITK_BINARY_DIR%' -> appveyor.yml
 
 build:
   parallel: true
