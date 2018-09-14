@@ -18,4 +18,8 @@ docker push ${REPO}/${NAME}:${CC}
 docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK} 
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK} 
 
+DCMIRTK="DCMTK363-ITKv4131-integrated-RTKmaster"
+docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK} 
+docker push ${REPO}/${NAME}:${CC}-${DCMIRTK} 
+
 # docker run -it --rm ${REPO}/${NAME}:gcc7-x86_64 bash

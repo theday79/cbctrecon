@@ -38,3 +38,12 @@ test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK:
     image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-RTKmaster
     script:
       - ./ci/ci.sh
+
+test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK-integrated:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-integrated-RTKmaster
+    script:
+      - ./ci/ci.sh

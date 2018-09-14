@@ -234,10 +234,10 @@ set(CBCTRECON_DEP_LIBS
   OpenCL::OpenCL
 )
 target_link_libraries(CbctReconLib
-  PUBLIC ${CBCTRECON_DEP_LIBS}
+  PRIVATE ${CBCTRECON_DEP_LIBS}
 )
 target_link_libraries(CbctRecon
-  PUBLIC CbctReconLib
+  PRIVATE CbctReconLib
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
