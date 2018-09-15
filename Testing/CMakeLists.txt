@@ -27,8 +27,12 @@ if(NOT EXISTS ${GEN_UI_INCLUDE_DIR}/ui_cbctrecon.h)
   message(STATUS "AutoUIC file not found in ${GEN_UI_INCLUDE_DIR}")
 endif()
 
+message(STATUS "PLM_TARGETS: ${PLM_TARGETS}")
+message(STATUS "CBCTRECON_DEP_LIBS: ${CBCTRECON_DEP_LIBS}")
 target_link_libraries(CbctRecon_test
   PRIVATE CbctReconLib
+  PRIVATE ${PLM_TARGETS}
+  PRIVATE ${CBCTRECON_DEP_LIBS}
   )
 target_include_directories(CbctRecon_test
   PRIVATE ${APP_FOLDERS}

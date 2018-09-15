@@ -23,46 +23,7 @@ option(CbctRecon_PACKAGE_WIX "Set to ON when packaging binaries with WIX" ON)
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
-if(USE_GPMC)
-  message(STATUS "Compiling with GPMC option")
-  add_definitions(-DUSE_GPMC=TRUE)
-endif(USE_GPMC)
-
-if(USE_CUDA)
-  message(STATUS "Compiling with CUDA option")
-  add_definitions(-DUSE_CUDA=TRUE)
-endif(USE_CUDA)
-
-if(USE_LOWPASS_FFT)
-  message(STATUS "Compiling with Gauss FFT as low-pass filter for scatter smoothing option")
-  add_definitions(-DLOWPASS_FFT=TRUE)
-endif(USE_LOWPASS_FFT)
-
-if(OpenCL_FOUND)
-  add_definitions(-DUSE_OPENCL_PLM=TRUE)
-  add_definitions(-DUSE_OPENCL_RTK=TRUE)
-  if(USE_CLFFT)
-    FIND_PACKAGE(clFFT REQUIRED)
-    message(STATUS "Compiling with clFFT option")
-    add_definitions(-DUSE_CLFFT=TRUE)
-  endif(USE_CLFFT)
-endif(OpenCL_FOUND)
-
-if(USE_OPENMP)
-  FIND_PACKAGE(OpenMP)
-  if(OpenMP_FOUND)
-    message(STATUS "Compiling with OPENMP option")
-    add_definitions(-DUSE_OPENMP=TRUE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  endif()
-endif(USE_OPENMP)
-
-include(${ITK_USE_FILE}) # For RTK libraries
-
 ############## Qt start wrapping ##############
-FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
-
 SET(CbctRecon_SOURCES
   cbctrecon.cpp
   qt-utils/YK16GrayImage.cxx
@@ -108,17 +69,6 @@ SET(CbctRecon_FORMS
   ui/DlgHistogram.ui # Kept for example, no longer used
   ui/DlgExternalCommand.ui
   ui/style.qrc
-)
-
-set(PLM_TARGETS
-  plmbase
-  plmutil
-  plmdose
-  plmbase
-  plmregister
-  plmreconstruct
-  plmopencl
-  plmsegment
 )
 
 set(LOCAL_INCL_DIRS
@@ -203,41 +153,14 @@ target_include_directories(CbctRecon
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if(WIN32)
-  set(WIN_LIB netapi32.lib)
-endif(WIN32)
-
-set(QT_LIBRARIES)
-list(APPEND QT_LIBRARIES
-  "Qt5::Core"
-  "Qt5::Gui"
-  "Qt5::OpenGL"
-  "Qt5::PrintSupport"
-  "Qt5::Widgets"
-  )
-
 #this is for "Linker->Additional dependencies"
-if(USE_SYSTEM_ITK)
-set(RITK_LIBS
-  ${ITK_LIBRARIES}
-  ${RTK_LIBRARIES}
-  )
-endif()
-set(CBCTRECON_DEP_LIBS
-  ${WIN_LIB}
-  ${DCMTK_LIBRARIES}
-  ${RITK_LIBS}
-  ${PLM_TARGETS}
-  ${CLFFT_LIBRARIES}
-  ${QT_LIBRARIES}
-  ${TBB_LIBRARIES}
-  OpenCL::OpenCL
-)
 target_link_libraries(CbctReconLib
+  PRIVATE ${PLM_TARGETS}
   PRIVATE ${CBCTRECON_DEP_LIBS}
 )
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
+  PRIVATE ${PLM_TARGETS}
   PRIVATE ${CBCTRECON_DEP_LIBS}
 )
 if(USE_TINYREFL)

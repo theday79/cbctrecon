@@ -202,7 +202,7 @@ class QXmlStreamReader;
 
 // using namespace std;
 
-class CbctRecon : public QMainWindow {
+class Q_DECL_EXPORT CbctRecon : public QMainWindow {
   Q_OBJECT
 
 public:
