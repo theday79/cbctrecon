@@ -84,6 +84,7 @@ endif()
 # Executable
 add_executable(CbctRecon
   main.cpp
+  ${CbctRecon_SOURCES}
   ${CbctRecon_HEADERS}
   ${CbctRecon_FORMS}
 )
