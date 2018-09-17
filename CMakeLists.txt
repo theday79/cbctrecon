@@ -131,23 +131,16 @@ if(USE_SYSTEM_RTK)
   include(${RTK_USE_FILE})
 endif()
 
-if(NOT USE_SYSTEM_ITK)
-  set(PLM_TARGETS
-    plmbase
-    plmutil
-    plmdose
-    plmbase
-    plmregister
-    plmreconstruct
-    plmopencl
-    plmsegment
-  )
-else()
-  set(PLM_TARGETS
-    ${PLASTIMATCH_LIBRARIES}
-  )
-  message(STATUS "PLM libs: ${PLASTIMATCH_LIBRARIES}")
-endif()
+set(PLM_TARGETS
+  plmbase
+  plmutil
+  plmdose
+  plmbase
+  plmregister
+  plmreconstruct
+  plmopencl
+  plmsegment
+)
 
 if(WIN32)
   set(WIN_LIB netapi32.lib)
