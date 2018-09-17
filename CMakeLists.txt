@@ -112,7 +112,6 @@ set(EXECUTEABLE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "" FORCE)
 add_subdirectory(External)
 
 if(NOT DCMTK_FOUND)
-  set(DCMTK_DIR ${DCMTK_BINARY_DIR} CACHE PATH "")
   if(NOT USE_SYSTEM_DCMTK)
     set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
   endif()
@@ -120,10 +119,8 @@ if(NOT DCMTK_FOUND)
 endif()
 
 if(NOT ITK_FOUND)
-  if(NOT ITK_BINARY_DIR)
+  if(NOT USE_SYSTEM_ITK)
     set(ITK_DIR "${CMAKE_BINARY_DIR}/ITK-build")
-  elseif(NOT ITK_DIR)
-    set(ITK_DIR ${ITK_BINARY_DIR} CACHE PATH "" FORCE)
   endif()
   find_package(ITK REQUIRED)
   include(${ITK_USE_FILE})
@@ -134,16 +131,23 @@ if(USE_SYSTEM_RTK)
   include(${RTK_USE_FILE})
 endif()
 
-set(PLM_TARGETS
-  plmbase
-  plmutil
-  plmdose
-  plmbase
-  plmregister
-  plmreconstruct
-  plmopencl
-  plmsegment
-)
+if(NOT USE_SYSTEM_ITK)
+  set(PLM_TARGETS
+    plmbase
+    plmutil
+    plmdose
+    plmbase
+    plmregister
+    plmreconstruct
+    plmopencl
+    plmsegment
+  )
+else()
+  set(PLM_TARGETS
+    ${PLASTIMATCH_LIBRARIES}
+  )
+  message(STATUS "PLM libs: ${PLASTIMATCH_LIBRARIES}")
+endif()
 
 if(WIN32)
   set(WIN_LIB netapi32.lib)

@@ -4,8 +4,7 @@ set(git_protocol https://git)
 
 macro(external_proj NAME)
   if(USE_SYSTEM_${NAME})
-    # find_package(${NAME} REQUIRED)
-    set(${NAME}_BINARY_DIR ${${NAME}_DIR} CACHE PATH "" FORCE)
+    find_package(${NAME} REQUIRED)
   else()
     include(External_${NAME}.cmake)
     external_dependency(${NAME} ${${NAME}_GIT_REPOSITORY} ${${NAME}_GIT_TAG})
@@ -38,6 +37,8 @@ if (NOT USE_SYSTEM_ITK)
     ${ITK_SOURCE_DIR}/Modules/Remote/
     COPYONLY
   )
+else()
+  include(${ITK_USE_FILE})
 endif()
 
 # Plastimatch
