@@ -158,7 +158,7 @@ build_script:
   - git config --global user.email "andreasga22@gmail.com"
   - git config --global user.name "Andreas Gravgaard Andersen"
   # Configure CbctRecon and dependencies
-  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.11.1/msvc2015_64/lib/cmake/Qt5" -DITK_DIR="%ITK_BINARY_DIR%" -DDCMTK_DIR="%DCMTK_BINARY_DIR%" -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_DCMTK=ON -DDCMTK_SRC="%DCMTK_SOURCE_DIR%" -DITK_SRC="%ITK_SOURCE_DIR%"
+  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.11.1/msvc2015_64/lib/cmake/Qt5" -DITK_DIR="%ITK_BINARY_DIR%" -DDCMTK_DIR="%DCMTK_BINARY_DIR%" -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_DCMTK=ON
   # Fetch ExternalData. (Retried up to 3 times if network errors occured) <- TODO:this step must be added!!
   # Build CbctRecon
   - cmake --build . --config %BUILD_TYPE% --target CbctRecon
