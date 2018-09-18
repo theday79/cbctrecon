@@ -3,7 +3,7 @@
 
 
 #if ((defined(_WIN32) || defined(WIN32)) && (defined (CBCTRECON_BUILD_SHARED_LIBS)))
-# ifdef cbctrecon_EXPORTS
+# ifdef CbctReconLib_EXPORTS
 #   define CBCTRECON_C_API EXTERNC __declspec(dllexport)
 #   define CBCTRECON_API __declspec(dllexport)
 # else
