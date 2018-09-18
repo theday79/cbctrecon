@@ -1,6 +1,4 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.8) # Yes, less won't do.
-
-project(App)
+### The main application ###
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC_SEARCH_PATHS
@@ -74,8 +72,11 @@ SET(CbctRecon_FORMS
   ui/DlgRegistration.ui
   ui/DlgHistogram.ui # Kept for example, no longer used
   ui/DlgExternalCommand.ui
-  ui/style.qrc
 )
+
+Qt5_wrap_cpp(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
+Qt5_wrap_ui(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
+Qt5_add_resources(CbctRecon_RCC ui/style.qrc)
 
 set(LOCAL_INCL_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils
@@ -87,18 +88,17 @@ if(MSVC AND NOT(MSVC_VERSION LESS 1400))
     PROPERTIES COMPILE_FLAGS "/bigobj")
 endif()
 
+add_library(CbctReconLib
+  ${CbctRecon_SOURCES}
+  ${CbctRecon_HEADERS_MOC}
+  ${CbctRecon_FORMS_HEADERS}
+  ${CbctRecon_RCC}
+  )
+
 # Executable
 add_executable(CbctRecon
   main.cpp
-  ${CbctRecon_HEADERS}
-  ${CbctRecon_FORMS}
 )
-
-add_library(CbctReconLib
-  ${CbctRecon_SOURCES}
-  ${CbctRecon_HEADERS}
-  ${CbctRecon_FORMS}
-  )
 
 set_target_properties(CbctRecon
   PROPERTIES
@@ -167,8 +167,6 @@ target_link_libraries(CbctReconLib
 )
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
-  PRIVATE ${PLM_TARGETS}
-  PRIVATE ${CBCTRECON_DEP_LIBS}
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
