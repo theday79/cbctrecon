@@ -1,0 +1,19 @@
+#ifndef __cbctrecon_config_h__
+#define __cbctrecon_config_h__
+
+
+#if ((defined(_WIN32) || defined(WIN32)) && (defined (CBCTRECON_BUILD_SHARED_LIBS)))
+# ifdef cbctrecon_EXPORTS
+#   define CBCTRECON_C_API EXTERNC __declspec(dllexport)
+#   define CBCTRECON_API __declspec(dllexport)
+# else
+#   define CBCTRECON_C_API EXTERNC __declspec(dllimport)
+#   define CBCTRECON_API __declspec(dllimport)
+# endif
+#else
+# define CBCTRECON_C_API EXTERNC 
+# define CBCTRECON_API 
+#endif
+
+#endif
+

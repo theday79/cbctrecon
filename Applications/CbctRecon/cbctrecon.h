@@ -113,6 +113,8 @@
 #include <proj_matrix.h>
 #endif // USE_OPENCL_PLM
 
+#include "cbctrecon_config.h"
+
 using FloatPixelType = float;
 // typedef itk::Image< FloatPixelType, 3 > FloatImageType;
 // typedef itk::Image< FloatPixelType, 2 > FloatImage2DType;
@@ -202,7 +204,7 @@ class QXmlStreamReader;
 
 // using namespace std;
 
-class Q_DECL_EXPORT CbctRecon : public QMainWindow {
+class CBCTRECON_API CbctRecon : public QMainWindow {
   Q_OBJECT
 
 public:

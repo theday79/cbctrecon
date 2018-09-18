@@ -1,6 +1,7 @@
 #ifndef DLGREGISTRATION_H
 #define DLGREGISTRATION_H
 
+#include "cbctrecon_config.h"
 #include "AG17RGBAImage.h"
 #include "YK16GrayImage.h"
 #include "cbctrecon.h"
@@ -44,7 +45,7 @@ enum enRegisterOption {
 #define DEFAULT_LABEL_SIZE2 256
 #define DEFAULT_LABEL_SIZE3 256
 
-class DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
+class CBCTRECON_API DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
   Q_OBJECT
 
 public slots:

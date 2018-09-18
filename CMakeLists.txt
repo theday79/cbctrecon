@@ -35,6 +35,7 @@ if(NOT WIN32)
 else()
   OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
+OPTION(CBCTRECON_BUILD_SHARED_LIBS "Build shared libraries for CbctRecon" ${BUILD_SHARED_LIBS})
 
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
 # BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests

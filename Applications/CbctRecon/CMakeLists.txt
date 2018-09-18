@@ -23,6 +23,11 @@ option(CbctRecon_PACKAGE_WIX "Set to ON when packaging binaries with WIX" ON)
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
+configure_file (
+  ${CMAKE_CURRENT_SOURCE_DIR}/cbctrecon_config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
+)
+
 ############## Qt start wrapping ##############
 SET(CbctRecon_SOURCES
   cbctrecon.cpp
@@ -62,6 +67,7 @@ SET(CbctRecon_HEADERS
   io.hxx
   compute.hxx
   fdk.hxx
+  ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 SET(CbctRecon_FORMS
   ui/cbctrecon.ui
@@ -84,7 +90,6 @@ endif()
 # Executable
 add_executable(CbctRecon
   main.cpp
-  ${CbctRecon_SOURCES}
   ${CbctRecon_HEADERS}
   ${CbctRecon_FORMS}
 )
