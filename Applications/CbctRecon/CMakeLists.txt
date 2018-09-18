@@ -144,24 +144,13 @@ set(CBCTRECON_DEP_INCLUDES
   ${CLFFT_INCLUDE_DIRS}
 )
 
-set(GEN_UI_HEADER_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
-
-get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(is_multi_config)
-  add_custom_command(TARGET CbctReconLib POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${GEN_UI_HEADER_DIR}_$<CONFIG>/ui_cbctrecon.h" "${CMAKE_CURRENT_BINARY_DIR}"
-  )
-endif()
-
 target_include_directories(CbctReconLib
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
-  PUBLIC ${GEN_UI_HEADER_DIR}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 target_include_directories(CbctRecon
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
-  PUBLIC ${GEN_UI_HEADER_DIR}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 

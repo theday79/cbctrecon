@@ -13,29 +13,14 @@ set(APP_FOLDERS
   ${APP_DIR}/qt-utils/
   ${APP_DIR}/rtkExtension/
   ${APP_DIR}/ui/
-)
-
-set(GEN_UI_INCLUDE_DIR ${CMAKE_BINARY_DIR}/Applications/CbctRecon/CbctReconLib_autogen/include)
-
-get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(is_multi_config)
-  add_custom_command(TARGET CbctRecon_test PRE_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${GEN_UI_INCLUDE_DIR}_$<CONFIG>/ui_cbctrecon.h" "${CMAKE_CURRENT_BINARY_DIR}"
   )
-endif()
-if(NOT EXISTS ${GEN_UI_INCLUDE_DIR}/ui_cbctrecon.h)
-  message(STATUS "AutoUIC file not found in ${GEN_UI_INCLUDE_DIR}")
-endif()
 
-message(STATUS "PLM_TARGETS: ${PLM_TARGETS}")
-message(STATUS "CBCTRECON_DEP_LIBS: ${CBCTRECON_DEP_LIBS}")
 target_link_libraries(CbctRecon_test
   PRIVATE CbctReconLib
-  PRIVATE ${PLM_TARGETS}
-  PRIVATE ${CBCTRECON_DEP_LIBS}
+  PRIVATE ${QT_LIBRARIES}
   )
+
 target_include_directories(CbctRecon_test
   PRIVATE ${APP_FOLDERS}
-  PUBLIC ${GEN_UI_INCLUDE_DIR}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
   )
