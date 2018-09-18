@@ -44,6 +44,8 @@ SET(CbctRecon_SOURCES
 )
 
 SET(CbctRecon_NonQt_HEADERS
+  qt-utils/YK16GrayImage.h
+  qt-utils/AG17RGBAImage.h
   PlmWrapper.h
   StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
@@ -56,20 +58,18 @@ SET(CbctRecon_NonQt_HEADERS
   rtkExtension/itkOpenCLImageToImageFilter.hxx
   rtkExtension/rtkOpenCLUtilities.h
   OpenCLFFTFilter.h
-)
-
-SET(CbctRecon_HEADERS
-  cbctrecon.h
-  qt-utils/YK16GrayImage.h
-  qt-utils/AG17RGBAImage.h
-  qt-utils/qyklabel.h
-  qt-utils/qcustomplot.h
-  DlgRegistration.h
-  DlgExternalCommand.h
   io.hxx
   compute.hxx
   fdk.hxx
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
+)
+
+SET(CbctRecon_HEADERS
+  cbctrecon.h
+  qt-utils/qyklabel.h
+  qt-utils/qcustomplot.h
+  DlgRegistration.h
+  DlgExternalCommand.h
 )
 SET(CbctRecon_FORMS
   ui/cbctrecon.ui
@@ -82,7 +82,9 @@ Qt5_wrap_cpp(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
 Qt5_wrap_ui(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
 Qt5_add_resources(CbctRecon_RCC ui/style.qrc)
 
-set(LOCAL_INCL_DIRS
+set(CBCTRECON_INCLUDE_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/ui
   ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils
   ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension
   )
@@ -92,7 +94,11 @@ if(MSVC AND NOT(MSVC_VERSION LESS 1400))
     PROPERTIES COMPILE_FLAGS "/bigobj")
 endif()
 
-add_library(CbctReconLib
+if(CBCTRECON_BUILD_SHARED_LIBS)
+  set(SHARED_FLAG SHARED)
+endif()
+
+add_library(CbctReconLib ${SHARED_FLAG}
   ${CbctRecon_SOURCES}
   ${CbctRecon_NonQt_HEADERS}
   ${CbctRecon_HEADERS_MOC}
@@ -136,7 +142,7 @@ set(PLASTIMATCH_INCLUDE_DIRS
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 set(CBCTRECON_DEP_INCLUDES
-  ${LOCAL_INCL_DIRS}
+  ${CBCTRECON_INCLUDE_DIRS}
   ${ITK_INCLUDE_DIRS}
   ${RTK_INCLUDE_DIRS}
   ${PLASTIMATCH_INCLUDE_DIRS}
@@ -156,13 +162,11 @@ target_include_directories(CbctRecon
 
 #this is for "Linker->Additional dependencies"
 target_link_libraries(CbctReconLib
-  PRIVATE ${PLM_TARGETS}
-  PRIVATE ${CBCTRECON_DEP_LIBS}
+  PUBLIC ${PLM_TARGETS}
+  PUBLIC ${CBCTRECON_DEP_LIBS}
 )
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
-  PRIVATE ${PLM_TARGETS}
-  PRIVATE ${CBCTRECON_DEP_LIBS}
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
