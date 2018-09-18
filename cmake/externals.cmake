@@ -6,6 +6,11 @@ macro(external_dependency NAME URL COMMIT)
     else()
       set(PATCH_CMD PATCH_COMMAND "")
     endif()
+    if(${NAME} STREQUAL "TINYREFL")
+      set(SHALLOW_CMD GIT_SHALLOW OFF)
+    else()
+      set(SHALLOW_CMD GIT_SHALLOW ON)
+    endif()
 
     if(NOT TARGET ${NAME})
         message(STATUS "external dependency ${NAME} from ${URL} at ${COMMIT}")
@@ -13,7 +18,7 @@ macro(external_dependency NAME URL COMMIT)
             PROJ "${NAME}"
             GIT_REPOSITORY "${URL}"
             GIT_TAG "${COMMIT}"
-            GIT_SHALLOW ON
+            ${SHALLOW_CMD}
             ${PATCH_CMD}
         )
 
