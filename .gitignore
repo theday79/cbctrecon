@@ -45,3 +45,6 @@
 
 # Ignore tinyrefl generated files
 *.tinyrefl
+
+# Visual studio generated files
+*.json

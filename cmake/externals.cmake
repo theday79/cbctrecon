@@ -13,6 +13,7 @@ macro(external_dependency NAME URL COMMIT)
             PROJ "${NAME}"
             GIT_REPOSITORY "${URL}"
             GIT_TAG "${COMMIT}"
+            GIT_SHALLOW ON
             ${PATCH_CMD}
         )
 

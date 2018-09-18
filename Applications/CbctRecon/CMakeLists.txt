@@ -42,16 +42,10 @@ SET(CbctRecon_SOURCES
   OpenCLFFTFilter.cxx
   CMakeSetup.rc
 )
-SET(CbctRecon_HEADERS
-  cbctrecon.h
-  qt-utils/YK16GrayImage.h
-  qt-utils/AG17RGBAImage.h
-  qt-utils/qyklabel.h
-  qt-utils/qcustomplot.h
-  DlgRegistration.h
-  StructureSet.h
+
+SET(CbctRecon_NonQt_HEADERS
   PlmWrapper.h
-  DlgExternalCommand.h
+  StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
@@ -62,6 +56,16 @@ SET(CbctRecon_HEADERS
   rtkExtension/itkOpenCLImageToImageFilter.hxx
   rtkExtension/rtkOpenCLUtilities.h
   OpenCLFFTFilter.h
+)
+
+SET(CbctRecon_HEADERS
+  cbctrecon.h
+  qt-utils/YK16GrayImage.h
+  qt-utils/AG17RGBAImage.h
+  qt-utils/qyklabel.h
+  qt-utils/qcustomplot.h
+  DlgRegistration.h
+  DlgExternalCommand.h
   io.hxx
   compute.hxx
   fdk.hxx
@@ -90,6 +94,7 @@ endif()
 
 add_library(CbctReconLib
   ${CbctRecon_SOURCES}
+  ${CbctRecon_NonQt_HEADERS}
   ${CbctRecon_HEADERS_MOC}
   ${CbctRecon_FORMS_HEADERS}
   ${CbctRecon_RCC}
@@ -167,6 +172,7 @@ target_link_libraries(CbctReconLib
 )
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
+  PRIVATE Qt5::Widgets
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
