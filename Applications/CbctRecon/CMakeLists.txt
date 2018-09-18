@@ -172,7 +172,7 @@ target_link_libraries(CbctReconLib
 )
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
-  PRIVATE Qt5::Widgets
+  PRIVATE ${QT_LIBRARIES}
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
