@@ -48,3 +48,4 @@
 
 # Visual studio generated files
 *.json
+.vs/*
