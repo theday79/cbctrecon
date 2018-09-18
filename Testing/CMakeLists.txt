@@ -17,7 +17,8 @@ set(APP_FOLDERS
 
 target_link_libraries(CbctRecon_test
   PRIVATE CbctReconLib
-  PRIVATE ${QT_LIBRARIES}
+  PRIVATE ${PLM_TARGETS}
+  PRIVATE ${CBCTRECON_DEP_LIBS}
   )
 
 target_include_directories(CbctRecon_test
