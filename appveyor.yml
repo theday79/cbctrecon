@@ -168,11 +168,12 @@ build_script:
   - ctest -V -C %BUILD_TYPE%
   # Create .msi
   - cpack -C %BUILD_TYPE%
+  - move CbctRecon-*.msi %APPVEYOR_BUILD_FOLDER%
 
 test: off
 
 artifacts:
-  - path: '*.msi'
+  - path: 'CbctRecon-*.msi'
     name: binary_msi
 
 # Appveyor will push the artifacts it has saved to GitLab 'releases' tab
@@ -182,7 +183,7 @@ deploy:
     description: "Windows installer from AppVeyor CI"
     auth_token:
       secure: Wcahfcb8RTeiEypo/pM0fLnLU+Pd7Hd2UV1tQbJfihQEayaz/Ucb0am78msCC0yy
-    artifact: binary_msi
+    artifact: /.*\.msi/
     draft: true
     prerelease: true
     on:
