@@ -1,6 +1,7 @@
 variables:
     GIT_STRATEGY: clone
     BUILD_TESTING: "NO"
+    CUDA_AVAILABLE: "NO"
 
 
 test-x86_64-linux-ubuntu-gcc7:
@@ -8,6 +9,54 @@ test-x86_64-linux-ubuntu-gcc7:
     tags:
       - linux
       - docker
-    image: andreasga/cbctrecon:gcc7-x86_64
+    image: andreasga/cbctrecon:gcc-7-x86_64
+    script:
+      - ./ci/ci.sh
+
+test-x86_64-linux-CUDA-gcc7:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - cuda
+    image: andreasga/cbctrecon:gcc-7-CUDA-x86_64
+    variables:
+      CUDA_AVAILABLE: "YES"
+    script:
+      - ./ci/ci.sh
+
+test-x86_64-linux-ubuntu-gcc7-prebuild-DCM-I-RTK:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:gcc-7-x86_64-DCMTK363-ITKv4131-RTKmaster
+    script:
+      - ./ci/ci.sh
+
+test-x86_64-linux-ubuntu-clang6:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:clang-6-x86_64
+    script:
+      - ./ci/ci.sh
+
+test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-RTKmaster
+    script:
+      - ./ci/ci.sh
+
+test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK-integrated:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-integrated-RTKmaster
     script:
       - ./ci/ci.sh

@@ -40,7 +40,40 @@ elseif (${ITK_VERSION_MAJOR} VERSION_EQUAL "4")
       "Fatal Error. ITK 4 must be 4.1 or greater")
   endif ()
 else ()
-  message (STATUS 
-    "What if ITK not version 3.X or 4.X?")
+  message (FATAL_ERROR 
+    "Fatal Error. ITK version should be either 3.X or 4.X")
 endif ()
 message (STATUS "ITK_VERSION = ${ITK_VERSION} found")
+
+
+# Find ITK DLL directory.  This is used on Windows for both regression testing and packaging.
+if (NOT ITK_FOUND)
+  set (ITK_BASE "${PLM_BINARY_DIR}/ITK-build")
+elseif (${ITK_VERSION} VERSION_LESS "4.1")
+  set (ITK_BASE "${ITK_LIBRARY_DIRS}")
+else ()
+  # At some point in time (presumably around ITK 4.1), ITK stopped
+  # creating the variable ITK_LIBRARY_DIRS.  Therefore, we infer from the 
+  # configuration filename.
+  # Remove filename
+  string (REGEX REPLACE "/[^/]*$" "" ITK_LIBRARY_DIRS_41
+    "${ITK_CONFIG_TARGETS_FILE}")
+  # If configuring against installation directory, walk up to base directory
+  string (REGEX REPLACE "/lib/cmake/ITK-.*]*$" "" ITK_LIBRARY_DIRS_41
+    "${ITK_LIBRARY_DIRS_41}")
+  set (ITK_BASE "${ITK_LIBRARY_DIRS_41}")
+endif ()
+
+message (STATUS "ITK_BASE = ${ITK_BASE}")
+if (NOT WIN32)
+  set (ITK_DLL_DIR "")
+elseif (IS_DIRECTORY "${ITK_BASE}/bin/Release")
+  set (ITK_DLL_DIR "${ITK_BASE}/bin/Release")
+elseif (IS_DIRECTORY "${ITK_BASE}/Release")
+  set (ITK_DLL_DIR "${ITK_BASE}/Release")
+elseif (IS_DIRECTORY "${ITK_BASE}/bin")
+  set (ITK_DLL_DIR "${ITK_BASE}/bin")
+else ()
+  set (ITK_DLL_DIR "")
+endif ()
+

@@ -1,6 +1,4 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.8) # Yes, less won't do.
-
-project(App)
+### The main application ###
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC_SEARCH_PATHS
@@ -10,13 +8,11 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH bin)
 endif(APPLE)
-
-set(DCMTK_DIR ${CMAKE_BINARY_DIR})
-find_package(DCMTK_wrap)
 
 # Packaging
 option(CbctRecon_PACKAGE_32BIT "Set this when building 32-bit packages on a 64-bit machine" OFF)
@@ -25,47 +21,13 @@ option(CbctRecon_PACKAGE_WIX "Set to ON when packaging binaries with WIX" ON)
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
-if(USE_GPMC)
-  message(STATUS "Compiling with GPMC option")
-  add_definitions(-DUSE_GPMC=TRUE)
-endif(USE_GPMC)
-
-if(USE_CUDA)
-  message(STATUS "Compiling with CUDA option")
-  add_definitions(-DUSE_CUDA=TRUE)
-endif(USE_CUDA)
-
-if(USE_LOWPASS_FFT)
-  message(STATUS "Compiling with Gauss FFT as low-pass filter for scatter smoothing option")
-  add_definitions(-DLOWPASS_FFT=TRUE)
-endif(USE_LOWPASS_FFT)
-
-if(OpenCL_FOUND)
-  add_definitions(-DUSE_OPENCL_PLM=TRUE)
-  add_definitions(-DUSE_OPENCL_RTK=TRUE)
-  if(USE_CLFFT)
-    FIND_PACKAGE(clFFT REQUIRED)
-    message(STATUS "Compiling with clFFT option")
-    add_definitions(-DUSE_CLFFT=TRUE)
-  endif(USE_CLFFT)
-endif(OpenCL_FOUND)
-
-if(USE_OPENMP)
-  FIND_PACKAGE(OpenMP)
-  if(OpenMP_FOUND)
-    message(STATUS "Compiling with OPENMP option")
-    add_definitions(-DUSE_OPENMP=TRUE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  endif()
-endif(USE_OPENMP)
-
+configure_file (
+  ${CMAKE_CURRENT_SOURCE_DIR}/cbctrecon_config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
+)
 
 ############## Qt start wrapping ##############
-FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
-
 SET(CbctRecon_SOURCES
-  main.cpp
   cbctrecon.cpp
   qt-utils/YK16GrayImage.cxx
   qt-utils/AG17RGBAImage.cxx
@@ -80,16 +42,12 @@ SET(CbctRecon_SOURCES
   OpenCLFFTFilter.cxx
   CMakeSetup.rc
 )
-SET(CbctRecon_HEADERS
-  cbctrecon.h
+
+SET(CbctRecon_NonQt_HEADERS
   qt-utils/YK16GrayImage.h
   qt-utils/AG17RGBAImage.h
-  qt-utils/qyklabel.h
-  qt-utils/qcustomplot.h
-  DlgRegistration.h
-  StructureSet.h
   PlmWrapper.h
-  DlgExternalCommand.h
+  StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
@@ -103,6 +61,15 @@ SET(CbctRecon_HEADERS
   io.hxx
   compute.hxx
   fdk.hxx
+  ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
+)
+
+SET(CbctRecon_HEADERS
+  cbctrecon.h
+  qt-utils/qyklabel.h
+  qt-utils/qcustomplot.h
+  DlgRegistration.h
+  DlgExternalCommand.h
 )
 SET(CbctRecon_FORMS
   ui/cbctrecon.ui
@@ -111,18 +78,13 @@ SET(CbctRecon_FORMS
   ui/DlgExternalCommand.ui
 )
 
-set(PLM_TARGETS
-  plmbase
-  plmutil
-  plmdose
-  plmbase
-  plmregister
-  plmreconstruct
-  plmopencl
-  plmsegment
-)
+Qt5_wrap_cpp(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
+Qt5_wrap_ui(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
+Qt5_add_resources(CbctRecon_RCC ui/style.qrc)
 
-set(LOCAL_INCL_DIRS
+set(CBCTRECON_INCLUDE_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/ui
   ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils
   ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension
   )
@@ -132,11 +94,21 @@ if(MSVC AND NOT(MSVC_VERSION LESS 1400))
     PROPERTIES COMPILE_FLAGS "/bigobj")
 endif()
 
-# Executable
-ADD_EXECUTABLE(CbctRecon
+if(CBCTRECON_BUILD_SHARED_LIBS)
+  set(SHARED_FLAG SHARED)
+endif()
+
+add_library(CbctReconLib ${SHARED_FLAG}
   ${CbctRecon_SOURCES}
-  ${CbctRecon_HEADERS}
-  ${CbctRecon_FORMS}
+  ${CbctRecon_NonQt_HEADERS}
+  ${CbctRecon_HEADERS_MOC}
+  ${CbctRecon_FORMS_HEADERS}
+  ${CbctRecon_RCC}
+  )
+
+# Executable
+add_executable(CbctRecon
+  main.cpp
 )
 
 set_target_properties(CbctRecon
@@ -150,8 +122,6 @@ SET(QT_USE_QTCORE TRUE)
 SET(QT_USE_QTGUI TRUE)
 SET(QT_USE_QTOPENGL TRUE)
 ############## Qt end wrapping ##############
-
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)
@@ -171,43 +141,51 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_BUILD_DIR}/")
 
 #this is for "C++ General-> Add below to Additional Include Directories"
-target_include_directories(CbctRecon
-  PUBLIC ${LOCAL_INCL_DIRS}
-  PUBLIC ${ITK_INCLUDE_DIRS}
-  PUBLIC ${RTK_INCLUDE_DIRS}
-  PUBLIC ${PLASTIMATCH_INCLUDE_DIRS}
-  PUBLIC ${DCMTK_INCLUDE_DIR}
+set(CBCTRECON_DEP_INCLUDES
+  ${CBCTRECON_INCLUDE_DIRS}
+  ${ITK_INCLUDE_DIRS}
+  ${RTK_INCLUDE_DIRS}
+  ${PLASTIMATCH_INCLUDE_DIRS}
+  ${DCMTK_INCLUDE_DIR}
+  ${CLFFT_INCLUDE_DIRS}
 )
-if(USE_CLFFT)
-  target_include_directories(CbctRecon
-    ${CLFFT_INCLUDE_DIRS}
-  )
-endif()
 
-if(WIN32)
-  set(WIN_LIB netapi32.lib)
-endif(WIN32)
+target_include_directories(CbctReconLib
+  PUBLIC ${CBCTRECON_DEP_INCLUDES}
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+)
 
-set(QT_LIBRARIES)
-list(APPEND QT_LIBRARIES
-  "Qt5::Core"
-  "Qt5::Gui"
-  "Qt5::OpenGL"
-  "Qt5::PrintSupport"
-  "Qt5::Widgets"
-  )
-
+target_include_directories(CbctRecon
+  PUBLIC ${CBCTRECON_DEP_INCLUDES}
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 #this is for "Linker->Additional dependencies"
-target_link_libraries(CbctRecon
-  ${WIN_LIB}
-  ${DCMTK_LIBRARIES}
-  ${PLM_TARGETS}
-  ${CLFFT_LIBRARIES}
-  ${QT_LIBRARIES}
-  ${TBB_LIBRARIES}
-  OpenCL::OpenCL
+target_link_libraries(CbctReconLib
+  PUBLIC ${PLM_TARGETS}
+  PUBLIC ${CBCTRECON_DEP_LIBS}
 )
+target_link_libraries(CbctRecon
+  PRIVATE CbctReconLib
+)
+if(USE_TINYREFL)
+  include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
+  if(EXISTS ${GEN_UI_HEADER_DIR}/ui_cbctrecon.h
+     AND NOT is_multi_config)
+    tinyrefl_tool(
+      TARGET CbctReconLib
+      HEADERS cbctrecon.h
+      COMPILE_OPTIONS -fPIC
+      )
+  elseif(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/ui_cbctrecon.h
+     AND is_multi_config)
+    tinyrefl_tool(
+      TARGET CbctReconLib
+      HEADERS cbctrecon.h
+      COMPILE_OPTIONS -fPIC
+      )
+  endif()
+endif()
 
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
@@ -427,3 +405,9 @@ if (CBCTRECON_CLANG_COMPLETE)
   file (WRITE "${file_clang_complete}" "${inc_args}")
   message (STATUS "Generated ${file_clang_complete}")
 endif ()
+
+message(STATUS "Generate vim YCM config file for CbctRecon at ${CMAKE_CURRENT_SOURCE_DIR} ...")
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/.ycm_extra_conf.py.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/.ycm_extra_conf.py
+)

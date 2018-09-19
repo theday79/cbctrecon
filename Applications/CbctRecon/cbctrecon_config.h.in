@@ -1,0 +1,26 @@
+#ifndef __cbctrecon_config_h__
+#define __cbctrecon_config_h__
+
+#cmakedefine CBCTRECON_BUILD_SHARED_LIBS 1
+
+#ifdef __cplusplus
+# define EXTERNC extern "C"
+#else
+# define EXTERNC
+#endif
+
+#if ((defined(_WIN32) || defined(WIN32)) && (defined (CBCTRECON_BUILD_SHARED_LIBS)))
+# if defined(CbctReconLib_EXPORTS) || defined(__CUDACC__)
+#   define CBCTRECON_C_API EXTERNC __declspec(dllexport)
+#   define CBCTRECON_API __declspec(dllexport)
+# else
+#   define CBCTRECON_C_API EXTERNC __declspec(dllimport)
+#   define CBCTRECON_API __declspec(dllimport)
+# endif
+#else
+# define CBCTRECON_C_API EXTERNC 
+# define CBCTRECON_API 
+#endif
+
+#endif
+

@@ -1,7 +1,16 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index bcd0d08c..395e564f 100755
+index bcd0d08c..18060b1f 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -39,7 +39,7 @@ endif ()
+ ##-----------------------------------------------------------------------------
+ ##  CMake include files
+ ##-----------------------------------------------------------------------------
+-set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
++set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+ 
+ ##-----------------------------------------------------------------------------
+ ##  Prevent in-source build
 @@ -247,10 +247,10 @@ plm_set_pic_flags ()
  ##-----------------------------------------------------------------------------
  ##  Extra paths
@@ -283,7 +292,7 @@ index 0d37b87c..5a940fff 100644
      )
  endif ()
 diff --git a/src/plastimatch/base/CMakeLists.txt b/src/plastimatch/base/CMakeLists.txt
-index 9b09ba78..2f11670d 100755
+index 40eb95dd..cde49365 100755
 --- a/src/plastimatch/base/CMakeLists.txt
 +++ b/src/plastimatch/base/CMakeLists.txt
 @@ -5,7 +5,7 @@ project (src_plastimatch_base)
@@ -692,7 +701,7 @@ index 0c0604e2..afdcd063 100644
      endif ()
  
 diff --git a/src/plastimatch/util/CMakeLists.txt b/src/plastimatch/util/CMakeLists.txt
-index bf743a17..0c6fad71 100644
+index 26b6ecc5..bb6a4b74 100644
 --- a/src/plastimatch/util/CMakeLists.txt
 +++ b/src/plastimatch/util/CMakeLists.txt
 @@ -5,7 +5,7 @@ project (src_plastimatch_util)
@@ -704,7 +713,7 @@ index bf743a17..0c6fad71 100644
  )
  
  include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
-@@ -62,7 +62,7 @@ if (FFTW_FOUND)
+@@ -63,7 +63,7 @@ if (FFTW_FOUND)
  endif ()
  
  set (PLMUTIL_LIBRARY_HEADERS
@@ -713,7 +722,7 @@ index bf743a17..0c6fad71 100644
    )
  foreach (ARG ${PLMUTIL_LIBRARY_SRC})
    string (REGEX MATCH ".*\\.h$" TMP "${ARG}")
-@@ -79,6 +79,7 @@ set (PLMUTIL_LIBRARY_DEPENDENCIES
+@@ -80,6 +80,7 @@ set (PLMUTIL_LIBRARY_DEPENDENCIES
    devillard
    plmbase
    plmsys

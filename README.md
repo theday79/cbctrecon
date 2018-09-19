@@ -1,6 +1,9 @@
 # CbctRecon
 CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 
+[![pipeline status](https://gitlab.com/agravgaard/cbctrecon/badges/master/pipeline.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/ek8g59aguufokj3q?svg=true)](https://ci.appveyor.com/project/agravgaard/cbctrecon)
+
 **Proton dose calculation on scatter-corrected CBCT image: Feasibility study for adaptive proton therapy**
 http://dx.doi.org/10.1118/1.4923179
 
