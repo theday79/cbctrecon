@@ -171,16 +171,20 @@ build_script:
 
 test: off
 
+artifacts:
+  - path: '*.msi'
+    name: binary_msi
+
 # Appveyor will push the artifacts it has saved to GitLab 'releases' tab
 deploy:
-  provider: GitHub
-  repository: agravgaard/CbctRecon
-  description: "Windows installer from AppVeyor CI"
-  auth_token:
-    secure: Wcahfcb8RTeiEypo/pM0fLnLU+Pd7Hd2UV1tQbJfihQEayaz/Ucb0am78msCC0yy
-  artifact: /.*\.msi/
-  draft: true
-  prerelease: true
-  on:
-    branch: master
+  - provider: GitHub
+    repository: agravgaard/CbctRecon
+    description: "Windows installer from AppVeyor CI"
+    auth_token:
+      secure: Wcahfcb8RTeiEypo/pM0fLnLU+Pd7Hd2UV1tQbJfihQEayaz/Ucb0am78msCC0yy
+    artifact: binary_msi
+    draft: true
+    prerelease: true
+    on:
+      branch: master
     # appveyor_repo_tag: true
