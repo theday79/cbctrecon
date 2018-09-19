@@ -223,16 +223,9 @@ endif()
 
 
 
-install( TARGETS CbctRecon CbctReconLib
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  PUBLIC_HEADER DESTINATION include
-  RESOURCE bin/ui
-  )
-
+install( TARGETS CbctRecon DESTINATION bin )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/ui/style.qss DESTINATION bin/ui)
+# ${CMAKE_CURRENT_BINARY_DIR}/../bin
 
 ##-----------------------------------------------------------------------------
 ##  Additional install files
