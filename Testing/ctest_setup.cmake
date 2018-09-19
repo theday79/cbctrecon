@@ -8,7 +8,7 @@ function(add_cbctrecon_test NAME)
         message(STATUS "Running CTest ${NAME} with valgrind")
         add_test(NAME ${NAME} COMMAND ${MEMORYCHECK_COMMAND} --leak-check=full $<TARGET_FILE:${NAME}>)
     else()
-        add_test(${NAME} ${NAME})
+        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${NAME}>)
     endif()
 endfunction()
 
