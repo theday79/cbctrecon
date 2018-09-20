@@ -167,3 +167,13 @@ Rtss_modern::Rtss_modern(Rtss_modern *old_rtss) {
   slist.resize(num_structures);
   std::copy(old_rtss->slist.begin(), old_rtss->slist.end(), slist.begin());
 };
+
+std::unique_ptr<Rtss_roi_modern> Rtss_modern::get_roi_by_name(std::string name){
+  for(auto roi: slist) {
+    if (roi.name.compare(name) == 0) {
+      return std::make_unique<Rtss_roi_modern>(roi);
+    }
+  }
+  std::cerr << "VOI name was not in structure set !?" << std::endl;
+  return nullptr;
+}

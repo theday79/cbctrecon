@@ -313,35 +313,6 @@ index 40eb95dd..cde49365 100755
    )
  foreach (ARG ${PLMBASE_LIBRARY_SRC})
    string (REGEX MATCH ".*\\.h$" TMP "${ARG}")
-diff --git a/src/plastimatch/base/itk_dicom_load.cxx b/src/plastimatch/base/itk_dicom_load.cxx
-index 56c17ae0..103a53e9 100644
---- a/src/plastimatch/base/itk_dicom_load.cxx
-+++ b/src/plastimatch/base/itk_dicom_load.cxx
-@@ -99,14 +99,22 @@ load_dicom_dir_rdr(T rdr, const char *dicom_dir)
-        DICOM files with empty fields.  Wow.  Anyway, we can't use them. 
-        Possibly only with GDCM 1.X? */
- #if GDCM_MAJOR_VERSION == 2
--    /* Reject RTDOSE, which can get interpreted as an image (and gets 
-+#if ITK_VERSION_MAJOR <= 4
-+    /* Reject RTDOSE, which can get interpreted as an image (and gets
-        read incorretly anyway).  Dose is read by rtds.cxx instead. */
--    gdcm::SerieHelper* gsh = nameGenerator->GetSeriesHelper ();
-+    gdcm::SerieHelper* gsh = nameGenerator->GetSeriesHelper();
-     gsh->AddRestriction (0x0008, 0x0060, "RTDOSE", gdcm::GDCM_DIFFERENT);
-     /* Reject GE Scouts */
-     gsh->AddRestriction (0x0018, 0x0022, "SCOUT MODE", gdcm::GDCM_DIFFERENT);
-     /* Reject GE Dose reports */
-     gsh->AddRestriction (0x0008, 0x103e, "Dose Report", gdcm::GDCM_DIFFERENT);
-+#else
-+    nameGenerator->AddSeriesRestriction("0x0008|0x0060");
-+    /* Reject GE Scouts */
-+    nameGenerator->AddSeriesRestriction("0x0018|0x0022");
-+    /* Reject GE Dose reports */
-+    nameGenerator->AddSeriesRestriction("0x0008|0x103e");
-+#endif
- #endif
- 
-     nameGenerator->SetDirectory (dicom_dir);
 diff --git a/src/plastimatch/base/rasterizer.cxx b/src/plastimatch/base/rasterizer.cxx
 index eb8d363a..a130d390 100644
 --- a/src/plastimatch/base/rasterizer.cxx

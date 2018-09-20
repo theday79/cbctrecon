@@ -1,55 +1,42 @@
 #include "DlgRegistration.h"
-//#include "cbctrecon.h"
 
-#include "itkRescaleIntensityImageFilter.h"
-#include "itk_image_save.h"
+#include <itkRescaleIntensityImageFilter.h>
+#include <itk_image_save.h>
 // warp related include files
-#include "rt_study.h"
-//#include "rtds_warp.h"
-#include "distance_map.h"
-#include "rt_study_warp.h"
-#include "warp_parms.h"
+#include <rt_study.h>
+//#include <rtds_warp.h>
+#include <distance_map.h>
+#include <rt_study_warp.h>
+#include <warp_parms.h>
 
-#include "itk_threshold.h"
+#include <itk_threshold.h>
 
-#include "itk_image_load.h"
+#include <itk_image_load.h>
 
-#include "synthetic_vf.h"
+#include <synthetic_vf.h>
 
-#include "registration.h"
-#include "shared_parms.h"
-#include "string_util.h"
+#include <registration.h>
+#include <shared_parms.h>
+#include <string_util.h>
 
-#include "segment_body.h"
+#include <segment_body.h>
 
-#include "dcmtk_rt_study.h"
-#include "rtplan_beam.h"
-#include "rtplan_control_pt.h"
+#include <dcmtk_rt_study.h>
+#include <rtplan_beam.h>
+#include <rtplan_control_pt.h>
 #include <QFileDialog>
 #include <QProcess>
 
 // gdcm ITK based dicom writer //
 
-#include "itkMinimumMaximumImageFilter.h"
-
-#include "itkGDCMImageIO.h"
-#include "itkNumericSeriesFileNames.h"
-
-#include "itkImageSeriesWriter.h"
-
-#include "gdcmUIDGenerator.h"
+#include <itkMinimumMaximumImageFilter.h>
+#include <itkGDCMImageIO.h>
+#include <itkNumericSeriesFileNames.h>
+#include <itkImageSeriesWriter.h>
+#include <gdcmUIDGenerator.h>
 
 // END gdcm ITK based dicom writer //
 
-//#include "pcmd_dmap.h"
-
-//#include "pcmd_threshold.h"
-//#include "pcmd_mask.h"
-//#include "pcmd_mask.cxx"
-//#include "pcmd_segment.h"
-//#include "pcmd_synth_vf.h"
-//#include "pcmd_warp.h"
-//#include "pcmd_xf_convert.h"
 
 #include <QMessageBox>
 
@@ -300,11 +287,11 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     m_YKDisp[refIdx % 3].m_ptCrosshair.setY(sliderPosIdxY);
 
     m_YKDisp[(refIdx + 1) % 3].m_ptCrosshair.setX(sliderPosIdxX); // Frontal
-    m_YKDisp[(refIdx + 1) % 3].m_ptCrosshair.setY(imgSize[2] - sliderPosIdxZ -
+    m_YKDisp[(refIdx + 1) % 3].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ -
                                                   1);
 
     m_YKDisp[(refIdx + 2) % 3].m_ptCrosshair.setX(sliderPosIdxY); // Sagittal
-    m_YKDisp[(refIdx + 2) % 3].m_ptCrosshair.setY(imgSize[2] - sliderPosIdxZ -
+    m_YKDisp[(refIdx + 2) % 3].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ -
                                                   1);
 
     m_YKImgFixed[0].m_bDrawCrosshair = true;
@@ -315,10 +302,10 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     m_YKImgFixed[0].m_ptCrosshair.setY(sliderPosIdxY);
 
     m_YKImgFixed[1].m_ptCrosshair.setX(sliderPosIdxX); // sagittal slider
-    m_YKImgFixed[1].m_ptCrosshair.setY(imgSize[2] - sliderPosIdxZ - 1);
+    m_YKImgFixed[1].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ - 1);
 
     m_YKImgFixed[2].m_ptCrosshair.setX(sliderPosIdxY); // sagittal slider
-    m_YKImgFixed[2].m_ptCrosshair.setY(imgSize[2] - sliderPosIdxZ - 1);
+    m_YKImgFixed[2].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ - 1);
   } else {
     m_YKDisp[0].m_bDrawCrosshair = false;
     m_YKDisp[1].m_bDrawCrosshair = false;
@@ -447,23 +434,23 @@ void DlgRegistration::whenFixedImgLoaded() {
   initOverlapWndSize();
 
   ui.sliderPosDisp1->setMinimum(0);
-  ui.sliderPosDisp1->setMaximum(imgSize[2] - 1);
-  int curPosZ = imgSize[2] / 2;
+  ui.sliderPosDisp1->setMaximum(static_cast<int>(imgSize[2] - 1));
+  int curPosZ = static_cast<int>(imgSize[2] / 2);
   ui.sliderPosDisp1->setValue(curPosZ);
 
   ui.sliderPosDisp2->setMinimum(0);
-  ui.sliderPosDisp2->setMaximum(imgSize[1] - 1);
-  int curPosY = imgSize[1] / 2;
+  ui.sliderPosDisp2->setMaximum(static_cast<int>(imgSize[1] - 1));
+  int curPosY = static_cast<int>(imgSize[1] / 2);
   ui.sliderPosDisp2->setValue(curPosY);
 
   ui.sliderPosDisp3->setMinimum(0);
-  ui.sliderPosDisp3->setMaximum(imgSize[0] - 1);
-  int curPosX = imgSize[0] / 2;
+  ui.sliderPosDisp3->setMaximum(static_cast<int>(imgSize[0] - 1));
+  int curPosX = static_cast<int>(imgSize[0] / 2);
   ui.sliderPosDisp3->setValue(curPosX);
 
-  QPoint x_split = QPoint(imgSize[0] / 2, imgSize[1] / 2);
-  QPoint y_split = QPoint(imgSize[0] / 2, imgSize[2] / 2);
-  QPoint z_split = QPoint(imgSize[1] / 2, imgSize[2] / 2);
+  QPoint x_split = QPoint(static_cast<int>(imgSize[0] / 2), static_cast<int>(imgSize[1] / 2));
+  QPoint y_split = QPoint(static_cast<int>(imgSize[0] / 2), static_cast<int>(imgSize[2] / 2));
+  QPoint z_split = QPoint(static_cast<int>(imgSize[1] / 2), static_cast<int>(imgSize[2] / 2));
 
   m_YKDisp[0].SetSplitCenter(x_split);
   m_YKDisp[1].SetSplitCenter(y_split);
@@ -684,11 +671,11 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
     // offset should be 0.. only relative distance matters. offset is in
     // realtime changing
     QPoint ptDataPanStartRel = pOverlapWnd->View2DataExt(
-        m_ptPanStart, dspWidth, dspHeight, dataWidth, dataHeight, QPoint(0, 0),
+        m_ptPanStart, static_cast<int>(dspWidth), static_cast<int>(dspHeight), dataWidth, dataHeight, QPoint(0, 0),
         m_YKDisp[idx].m_fZoom);
 
     QPoint ptDataPanEndRel = pOverlapWnd->View2DataExt(
-        QPoint(pOverlapWnd->x, pOverlapWnd->y), dspWidth, dspHeight, dataWidth,
+        QPoint(pOverlapWnd->x, pOverlapWnd->y), static_cast<int>(dspWidth), static_cast<int>(dspHeight), dataWidth,
         dataHeight, QPoint(0, 0), m_YKDisp[idx].m_fZoom);
 
     // int dspOffsetX = pOverlapWnd->x - m_ptPanStart.x();
@@ -1228,7 +1215,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   std::cout << "3: calling a plastimatch command" << std::endl;
 
   Registration reg;
-  if (reg.set_command_file(str_command_filepath) < 0) {
+  if (reg.set_command_file(str_command_filepath) != PLM_SUCCESS) {
     printf("Error.  could not load %s as command file.\n",
            str_command_filepath.c_str());
   }
@@ -1469,11 +1456,12 @@ void DlgRegistration::ImageManualMoveOneShot(float shiftX, float shiftY,
 
   // USHORT_ImageType::SizeType imgSize =
   // m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
-  UShortImageType::PointType imgOrigin = m_spMoving->GetOrigin();
+  using USPointType = UShortImageType::PointType;
+  USPointType imgOrigin = m_spMoving->GetOrigin();
   // USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
-  imgOrigin[0] = imgOrigin[0] - shiftX;
-  imgOrigin[1] = imgOrigin[1] - shiftY;
-  imgOrigin[2] = imgOrigin[2] - shiftZ;
+  imgOrigin[0] = imgOrigin[0] - static_cast<USPointType::ValueType>(shiftX);
+  imgOrigin[1] = imgOrigin[1] - static_cast<USPointType::ValueType>(shiftY);
+  imgOrigin[2] = imgOrigin[2] - static_cast<USPointType::ValueType>(shiftZ);
 
   m_spMoving->SetOrigin(imgOrigin);
 
@@ -1829,8 +1817,12 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage) {
   if (idx == 0) {
     crntCombo = ui.comboBoxImgFixed;
   }
-  if (idx == 1) {
+  else if (idx == 1) {
     crntCombo = ui.comboBoxImgMoving;
+  }
+  else {
+    std::cerr << "What did you do to get here?" << std::endl;
+    return;
   }
 
   int findIndx = -1;
@@ -2152,7 +2144,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
             << std::endl;
 
   Registration reg;
-  if (reg.set_command_file(str_command_filepath) < 0) {
+  if (reg.set_command_file(str_command_filepath) != PLM_SUCCESS) {
     printf("Error.  could not load %s as command file.\n",
            str_command_filepath.c_str());
   }
@@ -2316,7 +2308,7 @@ void DlgRegistration::autoPreprocessCT() {
               << std::endl;
     return;
   }
-  unsigned short air_thresh = 1024 + ui.lineEditBkDetectCT->text().toInt();
+  unsigned short air_thresh = static_cast<unsigned short>(1024 + ui.lineEditBkDetectCT->text().toInt());
   std::cout << "Thresh: " << air_thresh << std::endl;
   using threshFilterType =
       itk::BinaryThresholdImageFilter<UShortImageType, ShortImageType>;
@@ -3142,9 +3134,9 @@ void DlgRegistration::plm_synth_trans_xf(QString &strPath_fixed,
                                          double transY, double transZ) {
   Synthetic_vf_parms sv_parms;
   sv_parms.pattern = Synthetic_vf_parms::PATTERN_TRANSLATION;
-  sv_parms.translation[0] = transX;
-  sv_parms.translation[1] = transY;
-  sv_parms.translation[2] = transZ;
+  sv_parms.translation[0] = static_cast<float>(transX);
+  sv_parms.translation[1] = static_cast<float>(transY);
+  sv_parms.translation[2] = static_cast<float>(transZ);
 
   FloatImageType::Pointer fixed =
       itk_image_load_float(strPath_fixed.toLocal8Bit().constData(), nullptr);
@@ -3656,7 +3648,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
     std::cout << "Error! no dcm plan is loaded" << std::endl;
     return;
   }
-  int iCntBeam = rtplan->beamlist.size(); //->num_beams;
+  size_t iCntBeam = rtplan->beamlist.size(); //->num_beams;
 
   if (iCntBeam < 1) {
     std::cout << "Error! no beam is found" << std::endl;
@@ -3665,12 +3657,12 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
 
   float *final_iso_pos = nullptr;
 
-  for (int i = 0; i < iCntBeam; i++) {
+  for (size_t i = 0; i < iCntBeam; i++) {
     Rtplan_beam *curBeam = rtplan->beamlist[i];
 
-    int iCntCP = curBeam->cplist.size(); // num_cp;
+    size_t iCntCP = curBeam->cplist.size(); // num_cp;
 
-    for (int j = 0; j < iCntCP; j++) {
+    for (size_t j = 0; j < iCntCP; j++) {
       float *cur_iso_pos = curBeam->cplist[j]->get_isocenter();
       //                ID                id                               ID
       std::cout << "Beam Gantry: " << curBeam->gantry_angle
@@ -3732,7 +3724,9 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
   }
 
   // ImageManualMoveOneShot(-iso_pos[0], -iso_pos[1], -iso_pos[2]);
-  ImageManualMoveOneShot(planIso.x, planIso.y, planIso.z);
+  ImageManualMoveOneShot(static_cast<float>(planIso.x),
+                         static_cast<float>(planIso.y),
+                         static_cast<float>(planIso.z));
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
@@ -3863,8 +3857,8 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   itk::EncapsulateMetaData<std::string>(dict, "0020|000d", studyUID);
 
   NamesGeneratorType::Pointer namesGenerator = NamesGeneratorType::New();
-  namesGenerator->SetStartIndex(start[2]);
-  namesGenerator->SetEndIndex(start[2] + size[2] - 1);
+  namesGenerator->SetStartIndex(static_cast<itk::SizeValueType>(start[2]));
+  namesGenerator->SetEndIndex(static_cast<itk::SizeValueType>(start[2]) + size[2] - 1);
   namesGenerator->SetIncrementIndex(1);
   namesGenerator->SetSeriesFormat(newDirPath.toStdString() + "/CT." + studyUID +
                                   ".%d.dcm");
@@ -3988,7 +3982,7 @@ void DlgRegistration::SLT_Override() {
 
   const int radius = ui.spinBox_overrideRadius->value();
   const auto value =
-      static_cast<unsigned int>(ui.spinBox_overrideValue->value() + 1024);
+      static_cast<unsigned short>(ui.spinBox_overrideValue->value() + 1024);
   size_t i = 0;
   UShortImageType::IndexType curIdx{};
   for (int curRadiusX = -radius; curRadiusX <= radius; curRadiusX++) {
@@ -4039,7 +4033,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
     plan_filepath = QFileDialog::getOpenFileName(
         this, "Open DCMRT Plan file", m_pParent->m_strPathDirDefault,
         "DCMRT Plan (*.dcm)", nullptr, nullptr);
-    for (size_t i = 1; i < ui.spinBox_NdcmPlans->value(); i++) {
+    for (int i = 1; i < ui.spinBox_NdcmPlans->value(); i++) {
       plan_filepath =
           QString("%1,%2")
               .arg(plan_filepath)
@@ -4059,9 +4053,9 @@ void DlgRegistration::SLT_gPMCrecalc() {
   // Create gPMC command line
 
   QString gPMC_device;
-#if USE_CUDA
+#ifdef USE_CUDA
   gPMC_device = "gpu";
-#elif USE_OPENCL
+#elifdef USE_OPENCL
   gPMC_device = "cpu";
 #else
   gPMC_device = "cpu";
@@ -4185,6 +4179,46 @@ void DlgRegistration::SLT_gPMCrecalc() {
   SLT_DrawImageWhenSliceChange();
 }
 
+void DlgRegistration::SLT_WEPLcalc() {
+  // Get VOI
+  auto voi_name = ui.comboBox_VOI->currentText().toStdString();
+  cur_voi = m_pParent->m_structures->get_ss(RIGID_CT)->get_roi_by_name(voi_name);
+
+  // Get basis from angles
+  auto gantry_angle = ui.spinBox_GantryAngle->value();
+  auto couch_angle = ui.spinBox_CouchAngle->value();
+  auto vec_basis = get_basis_from_angles(gantry_angle, couch_angle);
+
+  // Get Fixed and Moving
+  // Tranlate fixed and moving to dEdx
+  auto wepl_cube = ConvertUshort2WeplFloat(m_spMoving);
+  
+  // Initialize WEPL contour
+  WEPL_voi = std::make_unique<Rtss_roi_modern>();
+  WEPL_voi->name = "WEPL" + voi_name;
+  WEPL_voi->color = "255 0 0";
+  WEPL_voi->id = cur_voi->id;   /* Used for import/export (must be >= 1) */
+  WEPL_voi->bit = cur_voi->bit; /* Used for ss-img (-1 for no bit) */
+  WEPL_voi->num_contours = cur_voi->num_contours;
+  //WEPL_voi->pslist.resize(WEPL_voi->num_contours);
+  
+  // Calculate WEPL
+  for(auto contour : cur_voi->pslist ){
+    auto WEPL_contour = Rtss_contour_modern(contour);
+    WEPL_contour.ct_slice_uid = contour.ct_slice_uid;
+    WEPL_contour.slice_no = contour.slice_no;
+    WEPL_contour.num_vertices = contour.num_vertices;
+    // Actually calculate WEPL
+    auto WEPL_points = WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
+    // Put WEPL in contour
+    std::copy(std::begin(WEPL_points), std::end(WEPL_points),
+              std::begin(WEPL_contour.coordinates));
+    WEPL_voi->pslist.push_back(WEPL_contour);
+  }
+
+  // Draw WEPL
+}
+
 void DlgRegistration::SLT_DoRegistrationGradient() {
   // 1) Save current image files
   if ((m_spFixed == nullptr) || (m_spMoving == nullptr)) {
@@ -4252,7 +4286,7 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
   ui.progressBar->setValue(15);
 
   Registration reg;
-  if (reg.set_command_file(str_command_filepath) < 0) {
+  if (reg.set_command_file(str_command_filepath) != PLM_SUCCESS) {
     printf("Error.  could not load %s as command file.\n",
            str_command_filepath.c_str());
   }
@@ -4266,8 +4300,8 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
   std::cout << "4: Registration is done" << std::endl;
   ui.progressBar->setValue(99); // good ol' 99%
 
-  itk::Vector<double, 3U> trn = xform->get_trn()->GetOffset();
-  ImageManualMoveOneShot(-trn[0], -trn[1], -trn[2]);
+  auto trn = xform->get_trn()->GetOffset();
+  ImageManualMoveOneShot(static_cast<float>(-trn[0]), static_cast<float>(-trn[1]), static_cast<float>(-trn[2]));
   /*
 std::cout << "5: Load shift values" << std::endl;
 
@@ -4526,7 +4560,7 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString &strFilePath) {
     return resultPtDcm;
   }
 
-  int iCntBeam = rtplan->beamlist.size(); // num_beams;
+  size_t iCntBeam = rtplan->beamlist.size(); // num_beams;
 
   if (iCntBeam < 1) {
     std::cout << "Error! no beam is found" << std::endl;
@@ -4536,12 +4570,12 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString &strFilePath) {
 
   float *final_iso_pos = nullptr;
 
-  for (int i = 0; i < iCntBeam; i++) {
+  for (size_t i = 0; i < iCntBeam; i++) {
     Rtplan_beam *curBeam = rtplan->beamlist[i];
 
-    int iCntCP = curBeam->cplist.size(); // num_cp;
+    size_t iCntCP = curBeam->cplist.size(); // num_cp;
 
-    for (int j = 0; j < iCntCP; j++) {
+    for (size_t j = 0; j < iCntCP; j++) {
       float *cur_iso_pos = curBeam->cplist[j]->get_isocenter();
       //                ID                id                               ID
       std::cout << "Beam Gantry: " << curBeam->gantry_angle
@@ -4564,9 +4598,9 @@ VEC3D DlgRegistration::GetIsocenterDCM_FromRTPlan(QString &strFilePath) {
     return resultPtDcm;
   }
 
-  resultPtDcm.x = final_iso_pos[0];
-  resultPtDcm.y = final_iso_pos[1];
-  resultPtDcm.z = final_iso_pos[2];
+  resultPtDcm.x = static_cast<double>(final_iso_pos[0]);
+  resultPtDcm.y = static_cast<double>(final_iso_pos[1]);
+  resultPtDcm.z = static_cast<double>(final_iso_pos[2]);
 
   delete pRTstudyRP;
   return resultPtDcm;

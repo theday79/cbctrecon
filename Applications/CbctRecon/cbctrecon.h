@@ -113,6 +113,7 @@
 #include <proj_matrix.h>
 #endif // USE_OPENCL_PLM
 
+#include "WEPL.h"
 #include "cbctrecon_config.h"
 
 using FloatPixelType = float;
@@ -486,15 +487,14 @@ public:
 
   bool LoadShortImageDirOrFile(QString &strPathDir,
                                ShortImageType::Pointer &spOutputShortImg);
-  void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
+  static void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
                            UShortImageType::Pointer &spOutputImgUshort);
 
   void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
                           UShortImageType::Pointer &spOutputImgUS);
-  void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
+  
+  static void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                               FloatImageType::Pointer &spAttImgFloat);
-  FloatImageType::Pointer
-  ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort);
 
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);

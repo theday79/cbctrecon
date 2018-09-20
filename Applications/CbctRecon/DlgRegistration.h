@@ -1,15 +1,17 @@
 #ifndef DLGREGISTRATION_H
 #define DLGREGISTRATION_H
 
+#include <QDialog>
+#include <QString>
+#include <itkImage.h>
+#include <itk_mask.h>
+
 #include "cbctrecon_config.h"
 #include "AG17RGBAImage.h"
 #include "YK16GrayImage.h"
+#include "WEPL.h"
 #include "cbctrecon.h"
-#include "itkImage.h"
-#include "itk_mask.h"
 #include "ui_DlgRegistration.h"
-#include <QDialog>
-#include <QString>
 
 //#include "pcmd_synth_vf.h"
 // class CbctRecon;
@@ -89,6 +91,7 @@ public slots:
   void SLT_ManualMoveByDCMPlan();
   void SLT_ManualMoveByDCMPlanOpen();
   void SLT_gPMCrecalc();
+  void SLT_WEPLcalc();
   void SLT_BringFocusToEnableArrow(bool bChecked);
 
   void SLT_KeyMoving(bool bChecked);
@@ -233,6 +236,8 @@ public:
   AG17RGBAImage m_DoseImgFixed[3];   // CBCT in this study
   AG17RGBAImage m_DoseImgMoving[3];  // CBCT in this study
   AG17RGBAImage m_AGDisp_Overlay[3]; // CBCT in this study
+  std::unique_ptr<Rtss_roi_modern> WEPL_voi;
+  std::unique_ptr<Rtss_roi_modern> cur_voi;
   bool dose_loaded = false;
   int m_enViewArrange{};
   // YK16GrayImage m_YKImgMoving[3];    //RefCT
