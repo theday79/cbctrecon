@@ -368,7 +368,7 @@ public:
                                QString &strPatientID, QString &strPatientName,
                                QString &strPathTargetDir);
 
-  void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
+  static void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
                            ShortImageType::Pointer &spImgShort);
 
   void

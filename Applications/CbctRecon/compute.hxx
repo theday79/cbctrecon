@@ -406,6 +406,51 @@ double CbctRecon::GetValueFrom3DImageUshort(
   return 65535;
 }
 
+void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
+                                           ShortImageType::Pointer &spImgShort) {
+  // std::cout << "Before filter spImgUshort" << spImgUshort << std::endl;
+  
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
+  ThresholdImageFilterType::Pointer thresholdFilter =
+  ThresholdImageFilterType::New();
+  thresholdFilter->SetInput(spImgUshort);
+  thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
+  thresholdFilter->SetOutsideValue(0);
+  thresholdFilter->Update();
+  
+  using ImageCalculatorFilterType =
+  itk::MinimumMaximumImageCalculator<UShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+  ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+  imageCalculatorFilter->Compute();
+  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+  // std::cout <<"Min and Max Values are  " << minVal << "  " <<
+  // maxVal
+  // << std::endl; //should be 0 and 4096 std::cout <<"Min and Max Values are
+  // " << minVal << "  " << maxVal << std::endl;
+  
+  // Min value is always 3024 --> outside the FOV
+  auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
+  auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
+  
+  // USHORT_PixelType outputMinVal = (USHORT_PixelType)(minVal - minVal);
+  // USHORT_PixelType outputMaxVal = (USHORT_PixelType) (maxVal - minVal);
+  
+  using RescaleFilterType =
+  itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
+  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+  
+  spImgShort = spRescaleFilter->GetOutput();
+  
+  // std::cout << "After filter spImgUshort" << spImgUshort << std::endl;
+  // std::cout << "After filter spImgShort" << spImgShort << std::endl;
+}
 
 
 
