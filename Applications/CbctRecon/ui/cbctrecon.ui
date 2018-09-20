@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1045</width>
+    <width>1101</width>
     <height>743</height>
    </rect>
   </property>
@@ -55,25 +55,25 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>512</width>
+              <width>544</width>
               <height>512</height>
              </size>
             </property>
             <property name="font">
              <font>
-              <pointsize>12</pointsize>
+              <pointsize>13</pointsize>
              </font>
             </property>
             <property name="currentIndex">
-             <number>4</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="page_2">
              <property name="geometry">
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>512</width>
-               <height>482</height>
+               <width>544</width>
+               <height>477</height>
               </rect>
              </property>
              <attribute name="label">
@@ -84,7 +84,7 @@
                <widget class="QLineEdit" name="lineEdit_HisDirPath">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -96,7 +96,7 @@
                <widget class="QPushButton" name="pushButton_openHisDir">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -104,11 +104,11 @@
                 </property>
                </widget>
               </item>
-              <item row="5" column="2" colspan="3">
+              <item row="6" column="2" colspan="3">
                <widget class="QLineEdit" name="lineEdit_PhaseExportString">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -120,7 +120,7 @@
                <widget class="QPushButton" name="pushButton_loadProj">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -130,11 +130,11 @@
                 </property>
                </widget>
               </item>
-              <item row="6" column="5">
+              <item row="7" column="5">
                <widget class="QPushButton" name="pushButton_openPhaseFile">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -146,7 +146,7 @@
                <widget class="QLineEdit" name="lineEdit_DownResolFactor">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -158,7 +158,7 @@
                <widget class="QPushButton" name="pushButton_openElektaXML">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -170,7 +170,7 @@
                <widget class="QLabel" name="label_13">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -182,7 +182,7 @@
                <widget class="QLineEdit" name="lineEdit_ElektaGeomPath">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -190,11 +190,11 @@
                 </property>
                </widget>
               </item>
-              <item row="5" column="5">
+              <item row="6" column="5">
                <widget class="QPushButton" name="pushButton_PhaseResorting">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -202,11 +202,11 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="5">
+              <item row="5" column="5">
                <widget class="QLineEdit" name="lineEdit_ManualProjAngleGap">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -214,11 +214,11 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="2" colspan="3">
+              <item row="5" column="2" colspan="3">
                <widget class="QRadioButton" name="Radio_ManualProjAngleGap">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -229,14 +229,14 @@
                 </property>
                </widget>
               </item>
-              <item row="6" column="2" colspan="3">
+              <item row="7" column="2" colspan="3">
                <widget class="QLineEdit" name="lineEdit_PhaseTxtPath">
                 <property name="enabled">
                  <bool>false</bool>
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -244,11 +244,11 @@
                 </property>
                </widget>
               </item>
-              <item row="6" column="0" colspan="2">
+              <item row="7" column="0" colspan="2">
                <widget class="QLabel" name="label_49">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -256,11 +256,11 @@
                 </property>
                </widget>
               </item>
-              <item row="5" column="0" colspan="2">
+              <item row="6" column="0" colspan="2">
                <widget class="QLabel" name="label_51">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -268,11 +268,11 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="0" colspan="2">
+              <item row="5" column="0" colspan="2">
                <widget class="QRadioButton" name="Radio_KeepOriginalAngles">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -287,7 +287,7 @@
                <widget class="QLabel" name="label_14">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -299,13 +299,26 @@
                <widget class="QLabel" name="label_16">
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
                  <string>Projection File Dir</string>
                 </property>
                </widget>
+              </item>
+              <item row="4" column="2">
+               <spacer name="verticalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
               </item>
              </layout>
             </widget>
@@ -314,8 +327,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>512</width>
-               <height>482</height>
+               <width>544</width>
+               <height>477</height>
               </rect>
              </property>
              <attribute name="label">
@@ -338,7 +351,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="currentIndex">
@@ -368,7 +381,7 @@
                      <bool>true</bool>
                     </property>
                     <property name="text">
-                     <string>Beam Hardening Corr</string>
+                     <string>Beam Hardening Correction</string>
                     </property>
                    </widget>
                   </item>
@@ -383,32 +396,6 @@
                    <widget class="QPushButton" name="pushButton_ApplyCalib">
                     <property name="text">
                      <string>Apply calibration</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="0">
-                   <widget class="QPushButton" name="pushButton_DoBowtieCorrection">
-                    <property name="enabled">
-                     <bool>true</bool>
-                    </property>
-                    <property name="text">
-                     <string>Bowtie Correction</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="5">
-                   <widget class="QCheckBox" name="checkBox_Fullfan">
-                    <property name="enabled">
-                     <bool>true</bool>
-                    </property>
-                    <property name="layoutDirection">
-                     <enum>Qt::RightToLeft</enum>
-                    </property>
-                    <property name="text">
-                     <string>Full fan</string>
-                    </property>
-                    <property name="checked">
-                     <bool>false</bool>
                     </property>
                    </widget>
                   </item>
@@ -476,27 +463,7 @@
                   <item row="6" column="2" colspan="3">
                    <widget class="QLineEdit" name="lineEdit_badpixelPath"/>
                   </item>
-                  <item row="1" column="1">
-                   <widget class="QLabel" name="label_72">
-                    <property name="text">
-                     <string>a;b;c;d(;e)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="4">
-                   <spacer name="horizontalSpacer_9">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>40</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                  <item row="1" column="2" colspan="2">
+                  <item row="1" column="5">
                    <widget class="QComboBox" name="comboBox_fBTcor">
                     <property name="maximumSize">
                      <size>
@@ -524,6 +491,39 @@
                     </item>
                    </widget>
                   </item>
+                  <item row="1" column="2">
+                   <widget class="QLabel" name="label_72">
+                    <property name="text">
+                     <string>a;b;c;d(;e)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QPushButton" name="pushButton_DoBowtieCorrection">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="text">
+                     <string>Bowtie Correction</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QCheckBox" name="checkBox_Fullfan">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="layoutDirection">
+                     <enum>Qt::RightToLeft</enum>
+                    </property>
+                    <property name="text">
+                     <string>Full fan</string>
+                    </property>
+                    <property name="checked">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                 <widget class="QWidget" name="tab_10">
@@ -541,6 +541,11 @@
                         <height>16777215</height>
                        </size>
                       </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>13</pointsize>
+                       </font>
+                      </property>
                       <property name="text">
                        <string>0</string>
                       </property>
@@ -553,6 +558,11 @@
                         <width>20</width>
                         <height>16777215</height>
                        </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>13</pointsize>
+                       </font>
                       </property>
                       <property name="text">
                        <string>1</string>
@@ -567,6 +577,11 @@
                         <height>16777215</height>
                        </size>
                       </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>13</pointsize>
+                       </font>
+                      </property>
                       <property name="text">
                        <string>0</string>
                       </property>
@@ -574,6 +589,11 @@
                     </item>
                     <item>
                      <widget class="QPushButton" name="pushButtonMedianDoNow">
+                      <property name="font">
+                       <font>
+                        <pointsize>13</pointsize>
+                       </font>
+                      </property>
                       <property name="text">
                        <string>Do now</string>
                       </property>
@@ -583,6 +603,11 @@
                   </item>
                   <item row="2" column="3" rowspan="3">
                    <widget class="QLabel" name="label_50">
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>median radius [px]</string>
                     </property>
@@ -596,6 +621,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>FDK Ramp Filter (0 = do not use)</string>
                     </property>
@@ -608,6 +638,11 @@
                       <width>16777215</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
                     </property>
                     <property name="layoutDirection">
                      <enum>Qt::RightToLeft</enum>
@@ -628,6 +663,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>HammingFrequency</string>
                     </property>
@@ -641,6 +681,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>Truncation Correction</string>
                     </property>
@@ -653,6 +698,11 @@
                       <width>140</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
                     </property>
                     <property name="layoutDirection">
                      <enum>Qt::RightToLeft</enum>
@@ -669,7 +719,7 @@
                    <widget class="QRadioButton" name="radioButton_UseCUDA">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="layoutDirection">
@@ -687,7 +737,7 @@
                    <widget class="QRadioButton" name="radioButton_UseCPU">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="layoutDirection">
@@ -709,6 +759,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>5.0</string>
                     </property>
@@ -724,7 +779,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                    </widget>
@@ -751,7 +806,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                       <weight>75</weight>
                       <bold>true</bold>
                      </font>
@@ -769,6 +824,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>CosineCutFreq</string>
                     </property>
@@ -782,6 +842,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>5.0</string>
                     </property>
@@ -789,6 +854,11 @@
                   </item>
                   <item row="1" column="4" colspan="2">
                    <widget class="QCheckBox" name="checkBox_UpdateAfterFiltering">
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="layoutDirection">
                      <enum>Qt::RightToLeft</enum>
                     </property>
@@ -807,7 +877,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="layoutDirection">
@@ -826,6 +896,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>HannCutFreq</string>
                     </property>
@@ -841,7 +916,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -851,6 +926,11 @@
                   </item>
                   <item row="12" column="3">
                    <spacer name="verticalSpacer_2">
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="orientation">
                      <enum>Qt::Vertical</enum>
                     </property>
@@ -870,6 +950,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>1.0</string>
                     </property>
@@ -882,6 +967,11 @@
                       <width>40</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
                     </property>
                     <property name="text">
                      <string>0.0</string>
@@ -896,6 +986,11 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="text">
                      <string>0.0</string>
                     </property>
@@ -903,6 +998,11 @@
                   </item>
                   <item row="0" column="1" rowspan="5" colspan="2">
                    <spacer name="horizontalSpacer_3">
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="orientation">
                      <enum>Qt::Horizontal</enum>
                     </property>
@@ -916,6 +1016,11 @@
                   </item>
                   <item row="2" column="0" rowspan="3">
                    <widget class="QCheckBox" name="checkBox_PostMedianOn">
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
+                    </property>
                     <property name="layoutDirection">
                      <enum>Qt::RightToLeft</enum>
                     </property>
@@ -934,6 +1039,11 @@
                       <width>16777215</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="font">
+                     <font>
+                      <pointsize>13</pointsize>
+                     </font>
                     </property>
                     <property name="text">
                      <string>HannCutFreq</string>
@@ -1156,8 +1266,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>512</width>
-               <height>482</height>
+               <width>544</width>
+               <height>477</height>
               </rect>
              </property>
              <attribute name="label">
@@ -1281,8 +1391,8 @@
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>128</width>
-                  <height>128</height>
+                  <width>256</width>
+                  <height>256</height>
                  </size>
                 </property>
                 <property name="maximumSize">
@@ -1351,8 +1461,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>512</width>
-               <height>482</height>
+               <width>544</width>
+               <height>477</height>
               </rect>
              </property>
              <attribute name="label">
@@ -1402,7 +1512,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1414,7 +1524,7 @@
                    <widget class="QLabel" name="label_48">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1432,7 +1542,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1444,7 +1554,7 @@
                    <widget class="QPushButton" name="pushButton_PostApplyParam">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1456,7 +1566,7 @@
                    <widget class="QLineEdit" name="lineEdit_PostFOV_Y">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1468,7 +1578,7 @@
                    <widget class="QPushButton" name="pushButton_PostDoNow">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1480,7 +1590,7 @@
                    <widget class="QLineEdit" name="lineEdit_PostFOV_R">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1492,7 +1602,7 @@
                    <widget class="QLineEdit" name="lineEdit_PostTablePosY">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1504,7 +1614,7 @@
                    <widget class="QPushButton" name="pushButton_PostDoInv">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1525,7 +1635,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="layoutDirection">
@@ -1543,7 +1653,7 @@
                    <widget class="QLineEdit" name="lineEdit_PostFOV_X">
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1561,7 +1671,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1579,7 +1689,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="text">
@@ -1818,8 +1928,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>512</width>
-               <height>482</height>
+               <width>544</width>
+               <height>477</height>
               </rect>
              </property>
              <attribute name="label">
@@ -1869,7 +1979,7 @@
                     </property>
                     <property name="font">
                      <font>
-                      <pointsize>12</pointsize>
+                      <pointsize>13</pointsize>
                      </font>
                     </property>
                     <property name="title">
@@ -1897,7 +2007,7 @@
                          </property>
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1909,7 +2019,7 @@
                         <widget class="QLabel" name="label_63">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1921,7 +2031,7 @@
                         <widget class="QLabel" name="label_54">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1933,7 +2043,7 @@
                         <widget class="QLabel" name="label_55">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1945,7 +2055,7 @@
                         <widget class="QLabel" name="label_56">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1957,7 +2067,7 @@
                         <widget class="QLabel" name="label_57">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1969,7 +2079,7 @@
                         <widget class="QLineEdit" name="lineEdit_scaMedian">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1981,7 +2091,7 @@
                         <widget class="QLineEdit" name="lineEdit_scaGaussian">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -1993,7 +2103,7 @@
                         <widget class="QLineEdit" name="lineEdit_scaPostMedian">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -2008,7 +2118,7 @@
                          </property>
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -2020,7 +2130,7 @@
                         <widget class="QLabel" name="label_64">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -2035,7 +2145,7 @@
                          </property>
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                           </font>
                          </property>
                          <property name="text">
@@ -2047,7 +2157,7 @@
                         <widget class="QPushButton" name="pushButton_DoScatterCorr">
                          <property name="font">
                           <font>
-                           <pointsize>12</pointsize>
+                           <pointsize>13</pointsize>
                            <weight>75</weight>
                            <bold>true</bold>
                           </font>
@@ -2059,84 +2169,84 @@
                        </item>
                       </layout>
                      </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="QWidget" name="tab_7">
-                 <attribute name="title">
-                  <string>Export</string>
-                 </attribute>
-                 <layout class="QGridLayout" name="gridLayout_47">
-                  <item row="0" column="0">
-                   <widget class="QGroupBox" name="groupBox_8">
-                    <property name="title">
-                     <string>GroupBox</string>
-                    </property>
-                    <layout class="QGridLayout" name="gridLayout_46">
-                     <item row="0" column="0">
-                      <layout class="QGridLayout" name="gridLayout_45">
-                       <item row="0" column="0">
-                        <widget class="QLabel" name="label_65">
-                         <property name="text">
-                          <string>mha</string>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="0" column="1">
-                        <widget class="QCheckBox" name="checkBox_ExportFwd">
-                         <property name="layoutDirection">
-                          <enum>Qt::RightToLeft</enum>
-                         </property>
-                         <property name="text">
-                          <string>Fwd</string>
-                         </property>
-                         <property name="checked">
-                          <bool>false</bool>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="0" column="2">
-                        <widget class="QCheckBox" name="checkBox_ExportCor">
-                         <property name="layoutDirection">
-                          <enum>Qt::RightToLeft</enum>
-                         </property>
-                         <property name="text">
-                          <string>Corr.</string>
-                         </property>
-                         <property name="checked">
-                          <bool>false</bool>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="0" column="3">
-                        <widget class="QCheckBox" name="checkBox_ExportScat">
-                         <property name="layoutDirection">
-                          <enum>Qt::RightToLeft</enum>
-                         </property>
-                         <property name="text">
-                          <string>Sca</string>
-                         </property>
-                         <property name="checked">
-                          <bool>false</bool>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="1" column="2" colspan="2">
-                        <widget class="QCheckBox" name="checkBox_ExportVolDICOM">
-                         <property name="layoutDirection">
-                          <enum>Qt::RightToLeft</enum>
-                         </property>
-                         <property name="text">
-                          <string>CBCTap DICOM</string>
-                         </property>
-                         <property name="checked">
-                          <bool>false</bool>
-                         </property>
-                        </widget>
-                       </item>
-                      </layout>
+                     <item row="1" column="0">
+                      <widget class="QGroupBox" name="groupBox_8">
+                       <property name="title">
+                        <string>Export</string>
+                       </property>
+                       <layout class="QGridLayout" name="gridLayout_46">
+                        <item row="0" column="0">
+                         <layout class="QGridLayout" name="gridLayout_45">
+                          <item row="0" column="0">
+                           <widget class="QLabel" name="label_65">
+                            <property name="text">
+                             <string>MHA</string>
+                            </property>
+                           </widget>
+                          </item>
+                          <item row="0" column="1">
+                           <widget class="QCheckBox" name="checkBox_ExportFwd">
+                            <property name="layoutDirection">
+                             <enum>Qt::RightToLeft</enum>
+                            </property>
+                            <property name="text">
+                             <string>Forward Proj.</string>
+                            </property>
+                            <property name="checked">
+                             <bool>false</bool>
+                            </property>
+                           </widget>
+                          </item>
+                          <item row="0" column="2">
+                           <widget class="QCheckBox" name="checkBox_ExportCor">
+                            <property name="layoutDirection">
+                             <enum>Qt::RightToLeft</enum>
+                            </property>
+                            <property name="text">
+                             <string>Corr. CBCT</string>
+                            </property>
+                            <property name="checked">
+                             <bool>false</bool>
+                            </property>
+                           </widget>
+                          </item>
+                          <item row="0" column="3">
+                           <widget class="QCheckBox" name="checkBox_ExportScat">
+                            <property name="layoutDirection">
+                             <enum>Qt::RightToLeft</enum>
+                            </property>
+                            <property name="text">
+                             <string>Scatter Maps</string>
+                            </property>
+                            <property name="checked">
+                             <bool>false</bool>
+                            </property>
+                           </widget>
+                          </item>
+                          <item row="1" column="0">
+                           <widget class="QLabel" name="label_7">
+                            <property name="text">
+                             <string>DICOM</string>
+                            </property>
+                           </widget>
+                          </item>
+                          <item row="1" column="2">
+                           <widget class="QCheckBox" name="checkBox_ExportVolDICOM">
+                            <property name="layoutDirection">
+                             <enum>Qt::RightToLeft</enum>
+                            </property>
+                            <property name="text">
+                             <string>Corr. CBCT</string>
+                            </property>
+                            <property name="checked">
+                             <bool>false</bool>
+                            </property>
+                           </widget>
+                          </item>
+                         </layout>
+                        </item>
+                       </layout>
+                      </widget>
                      </item>
                     </layout>
                    </widget>
@@ -2273,7 +2383,7 @@
          <widget class="QPushButton" name="pushButton_SaveCurrentSetting">
           <property name="font">
            <font>
-            <pointsize>12</pointsize>
+            <pointsize>13</pointsize>
            </font>
           </property>
           <property name="text">
@@ -2307,7 +2417,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>12</pointsize>
+            <pointsize>13</pointsize>
             <weight>50</weight>
             <bold>false</bold>
            </font>
@@ -2334,7 +2444,7 @@
               <widget class="QLineEdit" name="lineEdit_DataProbe_Recon">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2346,7 +2456,7 @@
               <widget class="QLabel" name="label_10">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2358,7 +2468,7 @@
               <widget class="QSlider" name="sliderReconImgMin">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="maximum">
@@ -2379,7 +2489,7 @@
               <widget class="QLabel" name="label_37">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2409,7 +2519,7 @@
                </property>
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="mouseTracking">
@@ -2430,7 +2540,7 @@
               <widget class="QSpinBox" name="spinBoxReconImg_Max">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="maximum">
@@ -2448,7 +2558,7 @@
               <widget class="QLineEdit" name="lineEdit_Cur3DFileName">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="autoFillBackground">
@@ -2466,7 +2576,7 @@
               <widget class="QSlider" name="sliderReconImgMax">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="maximum">
@@ -2490,7 +2600,7 @@
               <widget class="QLabel" name="label_36">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2502,7 +2612,7 @@
               <widget class="QSpinBox" name="spinBoxReconImg_Min">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="maximum">
@@ -2517,7 +2627,7 @@
               <widget class="QLabel" name="label_9">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2529,95 +2639,11 @@
               <widget class="QRadioButton" name="radioButton_Profile_Ver">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
                 <string>Vertical</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="11">
-              <spacer name="horizontalSpacer_6">
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                </font>
-               </property>
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="4" column="0" colspan="2">
-              <widget class="QLabel" name="label_12">
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Index</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="9" colspan="2">
-              <widget class="QLineEdit" name="lineEdit_CurrentPosZ">
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                </font>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="5" colspan="4">
-              <widget class="QLabel" name="label_15">
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Z(mm)</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="2" colspan="3">
-              <widget class="QSpinBox" name="spinBoxReconImgSliceNo">
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                </font>
                </property>
               </widget>
              </item>
@@ -2631,7 +2657,7 @@
                </property>
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2649,7 +2675,7 @@
                </property>
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2661,7 +2687,7 @@
               <widget class="QLabel" name="label_42">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2673,7 +2699,7 @@
               <widget class="QLineEdit" name="lineEdit_ForcedProbePosY">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2685,7 +2711,7 @@
               <widget class="QLabel" name="label_53">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2695,9 +2721,15 @@
              </item>
              <item row="0" column="9" rowspan="4" colspan="2">
               <widget class="QLineEdit" name="lineEdit_ForcedProbePosZ">
+               <property name="minimumSize">
+                <size>
+                 <width>30</width>
+                 <height>0</height>
+                </size>
+               </property>
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2709,7 +2741,7 @@
               <widget class="QPushButton" name="pushButtonGoForcedProbe">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2721,7 +2753,7 @@
               <widget class="QRadioButton" name="radioButton_Profile_Hor">
                <property name="font">
                 <font>
-                 <pointsize>12</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="text">
@@ -2729,6 +2761,90 @@
                </property>
                <property name="checked">
                 <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="label_12">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>13</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Index</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="9" colspan="3">
+              <spacer name="horizontalSpacer_6">
+               <property name="font">
+                <font>
+                 <pointsize>13</pointsize>
+                </font>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="4" column="5" colspan="4">
+              <widget class="QLineEdit" name="lineEdit_CurrentPosZ">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>13</pointsize>
+                </font>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="4">
+              <widget class="QLabel" name="label_15">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>13</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Z(mm)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1" colspan="3">
+              <widget class="QSpinBox" name="spinBoxReconImgSliceNo">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>13</pointsize>
+                </font>
                </property>
               </widget>
              </item>
@@ -2747,7 +2863,7 @@
           </property>
           <property name="font">
            <font>
-            <pointsize>12</pointsize>
+            <pointsize>13</pointsize>
            </font>
           </property>
           <property name="currentIndex">
@@ -2758,44 +2874,11 @@
             <string>Profile</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_5">
-            <item row="0" column="1" rowspan="9" colspan="8">
-             <widget class="QCustomPlot" name="customPlot" native="true">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
+            <item row="9" column="1" rowspan="2" colspan="4">
+             <widget class="QLineEdit" name="lineEditXMin">
               <property name="minimumSize">
                <size>
-                <width>50</width>
-                <height>128</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="9" rowspan="2">
-             <widget class="QLabel" name="label_38">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>ROI size</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0" rowspan="2">
-             <widget class="QRadioButton" name="radioButton_graph_recon">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
+                <width>32</width>
                 <height>0</height>
                </size>
               </property>
@@ -2807,11 +2890,8 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
-              </property>
-              <property name="text">
-               <string>Recon</string>
               </property>
              </widget>
             </item>
@@ -2831,22 +2911,136 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
              </widget>
             </item>
-            <item row="9" column="11" rowspan="2">
-             <widget class="QTableView" name="tableViewReconImgProfile">
+            <item row="7" column="0" rowspan="3">
+             <widget class="QLineEdit" name="lineEditYMin">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
-                <width>5</width>
-                <height>5</height>
+                <width>70</width>
+                <height>16777215</height>
                </size>
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="9" rowspan="3" colspan="3">
+             <widget class="QPushButton" name="pushButtonAddConstHU">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Add const HU</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" rowspan="2">
+             <widget class="QRadioButton" name="radioButton_graph_recon">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Recon</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="5" rowspan="2">
+             <widget class="QPushButton" name="pushButtonCopyTableToClipboard">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>CopyToClipboard</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="12" rowspan="3">
+             <widget class="QLineEdit" name="lineEdit_AddConstHU">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="6" rowspan="2" colspan="3">
+             <widget class="QLineEdit" name="lineEditXMax">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1" rowspan="9" colspan="8">
+             <widget class="QCustomPlot" name="customPlot" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>128</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
                </font>
               </property>
              </widget>
@@ -2867,7 +3061,7 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
               <property name="text">
@@ -2878,28 +3072,25 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="0" rowspan="3">
-             <widget class="QLineEdit" name="lineEditYMin">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
+            <item row="9" column="9" rowspan="2">
+             <widget class="QLabel" name="label_40">
               <property name="maximumSize">
                <size>
-                <width>70</width>
+                <width>30</width>
                 <height>16777215</height>
                </size>
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
+              </property>
+              <property name="text">
+               <string>SD</string>
               </property>
              </widget>
             </item>
-            <item row="7" column="10" rowspan="2" colspan="2">
+            <item row="9" column="11" rowspan="2" colspan="2">
              <widget class="QLineEdit" name="lineEdit_ROI_SD">
               <property name="minimumSize">
                <size>
@@ -2909,7 +3100,7 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
               <property name="text">
@@ -2917,32 +3108,38 @@
               </property>
              </widget>
             </item>
-            <item row="9" column="6" rowspan="2" colspan="3">
-             <widget class="QLineEdit" name="lineEditXMax">
-              <property name="minimumSize">
-               <size>
-                <width>32</width>
-                <height>0</height>
-               </size>
-              </property>
+            <item row="9" column="10" rowspan="2">
+             <widget class="QTableView" name="tableViewReconImgProfile">
               <property name="maximumSize">
                <size>
-                <width>16777215</width>
-                <height>16777215</height>
+                <width>5</width>
+                <height>5</height>
                </size>
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
              </widget>
             </item>
-            <item row="3" column="10" rowspan="2" colspan="2">
+            <item row="3" column="9" rowspan="3" colspan="2">
+             <widget class="QLabel" name="label_38">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>ROI size</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="11" rowspan="3" colspan="2">
              <widget class="QLineEdit" name="lineEdit_ROI_size">
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
               <property name="text">
@@ -2950,7 +3147,7 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="9" rowspan="2">
+            <item row="6" column="9" rowspan="3" colspan="2">
              <widget class="QLabel" name="label_39">
               <property name="minimumSize">
                <size>
@@ -2966,7 +3163,7 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
               <property name="text">
@@ -2974,96 +3171,15 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="9" rowspan="3" colspan="2">
-             <widget class="QPushButton" name="pushButtonAddConstHU">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Add const HU</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="10" rowspan="2" colspan="2">
+            <item row="6" column="11" rowspan="3" colspan="2">
              <widget class="QLineEdit" name="lineEdit_ROI_mean">
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
               <property name="text">
                <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="11" rowspan="3">
-             <widget class="QLineEdit" name="lineEdit_AddConstHU">
-              <property name="minimumSize">
-               <size>
-                <width>32</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>0</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="9" rowspan="2">
-             <widget class="QLabel" name="label_40">
-              <property name="maximumSize">
-               <size>
-                <width>30</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>SD</string>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="1" rowspan="2" colspan="4">
-             <widget class="QLineEdit" name="lineEditXMin">
-              <property name="minimumSize">
-               <size>
-                <width>32</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="5" rowspan="2">
-             <widget class="QPushButton" name="pushButtonCopyTableToClipboard">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>CopyToClipboard</string>
               </property>
              </widget>
             </item>
@@ -3227,14 +3343,13 @@
      </layout>
     </item>
    </layout>
-   <zorder></zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1045</width>
+     <width>1101</width>
      <height>22</height>
     </rect>
    </property>
