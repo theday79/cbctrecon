@@ -11,23 +11,13 @@
 #include "WEPL.h"
 #include "cbctrecon.h"
 #include "ui_DlgRegistration.h"
-
-//#include "pcmd_synth_vf.h"
-// class CbctRecon;
-// class YK16GrayImage;
-class qyklabel;
+#include "qyklabel.h"
 
 class Dmap_parms;
 class Pcmd_threshold;
 class Mask_parms;
-
 class Plm_image_header;
-
 class Dcmtk_rt_study;
-// class Synthetic_vf_main_parms;
-
-// typedef unsigned short USHORT_PixelType;
-// typedef itk::Image< USHORT_PixelType, 3 > USHORT_ImageType;
 
 enum enViewArrange {
   AXIAL_FRONTAL_SAGITTAL = 0,

@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#undef TIMEOUT
 #include <direction_cosines.h>
 #include <rtss.h>
 #include <rtss_contour.h>

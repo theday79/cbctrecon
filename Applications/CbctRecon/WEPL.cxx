@@ -1,5 +1,20 @@
+#include <cmath>                          // for sqrt, pow, sin, cos
+#include <algorithm>                      // for find_if, min_element, transform
+#include <iostream>                       // for operator<<, endl, basic_ostream, cerr, ostream
+#include <numeric>                        // for accumulate, adjacent_difference
+#include <utility>                        // for pair
+#include <valarray>                       // for valarray
+
+#include <vnl_vector_fixed.h>             // for vnl_vector_fixed
+#include <itkCastImageFilter.h>           // for CastImageFilter
+#include <itkFixedArray.h>                // for FixedArray
+#include <itkImage.h>                     // for Image<>::Pointer, Image, Image<>::IndexType, Image<>::PointType
+#include <itkImageFileWriter.h>           // for ImageFileWriter
+#include <itkMacro.h>                     // for CastImageFilter::New, ImageFileWriter::New
+
 #include "WEPL.h"
-#include <vnl_vector_fixed.h>
+#include "cbctrecon.h"                    // for CbctRecon
+#include "plm_math.h"                     // for M_PI, NLMAX, NLMIN
 
 double lin_interpolate(std::array<int, 3> point_id,
                        std::array<double, 3> point_id_pos, const int idx_2,
@@ -8,40 +23,40 @@ double lin_interpolate(std::array<int, 3> point_id,
 
   std::array<double, 8> weights{};
   // x                    xyz
-  weights.at(0) = sqrt( // 000 =
-      pow(point_id.at(0) - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) - point_id_pos.at(2), 2));
-  weights.at(1) = sqrt( // 100 =
-      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) - point_id_pos.at(2), 2));
+  weights.at(0) = std::sqrt( // 000 =
+      std::pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) - point_id_pos.at(2), 2));
+  weights.at(1) = std::sqrt( // 100 =
+      std::pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) - point_id_pos.at(2), 2));
   // y
-  weights.at(2) = sqrt( // 010 =
-      pow(point_id.at(0) - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) - point_id_pos.at(2), 2));
-  weights.at(3) = sqrt( // 110 =
-      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) - point_id_pos.at(2), 2));
+  weights.at(2) = std::sqrt( // 010 =
+      std::pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) - point_id_pos.at(2), 2));
+  weights.at(3) = std::sqrt( // 110 =
+      std::pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) - point_id_pos.at(2), 2));
   // z
-  weights.at(4) = sqrt( // 001 =
-      pow(point_id.at(0) - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-  weights.at(5) = sqrt( // 101 =
-      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-  weights.at(6) = sqrt( // 011 =
-      pow(point_id.at(0) - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
-  weights.at(7) = sqrt( // 111 =
-      pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
-      pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
-      pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+  weights.at(4) = std::sqrt( // 001 =
+      std::pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+  weights.at(5) = std::sqrt( // 101 =
+      std::pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+  weights.at(6) = std::sqrt( // 011 =
+      std::pow(point_id.at(0) - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
+  weights.at(7) = std::sqrt( // 111 =
+      std::pow(point_id.at(0) + idx_2 - point_id_pos.at(0), 2) +
+      std::pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
+      std::pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
 
   const double sum_weights =
       std::accumulate(weights.begin(), weights.end(), 0.0);
@@ -415,9 +430,9 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
 
   // Now find the plane closest to l_0:
   std::array<double, 3U> p_dist = {
-      {sqrt(dot_product(l_0 - p.at(0), l_0 - p.at(0))),
-       sqrt(dot_product(l_0 - p.at(1), l_0 - p.at(1))),
-       sqrt(dot_product(l_0 - p.at(2), l_0 - p.at(2)))}};
+      {std::sqrt(dot_product(l_0 - p.at(0), l_0 - p.at(0))),
+       std::sqrt(dot_product(l_0 - p.at(1), l_0 - p.at(1))),
+       std::sqrt(dot_product(l_0 - p.at(2), l_0 - p.at(2)))}};
   auto it_min_dist = std::min_element(p_dist.begin(), p_dist.end());
   // index of min:
   auto min_dist_plane = std::distance(p_dist.begin(), it_min_dist);

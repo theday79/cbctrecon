@@ -18,6 +18,7 @@
 #include <itkThresholdImageFilter.h>
 
 // PLM
+#undef TIMEOUT // used in an enum in dlib, and may be defined as 7 in lp of RTK
 #include <dcmtk_rt_study.h>
 #include <distance_map.h>
 #include <itk_image_load.h>
@@ -34,6 +35,9 @@
 #include <string_util.h>
 #include <synthetic_vf.h>
 #include <warp_parms.h>
+
+#include "cbctrecon.h"
+#include "StructureSet.h"
 
 #define FIXME_BACKGROUND_MAX (-1200)
 

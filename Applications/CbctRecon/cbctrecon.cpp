@@ -60,7 +60,12 @@
 #include <itkStatisticsImageFilter.h>
 #include <itkStreamingImageFilter.h>
 #include <itkTimeProbe.h>
-#include <itk_image_type.h>
+#if ITK_VERSION_MAJOR >= 4
+#include <gdcmUIDGenerator.h>
+#else
+#include <gdcm/src/gdcmFile.h>
+#include <gdcm/src/gdcmUtil.h>
+#endif
 
 #ifdef LOWPASS_FFT
 // ITK Low-pass fourier filter
@@ -72,15 +77,10 @@
 #endif // LOWPASS_FFT
 
 // RTK includes
-#include <rtkElektaSynergyGeometryReader.h>
-#include <rtkProjectionsReader.h>
-#include <rtkThreeDCircularProjectionGeometryXMLFile.h>
-#include <rtkVarianObiGeometryReader.h>
-#include <rtkVarianProBeamGeometryReader.h>
-
 #include <rtkConfiguration.h>
 #include <rtkConstantImageSource.h>
 #include <rtkDisplacedDetectorImageFilter.h>
+#include <rtkElektaSynergyGeometryReader.h>
 #include <rtkFDKBackProjectionImageFilter.h>
 #include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkFieldOfViewImageFilter.h>
@@ -88,20 +88,27 @@
 #include <rtkJosephForwardProjectionImageFilter.h>
 #include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
+#include <rtkThreeDCircularProjectionGeometry.h>
+#include <rtkThreeDCircularProjectionGeometryXMLFile.h>
+#include <rtkVarianObiGeometryReader.h>
+#include <rtkVarianProBeamGeometryReader.h>
 
 #if USE_CUDA
-#include "rtkCudaFDKConeBeamReconstructionFilter.h"
-#include "rtkCudaForwardProjectionImageFilter.h"
+#include <rtkConjugateGradientConeBeamReconstructionFilter.h>
 #include <rtkCudaDisplacedDetectorImageFilter.h>
+#include <rtkCudaFDKConeBeamReconstructionFilter.h>
+#include <rtkCudaForwardProjectionImageFilter.h>
 #include <rtkCudaParkerShortScanImageFilter.h>
+#include <rtkSARTConeBeamReconstructionFilter.h>
 #endif // USE_CUDA
 
-// ITK includes
-
 // Plastimatch
+#undef TIMEOUT
 #include <dcmtk_rt_study.h>
+#include <itk_image_type.h>
 #include <mha_io.h>
 #include <nki_io.h>
+#include <proj_matrix.h>
 #include <proj_volume.h>
 #include <ray_data.h>
 #include <rt_beam.h>
@@ -111,32 +118,15 @@
 #include <volume_adjust.h>
 
 #if USE_OPENCL_PLM
-#include <plmreconstruct_config.h>
-
 #include <autotune_opencl.h>
 #include <fdk.h>
 #include <fdk_opencl.h>
 #include <opencl_util.h>
 #include <plm_image.h>
+#include <plmreconstruct_config.h>
 #include <proj_image.h>
 #include <proj_image_filter.h>
-#include <proj_matrix.h>
 #endif // USE_OPENCL_PLM
-
-#if ITK_VERSION_MAJOR >= 4
-#include "gdcmUIDGenerator.h"
-#else
-#include "gdcm/src/gdcmFile.h"
-#include "gdcm/src/gdcmUtil.h"
-#endif
-
-// related includes for forward projection
-//#include "itkMedianImageFilter.h"
-#if USE_CUDA
-#include "rtkConjugateGradientConeBeamReconstructionFilter.h"
-#include "rtkCudaForwardProjectionImageFilter.h"
-#include "rtkSARTConeBeamReconstructionFilter.h"
-#endif
 
 // Local
 #ifdef USE_OPENCL_RTK
@@ -146,9 +136,6 @@
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
 #include "OpenCLFFTFilter.h"
-
-#define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
-
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"
@@ -156,10 +143,7 @@
 #include "fdk.hxx"
 #include "io.hxx"
 
-// using namespace std;
-
-// extern "C" void YKCudaMedianWrapFloat(float* CPUinput, float* CPUoutput,
-// const int width, const int height, const int fWidth, const int fHeight);
+#define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
 
 struct TIFIFD {
   unsigned short TagID;

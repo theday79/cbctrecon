@@ -1,37 +1,49 @@
 #ifndef CBCTRECON_H
 #define CBCTRECON_H
 
+// std
 #include <array>
 #include <memory> // unique_, shared_ and weak_ptr
+
 // Qt
 #include <QtWidgets/QMainWindow>
 
+// ITK
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #ifdef USE_CUDA
 #include <itkCudaImage.h>
 #endif
 
+// RTK
 #include <rtkThreeDCircularProjectionGeometry.h>
+
+// PLM
+#include <itk_mask.h>
 
 // Local
 #include "cbctrecon_config.h"
 #include "ui_cbctrecon.h"
+#include "YK16GrayImage.h"
 
 using FloatPixelType = float;
-// typedef itk::Image< FloatPixelType, 3 > FloatImageType;
-// typedef itk::Image< FloatPixelType, 2 > FloatImage2DType;
+
 #if USE_CUDA
 using CUDAFloatImageType = itk::CudaImage<FloatPixelType, 3>;
 #endif // USE_CUDA
+
+using USHORT_PixelType = unsigned short;
+using SHORT_PixelType = short;
+
+using FloatImageType = itk::Image<FloatPixelType, 3U>;
+using FloatImage2DType = itk::Image<FloatPixelType, 2U>;
+using UShortImageType = itk::Image<USHORT_PixelType, 3U>;
+using ShortImageType = itk::Image<SHORT_PixelType, 3U>;
 
 using FloatReaderType = itk::ImageFileReader<FloatImageType>;
 using FloatWriterType = itk::ImageFileWriter<FloatImageType>;
 
 using GeometryType = rtk::ThreeDCircularProjectionGeometry;
-
-using USHORT_PixelType = unsigned short;
-using SHORT_PixelType = short;
 
 #define DEFAULT_ELEKTA_PROJ_WIDTH 1024
 #define DEFAULT_ELEKTA_PROJ_HEIGHT 1024
