@@ -4,7 +4,6 @@
 #include <QDialog>
 #include <QString>
 #include <itkImage.h>
-#include <itk_mask.h>
 
 #include "cbctrecon_config.h"
 #include "AG17RGBAImage.h"

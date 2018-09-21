@@ -1,44 +1,39 @@
 #include "DlgRegistration.h"
 
-#include <itkRescaleIntensityImageFilter.h>
-#include <itk_image_save.h>
-// warp related include files
-#include <rt_study.h>
-//#include <rtds_warp.h>
-#include <distance_map.h>
-#include <rt_study_warp.h>
-#include <warp_parms.h>
-
-#include <itk_threshold.h>
-
-#include <itk_image_load.h>
-
-#include <synthetic_vf.h>
-
-#include <registration.h>
-#include <shared_parms.h>
-#include <string_util.h>
-
-#include <segment_body.h>
-
-#include <dcmtk_rt_study.h>
-#include <rtplan_beam.h>
-#include <rtplan_control_pt.h>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QProcess>
 
-// gdcm ITK based dicom writer //
-
-#include <itkMinimumMaximumImageFilter.h>
-#include <itkGDCMImageIO.h>
-#include <itkNumericSeriesFileNames.h>
-#include <itkImageSeriesWriter.h>
+// ITK
 #include <gdcmUIDGenerator.h>
+#include <itkBinaryThresholdImageFilter.h>
+#include <itkCastImageFilter.h>
+#include <itkGDCMImageIO.h>
+#include <itkImageSeriesWriter.h>
+#include <itkMinimumMaximumImageFilter.h>
+#include <itkMultiplyImageFilter.h>
+#include <itkNumericSeriesFileNames.h>
+#include <itkRescaleIntensityImageFilter.h>
+#include <itkSubtractImageFilter.h>
+#include <itkThresholdImageFilter.h>
 
-// END gdcm ITK based dicom writer //
-
-
-#include <QMessageBox>
+// PLM
+#include <dcmtk_rt_study.h>
+#include <distance_map.h>
+#include <itk_image_load.h>
+#include <itk_image_save.h>
+#include <itk_mask.h>
+#include <itk_threshold.h>
+#include <registration.h>
+#include <rt_study.h>
+#include <rt_study_warp.h>
+#include <rtplan_beam.h>
+#include <rtplan_control_pt.h>
+#include <segment_body.h>
+#include <shared_parms.h>
+#include <string_util.h>
+#include <synthetic_vf.h>
+#include <warp_parms.h>
 
 #define FIXME_BACKGROUND_MAX (-1200)
 
@@ -287,12 +282,12 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     m_YKDisp[refIdx % 3].m_ptCrosshair.setY(sliderPosIdxY);
 
     m_YKDisp[(refIdx + 1) % 3].m_ptCrosshair.setX(sliderPosIdxX); // Frontal
-    m_YKDisp[(refIdx + 1) % 3].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ -
-                                                  1);
+    m_YKDisp[(refIdx + 1) % 3].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) -
+                                                  sliderPosIdxZ - 1);
 
     m_YKDisp[(refIdx + 2) % 3].m_ptCrosshair.setX(sliderPosIdxY); // Sagittal
-    m_YKDisp[(refIdx + 2) % 3].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ -
-                                                  1);
+    m_YKDisp[(refIdx + 2) % 3].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) -
+                                                  sliderPosIdxZ - 1);
 
     m_YKImgFixed[0].m_bDrawCrosshair = true;
     m_YKImgFixed[1].m_bDrawCrosshair = true;
@@ -302,10 +297,12 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     m_YKImgFixed[0].m_ptCrosshair.setY(sliderPosIdxY);
 
     m_YKImgFixed[1].m_ptCrosshair.setX(sliderPosIdxX); // sagittal slider
-    m_YKImgFixed[1].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ - 1);
+    m_YKImgFixed[1].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) -
+                                       sliderPosIdxZ - 1);
 
     m_YKImgFixed[2].m_ptCrosshair.setX(sliderPosIdxY); // sagittal slider
-    m_YKImgFixed[2].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) - sliderPosIdxZ - 1);
+    m_YKImgFixed[2].m_ptCrosshair.setY(static_cast<int>(imgSize[2]) -
+                                       sliderPosIdxZ - 1);
   } else {
     m_YKDisp[0].m_bDrawCrosshair = false;
     m_YKDisp[1].m_bDrawCrosshair = false;
@@ -448,9 +445,12 @@ void DlgRegistration::whenFixedImgLoaded() {
   int curPosX = static_cast<int>(imgSize[0] / 2);
   ui.sliderPosDisp3->setValue(curPosX);
 
-  QPoint x_split = QPoint(static_cast<int>(imgSize[0] / 2), static_cast<int>(imgSize[1] / 2));
-  QPoint y_split = QPoint(static_cast<int>(imgSize[0] / 2), static_cast<int>(imgSize[2] / 2));
-  QPoint z_split = QPoint(static_cast<int>(imgSize[1] / 2), static_cast<int>(imgSize[2] / 2));
+  QPoint x_split = QPoint(static_cast<int>(imgSize[0] / 2),
+                          static_cast<int>(imgSize[1] / 2));
+  QPoint y_split = QPoint(static_cast<int>(imgSize[0] / 2),
+                          static_cast<int>(imgSize[2] / 2));
+  QPoint z_split = QPoint(static_cast<int>(imgSize[1] / 2),
+                          static_cast<int>(imgSize[2] / 2));
 
   m_YKDisp[0].SetSplitCenter(x_split);
   m_YKDisp[1].SetSplitCenter(y_split);
@@ -671,12 +671,13 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
     // offset should be 0.. only relative distance matters. offset is in
     // realtime changing
     QPoint ptDataPanStartRel = pOverlapWnd->View2DataExt(
-        m_ptPanStart, static_cast<int>(dspWidth), static_cast<int>(dspHeight), dataWidth, dataHeight, QPoint(0, 0),
-        m_YKDisp[idx].m_fZoom);
+        m_ptPanStart, static_cast<int>(dspWidth), static_cast<int>(dspHeight),
+        dataWidth, dataHeight, QPoint(0, 0), m_YKDisp[idx].m_fZoom);
 
     QPoint ptDataPanEndRel = pOverlapWnd->View2DataExt(
-        QPoint(pOverlapWnd->x, pOverlapWnd->y), static_cast<int>(dspWidth), static_cast<int>(dspHeight), dataWidth,
-        dataHeight, QPoint(0, 0), m_YKDisp[idx].m_fZoom);
+        QPoint(pOverlapWnd->x, pOverlapWnd->y), static_cast<int>(dspWidth),
+        static_cast<int>(dspHeight), dataWidth, dataHeight, QPoint(0, 0),
+        m_YKDisp[idx].m_fZoom);
 
     // int dspOffsetX = pOverlapWnd->x - m_ptPanStart.x();
     // int dspOffsetY = m_ptPanStart.y() - pOverlapWnd->y;
@@ -1816,11 +1817,9 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage) {
 
   if (idx == 0) {
     crntCombo = ui.comboBoxImgFixed;
-  }
-  else if (idx == 1) {
+  } else if (idx == 1) {
     crntCombo = ui.comboBoxImgMoving;
-  }
-  else {
+  } else {
     std::cerr << "What did you do to get here?" << std::endl;
     return;
   }
@@ -2308,7 +2307,8 @@ void DlgRegistration::autoPreprocessCT() {
               << std::endl;
     return;
   }
-  unsigned short air_thresh = static_cast<unsigned short>(1024 + ui.lineEditBkDetectCT->text().toInt());
+  unsigned short air_thresh =
+      static_cast<unsigned short>(1024 + ui.lineEditBkDetectCT->text().toInt());
   std::cout << "Thresh: " << air_thresh << std::endl;
   using threshFilterType =
       itk::BinaryThresholdImageFilter<UShortImageType, ShortImageType>;
@@ -3858,7 +3858,8 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
 
   NamesGeneratorType::Pointer namesGenerator = NamesGeneratorType::New();
   namesGenerator->SetStartIndex(static_cast<itk::SizeValueType>(start[2]));
-  namesGenerator->SetEndIndex(static_cast<itk::SizeValueType>(start[2]) + size[2] - 1);
+  namesGenerator->SetEndIndex(static_cast<itk::SizeValueType>(start[2]) +
+                              size[2] - 1);
   namesGenerator->SetIncrementIndex(1);
   namesGenerator->SetSeriesFormat(newDirPath.toStdString() + "/CT." + studyUID +
                                   ".%d.dcm");
@@ -4182,7 +4183,8 @@ void DlgRegistration::SLT_gPMCrecalc() {
 void DlgRegistration::SLT_WEPLcalc() {
   // Get VOI
   auto voi_name = ui.comboBox_VOI->currentText().toStdString();
-  cur_voi = m_pParent->m_structures->get_ss(RIGID_CT)->get_roi_by_name(voi_name);
+  cur_voi =
+      m_pParent->m_structures->get_ss(RIGID_CT)->get_roi_by_name(voi_name);
 
   // Get basis from angles
   auto gantry_angle = ui.spinBox_GantryAngle->value();
@@ -4192,7 +4194,7 @@ void DlgRegistration::SLT_WEPLcalc() {
   // Get Fixed and Moving
   // Tranlate fixed and moving to dEdx
   auto wepl_cube = ConvertUshort2WeplFloat(m_spMoving);
-  
+
   // Initialize WEPL contour
   WEPL_voi = std::make_unique<Rtss_roi_modern>();
   WEPL_voi->name = "WEPL" + voi_name;
@@ -4200,19 +4202,21 @@ void DlgRegistration::SLT_WEPLcalc() {
   WEPL_voi->id = cur_voi->id;   /* Used for import/export (must be >= 1) */
   WEPL_voi->bit = cur_voi->bit; /* Used for ss-img (-1 for no bit) */
   WEPL_voi->num_contours = cur_voi->num_contours;
-  //WEPL_voi->pslist.resize(WEPL_voi->num_contours);
-  
+  // WEPL_voi->pslist.resize(WEPL_voi->num_contours);
+
   // Calculate WEPL
-  for(auto contour : cur_voi->pslist ){
+  for (auto contour : cur_voi->pslist) {
     auto WEPL_contour = Rtss_contour_modern(contour);
     WEPL_contour.ct_slice_uid = contour.ct_slice_uid;
     WEPL_contour.slice_no = contour.slice_no;
     WEPL_contour.num_vertices = contour.num_vertices;
     // Actually calculate WEPL
-    auto WEPL_points = WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
+    auto WEPL_points =
+        WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
     // Put WEPL in contour
     std::transform(std::begin(WEPL_points), std::end(WEPL_points),
-                   std::begin(WEPL_contour.coordinates), [](WEPLVector val){return val.point;});
+                   std::begin(WEPL_contour.coordinates),
+                   [](WEPLVector val) { return val.point; });
     WEPL_voi->pslist.push_back(WEPL_contour);
   }
 
@@ -4293,15 +4297,16 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
   // reg.get_registration_parms()->log_fn = "gradient_log.txt";
   reg.load_global_inputs();
 
-  Xform::Pointer xform =
-      reg.do_registration_pure(); // changed from
-                                  // do_registration() without
-                                  // return value
+  Xform::Pointer xform = reg.do_registration_pure(); // changed from
+                                                     // do_registration()
+                                                     // without return value
   std::cout << "4: Registration is done" << std::endl;
   ui.progressBar->setValue(99); // good ol' 99%
 
   auto trn = xform->get_trn()->GetOffset();
-  ImageManualMoveOneShot(static_cast<float>(-trn[0]), static_cast<float>(-trn[1]), static_cast<float>(-trn[2]));
+  ImageManualMoveOneShot(static_cast<float>(-trn[0]),
+                         static_cast<float>(-trn[1]),
+                         static_cast<float>(-trn[2]));
   /*
 std::cout << "5: Load shift values" << std::endl;
 

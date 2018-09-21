@@ -1,7 +1,7 @@
 #if USE_TINYREFL
-#include <tinyrefl/api.hpp>
 #include "cbctrecon.h"
 #include "cbctrecon.h.tinyrefl"
+#include <tinyrefl/api.hpp>
 #else
 #include "cbctrecon.h"
 #endif
@@ -34,10 +34,6 @@
 #include <qxmlstream.h>
 
 // ITK
-#include <itkImageFileReader.h>
-#include <itkImageFileWriter.h>
-#include <itk_image_type.h>
-#include <itkTimeProbe.h>
 #include <itkAbsImageFilter.h>
 #include <itkAddImageFilter.h>
 #include <itkBinaryBallStructuringElement.h>
@@ -46,12 +42,12 @@
 #include <itkBinaryFillholeImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkCastImageFilter.h>
-#include <itkMaskImageFilter.h>
 #include <itkEuler3DTransform.h>
 #include <itkFlipImageFilter.h>
 #include <itkImageDuplicator.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
+#include <itkMaskImageFilter.h>
 #include <itkMedianImageFilter.h>
 #include <itkMemoryProbesCollectorBase.h>
 #include <itkMinimumMaximumImageCalculator.h>
@@ -63,6 +59,8 @@
 #include <itkSmoothingRecursiveGaussianImageFilter.h>
 #include <itkStatisticsImageFilter.h>
 #include <itkStreamingImageFilter.h>
+#include <itkTimeProbe.h>
+#include <itk_image_type.h>
 
 #ifdef LOWPASS_FFT
 // ITK Low-pass fourier filter
@@ -125,7 +123,6 @@
 #include <proj_matrix.h>
 #endif // USE_OPENCL_PLM
 
-
 #if ITK_VERSION_MAJOR >= 4
 #include "gdcmUIDGenerator.h"
 #else
@@ -153,11 +150,11 @@
 #define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
 
 #include "StructureSet.h"
+#include "WEPL.h"
 #include "YK16GrayImage.h"
 #include "compute.hxx"
 #include "fdk.hxx"
 #include "io.hxx"
-#include "WEPL.h"
 
 // using namespace std;
 
@@ -1362,8 +1359,8 @@ std::tuple<bool, bool> CbctRecon::probeUser(const QString &guessDir) {
       auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
       auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
-      std::cout << "Current Min and Max Values are	" << minVal << "	"
-                << maxVal << std::endl;
+      std::cout << "Current Min and Max Values are	" << minVal
+                << "	" << maxVal << std::endl;
 
       auto outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
       auto outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);

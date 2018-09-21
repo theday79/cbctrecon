@@ -63,7 +63,6 @@ double lin_interpolate(std::array<int, 3> point_id,
   return out_val;
 }
 
-
 double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
                        const std::array<double, 3> vec_basis,
                        const std::array<double, 3> vec_cubesize,
@@ -141,7 +140,6 @@ double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
 
   return out * step_length;
 }
-
 
 std::array<double, 3> get_basis_from_angles(double gantry, double couch) {
   gantry += 180.0;
@@ -474,13 +472,11 @@ float hu_to_dEdx(float val) {
   const auto lookup_upper = *lookup_upper_ptr;
 
   // Get the previous index:
-  const auto lookup_lower =
-      lookup.at((lookup_upper_ptr - lookup.begin()) - 1);
+  const auto lookup_lower = lookup.at((lookup_upper_ptr - lookup.begin()) - 1);
 
   // Do linear interpolation between upper and lower data point:
-  const double a =
-      (lookup_upper.second - lookup_lower.second) /
-      static_cast<double>(lookup_upper.first - lookup_lower.first);
+  const double a = (lookup_upper.second - lookup_lower.second) /
+                   static_cast<double>(lookup_upper.first - lookup_lower.first);
   const double b =
       lookup_upper.second - a * static_cast<double>(lookup_upper.first);
 

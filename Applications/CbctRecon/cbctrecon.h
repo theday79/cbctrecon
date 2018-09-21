@@ -6,8 +6,10 @@
 // Qt
 #include <QtWidgets/QMainWindow>
 
+#include <itkImageFileReader.h>
+#include <itkImageFileWriter.h>
 #ifdef USE_CUDA
-#include "itkCudaImage.h"
+#include <itkCudaImage.h>
 #endif
 
 #include <rtkThreeDCircularProjectionGeometry.h>
