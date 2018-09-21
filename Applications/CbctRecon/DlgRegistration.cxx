@@ -4211,8 +4211,8 @@ void DlgRegistration::SLT_WEPLcalc() {
     // Actually calculate WEPL
     auto WEPL_points = WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
     // Put WEPL in contour
-    std::copy(std::begin(WEPL_points), std::end(WEPL_points),
-              std::begin(WEPL_contour.coordinates));
+    std::transform(std::begin(WEPL_points), std::end(WEPL_points),
+                   std::begin(WEPL_contour.coordinates), [](WEPLVector val){return val.point;});
     WEPL_voi->pslist.push_back(WEPL_contour);
   }
 
