@@ -77,7 +77,6 @@
 #endif // LOWPASS_FFT
 
 // RTK includes
-#include <rtkConfiguration.h>
 #include <rtkConstantImageSource.h>
 #include <rtkDisplacedDetectorImageFilter.h>
 #include <rtkElektaSynergyGeometryReader.h>

@@ -8,6 +8,10 @@
 // Qt
 #include <QtWidgets/QMainWindow>
 
+// configs
+#include <plm_config.h> // first due to lack of ifdef guards
+#include <rtkConfiguration.h> // also includes itkConfiguration.h
+
 // ITK
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
@@ -25,6 +29,7 @@
 #include "cbctrecon_config.h"
 #include "ui_cbctrecon.h"
 #include "YK16GrayImage.h"
+#include "WEPL.h"
 
 using FloatPixelType = float;
 

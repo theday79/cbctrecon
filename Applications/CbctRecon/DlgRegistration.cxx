@@ -4,6 +4,10 @@
 #include <QMessageBox>
 #include <QProcess>
 
+// configs
+#include <plm_config.h>
+#include <itkConfigure.h>
+
 // ITK
 #include <gdcmUIDGenerator.h>
 #include <itkBinaryThresholdImageFilter.h>

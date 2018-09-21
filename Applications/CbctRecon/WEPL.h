@@ -54,6 +54,6 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
                                      const FloatImageType::Pointer &wepl_cube);
 
 FloatImageType::Pointer
-ConvertUshort2WeplFloat(const UShortImageType::Pointer &spImgUshort);
+ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort);
 
 #endif
