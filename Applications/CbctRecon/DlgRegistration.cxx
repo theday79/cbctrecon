@@ -4055,7 +4055,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
   QString gPMC_device;
 #ifdef USE_CUDA
   gPMC_device = "gpu";
-#elifdef USE_OPENCL
+#elif defined(USE_OPENCL)
   gPMC_device = "cpu";
 #else
   gPMC_device = "cpu";

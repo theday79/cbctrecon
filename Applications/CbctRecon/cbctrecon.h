@@ -3,118 +3,18 @@
 
 #include <array>
 #include <memory> // unique_, shared_ and weak_ptr
-#include <thread>
-
 // Qt
 #include <QtWidgets/QMainWindow>
-#include <qclipboard.h>
-#include <qdir.h>
-#include <qfiledialog.h>
-#include <qinputdialog.h>
-#include <qmessagebox.h>
-#include <qstandarditemmodel.h>
-#include <qtimer.h>
-#include <qxmlstream.h>
 
-#include "StructureSet.h"
-#include "YK16GrayImage.h"
-#include "ui_cbctrecon.h"
-
-#include <itkImageFileReader.h>
-#include <itkImageFileWriter.h>
-#include <itk_image_type.h>
-#include <itkTimeProbe.h>
-
-// RTK includes
-#include <rtkElektaSynergyGeometryReader.h>
-#include <rtkProjectionsReader.h>
-#include <rtkThreeDCircularProjectionGeometry.h>
-#include <rtkThreeDCircularProjectionGeometryXMLFile.h>
-#include <rtkVarianObiGeometryReader.h>
-#include <rtkVarianProBeamGeometryReader.h>
-
-#include <rtkConfiguration.h>
-#include <rtkConstantImageSource.h>
-#include <rtkDisplacedDetectorImageFilter.h>
-#include <rtkFDKBackProjectionImageFilter.h>
-#include <rtkFDKConeBeamReconstructionFilter.h>
-#include <rtkFieldOfViewImageFilter.h>
-#include <rtkForwardProjectionImageFilter.h>
-#include <rtkJosephForwardProjectionImageFilter.h>
-#include <rtkParkerShortScanImageFilter.h>
-#include <rtkProjectionsReader.h>
-
-#if USE_CUDA
+#ifdef USE_CUDA
 #include "itkCudaImage.h"
-#include "rtkCudaFDKConeBeamReconstructionFilter.h"
-#include "rtkCudaForwardProjectionImageFilter.h"
-#include <rtkCudaDisplacedDetectorImageFilter.h>
-#include <rtkCudaParkerShortScanImageFilter.h>
-#endif // USE_CUDA
+#endif
 
-// ITK includes
-#include <itkAbsImageFilter.h>
-#include <itkAddImageFilter.h>
-#include <itkBinaryBallStructuringElement.h>
-#include <itkBinaryDilateImageFilter.h>
-#include <itkBinaryErodeImageFilter.h>
-#include <itkBinaryFillholeImageFilter.h>
-#include <itkBinaryThresholdImageFilter.h>
-#include <itkCastImageFilter.h>
-#include <itkMaskImageFilter.h>
-#include <itkEuler3DTransform.h>
-#include <itkFlipImageFilter.h>
-#include <itkImageDuplicator.h>
-#include <itkImageSliceConstIteratorWithIndex.h>
-#include <itkImageSliceIteratorWithIndex.h>
-#include <itkMedianImageFilter.h>
-#include <itkMemoryProbesCollectorBase.h>
-#include <itkMinimumMaximumImageCalculator.h>
-#include <itkMultiplyImageFilter.h>
-#include <itkNearestNeighborInterpolateImageFunction.h>
-#include <itkRegularExpressionSeriesFileNames.h>
-#include <itkResampleImageFilter.h>
-#include <itkRescaleIntensityImageFilter.h>
-#include <itkSmoothingRecursiveGaussianImageFilter.h>
-#include <itkStatisticsImageFilter.h>
-#include <itkStreamingImageFilter.h>
+#include <rtkThreeDCircularProjectionGeometry.h>
 
-#ifdef LOWPASS_FFT
-// ITK Low-pass fourier filter
-#include "itkFFTShiftImageFilter.h"
-#include "itkForwardFFTImageFilter.h"
-#include "itkGaussianImageSource.h"
-#include "itkInverseFFTImageFilter.h"
-#include "itkWrapPadImageFilter.h"
-#endif // LOWPASS_FFT
-
-// Plastimatch
-#include <dcmtk_rt_study.h>
-#include <mha_io.h>
-#include <nki_io.h>
-#include <proj_volume.h>
-#include <ray_data.h>
-#include <rt_beam.h>
-#include <rt_plan.h>
-#include <rt_study_metadata.h>
-#include <volume.h>
-#include <volume_adjust.h>
-
-#if USE_OPENCL_PLM
-#include <plmreconstruct_config.h>
-
-#include <autotune_opencl.h>
-#include <fdk.h>
-#include <fdk_opencl.h>
-#include <opencl_util.h>
-#include <plm_image.h>
-#include <proj_image.h>
-#include <proj_image_filter.h>
-#include <proj_matrix.h>
-#endif // USE_OPENCL_PLM
-
-#include "WEPL.h"
+// Local
 #include "cbctrecon_config.h"
+#include "ui_cbctrecon.h"
 
 using FloatPixelType = float;
 // typedef itk::Image< FloatPixelType, 3 > FloatImageType;
