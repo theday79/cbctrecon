@@ -138,9 +138,6 @@
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"
-#include "compute.hxx"
-#include "fdk.hxx"
-#include "io.hxx"
 
 #define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
 

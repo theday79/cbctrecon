@@ -1,4 +1,5 @@
 /*Utility functions for cbctrecon*/
+#include "cbctrecon.h"
 
 template <typename ImageType>
 double

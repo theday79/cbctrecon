@@ -1,5 +1,5 @@
 /*All IO functions used with cbctrecon*/
-
+#include "cbctrecon.h"
 
 bool SaveDoseGrayImage(const char *filePath, int width, int height,
                        double spacingX, double spacingY, double originLeft_mm,

@@ -37,6 +37,9 @@ SET(CbctRecon_SOURCES
   StructureSet.cxx
   PlmWrapper.cxx
   WEPL.cxx
+  io.cxx
+  compute.cxx
+  fdk.cxx
   DlgExternalCommand.cxx
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
@@ -60,9 +63,6 @@ SET(CbctRecon_NonQt_HEADERS
   rtkExtension/itkOpenCLImageToImageFilter.hxx
   rtkExtension/rtkOpenCLUtilities.h
   OpenCLFFTFilter.h
-  io.hxx
-  compute.hxx
-  fdk.hxx
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 

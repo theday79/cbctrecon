@@ -1,5 +1,5 @@
 /* Do reconstruction algorithms */
-
+#include "cbctrecon.h"
 
 
 #if USE_CUDA
