@@ -110,6 +110,7 @@
 #include "rtkDisplacedDetectorImageFilter.h"
 #include "rtkBackProjectionImageFilter.h"                 // for BackProje...
 #include "rtkFFTProjectionsConvolutionImageFilter.h"      // for FFTProjec...
+#include "rtkFieldOfViewImageFilter.h"
 
 #if USE_CUDA
 #include <rtkCudaDisplacedDetectorImageFilter.h>
@@ -135,10 +136,13 @@
 #endif
 
 // Local
+#include "compute.h"
 #include "YK16GrayImage.h"       // for YK16GrayImage
 #include "ui_cbctrecon.h"        // for CbctReconClass
 
 #if USE_CUDA
+using CUDAFloatImageType = itk::CudaImage<float, 3U>;
+
 void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
   using castToCudaType =
       itk::CastImageFilter<FloatImageType, CUDAFloatImageType>;

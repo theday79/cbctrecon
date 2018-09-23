@@ -31,6 +31,7 @@
 #include "YK16GrayImage.h"
 #include "WEPL.h"
 #include "io.h"
+#include "compute.h"
 
 #if USE_CUDA
 using CUDAFloatImageType = itk::CudaImage<float, 3U>;
@@ -411,7 +412,7 @@ public:
 
   void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
                           UShortImageType::Pointer &spOutputImgUS);
-  
+
   static void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                               FloatImageType::Pointer &spAttImgFloat);
 

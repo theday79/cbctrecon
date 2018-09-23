@@ -53,6 +53,7 @@ SET(CbctRecon_NonQt_HEADERS
   PlmWrapper.h
   WEPL.h
   io.h
+  compute.h
   StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx
