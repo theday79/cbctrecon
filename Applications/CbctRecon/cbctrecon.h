@@ -1,5 +1,6 @@
 #ifndef CBCTRECON_H
 #define CBCTRECON_H
+#include "cbctrecon_config.h"
 
 // std
 #include <array>
@@ -26,17 +27,16 @@
 #include <itk_mask.h>
 
 // Local
-#include "cbctrecon_config.h"
 #include "ui_cbctrecon.h"
 #include "YK16GrayImage.h"
 #include "WEPL.h"
-
-using FloatPixelType = float;
+#include "io.h"
 
 #if USE_CUDA
-using CUDAFloatImageType = itk::CudaImage<FloatPixelType, 3>;
+using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #endif // USE_CUDA
 
+using FloatPixelType = float;
 using USHORT_PixelType = unsigned short;
 using SHORT_PixelType = short;
 

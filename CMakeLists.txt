@@ -40,6 +40,8 @@ OPTION(CBCTRECON_BUILD_SHARED_LIBS "Build shared libraries for CbctRecon" ${BUIL
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
 # BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 IF(USE_GPMC)
   message (STATUS "Compiling with GPMC option")
   add_definitions(-DUSE_GPMC=TRUE)

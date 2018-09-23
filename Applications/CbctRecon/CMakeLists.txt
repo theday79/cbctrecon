@@ -52,6 +52,7 @@ SET(CbctRecon_NonQt_HEADERS
   qt-utils/AG17RGBAImage.h
   PlmWrapper.h
   WEPL.h
+  io.h
   StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx

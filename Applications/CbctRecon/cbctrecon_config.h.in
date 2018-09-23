@@ -3,6 +3,10 @@
 
 #cmakedefine CBCTRECON_BUILD_SHARED_LIBS 1
 
+#ifndef USE_CUDA
+#cmakedefine USE_CUDA 1
+#endif
+
 #ifdef __cplusplus
 # define EXTERNC extern "C"
 #else

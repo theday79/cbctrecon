@@ -93,12 +93,12 @@
 #include <rtkVarianProBeamGeometryReader.h>
 
 #if USE_CUDA
-#include <rtkConjugateGradientConeBeamReconstructionFilter.h>
+#include <itkCudaImage.h>
 #include <rtkCudaDisplacedDetectorImageFilter.h>
 #include <rtkCudaFDKConeBeamReconstructionFilter.h>
 #include <rtkCudaForwardProjectionImageFilter.h>
 #include <rtkCudaParkerShortScanImageFilter.h>
-#include <rtkSARTConeBeamReconstructionFilter.h>
+using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #endif // USE_CUDA
 
 // Plastimatch
@@ -116,17 +116,6 @@
 #include <volume.h>
 #include <volume_adjust.h>
 
-#if USE_OPENCL_PLM
-#include <autotune_opencl.h>
-#include <fdk.h>
-#include <fdk_opencl.h>
-#include <opencl_util.h>
-#include <plm_image.h>
-#include <plmreconstruct_config.h>
-#include <proj_image.h>
-#include <proj_image_filter.h>
-#endif // USE_OPENCL_PLM
-
 // Local
 #ifdef USE_OPENCL_RTK
 #include "rtkOpenCLFDKConeBeamReconstructionFilter.h" // local
@@ -137,6 +126,7 @@
 #include "OpenCLFFTFilter.h"
 #include "StructureSet.h"
 #include "WEPL.h"
+#include "io.h"
 #include "YK16GrayImage.h"
 
 #define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))
