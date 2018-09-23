@@ -127,7 +127,12 @@
 #include <plmreconstruct_config.h>
 #include <proj_image.h>
 #include <proj_image_filter.h>
+#include <proj_matrix.h>
 #endif // USE_OPENCL_PLM
+
+#if USE_OPENCL_RTK
+#include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
+#endif
 
 // Local
 #include "YK16GrayImage.h"       // for YK16GrayImage
