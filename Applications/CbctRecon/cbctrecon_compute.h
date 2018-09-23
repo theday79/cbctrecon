@@ -1,11 +1,17 @@
 #ifndef CBCTRECON_COMPUTE_H
 #define CBCTRECON_COMPUTE_H
 
+#include <iostream>
+#include <algorithm> // for std::max
+
 #include <qstring.h>
+#include <qfileinfo.h>
+#include <qdir.h>
 
 #include "itkImage.h"
 
 #include "rtkThreeDCircularProjectionGeometry.h"
+#include "rtkFieldOfViewImageFilter.h"
 
 template <typename ImageType>
 double
