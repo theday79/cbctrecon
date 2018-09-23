@@ -117,16 +117,13 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include <volume_adjust.h>
 
 // Local
-#ifdef USE_OPENCL_RTK
-#include "rtkOpenCLFDKConeBeamReconstructionFilter.h" // local
-#endif
-
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
 #include "OpenCLFFTFilter.h"
 #include "StructureSet.h"
 #include "WEPL.h"
-#include "io.h"
+#include "cbctrecon_io.h"
+#include "cbctrecon_compute.h"
 #include "YK16GrayImage.h"
 
 #define round(dTemp) (long(dTemp + (dTemp > 0 ? .5 : -.5)))

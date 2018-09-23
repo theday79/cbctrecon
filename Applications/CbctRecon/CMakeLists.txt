@@ -37,9 +37,9 @@ SET(CbctRecon_SOURCES
   StructureSet.cxx
   PlmWrapper.cxx
   WEPL.cxx
-  io.cxx
-  compute.cxx
-  fdk.cxx
+  cbctrecon_io.cxx
+  cbctrecon_compute.cxx
+  cbctrecon_fdk.cxx
   DlgExternalCommand.cxx
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
@@ -52,8 +52,8 @@ SET(CbctRecon_NonQt_HEADERS
   qt-utils/AG17RGBAImage.h
   PlmWrapper.h
   WEPL.h
-  io.h
-  compute.h
+  cbctrecon_io.h
+  cbctrecon_compute.h
   StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx

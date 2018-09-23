@@ -136,7 +136,7 @@
 #endif
 
 // Local
-#include "compute.h"
+#include "cbctrecon_compute.h"
 #include "YK16GrayImage.h"       // for YK16GrayImage
 #include "ui_cbctrecon.h"        // for CbctReconClass
 

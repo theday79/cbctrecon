@@ -89,7 +89,7 @@
 #include "mha_io.h"
 
 // local
-#include "io.h"
+#include "cbctrecon_io.h"
 #include "YK16GrayImage.h"                        // for YK16GrayImage
 #include "ui_cbctrecon.h"                         // for CbctReconClass
 
@@ -536,7 +536,7 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
     m_bScanDirectionCW = false;
     std::cout << "The scan direction is CCW" << std::endl;
   }
-  
+
   std::cout << "AngularGaps Size: "
             << m_spFullGeometry
                    ->GetAngularGaps(m_spFullGeometry->GetSourceAngles())

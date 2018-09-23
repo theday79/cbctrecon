@@ -2,7 +2,6 @@
 #define OPENCLFFTFILTER_H
 
 #include <complex>
-#include <itkImage.h>
 #include <vector>
 
 #ifdef __APPLE__
@@ -10,6 +9,8 @@
 #else
 #include <CL/cl.h>
 #endif
+
+#include "itkImage.h"
 
 void OpenCL_padding(cl_int4 paddingIndex, cl_uint4 paddingSize,
                     cl_uint4 inputSize, const float *hostVolume,
