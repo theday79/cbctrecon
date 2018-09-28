@@ -1,15 +1,15 @@
+include(ExternalData)
 
 function(add_cbctrecon_test NAME)
-    add_executable(${NAME} ${ARGN})
-
     find_program(MEMORYCHECK_COMMAND valgrind)
 
     if(MEMORYCHECK_COMMAND)
         message(STATUS "Running CTest ${NAME} with valgrind")
-        add_test(NAME ${NAME} COMMAND ${MEMORYCHECK_COMMAND} --leak-check=full $<TARGET_FILE:${NAME}>)
+        ExternalData_add_test(NAME ${NAME} COMMAND ${MEMORYCHECK_COMMAND} --leak-check=full $<TARGET_FILE:${NAME}> ${ARGN})
     else()
-        add_test(${NAME} ${NAME})
+        ExternalData_add_test(${NAME} ${NAME} ${ARGN} COMMAND $<TARGET_FILE:${NAME}> ${ARGN})
     endif()
+    ExternalData_Add_Target(${NAME})
 endfunction()
 
 enable_testing()

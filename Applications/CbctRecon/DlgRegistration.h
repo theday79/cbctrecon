@@ -12,6 +12,7 @@
 #include "cbctrecon.h"
 #include "ui_DlgRegistration.h"
 #include "qyklabel.h"
+#include "StructureSet.h"
 
 class Dmap_parms;
 class Pcmd_threshold;
@@ -150,10 +151,12 @@ public:
   void AddImageToCombo(int comboIdx,
                        enREGI_IMAGES option); // comboIdx 0: fixed, 1: moving
   void LoadImgFromComboBox(int idx, QString &strSelectedComboTxt);
+  void LoadVOIFromComboBox(int idx, QString &strSelectedComboTxt);
 
   void SelectComboExternal(int idx, enREGI_IMAGES iImage);
 
   void UpdateListOfComboBox(int idx);
+  void UpdateVOICombobox(ctType ct_type);
   bool PreprocessCT();
   void LoadRTPlan(QString &strDCMPath);
 

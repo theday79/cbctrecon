@@ -87,11 +87,14 @@
 // PLM
 #include "nki_io.h"
 #include "mha_io.h"
+#include "dcmtk_rt_study.h"
 
 // local
 #include "cbctrecon_io.h"
 #include "YK16GrayImage.h"                        // for YK16GrayImage
 #include "ui_cbctrecon.h"                         // for CbctReconClass
+#include "DlgRegistration.h"
+#include "StructureSet.h"
 
 class Volume;
 
@@ -860,4 +863,67 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
     << outputFilePath.toLocal8Bit().constData() << std::endl;
   writer->Update();
   std::cout << "Writing was successfully done" << std::endl;
+}
+
+bool CbctRecon::ReadDicomDir(QString &dirPath) {
+  Dcmtk_rt_study drs(dirPath.toLocal8Bit().constData());
+  drs.load_directory(); // parse_directory();
+
+  Plm_image plmImg;
+  plmImg.set(drs.get_image());
+  //plmImg.load_native(dirPath.toLocal8Bit().constData());
+
+  auto planCT_ss = drs.get_rtss(); // dies at end of scope...
+  if (planCT_ss.get() != nullptr) {
+    // ... so I copy to my own modern-C++ implementation
+    m_structures->set_planCT_ss(planCT_ss.get());
+    m_pDlgRegistration->UpdateVOICombobox(PLAN_CT);
+  }
+
+  ShortImageType::Pointer spShortImg = plmImg.itk_short();
+
+  // Figure out whether this is NKI
+  using ImageCalculatorFilterType =
+    itk::MinimumMaximumImageCalculator<ShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+    ImageCalculatorFilterType::New();
+  // imageCalculatorFilter->SetImage(spShortImg);
+  // imageCalculatorFilter->Compute();
+
+  // double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
+  // double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());
+
+  // Thresholding
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
+  ThresholdImageFilterType::Pointer thresholdFilter =
+    ThresholdImageFilterType::New();
+
+  thresholdFilter->SetInput(spShortImg);
+  thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
+  thresholdFilter->SetOutsideValue(-1024);
+  thresholdFilter->Update();
+
+  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+  imageCalculatorFilter->Compute();
+
+  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  std::cout << "Current Min and Max Values are	" << minVal << "	"
+    << maxVal << std::endl;
+
+  auto outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
+  auto outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
+
+  using RescaleFilterType =
+    itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
+  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+
+  // m_spRawReconImg = spRescaleFilter->GetOutput();
+  m_spRefCTImg = spRescaleFilter->GetOutput();
+  return true;
 }

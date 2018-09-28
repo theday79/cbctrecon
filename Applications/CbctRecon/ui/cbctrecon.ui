@@ -700,7 +700,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>535</height>
+           <height>541</height>
           </rect>
          </property>
          <attribute name="label">
@@ -1254,7 +1254,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>535</height>
+           <height>541</height>
           </rect>
          </property>
          <attribute name="label">
@@ -1456,7 +1456,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>535</height>
+           <height>541</height>
           </rect>
          </property>
          <attribute name="label">
@@ -1862,7 +1862,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>535</height>
+           <height>541</height>
           </rect>
          </property>
          <attribute name="label">
@@ -2706,7 +2706,7 @@
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>256</height>
+            <height>272</height>
            </size>
           </property>
           <property name="font">
@@ -2766,6 +2766,12 @@
                 <height>0</height>
                </size>
               </property>
+              <property name="maximumSize">
+               <size>
+                <width>66</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="font">
                <font>
                 <family>Segoe UI</family>
@@ -2780,6 +2786,12 @@
                <size>
                 <width>0</width>
                 <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>66</width>
+                <height>16777215</height>
                </size>
               </property>
               <property name="font">

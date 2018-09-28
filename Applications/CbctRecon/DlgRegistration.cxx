@@ -5,8 +5,8 @@
 #include <QProcess>
 
 // configs
-#include <plm_config.h>
 #include <itkConfigure.h>
+#include <plm_config.h>
 
 // ITK
 #include <gdcmUIDGenerator.h>
@@ -40,8 +40,8 @@
 #include <synthetic_vf.h>
 #include <warp_parms.h>
 
-#include "cbctrecon.h"
 #include "StructureSet.h"
+#include "cbctrecon.h"
 
 #define FIXME_BACKGROUND_MAX (-1200)
 
@@ -398,6 +398,46 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     ui.lineEditOriginMoving->setText(strOriMoving);
   }
 
+  if (cur_voi != nullptr) {
+    auto *Wnd1_contour = &ui.labelOverlapWnd1->m_vPt;
+    auto *Wnd2_contour = &ui.labelOverlapWnd2->m_vPt;
+    auto *Wnd3_contour = &ui.labelOverlapWnd3->m_vPt;
+    Wnd1_contour->clear();
+    Wnd2_contour->clear();
+    Wnd3_contour->clear();
+
+    for (auto contour : cur_voi->pslist) {
+      if (contour.coordinates.size() == 0) {
+        continue;
+      }
+      auto first_point = contour.coordinates.at(0);
+      // Axial
+      if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
+          first_point.z < curPhysPos[0] + imgSpacing[2]) {
+        for (auto point : contour.coordinates) {
+          Wnd1_contour->push_back(QPoint(point.x, point.y));
+        }
+      }
+      for (auto point : contour.coordinates) {
+        // Frontal
+        if (point.y > curPhysPos[1] - imgSpacing[1] &&
+            point.y < curPhysPos[1] + imgSpacing[1]) {
+          Wnd2_contour->push_back(QPoint(point.x, point.z));
+        }
+        // Sagittal
+        if (point.x > curPhysPos[2] - imgSpacing[0] &&
+            point.x < curPhysPos[2] + imgSpacing[0]) {
+          Wnd3_contour->push_back(QPoint(point.y, point.z));
+        }
+      }
+    }
+    // Get contour for axial, sagittal and frontal
+    // create plotable Qt objects from the contours
+    // plot Qt objects on ui.labelOverlapWnd*
+    ui.labelOverlapWnd1->m_bDrawPoints = true;
+    ui.labelOverlapWnd2->m_bDrawPoints = true;
+    ui.labelOverlapWnd3->m_bDrawPoints = true;
+  }
   /*qDebug() << strOriFixed;
   qDebug() << strOriMoving;*/
   //
@@ -1954,6 +1994,40 @@ void DlgRegistration::LoadImgFromComboBox(
   SLT_DrawImageWhenSliceChange();
 }
 
+void DlgRegistration::LoadVOIFromComboBox(int idx,
+                                          QString &strSelectedComboTxt) {
+
+  ctType ct_type = PLAN_CT;
+  auto ct = ui.comboBoxImgMoving->currentText().toStdString();
+  if (ct == std::string("REF_CT")) {
+    ct_type = PLAN_CT;
+  } else if (ct == std::string("AUTO_RIGID_CT")) {
+    ct_type = RIGID_CT;
+  } else if (ct == std::string("DEFORMED_CT_FINAL")) {
+    ct_type = DEFORM_CT;
+  } else {
+    std::cout << "This moving image does not own any VOIs" << std::endl;
+    return;
+  }
+
+  auto struct_set = m_pParent->m_structures->get_ss(ct_type);
+  if (struct_set == nullptr) {
+    return;
+  }
+  if (struct_set->slist.empty()) {
+    std::cerr << "Structures not initialized yet" << std::endl;
+    return;
+  }
+
+  for (auto voi : struct_set->slist) {
+    if (strSelectedComboTxt.compare(voi.name.c_str()) == 0) {
+      cur_voi = std::make_unique<Rtss_roi_modern>(voi);
+    }
+  }
+
+  SLT_DrawImageWhenSliceChange();
+}
+
 // search  for the  main data, if there  is, add  the predefined name to the
 // combobox
 void DlgRegistration::UpdateListOfComboBox(int idx) {
@@ -2002,6 +2076,20 @@ void DlgRegistration::UpdateListOfComboBox(int idx) {
 
   if (m_pParent->m_spScatCorrReconImg != nullptr) {
     crntCombo->addItem("COR_CBCT");
+  }
+}
+
+void DlgRegistration::UpdateVOICombobox(ctType ct_type) {
+  auto struct_set = m_pParent->m_structures->get_ss(ct_type);
+  if (struct_set == nullptr) {
+    return;
+  }
+  if (struct_set->slist.empty()) {
+    std::cerr << "Structures not initialized yet" << std::endl;
+    return;
+  }
+  for (auto voi : struct_set->slist) {
+    ui.comboBox_VOI->addItem(QString(voi.name.c_str()));
   }
 }
 
@@ -4191,8 +4279,11 @@ void DlgRegistration::SLT_gPMCrecalc() {
 void DlgRegistration::SLT_WEPLcalc() {
   // Get VOI
   auto voi_name = ui.comboBox_VOI->currentText().toStdString();
-  cur_voi =
-      m_pParent->m_structures->get_ss(RIGID_CT)->get_roi_by_name(voi_name);
+  if (voi_name.length() < 1) {
+    std::cout << "No VOI name given" << std::endl;
+    return;
+  }
+  cur_voi.reset(m_pParent->m_structures->get_ss(PLAN_CT)->get_roi_by_name(voi_name).get());
 
   // Get basis from angles
   auto gantry_angle = ui.spinBox_GantryAngle->value();
@@ -4229,6 +4320,7 @@ void DlgRegistration::SLT_WEPLcalc() {
   }
 
   // Draw WEPL
+  SLT_DrawImageWhenSliceChange();
 }
 
 void DlgRegistration::SLT_DoRegistrationGradient() {

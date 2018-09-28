@@ -1,8 +1,7 @@
-#ifndef IO_H
-#define IO_H
+#ifndef CBCTRECON_IO_H
+#define CBCTRECON_IO_H
 /*All IO functions used with cbctrecon*/
 #include "cbctrecon.h"
-
 
 bool SaveDoseGrayImage(const char *filePath, int width, int height,
                        double spacingX, double spacingY, double originLeft_mm,
@@ -18,4 +17,4 @@ void saveImageAsMHA(typename ImageType::Pointer const image) {
   writer->Update();
 }
 
-#endif // IO_H
+#endif // CBCTRECON_IO_H

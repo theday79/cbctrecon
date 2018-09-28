@@ -36,7 +36,7 @@ Rtss_modern *StructureSet::get_ss(ctType struct_set) {
   case DEFORM_CT:
     return m_deform_ss.get();
   }
-  
+  std::cerr << "Invalid CT type" << std::endl;
   return nullptr;
 }
 

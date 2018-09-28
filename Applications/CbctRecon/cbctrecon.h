@@ -419,6 +419,7 @@ public:
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);
   void LoadRawHisImages();
+  bool ReadDicomDir(QString &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
