@@ -23,3 +23,5 @@ target_include_directories(CbctRecon_test
 install(TARGETS CbctRecon_test
   RUNTIME DESTINATION bin
   )
+
+ExternalData_Add_Target(CbctReconData)
