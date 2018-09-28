@@ -1,7 +1,7 @@
 include(CTest)
-include(${ITK_SOURCE_DIR}/CMake/ITKExternalData.cmake)
-include(${ITK_SOURCE_DIR}/CMake/ITKModuleTest.cmake)
-include(${ITK_SOURCE_DIR}/CMake/ITKDownloadSetup.cmake)
+include(${ITK_CMAKE_DIR}/ITKExternalData.cmake)
+include(${ITK_CMAKE_DIR}/ITKModuleTest.cmake)
+include(${ITK_CMAKE_DIR}/ITKDownloadSetup.cmake)
 
 function(add_cbctrecon_test)
   cmake_parse_arguments(
