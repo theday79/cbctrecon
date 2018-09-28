@@ -90,7 +90,7 @@ IF(USE_CLFFT)
   add_definitions(-DUSE_CLFFT=TRUE)
 ENDIF(USE_CLFFT)
 
-FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets REQUIRED)
+FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED)
 
 
 #-----------------------------------------------------------------------------
@@ -156,6 +156,7 @@ list(APPEND QT_LIBRARIES
   "Qt5::OpenGL"
   "Qt5::PrintSupport"
   "Qt5::Widgets"
+  "Qt5::Test"
   )
 
 set(CBCTRECON_DEP_LIBS
@@ -170,7 +171,7 @@ set(CBCTRECON_DEP_LIBS
 add_subdirectory(Applications)
 
 if(CBCTRECON_BUILD_TESTS)
-  include(${CbctRecon_SOURCE_DIR}/Testing/ctest_setup.cmake)
+  include(${CbctRecon_SOURCE_DIR}/cmake/ctest_setup.cmake)
   message(STATUS "Configuring CbctRecon tests...")
   add_subdirectory(Testing)
 endif()

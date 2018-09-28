@@ -1,5 +1,6 @@
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_AUTOMOC ON)
 
 set(test_target
   CbctRecon_test
@@ -15,7 +16,7 @@ set(${test_target}_DATA
   )
   
 add_cbctrecon_test(
-    TNAME "${test_target}"
+    TARGET "${test_target}"
     SRC_FILES "${${test_target}_SRC}"
     DATA_ARGS "${${test_target}_DATA}"
   )

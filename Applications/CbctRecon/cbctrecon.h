@@ -128,6 +128,8 @@ class QXmlStreamReader;
 class CBCTRECON_API CbctRecon : public QMainWindow {
   Q_OBJECT
 
+  friend class TestCbctRecon;
+
 public:
   CbctRecon(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
   ~CbctRecon() override;

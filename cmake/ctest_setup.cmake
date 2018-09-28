@@ -1,25 +1,23 @@
 include(CTest)
-include(ITKExternalData)
-include(ITKModuleTest)
-include(ITKDownloadSetup)
+include(${ITK_SOURCE_DIR}/CMake/ITKExternalData.cmake)
+include(${ITK_SOURCE_DIR}/CMake/ITKModuleTest.cmake)
+include(${ITK_SOURCE_DIR}/CMake/ITKDownloadSetup.cmake)
 
 function(add_cbctrecon_test)
-  set(options "")
-  set(oneValueArgs
-    TNAME
+  cmake_parse_arguments(
+    ARGS
+    ""
+    "TARGET"
+    "SRC_FILES;DATA_ARGS"
+    ${ARGN}
     )
-  set(multiValueArgs
-    SRC_FILES
-    DATA_ARGS
-    )
-  cmake_parse_arguments(T_ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  add_executable(${T_ARGS_TNAME} ${T_ARGS_SRC_FILES})
-  target_link_libraries(${T_ARGS_TNAME}
+  add_executable(${ARGS_TARGET} ${ARGS_SRC_FILES})
+  target_link_libraries(${ARGS_TARGET}
     PRIVATE CbctReconLib
     )
 
-  target_include_directories(${T_ARGS_TNAME}
+  target_include_directories(${ARGS_TARGET}
     PUBLIC ${CBCTRECON_INCLUDE_DIRS}
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     )
@@ -27,13 +25,13 @@ function(add_cbctrecon_test)
   find_program(MEMORYCHECK_COMMAND valgrind)
 
   if(MEMORYCHECK_COMMAND)
-    message(STATUS "Running CTest ${T_ARGS_TNAME} with valgrind")
-    set(VG_COMM "${MEMORYCHECK_COMMAND} --leak-check=full") 
+    message(STATUS "Running CTest ${ARGS_TARGET} with valgrind")
+    set(VG_COMM ${MEMORYCHECK_COMMAND} "--leak-check=full") 
   endif()
   
   itk_add_test(
-    NAME ${T_ARGS_TNAME}
-    COMMAND ${VG_COMM} $<TARGET_FILE:${T_ARGS_TNAME}> ${T_ARGS_DATA_ARGS}
+    NAME ${ARGS_TARGET}
+    COMMAND ${VG_COMM} $<TARGET_FILE:${ARGS_TARGET}> ${ARGS_DATA_ARGS}
     )
 
 endfunction()
