@@ -1,13 +1,26 @@
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_cbctrecon_test(
-    TNAME CbctRecon_test
-    SRC_FILES cbctrecon_test.cpp cbctrecon_test.hpp
-    DATA_ARGS DATA{Input/Alderson/CT/,REGEX:.*}
+set(test_target
+  CbctRecon_test
   )
 
-install(TARGETS CbctRecon_test
+set(${test_target}_SRC
+  cbctrecon_test.cpp
+  cbctrecon_test.hpp
+  )
+
+set(${test_target}_DATA
+  DATA{Input/Alderson/CT/,REGEX:.*}
+  )
+  
+add_cbctrecon_test(
+    TNAME "${test_target}"
+    SRC_FILES "${${test_target}_SRC}"
+    DATA_ARGS "${${test_target}_DATA}"
+  )
+
+install(TARGETS ${test_target}
   RUNTIME DESTINATION bin
   )
 
