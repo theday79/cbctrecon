@@ -1,4 +1,4 @@
-#include "cbctrecon.h"
+#include "cbctrecon_mainwidget.h"
 
 int main(int argc, char *argv[]) {
   QApplication a(argc, argv);
@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
       qApp->setStyleSheet(ts.readAll());
   }
 
-  CbctRecon w;
+  CbctReconWidget w;
   w.show();
   return a.exec();
 }

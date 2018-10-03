@@ -6,8 +6,6 @@
 #include <array>
 #include <memory> // unique_, shared_ and weak_ptr
 
-// Qt
-#include <QtWidgets/QMainWindow>
 
 // configs
 #include <plm_config.h> // first due to lack of ifdef guards
@@ -51,6 +49,12 @@ using FloatWriterType = itk::ImageFileWriter<FloatImageType>;
 
 using GeometryType = rtk::ThreeDCircularProjectionGeometry;
 
+using FilterReaderType =
+rtk::ProjectionsReader<FloatImage2DType>; // This one does a bit more than
+                                          // we need, but mainly
+                                          // statistical filters
+using ProjReaderType = rtk::ProjectionsReader<FloatImageType>;
+
 #define DEFAULT_ELEKTA_PROJ_WIDTH 1024
 #define DEFAULT_ELEKTA_PROJ_HEIGHT 1024
 #define DEFAULT_VARIAN_PROJ_WIDTH 1024
@@ -86,6 +90,18 @@ enum enREGI_IMAGES {
 enum enMachineType {
   MACHINE_ELEKTA = 0,
   MACHINE_VARIAN,
+};
+
+enum enProjFormat {
+  HIS_FORMAT,
+  HND_FORMAT,
+  XIM_FORMAT,
+};
+
+enum enCalibType {
+  GAIN_CALIB,
+  OFFSET_CALIB,
+  BADPIXEL_CALIB,
 };
 
 enum FWD_METHOD {
@@ -125,26 +141,46 @@ class QXmlStreamReader;
 
 // using namespace std;
 
-class CBCTRECON_API CbctRecon : public QMainWindow {
-  Q_OBJECT
+class CBCTRECON_API CbctRecon {
 
   friend class TestCbctRecon;
 
 public:
-  CbctRecon(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
-  ~CbctRecon() override;
+  CbctRecon();
+  ~CbctRecon();
   // void DoRecon();
   void ReleaseMemory();
+
+  bool FillProjForDisplay(const int slice_number);
+  void LoadCalibData(std::string filepath, enCalibType calib_type);
   void RenameFromHexToDecimal(QStringList &filenameList);
   QString HexStr2IntStr(QString &strHex);
 
-  QString CorrectSingleFile(const char *filePath);
-  void CorrectSingleFile(YK16GrayImage *pYKRawImg);
+  std::unique_ptr<YK16GrayImage> ApplyCalibrationMaps(YK16GrayImage* const &rawImg, bool DarkCorr, bool GainCorr, bool DefectCorr);
+  QString CorrectSingleFile(const char *filePath, bool DarkCorr, bool GainCorr, bool DefectCorr);
+  void CorrectSingleFile(YK16GrayImage *pYKRawImg, bool DarkCorr, bool GainCorr, bool DefectCorr);
 
   void LoadBadPixelMap(const char *filePath);
-  void BadPixReplacement(YK16GrayImage *targetImg);
+  //void BadPixReplacement(YK16GrayImage *targetImg);
+  std::unique_ptr<YK16GrayImage> BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg);
 
   void LoadRTKGeometryFile(const char *filePath);
+
+  std::vector<std::string> GetProjFileNames(QString dirPath);
+  bool LoadGeometry(QFileInfo geomFileInfo, std::vector<std::string> names);
+  std::vector<int> GetExcludeProjFiles(bool bManAngleGap, double gantryAngleInterval);
+  void LoadSelectedProj(const std::vector<int> &exclude_ids, const std::vector<std::string> &names);
+  void saveHisHeader();
+  void ApplyBowtie(ProjReaderType::Pointer &reader,
+    FilterReaderType::Pointer &bowtie_reader);
+  void NormalizeProjections(ProjReaderType::Pointer &reader);
+  bool ResampleProjections(double resample_factor);
+  void BowtieByFit(bool fullfan, QStringList params);
+  int CropSkinUsingThreshold(int threshold, int erode_radius, int dilate_radius);
+  void GeneratePOIData(bool AnteriorToPosterior, double table_posY);
+  void Export2DDoseMapAsMHA(QString strPath);
+  void ExportProjGeometryTXT(QString strPath);
+  void ScatterCorPerProjRef(double scaMedian, double scaGaussian, int postScatMedianSize, bool use_cuda, bool save_dicom);
 
   // void GetSelectedIndices(const std::vector<double>& vFullAngles,
   // std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW);
@@ -169,9 +205,7 @@ public:
 
   bool IsFileNameOrderCorrect(std::vector<std::string> &vFileNames);
 
-  std::tuple<bool, bool> probeUser(const QString &guessDir);
-
-  void PostApplyFOVDispParam();
+  void PostApplyFOVDispParam(float physPosX, float physPosY, float physRadius, float physTablePosY);
 
   // void ExportDICOM_SHORT(SHORT_ImageType::Pointer& sp3DshortImage);//NOT
   // COMPLETED YET!! Export DICOM without Source DICOM is not possible
@@ -214,16 +248,13 @@ public:
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
-  void ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                         GeometryType::Pointer &spGeometry,
-                         UShortImageType::Pointer &spProjCT3D, bool bSave);
   void CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
                              GeometryType::Pointer &spGeometry,
-                             UShortImageType::Pointer &spProjCT3D, bool bSave);
+                             UShortImageType::Pointer &spProjCT3D);
 #ifdef USE_CUDA
   void CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
                               GeometryType::Pointer &spGeometry,
-                              UShortImageType::Pointer &spProjCT3D, bool bSave);
+                              UShortImageType::Pointer &spProjCT3D);
 #endif
   // to be implemented: Save projection3D to *.his files
   void GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
@@ -236,7 +267,7 @@ public:
                             UShortImageType::Pointer &m_spProjCorr3D,
                             int nonNegativeScatOffset, int postMedian,
                             bool bSave);
-  void AfterScatCorrectionMacro();
+  void AfterScatCorrectionMacro(bool use_cuda, bool save_dicom);
 
   // His file export from 3D proj file
   void SaveProjImageAsHIS(
@@ -282,7 +313,6 @@ public:
   void DoReconstructionFDK(enREGI_IMAGES target);
   void CudaDoReconstructionFDK(enREGI_IMAGES target);
   void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
-  void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
 
   // void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString&
   // strPatientID, QString& strPatientName);//ushort image --> short image -->
@@ -293,10 +323,10 @@ public:
   static void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
                            ShortImageType::Pointer &spImgShort);
 
-  void
+  double
   CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
                                          UShortImageType::Pointer &spProjCT3D);
-  double GetRawIntensityScaleFactor();
+  double GetRawIntensityScaleFactor(QString strRef_mAs, QString strCur_mAs);
 
   // void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int
   // angleGap, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>&
@@ -322,11 +352,10 @@ public:
   void LoadExternalFloatImage(QString &strPath, bool bConversion);
   void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg);
 
-  void MedianFilterByGUI(); // params are given at the UI
-  void FileExportByGUI();   // params are given at the UI
+  void MedianFilterByGUI(UShortImageType::SizeType indexRadius); // params are given at the UI
 
   /*Temporary implementation for XVI5 xml*/
-  void
+  bool
   LoadXVIGeometryFile(const char *filePath); // temporary implenetation
                                              // using QT XML. This is for
                                              // XVI v >5.0.2. _Frames.xml is
@@ -340,13 +369,7 @@ public:
 
   void SetProjDir(QString &strProjPath);
 
-  bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
-                                        enREGI_IMAGES enFwdRefImg,
-                                        bool bFullResolRecon,
-                                        bool bExportImages = false,
-                                        bool bCBCT_IntensityShift = false);
-
-  void ExportAngularWEPL_byFile(QString &strPathOutput);
+  void ExportAngularWEPL_byFile(QString &strPathOutput, double fAngleStart, double fAngleEnd, double fAngleGap);
 
   void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
                            QString &outputFilePath);
@@ -399,7 +422,7 @@ public:
 
   void GetWEPLDataFromSingleFile(const QString &filePath,
                                  std::vector<VEC3D> &vPOI,
-                                 std::vector<WEPLData> &vOutputWEPL);
+                                 std::vector<WEPLData> &vOutputWEPL, double fAngleStart, double fAngleEnd);
 
   void SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
                                float fMVGanAngle, float panelOffsetX,
@@ -418,142 +441,12 @@ public:
   static void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                               FloatImageType::Pointer &spAttImgFloat);
 
-  bool SaveCurrentSetting(QString &strPathConfigFile);
-  bool LoadCurrentSetting(QString &strPathConfigFile);
   void LoadRawHisImages();
   bool ReadDicomDir(QString &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
-public slots:
-  void SLT_LoadRawImages(); // independent 2d projection files //not used in
-                            // clinical case
-  void SLT_Load3DImage();   // indenepndent 3D mha file. UshortFormat. Do
-                            // reconstruction is an antoher way to make
-                            // m_spReconImg
-  void SLT_Load3DImageShort();
-  void SLT_LoadPlanCT_mha();
-  void SLT_LoadPlanCT_USHORT();
-  void SLT_LoadCBCTcorrMHA();
-  void SLT_LoadCTrigidMHA();
-  void SLT_LoadCTdeformMHA();
 
-  void SLT_LoadNKIImage();
-  void SLT_LoadSelectedProjFiles(); // based on presetting values on GUI,
-                                    // including geometry files
-  void SLT_ReloadProjections();
-  void SLT_ExportHis();
-
-  void SLT_LoadImageFloat3D(); // Dose file
-  void SLTM_LoadDICOMdir();
-  void SLTM_LoadRTKoutput();
-
-  void SLT_DrawRawImages();  // external *.his images
-  void SLT_DrawProjImages(); // draw images from HIS FILE READER or filtered
-                             // image before going into recon.
-  void SLT_DrawReconImage();
-
-  // tools
-  void SLT_FileNameHex2Dec();
-  void SLT_MakeElektaXML();
-
-  // Gain/ Offset correction
-  void SLT_OpenOffsetFile();
-  void SLT_OpenGainFile();
-  void SLT_OpenBadpixelFile();
-  void SLT_ApplyCalibration();
-
-  // Gain/ Offset correction
-  void SLT_SetHisDir();
-  void SLT_OpenElektaGeomFile();
-
-  void SLT_SetOutputPath();
-  void SLT_DoReconstruction();
-
-  // Profile table
-  // void SLT_GetProjectionProfile();
-  // void SLT_GetReconImgProfile();
-  void SLT_CopyTableToClipBoard();
-
-  void SLT_DataProbeProj();
-  void SLT_DataProbeRecon();
-  void SLT_DrawGraph();
-
-  void SLT_InitializeGraphLim();
-  void SLT_UpdateTable();
-
-  void SLT_CalculateROI_Recon();
-  void SLT_CalculateROI_Proj();
-  void SLT_GoForcedProbePos();
-
-  void SLT_PostApplyFOVDispParam();
-  void SLT_DoPostProcessing(); // cropping Circle
-  void SLT_PostProcCropInv();
-
-  void SLT_ExportReconUSHORT();
-  void SLT_ExportReconSHORT_HU();
-  void SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL();
-  void SLT_DoBHC();
-  void SLT_DoBowtieCorrection();
-
-  void SLT_Export2DDose_TIF();
-  void SLTM_Export2DDoseMapAsMHA();
-
-  void SLT_ViewRegistration();
-  void SLT_ViewHistogram();
-
-  void SLT_DoScatterCorrection_APRIORI();
-
-  void SLT_TempAudit();
-
-  void SLT_CalcAndSaveAngularWEPL();
-
-  void SLT_DoScatterCorrectionUniform();
-
-  void SLT_FileExportShortDICOM_CurrentImg();
-
-  void SLT_AddConstHUToCurImg();
-
-  void SLT_SetCBCTSkinRSPath();
-  void SLT_CropSkinUsingRS();
-  void SLT_CropSkinUsingThreshold();
-
-  void SLT_ExportAngularWEPL_byFile();
-  void SLT_GeneratePOIData();
-  void SLT_LoadPOIData();
-
-  void SLT_StartSyncFromSharedMem();
-  void SLT_StopSyncFromSharedMem();
-
-  void SLT_TimerEvent();
-
-  void SLTM_ViewExternalCommand();
-
-  void SLT_MedianFilterDoNow();
-  void SLTM_ExportProjGeometryTXT();
-
-  void SLTM_ForwardProjection();
-
-  void SLTM_FineResolScatterCorrectrionMacro(); // projection: full, scatter
-                                                // map:512x512
-
-  void SLTM_FullScatterCorrectionMacroAP();
-
-  void SLTM_BatchScatterCorrectionMacroAP();
-
-  void SLT_OpenPhaseData(); // fill lineEdit_PhaseTxtPath
-  void SLT_Export4DCBCT();  // phase resorting
-
-  void SLT_DoCouchCorrection();
-  void SLTM_WELPCalcMultipleFiles();
-
-  void SLTM_ScatterCorPerProjRef();
-  void SLTM_LoadPerProjRefList();
-  void SLTM_CropMaskBatch();
-  void SLT_OutPathEdited();
-  void SLT_SaveCurrentSetting();
-
-  void SLT_CropSupInf();
 
 public:
   std::unique_ptr<StructureSet> m_structures;
@@ -574,8 +467,7 @@ public:
   GeometryType::Pointer m_spFullGeometry; // sp = smart pointer
   GeometryType::Pointer m_spCustomGeometry;
 
-  bool hisIsUsed = true;
-  bool ximIsUsed = false;
+  enProjFormat m_projFormat = HIS_FORMAT;
   bool m_bScanDirectionCW;
 
   FloatImageType::Pointer
@@ -622,7 +514,7 @@ public:
   double m_fProjImgValueMin;
 
   double m_multiplyFactor{};
-  QStandardItemModel *m_pTableModel;
+  std::unique_ptr<QStandardItemModel> m_pTableModel;
   std::unique_ptr<DlgRegistration> m_pDlgRegistration;
   // DlgHistogram* m_pDlgHistogram;
   std::unique_ptr<DlgExternalCommand> m_pDlgExternalCommand;
@@ -650,6 +542,9 @@ public:
   QString m_strPathIMAGES;        // upper folder of projection files (His)
   QString m_strPathElektaINIXVI2; // this includes couch shift values. longer
                                   // INI.XVI file
+  QString m_strCur_mAs; // QString("20,20")
+  QString m_strRef_mAs; // QString("64,40")
+  QString m_strError;
 
   int m_iFixedOffset_ScatterMap; // fixed! allows negative value of scatter
   double m_fResampleF; // typically 0.5. this is updated during LoadSelectedProj
@@ -659,9 +554,6 @@ public:
   double m_fProjSpacingY; // updated from SelectedProjLoad
 
   std::vector<VEC3D> m_vPOI_DCM{}; // initialized by file Load
-
-  QTimer* m_Timer;
-  bool m_busyTimer;
 
   std::vector<std::string> m_vSelectedFileNames{};
 
@@ -676,8 +568,6 @@ public:
   std::vector<int> m_vExcludeProjIdx{}; // if kVON (exposed_ tag is false
 
   // private:
-public:
-  Ui::CbctReconClass ui{};
 };
 
 #endif // CBCTRECON_H

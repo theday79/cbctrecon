@@ -69,6 +69,7 @@ SET(CbctRecon_NonQt_HEADERS
 )
 
 SET(CbctRecon_HEADERS
+  cbctrecon_mainwidget.h
   cbctrecon.h
   qt-utils/qyklabel.h
   qt-utils/qcustomplot.h
@@ -113,6 +114,8 @@ add_library(CbctReconLib ${SHARED_FLAG}
 # Executable
 add_executable(CbctRecon
   main.cpp
+  cbctrecon_mainwidget.cxx
+  cbctrecon_mainwidget.h
 )
 
 set_target_properties(CbctRecon
