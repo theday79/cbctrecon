@@ -168,9 +168,6 @@ CbctRecon::CbctRecon() {
   m_strPathDirDefault = QDir::currentPath();
   std::cout << "Current Default Dir: "
             << m_strPathDirDefault.toLocal8Bit().constData() << std::endl;
-  QString tmp_folder("tmp");
-  init_DlgRegistration(tmp_folder); // to Setup plastimatch folder. this is
-                                    // useful if registration will be only done
 
   // shell test
   // QString strCurFolder = "H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release";
@@ -596,7 +593,6 @@ void CbctRecon::SetProjDir(QString &strProjPath) {
   m_spScatCorrReconImg = spNull; // just added --> after scatter correction
 
   FindAllRelevantPaths(strProjPath);
-  init_DlgRegistration(m_strDCMUID);
 }
 
 std::vector<std::string>
@@ -653,7 +649,8 @@ bool CbctRecon::LoadGeometry(QFileInfo geomFileInfo,
     std::cout << "XVI Geometry File was found. This will be temporarily used:"
               << geomFileInfo.fileName().toLocal8Bit().constData() << std::endl;
     bool success =
-        LoadXVIGeometryFile(geomFileInfo.absoluteFilePath().toLocal8Bit()
+        LoadXVIGeometryFile(geomFileInfo.absoluteFilePath()
+                                .toLocal8Bit()
                                 .constData()); // will generate m_spFullGeometry
     if (!success) {
       return false;
@@ -711,7 +708,8 @@ bool CbctRecon::LoadGeometry(QFileInfo geomFileInfo,
     std::cout << "RTK standard Geometry XML File was found:"
               << geomFileInfo.absoluteFilePath().toLocal8Bit().constData()
               << std::endl;
-    LoadRTKGeometryFile(geomFileInfo.absoluteFilePath().toLocal8Bit()
+    LoadRTKGeometryFile(geomFileInfo.absoluteFilePath()
+                            .toLocal8Bit()
                             .constData()); // will generate m_spFullGeometry
   }
   return true;
@@ -2626,13 +2624,6 @@ void CbctRecon::FindAllRelevantPaths(
             << m_strPathElektaINIXVI2.toLocal8Bit().constData() << std::endl;
 }
 
-void CbctRecon::init_DlgRegistration(
-    QString &strDCM_UID) // init dlgRegistrations
-{
-  m_pDlgRegistration->initDlgRegistration(
-      strDCM_UID); // NULLing all temporary spImage
-}
-
 #if USE_CUDA
 // output spProjCT3D => intensity value, not line integral
 void CbctRecon::CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
@@ -3552,7 +3543,16 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
     if (m_projFormat == HIS_FORMAT) {
       strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; // current Proj folder
     } else {
-      strCrntDir = m_pDlgRegistration->m_strPathPlastimatch;
+      // stolen from registration class: m_strPathPlastimatch definition
+      QDir crntDir = QDir::current(); // folder where current exe file exists.
+      QString crntPathStr = crntDir.absolutePath();
+      QString dirName = crntPathStr.append("/plm_tmp");
+
+      QDir tmpDir = QDir(dirName);
+      if (!tmpDir.exists()) {
+        tmpDir.mkpath(dirName);
+      }
+      strCrntDir = dirName;
     }
 
     // Make a sub directory
@@ -4400,38 +4400,10 @@ void CbctRecon::AfterScatCorrectionMacro(bool use_cuda, bool save_dicom) {
 
   // Truncation is invalidated inside the function
   if (use_cuda) {
-    CudaDoReconstructionFDK(REGISTER_COR_CBCT);
+    DoReconstructionFDK<CUDA_DEVT>(REGISTER_COR_CBCT);
   } else {
-    DoReconstructionFDK(REGISTER_COR_CBCT);
+    DoReconstructionFDK<CPU_DEVT>(REGISTER_COR_CBCT);
   }
-  // Skin removal (using CT contour w/ big margin)
-
-  std::cout
-      << "Post  FDK reconstruction is done. Moving on to post skin removal"
-      << std::endl;
-
-  m_pDlgRegistration->PostSkinRemovingCBCT(m_spRawReconImg);
-  m_pDlgRegistration->PostSkinRemovingCBCT(m_spScatCorrReconImg);
-
-  // 20151208 Removal of high intensity skin mask
-  // Main issue: raw CBCT projection includes mask, deformed CT doesn't include
-  // mask. In case of weight loss, mask signal is independent from skin contour,
-  // but deformed CT cannot have that signal.  Therefore, after the subtraction
-  // (CBCTcor projections), there is always a big peak. DIR quality doesn't
-  // matter because it cannot 'create' mask signal anyway.  Assumption: near the
-  // skin contour, this kind of discrepancy is not expected.
-  // m_pDlgRegistration->ThermoMaskRemovingCBCT(m_spRawReconImg,
-  // m_spScatCorrReconImg, threshold_HU);
-
-  m_pDlgRegistration->UpdateListOfComboBox(0); // combo selection signalis
-                                               // called
-  m_pDlgRegistration->UpdateListOfComboBox(1);
-  m_pDlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_pDlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
-
-  m_pDlgRegistration
-      ->SLT_DoLowerMaskIntensity(); // it will check the check button.
 
   // Save Image as DICOM
   if (save_dicom) {

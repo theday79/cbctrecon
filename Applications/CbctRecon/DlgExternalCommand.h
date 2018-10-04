@@ -2,7 +2,7 @@
 #define DLGEXTERNALCOMMAND_H
 
 #include "cbctrecon_config.h"
-#include "cbctrecon.h"
+#include "cbctrecon_mainwidget.h"
 #include "ui_DlgExternalCommand.h"
 #include <QDialog>
 #include <QString>
@@ -28,7 +28,7 @@ public:
   void SetRTKBinPath(QString &strDirPath);
 
 public:
-  CbctRecon *m_pParent{}; // to pull 3D images
+  CbctReconWidget *m_pParent{}; // to pull 3D images
   QString m_strDirRTKBin;
 
   QStringList m_listRTKCommandFilter;

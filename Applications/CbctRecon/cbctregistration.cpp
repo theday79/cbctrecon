@@ -1416,34 +1416,6 @@ void CbctRegistration::SetPlmOutputDir(QString &endFix) {
   m_strPathPlastimatch = dirName;
 }
 
-/*
-void CbctRegistration::initCbctRegistration(QString &strDCMUID) {
-  SetPlmOutputDir(strDCMUID);
-
-  UShortImageType::Pointer spNull;
-  // unlink all of the pointers
-  // m_pParent->m_spReconImg->Delete(); //fixed image // ID: RawCBCT
-  m_pParent->m_spRefCTImg = spNull;
-  m_pParent->m_spManualRigidCT =
-      spNull; // copied from RefCTImg; ID: RefCT --> Moving Img, cloned
-  m_pParent->m_spAutoRigidCT = spNull; // ID: AutoRigidCT
-  m_pParent->m_spDeformedCT1 = spNull; // Deformmation will be carried out based
-                                       // on Moving IMage of GUI //AutoDeformCT1
-  m_pParent->m_spDeformedCT2 = spNull; // AutoDeformCT2
-  m_pParent->m_spDeformedCT3 = spNull; // AutoDeformCT3
-  m_pParent->m_spDeformedCT_Final = spNull; // AutoDeformCT3
-
-  ui.checkBoxKeyMoving->setChecked(false);
-  ui.lineEditOriginChanged->setText("");
-
-  // show();
-
-  UpdateListOfComboBox(0);
-  UpdateListOfComboBox(1);
-  // if not found, just skip
-  SelectComboExternal(0, REGISTER_RAW_CBCT);     // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID); // WILL BE IGNORED
-}*/
 
 void CbctRegistration::PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT) {
   if (spCBCT == nullptr) {

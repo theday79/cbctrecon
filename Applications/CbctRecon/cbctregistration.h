@@ -111,7 +111,6 @@ public:
     double skinExp,
     int bubbleThresh, int bubbleFill); // 8 mm skin cut + fill air bubbles inside CBCT
   void SetPlmOutputDir(QString &endFix);
-  //void initCbctRegistration(QString &strDCMUID);
 
   void PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT); // this function
                                                                // will be called

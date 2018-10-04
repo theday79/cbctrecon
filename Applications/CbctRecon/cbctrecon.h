@@ -121,6 +121,13 @@ struct VEC3D {
   double z;
 };
 
+
+enum enDeviceType {
+  CUDA_DEVT,
+  CPU_DEVT,
+  OPENCL_DEVT,
+};
+
 //
 struct FLEXDATA {
   float fGanAngle;     // MV beam gantry angle
@@ -244,7 +251,6 @@ public:
 
   bool LoadShortImageToUshort(QString &strPath,
                               UShortImageType::Pointer &pUshortImage);
-  void init_DlgRegistration(QString &strDCM_UID);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
@@ -310,8 +316,11 @@ public:
                           FloatImage2DType::Pointer &spTarImg2D,
                           double resFactor); // using slice iterator
 
+
+  template<enDeviceType Tdev>
   void DoReconstructionFDK(enREGI_IMAGES target);
-  void CudaDoReconstructionFDK(enREGI_IMAGES target);
+
+  // void CudaDoReconstructionFDK(enREGI_IMAGES target);
   void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
 
   // void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString&

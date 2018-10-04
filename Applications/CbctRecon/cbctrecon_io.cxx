@@ -2,11 +2,7 @@
 #include "cbctrecon.h"
 
 // std
-#include <math.h>                                              // for sqrt
-#include <algorithm>                                           // for copy, max
-#include <stddef.h>                               // for size_t
 #include <iostream>                               // for operator<<, basic_o...
-#include <memory>                                 // for unique_ptr, allocat...
 #include <string>                                 // for string
 #include <vector>                                 // for vector
 

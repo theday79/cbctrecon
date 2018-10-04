@@ -31,6 +31,7 @@
 
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
+#include "qcustomplot.h"
 
 #pragma GCC poison new
 
@@ -72,6 +73,10 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
   m_cbctrecon = std::make_unique<CbctRecon>();
   m_dlgRegistration = std::make_unique<DlgRegistration>(this);
   m_cbctregistration = m_dlgRegistration->m_cbctregistration.get();
+
+  QString tmp_folder("tmp");
+  init_DlgRegistration(tmp_folder); // to Setup plastimatch folder. this is
+                                    // useful if registration will be only done
   // m_pDlgHistogram = new DlgHistogram(this);
   m_dlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
 
@@ -100,6 +105,13 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
       std::cout << "Error in SaveCurrentSetting" << std::endl;
     }
   }
+}
+
+void CbctReconWidget::init_DlgRegistration(
+  QString &strDCM_UID) // init dlgRegistrations
+{
+  m_dlgRegistration->initDlgRegistration(
+    strDCM_UID); // NULLing all temporary spImage
 }
 
 void CbctReconWidget::SLT_LoadRawImages() { LoadRawHisImages(); }
@@ -404,11 +416,11 @@ void CbctReconWidget::SLT_SetOutputPath() {
 
 void CbctReconWidget::SLT_DoReconstruction() {
   if (ui.radioButton_UseCUDA->isChecked()) {
-    m_cbctrecon->CudaDoReconstructionFDK(REGISTER_RAW_CBCT);
+    m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT);
   } else if (ui.radioButton_UseOpenCL->isChecked()) {
     m_cbctrecon->OpenCLDoReconstructionFDK(REGISTER_RAW_CBCT);
   } else {
-    m_cbctrecon->DoReconstructionFDK(REGISTER_RAW_CBCT);
+    m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT);
   }
 
   QString update_text("RAW_CBCT");
@@ -539,6 +551,7 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   ui.lineEdit_HisDirPath->setText(dirPath);
 
   m_cbctrecon->SetProjDir(dirPath);
+  init_DlgRegistration(m_cbctrecon->m_strDCMUID);
 
   ui.lineEdit_ElektaGeomPath->setText(m_cbctrecon->m_strPathGeomXML);
   ui.lineEdit_PathCBCTSkinPath->setText(m_cbctrecon->m_strPathRS_CBCT);
@@ -606,7 +619,7 @@ std::tuple<bool, bool> CbctReconWidget::probeUser(const QString &guessDir) {
 
     if (m_cbctrecon->ReadDicomDir(dirPath)) {
 
-      m_cbctregistration->UpdateVOICombobox(PLAN_CT);
+      m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
       // UpdateReconImage(m_spRefCTImg, QString("DICOM reference image"));
 
       m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
@@ -1601,7 +1614,7 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 
     QString strSavingFolder = dirPath + "/" + strDirName;
     QString strFullName = strLastName + ", " + strFirstName;
-    m_cbctregistration->LoadImgFromComboBox(0, strDirName);
+    m_dlgRegistration->LoadImgFromComboBox(0, strDirName);
 
     m_cbctrecon->SaveUSHORTAsSHORT_DICOM(
         m_cbctregistration->m_spFixed, strPatientID, strFullName,
@@ -1658,9 +1671,9 @@ void CbctReconWidget::SLT_DoBowtieCorrection() {
 
 void CbctReconWidget::SLT_ViewRegistration() // default showing function
 {
-  m_cbctregistration->UpdateListOfComboBox(0); // combo selection
+  m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                                             // signalis called
-  m_cbctregistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->show();
 }
 
@@ -1866,6 +1879,34 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   m_cbctrecon->AfterScatCorrectionMacro(
       ui.radioButton_UseCUDA->isChecked(),
       ui.checkBox_ExportVolDICOM->isChecked());
+
+  // Skin removal (using CT contour w/ big margin)
+  std::cout
+    << "Post  FDK reconstruction is done. Moving on to post skin removal"
+    << std::endl;
+
+  m_cbctregistration->PostSkinRemovingCBCT(m_cbctrecon->m_spRawReconImg);
+  m_cbctregistration->PostSkinRemovingCBCT(m_cbctrecon->m_spScatCorrReconImg);
+
+  // 20151208 Removal of high intensity skin mask
+  // Main issue: raw CBCT projection includes mask, deformed CT doesn't include
+  // mask. In case of weight loss, mask signal is independent from skin contour,
+  // but deformed CT cannot have that signal.  Therefore, after the subtraction
+  // (CBCTcor projections), there is always a big peak. DIR quality doesn't
+  // matter because it cannot 'create' mask signal anyway.  Assumption: near the
+  // skin contour, this kind of discrepancy is not expected.
+  // m_pDlgRegistration->ThermoMaskRemovingCBCT(m_spRawReconImg,
+  // m_spScatCorrReconImg, threshold_HU);
+
+  m_dlgRegistration->UpdateListOfComboBox(0); // combo selection signalis
+                                               // called
+  m_dlgRegistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->SelectComboExternal(
+    0, REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+
+  m_dlgRegistration
+    ->SLT_DoLowerMaskIntensity(); // it will check the check button.
 
   std::cout << "Updating ReconImage..";
   QString updated_text = QString("Scatter corrected CBCT");
@@ -2441,7 +2482,7 @@ void CbctReconWidget::SLTM_LoadDICOMdir() {
 
   if (m_cbctrecon->ReadDicomDir(dirPath)) {
 
-    m_cbctregistration->UpdateVOICombobox(PLAN_CT);
+    m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
     QString update_text = QString("DICOM reference image");
     UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
 
@@ -3357,12 +3398,12 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
       m_cbctrecon->m_spAutoRigidCT, m_cbctrecon->m_spAutoRigidCT,
       couchShiftTrans, couchShiftRot);
 
-  m_cbctregistration->UpdateListOfComboBox(0); // combo selection
+  m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                                             // signalis called
-  m_cbctregistration->UpdateListOfComboBox(1);
-  m_cbctregistration->SelectComboExternal(
+  m_dlgRegistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->SelectComboExternal(
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_cbctregistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
   m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spScatCorrReconImg;
   SLT_DrawReconImage();

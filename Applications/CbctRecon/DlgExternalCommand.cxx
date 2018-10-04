@@ -11,7 +11,7 @@ DlgExternalCommand::DlgExternalCommand() {
 DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent) {
   /* Sets up the GUI */
   ui.setupUi(this);
-  m_pParent = dynamic_cast<CbctRecon *>(parent);
+  m_pParent = dynamic_cast<CbctReconWidget *>(parent);
 
   // int len = BuildRTKCommandFilter();
 }
@@ -136,7 +136,7 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 
   QTime curTime = QTime::currentTime();
   QString strTimeStamp = curTime.toString("hhmmss");
-  QDir tmpPlmDir = QDir(m_pParent->m_pDlgRegistration->m_strPathPlastimatch);
+  QDir tmpPlmDir = QDir(m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
 
   if (!tmpPlmDir.exists()) {
     std::cout << "Error! No tmp plm path is available."
@@ -329,11 +329,15 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
   std::cout << "External RTK reconstruction is done" << std::endl;
   std::cout << "File is being loaded" << std::endl;
 
-  m_pParent->LoadExternalFloatImage(m_strRecentOutputPath,
+  m_pParent->m_cbctrecon->LoadExternalFloatImage(m_strRecentOutputPath,
                                     true); // true: conversion (float, direction
 
   if (m_pParent->ui.checkBox_PostMedianOn->isChecked()) {
-    m_pParent->MedianFilterByGUI(); // applied to raw image
+    UShortImageType::SizeType indexRadius{};
+    indexRadius[0] = m_pParent->ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+    indexRadius[1] = m_pParent->ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+    indexRadius[2] = m_pParent->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
+    m_pParent->m_cbctrecon->MedianFilterByGUI(indexRadius); // applied to raw image
   }
 
   m_pParent->FileExportByGUI(); // applied to raw image

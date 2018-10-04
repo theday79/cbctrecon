@@ -44,7 +44,12 @@ private: // Just pointers to m_cbctregistration members, for convienience
 public:
   DlgRegistration();
   DlgRegistration(CbctReconWidget *parent);
-  ~DlgRegistration() override;
+  ~DlgRegistration() = default;
+  void UpdateVOICombobox(ctType ct_type);
+  void UpdateListOfComboBox(int idx);
+  void SelectComboExternal(int idx, enREGI_IMAGES iImage);
+  void LoadImgFromComboBox(int idx, QString &strSelectedComboTxt);
+  void initDlgRegistration(QString &strDCMUID);
 
 private:
   void whenFixedImgLoaded(); // should be called by comboBox
@@ -63,11 +68,7 @@ private:
     float shiftZ); // DICOM coordinate
   void AddImageToCombo(int comboIdx,
     enREGI_IMAGES option); // comboIdx 0: fixed, 1: moving
-  void SelectComboExternal(int idx, enREGI_IMAGES iImage);
-  void UpdateVOICombobox(ctType ct_type);
-  void LoadImgFromComboBox(int idx, QString &strSelectedComboTxt);
   void LoadVOIFromComboBox(int idx, QString &strSelectedComboTxt);
-  void UpdateListOfComboBox(int idx);
 
 public slots:
   void SLT_CrntPosGo();

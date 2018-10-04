@@ -27,23 +27,28 @@ configure_file (
 )
 
 ############## Qt start wrapping ##############
-SET(CbctRecon_SOURCES
+SET(CbctReconLib_SOURCES
   cbctrecon.cpp
   cbctregistration.cpp
   qt-utils/YK16GrayImage.cxx
   qt-utils/AG17RGBAImage.cxx
-  qt-utils/qyklabel.cpp
-  qt-utils/qcustomplot.cpp
   StructureSet.cxx
   PlmWrapper.cxx
   WEPL.cxx
   cbctrecon_io.cxx
   cbctrecon_compute.cxx
   cbctrecon_fdk.cxx
-  DlgExternalCommand.cxx
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
   OpenCLFFTFilter.cxx
+)
+
+set(CbctReconExe_SOURCES
+  cbctrecon_mainwidget.cxx
+  DlgRegistration.cxx
+  DlgExternalCommand.cxx
+  qt-utils/qyklabel.cpp
+  qt-utils/qcustomplot.cpp
   CMakeSetup.rc
 )
 
@@ -72,6 +77,7 @@ SET(CbctRecon_NonQt_HEADERS
 
 SET(CbctRecon_HEADERS
   cbctrecon_mainwidget.h
+  DlgRegistration.h
   qt-utils/qyklabel.h
   qt-utils/qcustomplot.h
   DlgExternalCommand.h
@@ -106,18 +112,16 @@ endif()
 add_library(CbctReconLib ${SHARED_FLAG}
   ${CbctRecon_SOURCES}
   ${CbctRecon_NonQt_HEADERS}
-  ${CbctRecon_HEADERS_MOC}
-  ${CbctRecon_FORMS_HEADERS}
-  ${CbctRecon_RCC}
   )
 
 # Executable
 add_executable(CbctRecon
   main.cpp
-  cbctrecon_mainwidget.cxx
-  cbctrecon_mainwidget.h
-  DlgRegistration.cxx
-  DlgRegistration.h
+  ${CbctReconExe_SOURCES}
+  ${CbctRecon_HEADERS}
+  ${CbctRecon_HEADERS_MOC}
+  ${CbctRecon_FORMS_HEADERS}
+  ${CbctRecon_RCC}
 )
 
 set_target_properties(CbctRecon

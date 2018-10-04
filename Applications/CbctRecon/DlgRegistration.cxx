@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProcess>
+#include <qcombobox.h>
 
 // configs
 #include <itkConfigure.h>
@@ -94,7 +95,34 @@ DlgRegistration::DlgRegistration(CbctReconWidget *parent) : QDialog(parent) {
   SLT_CancelMouseAction();
 }
 
-DlgRegistration::~DlgRegistration() {}
+void DlgRegistration::initDlgRegistration(QString &strDCMUID) {
+  m_cbctregistration->SetPlmOutputDir(strDCMUID);
+
+  UShortImageType::Pointer spNull;
+  // unlink all of the pointers
+  // m_pParent->m_spReconImg->Delete(); //fixed image // ID: RawCBCT
+  m_cbctregistration->m_pParent->m_spRefCTImg = spNull;
+  m_cbctregistration->m_pParent->m_spManualRigidCT =
+      spNull; // copied from RefCTImg; ID: RefCT --> Moving Img, cloned
+  m_cbctregistration->m_pParent->m_spAutoRigidCT = spNull; // ID: AutoRigidCT
+  m_cbctregistration->m_pParent->m_spDeformedCT1 =
+      spNull; // Deformmation will be carried out based
+              // on Moving IMage of GUI //AutoDeformCT1
+  m_cbctregistration->m_pParent->m_spDeformedCT2 = spNull;      // AutoDeformCT2
+  m_cbctregistration->m_pParent->m_spDeformedCT3 = spNull;      // AutoDeformCT3
+  m_cbctregistration->m_pParent->m_spDeformedCT_Final = spNull; // AutoDeformCT3
+
+  ui.checkBoxKeyMoving->setChecked(false);
+  ui.lineEditOriginChanged->setText("");
+
+  // show();
+
+  UpdateListOfComboBox(0);
+  UpdateListOfComboBox(1);
+  // if not found, just skip
+  SelectComboExternal(0, REGISTER_RAW_CBCT);     // will call fixedImageSelected
+  SelectComboExternal(1, REGISTER_MANUAL_RIGID); // WILL BE IGNORED
+}
 
 void DlgRegistration::SLT_CrntPosGo() {
   // m_pParent->Draw2DFrom3D(m_pParent->m_spReconImg, PLANE_AXIAL, 0.0,

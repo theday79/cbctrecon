@@ -24,6 +24,7 @@ public:
   CbctReconWidget(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
   ~CbctReconWidget() = default;
   void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
+  void FileExportByGUI();
 
 private:
   std::tuple<bool, bool> probeUser(const QString &guessDir);
@@ -40,10 +41,10 @@ private:
 
   template<enREGI_IMAGES imagetype>
   void LoadMHAfileAs();
-  void FileExportByGUI();
   void LoadRawHisImages();
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);
+  void init_DlgRegistration(QString &strDCM_UID);
 
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon;
