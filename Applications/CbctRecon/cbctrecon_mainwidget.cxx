@@ -19,9 +19,15 @@
 #include <qstandarditemmodel.h>
 #include <qstring.h>
 
+#include "itkCastImageFilter.h"
 #include "itkExtractImageFilter.h"
 #include "itkImageDuplicator.h"
 #include "itkImageSliceIteratorWithIndex.h"
+#include "itkMinimumMaximumImageCalculator.h"
+#include "itkMultiplyImageFilter.h"
+
+#include "mha_io.h"
+#include "nki_io.h"
 
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
@@ -92,7 +98,7 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
   }
 }
 
-void CbctReconWidget::SLT_LoadRawImages() { m_cbctrecon->LoadRawHisImages(); }
+void CbctReconWidget::SLT_LoadRawImages() { LoadRawHisImages(); }
 
 void CbctReconWidget::SLT_DrawRawImages() {
   int crntIdx = ui.spinBoxImgIdx->value();
@@ -3261,7 +3267,8 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
   }
 
   m_cbctrecon->LoadShort3DImage(fileName, imagetype);
-  UShortImageType::SizeType imgDim = m_spCrntReconImg->GetBufferedRegion().GetSize();
+  UShortImageType::SizeType imgDim =
+      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
 
   ui.lineEdit_Cur3DFileName->setText(fileName);
 
@@ -3642,6 +3649,510 @@ void CbctReconWidget::SLT_CropSupInf() {
 
   // SLT_DrawReconImage();
 }
+
+// IO_START
+void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
+{
+  using ReaderType = itk::ImageFileReader<FloatImageType>;
+  ReaderType::Pointer reader = ReaderType::New();
+
+  QString fileName = QFileDialog::getOpenFileName(
+      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      "3D dose float file (*.mha)", nullptr, nullptr);
+
+  if (fileName.length() < 1) {
+    return;
+  }
+
+  reader->SetFileName(fileName.toLocal8Bit().constData());
+  reader->Update();
+
+  // Multiply: Gy to mGy
+  using MultiplyImageFilterType =
+      itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
+  MultiplyImageFilterType::Pointer multiplyImageFilter =
+      MultiplyImageFilterType::New();
+  multiplyImageFilter->SetInput(reader->GetOutput());
+  multiplyImageFilter->SetConstant(100.0); // calculated already //Gy to cGy
+
+  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
+  CastFilterType::Pointer castFilter = CastFilterType::New();
+  castFilter->SetInput(multiplyImageFilter->GetOutput());
+
+  castFilter->Update();
+
+  m_cbctrecon->m_spRawReconImg = castFilter->GetOutput();
+  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+
+  // Update UI
+  UShortImageType::SizeType imgDim =
+      m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing =
+      m_cbctrecon->m_spRawReconImg->GetSpacing();
+
+  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
+            << "	" << imgDim[2] << std::endl;
+  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
+            << "	" << spacing[2] << std::endl;
+
+  ui.lineEdit_Cur3DFileName->setText(fileName);
+
+  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+  SLT_InitializeGraphLim();
+  ui.spinBoxReconImgSliceNo->setValue(
+      initVal); // DrawRecon Imge is called, but sometimes skipped
+  ui.radioButton_graph_recon->setChecked(true);
+
+  SLT_DrawReconImage();
+}
+
+void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
+                                        // source
+{
+  using ReaderType = itk::ImageFileReader<UShortImageType>;
+  ReaderType::Pointer reader = ReaderType::New();
+
+  QString fileName = QFileDialog::getOpenFileName(
+      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      "Projection file (*.mha)", nullptr, nullptr);
+
+  if (fileName.length() < 1) {
+    return;
+  }
+
+  reader->SetFileName(fileName.toLocal8Bit().constData());
+  reader->Update();
+
+  m_cbctrecon->m_spRawReconImg = reader->GetOutput();
+  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+
+  UShortImageType::SizeType imgDim =
+      m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing =
+      m_cbctrecon->m_spRawReconImg->GetSpacing();
+
+  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
+            << "	" << imgDim[2] << std::endl;
+  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
+            << "	" << spacing[2] << std::endl;
+
+  ui.lineEdit_Cur3DFileName->setText(fileName);
+
+  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+  SLT_InitializeGraphLim();
+  ui.spinBoxReconImgSliceNo->setValue(
+      initVal); // DrawRecon Imge is called, but sometimes skipped
+  ui.radioButton_graph_recon->setChecked(true);
+
+  SLT_DrawReconImage();
+}
+
+void CbctReconWidget::SLT_Load3DImageShort() {
+  QString fileName = QFileDialog::getOpenFileName(
+      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      "short mha file (*.mha)", nullptr, nullptr);
+
+  if (fileName.length() < 1) {
+    return;
+  }
+
+  if (!m_cbctrecon->LoadShortImageToUshort(fileName,
+                                           m_cbctrecon->m_spRawReconImg)) {
+    std::cout << "error! in LoadShortImageToUshort" << std::endl;
+  }
+
+  using ImageCalculatorFilterType2 =
+      itk::MinimumMaximumImageCalculator<UShortImageType>;
+
+  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
+      ImageCalculatorFilterType2::New();
+  // imageCalculatorFilter2->SetImage(m_spReconImg);
+  imageCalculatorFilter2->SetImage(m_cbctrecon->m_spRawReconImg);
+  imageCalculatorFilter2->Compute();
+
+  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
+            << std::endl;
+
+  // Update UI
+  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+
+  UShortImageType::SizeType imgDim =
+      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing =
+      m_cbctrecon->m_spCrntReconImg->GetSpacing();
+
+  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
+            << "	" << imgDim[2] << std::endl;
+  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
+            << "	" << spacing[2] << std::endl;
+
+  ui.lineEdit_Cur3DFileName->setText(fileName);
+
+  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+  SLT_InitializeGraphLim();
+  ui.spinBoxReconImgSliceNo->setValue(
+      initVal); // DrawRecon Imge is called, but sometimes skipped
+  ui.radioButton_graph_recon->setChecked(true);
+
+  SLT_DrawReconImage();
+}
+
+void CbctReconWidget::SLT_LoadNKIImage() {
+  QString filePath = QFileDialog::getOpenFileName(
+      this, "Open Image", m_cbctrecon->m_strPathDirDefault, "NKI file (*.SCAN)",
+      nullptr, nullptr);
+
+  if (filePath.length() < 1) {
+    return;
+  }
+
+  Volume *v =
+      nki_load(filePath.toLocal8Bit().constData()); // NKI is unsigned short!!!
+  if (v == nullptr) {
+    std::cerr << "file reading error" << std::endl;
+    return;
+  }
+
+  QString endFix = "_conv";
+  QFileInfo srcFileInfo = QFileInfo(filePath);
+  QDir dir = srcFileInfo.absoluteDir();
+  QString baseName = srcFileInfo.completeBaseName();
+  QString extName = "mha";
+
+  QString newFileName = baseName.append(endFix).append(".").append(extName);
+  QString newPath = dir.absolutePath() + "/" + newFileName;
+
+  write_mha(newPath.toLocal8Bit().constData(), v);
+  std::cout << "File conversion is done. Trying to read mha file.."
+            << std::endl;
+  // corrImg.ReleaseBuffer();
+  // NKI to mha
+
+  if (!m_cbctrecon->LoadShortImageToUshort(newPath,
+                                           m_cbctrecon->m_spRawReconImg)) {
+    std::cout << "error! in LoadShortImageToUshort" << std::endl;
+  }
+
+  using ImageCalculatorFilterType2 =
+      itk::MinimumMaximumImageCalculator<UShortImageType>;
+
+  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
+      ImageCalculatorFilterType2::New();
+  // imageCalculatorFilter2->SetImage(m_spReconImg);
+  imageCalculatorFilter2->SetImage(m_cbctrecon->m_spRawReconImg);
+  imageCalculatorFilter2->Compute();
+
+  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
+            << std::endl;
+
+  // Update UI
+  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+
+  UShortImageType::SizeType imgDim =
+      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing =
+      m_cbctrecon->m_spCrntReconImg->GetSpacing();
+
+  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
+            << "	" << imgDim[2] << std::endl;
+  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
+            << "	" << spacing[2] << std::endl;
+
+  ui.lineEdit_Cur3DFileName->setText(newFileName);
+
+  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+  SLT_InitializeGraphLim();
+  ui.spinBoxReconImgSliceNo->setValue(
+      initVal); // DrawRecon Imge is called, but sometimes skipped
+  ui.radioButton_graph_recon->setChecked(true);
+
+  SLT_DrawReconImage();
+}
+
+void CbctReconWidget::SLT_ExportHis() {
+  if (m_cbctrecon->m_iImgCnt < 1) {
+    std::cout << "Error: Load raw his images first" << std::endl;
+    return;
+  }
+
+  // Get Folder Name!
+
+  // For displaying Dir only..
+  QString dir = QFileDialog::getExistingDirectory(
+      this, "Open Directory", "/home",
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+  // FileName should be same, only selected folder
+
+  for (int i = 0; i < m_cbctrecon->m_iImgCnt; i++) {
+    QFileInfo tmpInfo = QFileInfo(m_cbctrecon->m_arrYKImage[i].m_strFilePath);
+    QString newPath = dir + "/" + tmpInfo.fileName();
+    m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(
+        newPath.toLocal8Bit().constData(), false);
+  }
+
+  std::cout << "File export was done successfully" << std::endl;
+}
+
+void CbctReconWidget::SLT_ReloadProjections() {
+  QFile projFile("Projections.mha");
+  if (!projFile.exists()) {
+    std::cerr
+        << "Projections were never saved! i.e. Projections.mha doesn't exist."
+        << std::endl;
+    return;
+  }
+  std::cout << "Reading: " << projFile.fileName().toStdString() << std::endl;
+  using ImageReaderType = itk::ImageFileReader<FloatImageType>;
+  ImageReaderType::Pointer ImageReader = ImageReaderType::New();
+  ImageReader->SetFileName(projFile.fileName().toStdString());
+  ImageReader->Update();
+  m_cbctrecon->m_spProjImg3DFloat = ImageReader->GetOutput();
+
+  // Copied from SLT_LoadSelectedFiles:
+
+  if (m_cbctrecon->m_fResampleF != 1.0) {
+    m_cbctrecon->ResampleItkImage(
+        m_cbctrecon->m_spProjImg3DFloat, m_cbctrecon->m_spProjImg3DFloat,
+        m_cbctrecon->m_fResampleF); // was! BROKEN AF for .his where input size
+                                    // != 1024 (tested with 1016) -> outputs
+                                    // offset -inputoffset/refactor^2 and 4
+                                    // pixels too few in x and y
+  }
+
+  if (m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
+    std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
+    SLT_DoBowtieCorrection();
+  }
+
+  m_cbctrecon->ConvertLineInt2Intensity(
+      m_cbctrecon->m_spProjImg3DFloat, m_cbctrecon->m_spProjImgRaw3D,
+      65535); // if X not 1024 == input size: out_offset =
+              // in_offset + (1024*res_f -
+              // X*res_f)*out_spacing     <- will still
+              // break down at fw_projection
+
+  FloatImageType::PointType originPt =
+      m_cbctrecon->m_spProjImg3DFloat->GetOrigin();
+  FloatImageType::SizeType FloatImgSize =
+      m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize();
+  FloatImageType::SpacingType FloatImgSpacing =
+      m_cbctrecon->m_spProjImg3DFloat->GetSpacing();
+
+  std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
+            << originPt[2] << std::endl;
+  std::cout << "YKDEBUG: Size" << FloatImgSize[0] << ", " << FloatImgSize[1]
+            << ", " << FloatImgSize[2] << std::endl;
+  std::cout << "YKDEBUG: Spacing" << FloatImgSpacing[0] << ", "
+            << FloatImgSpacing[1] << ", " << FloatImgSpacing[2] << std::endl;
+
+  std::cout << "Raw3DProj dimension "
+            << m_cbctrecon->m_spProjImgRaw3D->GetRequestedRegion().GetSize()
+            << std::endl;
+
+  // m_spProjImgRaw3D is Ushort
+
+  std::cout << "Projection reading succeeded."
+            << m_cbctrecon->m_vSelectedFileNames.size() << " files were read"
+            << std::endl;
+
+  // Because you can load projections from previous run:
+  ui.pushButton_DoRecon->setEnabled(true);
+
+  ui.spinBoxImgIdx->setMinimum(0);
+  ui.spinBoxImgIdx->setMaximum(m_cbctrecon->m_vSelectedFileNames.size() - 1);
+  ui.spinBoxImgIdx->setValue(0);
+
+  m_cbctrecon
+      ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
+  SLT_InitializeGraphLim();
+
+  this->SLT_DrawProjImages(); // Update Table is called
+}
+
+void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
+{
+  // typedef itk::ImageFileReader<ShortImageType> ReaderType;
+  // ReaderType::Pointer reader = ReaderType::New();
+
+  QString fileName = QFileDialog::getOpenFileName(
+      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      "Plan CT file (*.mha)", nullptr, nullptr);
+
+  if (fileName.length() < 1) {
+    return;
+  }
+
+  if (!m_cbctrecon->LoadShortImageToUshort(fileName,
+                                           m_cbctrecon->m_spRefCTImg)) {
+    std::cout << "error! in LoadShortImageToUshort" << std::endl;
+  }
+
+  using ImageCalculatorFilterType2 =
+      itk::MinimumMaximumImageCalculator<UShortImageType>;
+
+  ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
+      ImageCalculatorFilterType2::New();
+  imageCalculatorFilter2->SetImage(m_cbctrecon->m_spRefCTImg);
+  imageCalculatorFilter2->Compute();
+
+  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+
+  std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
+            << std::endl;
+
+  // Update UI
+  UShortImageType::SizeType imgDim =
+      m_cbctrecon->m_spRefCTImg->GetBufferedRegion().GetSize();
+  UShortImageType::SpacingType spacing =
+      m_cbctrecon->m_spRefCTImg->GetSpacing();
+
+  std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
+            << "	" << imgDim[2] << std::endl;
+  std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
+            << "	" << spacing[2] << std::endl;
+
+  m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
+  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRefCTImg;
+
+  ui.lineEdit_Cur3DFileName->setText(fileName);
+  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  int initVal = qRound((imgDim[2] - 1) / 2.0);
+
+  SLT_InitializeGraphLim();
+  ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
+  ui.radioButton_graph_recon->setChecked(true);
+}
+
+void CbctReconWidget::SLT_ExportReconUSHORT() {
+  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+    std::cout << " no image to export" << std::endl;
+    return;
+  }
+
+  QString strPath = QFileDialog::getSaveFileName(
+      this, "Save Image", "", "unsigned short meta image (*.mha)", nullptr,
+      nullptr);
+  if (strPath.length() <= 1) {
+    return;
+  }
+
+  using WriterType = itk::ImageFileWriter<UShortImageType>;
+  WriterType::Pointer writer = WriterType::New();
+  writer->SetFileName(strPath.toLocal8Bit().constData());
+  writer->SetUseCompression(true); // not exist in original code (rtkfdk)
+  writer->SetInput(m_cbctrecon->m_spCrntReconImg);
+
+  std::cout << "Writing is under progress...: "
+            << strPath.toLocal8Bit().constData() << std::endl;
+  writer->Update();
+  std::cout << "Writing was successfully done" << std::endl;
+
+  QString msgStr = QString("USHORT File Writing was successfully done");
+  QMessageBox::information(this, "Procedure Done", msgStr);
+}
+
+// Function for independent projection his images
+void CbctReconWidget::LoadRawHisImages() {
+
+  QStringList files =
+      QFileDialog::getOpenFileNames(this, "Select one or more files to open",
+                                    m_cbctrecon->m_strPathDirDefault,
+                                    "projection images (*.his,*.hnd,*.xim)");
+
+  m_cbctrecon->m_iImgCnt = files.size();
+  std::vector<std::string> fileVector;
+
+  for (auto &cur_file : files) {
+    fileVector.push_back(cur_file.toStdString());
+  }
+
+  if (m_cbctrecon->m_iImgCnt < 1) {
+    return;
+  }
+
+  m_cbctrecon->ReleaseMemory();
+
+  m_cbctrecon->m_arrYKImage.resize(m_cbctrecon->m_iImgCnt);
+  using ReaderType = rtk::ProjectionsReader<FloatImageType>;
+  ReaderType::Pointer reader = ReaderType::New();
+  reader->SetFileNames(fileVector);
+  reader->UpdateOutputInformation();
+  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
+  CastFilterType::Pointer castFilter = CastFilterType::New();
+  castFilter->SetInput(reader->GetOutput());
+  castFilter->Update();
+
+  int width =
+      castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0]; // width
+  int height = castFilter->GetOutput()
+                   ->GetLargestPossibleRegion()
+                   .GetSize()[1]; // height
+  int sizePix = width * height;
+  int sizeBuf = sizePix * sizeof(FloatImageType::PixelType);
+  int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
+
+  size_t index = 0;
+  for (auto &it : m_cbctrecon->m_arrYKImage) {
+    const QString &strFile = files.at(index);
+
+    if (bytesPerPix != 2) {
+      break;
+    }
+
+    it.CreateImage(width, height, 0);
+
+    // reader->Read(it.m_pData);
+    it.m_pData = &castFilter->GetOutput()->GetBufferPointer()[sizePix * index];
+
+    it.m_strFilePath = strFile;
+    // Copy his header - 100 bytes
+    it.CopyHisHeader(strFile.toLocal8Bit().constData());
+
+    index++;
+  }
+
+  m_cbctrecon->m_multiplyFactor = 1.0;
+
+  ui.spinBoxImgIdx->setMinimum(0);
+  ui.spinBoxImgIdx->setMaximum(m_cbctrecon->m_iImgCnt - 1);
+  ui.spinBoxImgIdx->setValue(0);
+
+  m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
+  SLT_InitializeGraphLim();
+
+  SLT_DrawRawImages(); // Change FileName as well.. read spinbox value and draw
+                       // image
+}
+// IO_END
 
 void CbctReconWidget::SLT_SaveCurrentSetting() {
   if (!SaveCurrentSetting(m_cbctrecon->m_strPathDefaultConfigFile)) {

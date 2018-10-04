@@ -573,7 +573,7 @@ void CbctRecon::LoadBadPixelMap(const char *filePath) {
 std::unique_ptr<YK16GrayImage>
 CbctRecon::BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg) {
   if (m_vPixelReplMap.empty()) {
-    return;
+    return targetImg;
   }
 
   int oriIdx, replIdx;
@@ -648,7 +648,7 @@ bool CbctRecon::LoadGeometry(QFileInfo geomFileInfo,
   if (!geomFileInfo.exists()) {
     std::cout << "Critical Error! geometry file is not existing. Please retry."
               << std::endl;
-    return;
+    return false;
   }
 
   if (geomFileInfo.fileName() == "_Frames.xml") // this is XVI XML.
@@ -4564,7 +4564,7 @@ int CbctRecon::CropSkinUsingThreshold(int threshold, int erode_radius,
                                       int dilate_radius) {
   std::cout << "Overwriting of values below threshold to air ";
   if (m_spCrntReconImg == nullptr) {
-    return;
+    return -1;
   }
 
   using threshFilterType =
@@ -5549,7 +5549,7 @@ bool CbctRecon::LoadXVIGeometryFile(const char *filePath) {
   auto *file = new QFile(strFilePath);
   /* If we can't open it, let's show an error message. */
   if (!file->open(QIODevice::ReadOnly | QIODevice::Text)) {
-    return;
+    return false;
   }
   /* QXmlStreamReader takes any QIODevice. */
   QXmlStreamReader xml(file);

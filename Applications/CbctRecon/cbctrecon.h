@@ -441,7 +441,6 @@ public:
   static void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                               FloatImageType::Pointer &spAttImgFloat);
 
-  void LoadRawHisImages();
   bool ReadDicomDir(QString &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files

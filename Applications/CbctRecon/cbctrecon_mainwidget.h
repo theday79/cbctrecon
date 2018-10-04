@@ -4,13 +4,18 @@
 #include "cbctrecon_config.h"
 
 #include <memory>
+#include <tuple>
 
 // Qt
 #include <QtWidgets/QMainWindow>
 #include <qtimer.h>
+#include <qstring.h>
 
 #include "cbctrecon.h"
 
+class DlgRegistration;
+// class DlgHistogram;
+class DlgExternalCommand;
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT
@@ -35,10 +40,11 @@ private:
   template<enREGI_IMAGES imagetype>
   void LoadMHAfileAs();
   void FileExportByGUI();
+  void LoadRawHisImages();
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);
 
-public: 
+public: // no raw pointers allowed
   std::unique_ptr<CbctRecon> m_cbctrecon;
   std::unique_ptr<QTimer> m_Timer;
   bool m_busyTimer;
