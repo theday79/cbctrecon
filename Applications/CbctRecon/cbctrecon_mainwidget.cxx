@@ -70,6 +70,10 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
 #endif
 
   m_cbctrecon = std::make_unique<CbctRecon>();
+  m_dlgRegistration = std::make_unique<DlgRegistration>(this);
+  m_cbctregistration = m_dlgRegistration->m_cbctregistration.get();
+  // m_pDlgHistogram = new DlgHistogram(this);
+  m_dlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
 
   // 20141017 QTIMER for sync
   m_Timer = std::make_unique<QTimer>(this);
@@ -407,9 +411,12 @@ void CbctReconWidget::SLT_DoReconstruction() {
     m_cbctrecon->DoReconstructionFDK(REGISTER_RAW_CBCT);
   }
 
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(0); // combo selection
+  QString update_text("RAW_CBCT");
+  UpdateReconImage(m_cbctrecon->m_spCrntReconImg, update_text);
+
+  m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                                             // signalis called
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->UpdateListOfComboBox(1);
   // m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call
   // fixedImageSelected  m_pDlgRegistration->SelectComboExternal(1,
   // REGISTER_RAW_CBCT );
@@ -598,6 +605,8 @@ std::tuple<bool, bool> CbctReconWidget::probeUser(const QString &guessDir) {
   if (!(dirPath.length() <= 1)) {
 
     if (m_cbctrecon->ReadDicomDir(dirPath)) {
+
+      m_cbctregistration->UpdateVOICombobox(PLAN_CT);
       // UpdateReconImage(m_spRefCTImg, QString("DICOM reference image"));
 
       m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
@@ -1579,10 +1588,10 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
   }
 
   for (int i = 0;
-       i < m_cbctrecon->m_pDlgRegistration->ui.comboBoxImgFixed->count(); i++) {
-    m_cbctrecon->m_pDlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
+       i < m_dlgRegistration->ui.comboBoxImgFixed->count(); i++) {
+    m_dlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
     QString strDirName =
-        m_cbctrecon->m_pDlgRegistration->ui.comboBoxImgFixed->currentText();
+        m_dlgRegistration->ui.comboBoxImgFixed->currentText();
     bool tmpResult = crntDir.mkdir(strDirName); // what if the directory exists?
     if (!tmpResult) {
       std::cout
@@ -1592,13 +1601,13 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 
     QString strSavingFolder = dirPath + "/" + strDirName;
     QString strFullName = strLastName + ", " + strFirstName;
-    m_cbctrecon->m_pDlgRegistration->LoadImgFromComboBox(0, strDirName);
+    m_cbctregistration->LoadImgFromComboBox(0, strDirName);
 
     m_cbctrecon->SaveUSHORTAsSHORT_DICOM(
-        m_cbctrecon->m_pDlgRegistration->m_spFixed, strPatientID, strFullName,
+        m_cbctregistration->m_spFixed, strPatientID, strFullName,
         strSavingFolder);
     QString mhaFileName = strSavingFolder + "/" + strDirName + ".mha";
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_pDlgRegistration->m_spFixed,
+    m_cbctrecon->ExportReconSHORT_HU(m_cbctregistration->m_spFixed,
                                      mhaFileName);
   }
   SLT_GeneratePOIData();
@@ -1649,10 +1658,10 @@ void CbctReconWidget::SLT_DoBowtieCorrection() {
 
 void CbctReconWidget::SLT_ViewRegistration() // default showing function
 {
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(0); // combo selection
+  m_cbctregistration->UpdateListOfComboBox(0); // combo selection
                                                             // signalis called
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
-  m_cbctrecon->m_pDlgRegistration->show();
+  m_cbctregistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->show();
 }
 
 void CbctReconWidget::SLT_ViewHistogram() // default showing function
@@ -1770,9 +1779,9 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
-  if (m_cbctrecon->m_pDlgRegistration->m_spMoving != nullptr) {
+  if (m_cbctregistration->m_spMoving != nullptr) {
     ForwardProjection(
-        m_cbctrecon->m_pDlgRegistration->m_spMoving,
+        m_cbctregistration->m_spMoving,
         m_cbctrecon->m_spCustomGeometry, m_cbctrecon->m_spProjImgCT3D,
         bExportProj_Fwd,
         ui.radioButton_UseCUDA->isChecked()); // final moving image
@@ -2175,16 +2184,16 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
   double croppingMargin = ui.lineEdit_SkinMargin->text().toDouble();
   QString update_text = QString("RS-based skin cropped image");
   if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRawReconImg) {
-    m_cbctrecon->m_pDlgRegistration->CropSkinUsingRS(
+    m_cbctregistration->CropSkinUsingRS(
         m_cbctrecon->m_spRawReconImg, strPathRS, croppingMargin);
     UpdateReconImage(m_cbctrecon->m_spRawReconImg, update_text);
   } else if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRefCTImg) {
-    m_cbctrecon->m_pDlgRegistration->CropSkinUsingRS(m_cbctrecon->m_spRefCTImg,
+    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spRefCTImg,
                                                      strPathRS, croppingMargin);
     UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
   } else if (m_cbctrecon->m_spCrntReconImg ==
              m_cbctrecon->m_spScatCorrReconImg) {
-    m_cbctrecon->m_pDlgRegistration->CropSkinUsingRS(
+    m_cbctregistration->CropSkinUsingRS(
         m_cbctrecon->m_spScatCorrReconImg, strPathRS, croppingMargin);
     UpdateReconImage(m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
@@ -2418,7 +2427,7 @@ void CbctReconWidget::SLT_TimerEvent() {
 }
 
 void CbctReconWidget::SLTM_ViewExternalCommand() {
-  m_cbctrecon->m_pDlgExternalCommand->show();
+  m_dlgExternalCommand->show();
 }
 
 void CbctReconWidget::SLTM_LoadDICOMdir() {
@@ -2431,6 +2440,8 @@ void CbctReconWidget::SLTM_LoadDICOMdir() {
   }
 
   if (m_cbctrecon->ReadDicomDir(dirPath)) {
+
+    m_cbctregistration->UpdateVOICombobox(PLAN_CT);
     QString update_text = QString("DICOM reference image");
     UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
 
@@ -2969,7 +2980,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
 
   SLT_ViewRegistration();
 
-  m_cbctrecon->m_pDlgRegistration->SLT_PreProcessCT();
+  m_dlgRegistration->SLT_PreProcessCT();
   if (!m_cbctrecon->m_bMacroContinue) {
     std::cout << "Stopped during MacroSingle due to error in PreProcessCT"
               << std::endl;
@@ -2979,25 +2990,25 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   QString strSuffix;
   switch (enFwdRefImg) {
   case REGISTER_MANUAL_RIGID:
-    m_cbctrecon->m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_cbctrecon->m_pDlgRegistration
+    m_dlgRegistration->SLT_ManualMoveByDCMPlan();
+    m_dlgRegistration
         ->SLT_ConfirmManualRegistration(); // skin cropping for
                                            // CBCT. only works when
                                            // CBCT_skin crop is on
     strSuffix = strSuffix + "_man";
 
     if (bCBCT_IntensityShift) {
-      m_cbctrecon->m_pDlgRegistration->SLT_IntensityNormCBCT();
+      m_dlgRegistration->SLT_IntensityNormCBCT();
     }
 
     break;
   case REGISTER_AUTO_RIGID:
-    m_cbctrecon->m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_cbctrecon->m_pDlgRegistration
+    m_dlgRegistration->SLT_ManualMoveByDCMPlan();
+    m_dlgRegistration
         ->SLT_ConfirmManualRegistration(); // skin cropping
 
     if (bCBCT_IntensityShift) {
-      m_cbctrecon->m_pDlgRegistration->SLT_IntensityNormCBCT();
+      m_dlgRegistration->SLT_IntensityNormCBCT();
     }
 
     // OPtional
@@ -3006,18 +3017,18 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
                              physRadius, physTablePosY);
     }
 
-    m_cbctrecon->m_pDlgRegistration->SLT_DoRegistrationRigid();
+    m_dlgRegistration->SLT_DoRegistrationRigid();
     strSuffix = strSuffix + "_rigid";
     break;
   case REGISTER_DEFORM_FINAL:
     std::cout << "REGISTER_DEFORM_FINAL was chosen." << std::endl;
-    m_cbctrecon->m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_cbctrecon->m_pDlgRegistration
+    m_dlgRegistration->SLT_ManualMoveByDCMPlan();
+    m_dlgRegistration
         ->SLT_ConfirmManualRegistration(); // skin cropping
 
     if (bCBCT_IntensityShift) {
       std::cout << "IntensityShift is underway" << std::endl;
-      m_cbctrecon->m_pDlgRegistration->SLT_IntensityNormCBCT();
+      m_dlgRegistration->SLT_IntensityNormCBCT();
     }
 
     if (bFOVCropping) {
@@ -3025,19 +3036,19 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
                              physRadius, physTablePosY);
     }
 
-    m_cbctrecon->m_pDlgRegistration->SLT_DoRegistrationRigid();
-    m_cbctrecon->m_pDlgRegistration->SLT_DoRegistrationDeform();
+    m_dlgRegistration->SLT_DoRegistrationRigid();
+    m_dlgRegistration->SLT_DoRegistrationDeform();
     strSuffix = strSuffix + "_defrm";
     break;
 
   case REGISTER_DEFORM_SKIP_AUTORIGID:
-    m_cbctrecon->m_pDlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_cbctrecon->m_pDlgRegistration
+    m_dlgRegistration->SLT_ManualMoveByDCMPlan();
+    m_dlgRegistration
         ->SLT_ConfirmManualRegistration(); // skin cropping
     // m_pDlgRegistration->SLT_DoRegistrationRigid();
 
     if (bCBCT_IntensityShift) {
-      m_cbctrecon->m_pDlgRegistration->SLT_IntensityNormCBCT();
+      m_dlgRegistration->SLT_IntensityNormCBCT();
     }
 
     if (bFOVCropping) {
@@ -3045,7 +3056,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
                              physRadius, physTablePosY);
     }
 
-    m_cbctrecon->m_pDlgRegistration->SLT_DoRegistrationDeform();
+    m_dlgRegistration->SLT_DoRegistrationDeform();
     strSuffix = strSuffix + "_defrm_skipRigid";
     break;
 
@@ -3280,12 +3291,12 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
   ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
   ui.radioButton_graph_recon->setChecked(true);
 
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(0); // combo selection
+  m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                                             // signalis called
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
-  m_cbctrecon->m_pDlgRegistration->SelectComboExternal(
+  m_dlgRegistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->SelectComboExternal(
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_cbctrecon->m_pDlgRegistration->SelectComboExternal(1, imagetype);
+  m_dlgRegistration->SelectComboExternal(1, imagetype);
   // std::cout << m_spScatCorrReconImg->GetBufferedRegion().GetSize() <<
   // std::endl;
 
@@ -3346,12 +3357,12 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
       m_cbctrecon->m_spAutoRigidCT, m_cbctrecon->m_spAutoRigidCT,
       couchShiftTrans, couchShiftRot);
 
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(0); // combo selection
+  m_cbctregistration->UpdateListOfComboBox(0); // combo selection
                                                             // signalis called
-  m_cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
-  m_cbctrecon->m_pDlgRegistration->SelectComboExternal(
+  m_cbctregistration->UpdateListOfComboBox(1);
+  m_cbctregistration->SelectComboExternal(
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_cbctrecon->m_pDlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+  m_cbctregistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
   m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spScatCorrReconImg;
   SLT_DrawReconImage();
@@ -3567,7 +3578,7 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
     QString mask_fn = maskFilePath.toLocal8Bit().constData();
     QString output_fn = curPath.toLocal8Bit().constData();
     float mask_value = -1024.0; // unsigned short
-    m_cbctrecon->m_pDlgRegistration->plm_mask_main(
+    m_cbctregistration->plm_mask_main(
         mask_option, input_fn, mask_fn, output_fn, mask_value);
     std::cout << i + 1 << "/" << iCnt << std::endl;
   }
@@ -3623,7 +3634,7 @@ void CbctReconWidget::SLT_CropSupInf() {
   // QString strPath = m_strPathDirDefault + "/" + "TempSI_Cropped.mha";
   // QString strTmpFile = "C:/TmpSI_Cropped.mha";
 
-  QString strPath = m_cbctrecon->m_pDlgRegistration->m_strPathPlastimatch +
+  QString strPath = m_cbctregistration->m_strPathPlastimatch +
                     "/" + "tmp_SI_cropped.mha";
   m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
 
@@ -4169,7 +4180,7 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) {
     std::cout << "Config file is found. it will be overwritten now"
               << std::endl;
   }
-  auto &m_pDlgRegistration = m_cbctrecon->m_pDlgRegistration;
+  auto &m_pDlgRegistration = m_dlgRegistration;
 
   std::ofstream fout;
   fout.open(strPathConfigFile.toLocal8Bit().constData());
@@ -4303,7 +4314,7 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) {
   if (fin.fail()) {
     return false;
   }
-  auto &m_pDlgRegistration = m_cbctrecon->m_pDlgRegistration;
+  auto &m_pDlgRegistration = m_dlgRegistration;
 
   // int cnt = 0;
   while (!fin.eof()) {

@@ -540,13 +540,6 @@ void CbctRecon::CudaDoReconstructionFDK(enREGI_IMAGES target) {
   ui.spinBoxReconImgSliceNo->setValue(
       qRound(size_trans[2] / 2.0)); // DrawReconImage is called automatically
 
-  if (target == REGISTER_COR_CBCT) {
-    QString update_text("SCATTER_COR_CBCT");
-    UpdateReconImage(m_spCrntReconImg, update_text);
-  } else if (target == REGISTER_RAW_CBCT) {
-    QString update_text("RAW_CBCT");
-    UpdateReconImage(m_spCrntReconImg, update_text);
-  }
 
   using CastBackType = itk::CastImageFilter<CUDAFloatImageType, FloatImageType>;
   CastBackType::Pointer castBack = CastBackType::New();
@@ -1187,13 +1180,6 @@ void CbctRecon::OpenCLDoReconstructionFDK(enREGI_IMAGES target) {
       qRound(size_trans[2] / 2.0)); // DrawReconImage is called automatically
 
   // SLT_ViewRegistration();
-  if (target == REGISTER_COR_CBCT) {
-    QString updated_text = QString("SCATTER_COR_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  } else if (target == REGISTER_RAW_CBCT) {
-    QString updated_text = QString("RAW_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  }
 
   std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
   // if not found, just skip
@@ -1622,13 +1608,6 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target) {
   SLT_DrawReconImage();	*/
 
   // SLT_ViewRegistration();
-  if (target == REGISTER_COR_CBCT) {
-    QString updated_text = QString("SCATTER_COR_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  } else if (target == REGISTER_RAW_CBCT) {
-    QString updated_text = QString("RAW_CBCT");
-    UpdateReconImage(m_spCrntReconImg, updated_text);
-  }
 
   std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
   // if not found, just skip

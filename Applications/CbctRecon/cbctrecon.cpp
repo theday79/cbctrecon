@@ -156,9 +156,6 @@ CbctRecon::CbctRecon() {
   m_iCntSelectedProj = 0;
 
   m_pTableModel = nullptr;
-  m_pDlgRegistration = std::make_unique<DlgRegistration>(this);
-  // m_pDlgHistogram = new DlgHistogram(this);
-  m_pDlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
 
   m_structures = std::make_unique<StructureSet>();
 

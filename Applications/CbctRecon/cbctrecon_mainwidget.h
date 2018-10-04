@@ -12,21 +12,22 @@
 #include <qstring.h>
 
 #include "cbctrecon.h"
+#include "cbctregistration.h"
 
 class DlgRegistration;
-// class DlgHistogram;
 class DlgExternalCommand;
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT
 
+public:
   CbctReconWidget(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
   ~CbctReconWidget() = default;
+  void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
 
 private:
   std::tuple<bool, bool> probeUser(const QString &guessDir);
   FilterReaderType::Pointer ReadBowtieFileWhileProbing(const QString &proj_path, std::tuple<bool, bool> &answers);
-  void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
   bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
     enREGI_IMAGES enFwdRefImg,
     bool bFullResolRecon,
@@ -44,8 +45,11 @@ private:
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);
 
-public: // no raw pointers allowed
+public:
   std::unique_ptr<CbctRecon> m_cbctrecon;
+  std::unique_ptr<DlgRegistration> m_dlgRegistration;
+  CbctRegistration* m_cbctregistration; // just for convienience
+  std::unique_ptr<DlgExternalCommand> m_dlgExternalCommand;
   std::unique_ptr<QTimer> m_Timer;
   bool m_busyTimer;
 

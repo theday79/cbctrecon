@@ -17,6 +17,10 @@
 #include "itkThresholdImageFilter.h"
 #include "itkAddImageFilter.h"
 #include "itkImageFileWriter.h"
+#include "itkGDCMImageIO.h"
+#include "itkImageSeriesWriter.h"
+#include "itkNumericSeriesFileNames.h"
+#include "gdcmUIDGenerator.h"
 
 // RTK
 #include "rtkMacro.h"                             // for TRY_AND_EXIT_ON_ITK...
@@ -318,7 +322,6 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   if (planCT_ss.get() != nullptr) {
     // ... so I copy to my own modern-C++ implementation
     m_structures->set_planCT_ss(planCT_ss.get());
-    m_pDlgRegistration->UpdateVOICombobox(PLAN_CT);
   }
 
   ShortImageType::Pointer spShortImg = plmImg.itk_short();
@@ -367,4 +370,191 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   // m_spRawReconImg = spRescaleFilter->GetOutput();
   m_spRefCTImg = spRescaleFilter->GetOutput();
   return true;
+}
+
+// From DlgRegistration
+
+void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
+  ShortImageType::Pointer &spImgShort) {
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
+  ThresholdImageFilterType::Pointer thresholdFilter =
+    ThresholdImageFilterType::New();
+  thresholdFilter->SetInput(spImgUshort);
+  thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
+  thresholdFilter->SetOutsideValue(0);
+  thresholdFilter->Update();
+
+  using ImageCalculatorFilterType =
+    itk::MinimumMaximumImageCalculator<UShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+    ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+  imageCalculatorFilter->Compute();
+  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  // Min value is always 3024 --> outside the FOV
+  auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
+  auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
+
+  using RescaleFilterType =
+    itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
+  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+
+  spImgShort = spRescaleFilter->GetOutput();
+}
+
+QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
+  QString &strPatientID, QString &strPatientName,
+  QString &strPathTargetDir) {
+  if (spImg == nullptr) {
+    return "";
+  }
+
+  ShortImageType::Pointer spShortImg;
+  ConvertUshort2Short(spImg, spShortImg);
+
+  Plm_image plm_img(spShortImg);
+
+  QString newDirPath =
+    strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
+
+  QDir dirNew(newDirPath);
+  if (!dirNew.exists()) {
+    dirNew.mkdir(".");
+  }
+
+  Rt_study_metadata rsm;
+  rsm.set_patient_id(strPatientID.toLocal8Bit().constData());
+  rsm.set_patient_name(strPatientName.toLocal8Bit().constData());
+
+  plm_img.save_short_dicom(newDirPath.toLocal8Bit().constData(), &rsm);
+  return newDirPath.toLocal8Bit().constData();
+}
+
+QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
+  QString &strPatientID,
+  QString &strPatientName,
+  QString &strPathTargetDir) {
+  if (spImg == nullptr) {
+    return "";
+  }
+
+  ShortImageType::Pointer spShortImg;
+  ConvertUshort2Short(spImg, spShortImg);
+
+  QString newDirPath =
+    strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
+
+  QDir dirNew(newDirPath);
+  if (!dirNew.exists()) {
+    dirNew.mkdir(".");
+  }
+  else {
+    if (dirNew.removeRecursively()) {
+      QDir dirReNew(newDirPath);
+      dirReNew.mkdir(".");
+    }
+  }
+  using OutputImageType =
+    itk::Image<USHORT_PixelType,
+    2>; // because dicom is one 2d image for each slice-file
+  using ImageIOType = itk::GDCMImageIO;
+  using NamesGeneratorType = itk::NumericSeriesFileNames;
+
+  UShortImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
+  UShortImageType::IndexType start = region.GetIndex();
+  UShortImageType::SizeType size = region.GetSize();
+
+  ImageIOType::Pointer gdcmIO = ImageIOType::New();
+  itk::MetaDataDictionary &dict = gdcmIO->GetMetaDataDictionary();
+  std::string value;
+  value = "CT";
+  itk::EncapsulateMetaData<std::string>(dict, "0008|0060", value); // Modality
+  value = "DERIVED\\SECONDARY\\AXIAL"; // This is virtually always correct when
+                                       // using ITK to write an image
+  itk::EncapsulateMetaData<std::string>(dict, "0008|0008", value); // Image Type
+  value = "SI";
+  itk::EncapsulateMetaData<std::string>(dict, "0008|0064",
+    value); // Conversion Type
+  double value_double = spShortImg->GetSpacing()[2];
+  std::ostringstream strs;
+  strs << value_double;
+  value = strs.str();
+  std::cout << "slice spacing: " + value << std::endl;
+  itk::EncapsulateMetaData<std::string>(dict, "0018|0050",
+    value); // SliceThickness
+  itk::EncapsulateMetaData<std::string>(dict, "0018|0088",
+    '-' + value); // SpacingBetweenSlices
+
+  gdcm::UIDGenerator stduid;
+  std::string studyUID = stduid.Generate();
+  std::cout << studyUID << std::endl;
+  itk::EncapsulateMetaData<std::string>(dict, "0020|000d", studyUID);
+
+  NamesGeneratorType::Pointer namesGenerator = NamesGeneratorType::New();
+  namesGenerator->SetStartIndex(static_cast<itk::SizeValueType>(start[2]));
+  namesGenerator->SetEndIndex(static_cast<itk::SizeValueType>(start[2]) +
+    size[2] - 1);
+  namesGenerator->SetIncrementIndex(1);
+  namesGenerator->SetSeriesFormat(newDirPath.toStdString() + "/CT." + studyUID +
+    ".%d.dcm");
+
+  using SeriesWriterType =
+    itk::ImageSeriesWriter<ShortImageType, OutputImageType>;
+  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+  seriesWriter->SetInput(spShortImg);
+  seriesWriter->SetImageIO(gdcmIO);
+  seriesWriter->SetFileNames(namesGenerator->GetFileNames());
+
+  try {
+    seriesWriter->Update();
+  }
+  catch (itk::ExceptionObject &excp) {
+    std::cerr << "Exception thrown while writing the series " << std::endl;
+    std::cerr << excp << std::endl;
+    return ""; // EXIT_FAILURE;
+  }
+  std::cerr << "Alledgedly writing the series was successful to dir: "
+    << newDirPath.toStdString() << std::endl;
+  return newDirPath.toLocal8Bit().constData();
+}
+
+QString get_output_options(const UShortImageType::Pointer &m_spFixed) {
+
+  QString str_fixedOrigin =
+    QString("%1,%2,%3") // done per image because CT might be different from
+                        // reconstructed CBCT
+    .arg(m_spFixed->GetOrigin()[0])
+    .arg(m_spFixed->GetOrigin()[1])
+    .arg(m_spFixed->GetOrigin()[2]);
+  QString str_fixedDimension =
+    QString("%1,%2,%3")
+    .arg(m_spFixed->GetBufferedRegion().GetSize()[0])
+    .arg(m_spFixed->GetBufferedRegion().GetSize()[1])
+    .arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
+  QString str_fixedSpacing = QString("%1,%2,%3")
+    .arg(m_spFixed->GetSpacing()[0])
+    .arg(m_spFixed->GetSpacing()[1])
+    .arg(m_spFixed->GetSpacing()[2]);
+  QString str_fixedDirection = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
+    .arg(m_spFixed->GetDirection()[0][0])
+    .arg(m_spFixed->GetDirection()[0][1])
+    .arg(m_spFixed->GetDirection()[0][2])
+    .arg(m_spFixed->GetDirection()[1][0])
+    .arg(m_spFixed->GetDirection()[1][1])
+    .arg(m_spFixed->GetDirection()[1][2])
+    .arg(m_spFixed->GetDirection()[2][0])
+    .arg(m_spFixed->GetDirection()[2][1])
+    .arg(m_spFixed->GetDirection()[2][2]);
+
+  return QString(" --origin %1 --spacing %2 --dimension %3 --direction %4")
+    .arg(str_fixedOrigin)
+    .arg(str_fixedSpacing)
+    .arg(str_fixedDimension)
+    .arg(str_fixedDirection);
 }

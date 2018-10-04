@@ -132,9 +132,9 @@ struct FLEXDATA {
 
 class QStandardItemModel;
 
-class DlgRegistration;
+//class DlgRegistration;
 // class DlgHistogram;
-class DlgExternalCommand;
+//class DlgExternalCommand;
 class StructureSet;
 class QTimer;
 class QXmlStreamReader;
@@ -143,7 +143,7 @@ class QXmlStreamReader;
 
 class CBCTRECON_API CbctRecon {
 
-  friend class TestCbctRecon;
+  //friend class TestCbctRecon;
 
 public:
   CbctRecon();
@@ -514,9 +514,10 @@ public:
 
   double m_multiplyFactor{};
   std::unique_ptr<QStandardItemModel> m_pTableModel;
-  std::unique_ptr<DlgRegistration> m_pDlgRegistration;
+  
+  //std::unique_ptr<DlgRegistration> m_pDlgRegistration;
   // DlgHistogram* m_pDlgHistogram;
-  std::unique_ptr<DlgExternalCommand> m_pDlgExternalCommand;
+  //std::unique_ptr<DlgExternalCommand> m_pDlgExternalCommand;
 
   // Automatically detected relavant file/Dir path when load the projection
   // files (SLT_SetHisDir)

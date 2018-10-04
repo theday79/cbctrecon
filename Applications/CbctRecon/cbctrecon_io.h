@@ -17,4 +17,17 @@ void saveImageAsMHA(typename ImageType::Pointer const image) {
   writer->Update();
 }
 
+void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
+  ShortImageType::Pointer &spImgShort);
+
+QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
+  QString &strPatientID, QString &strPatientName,
+  QString &strPathTargetDir);
+QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
+  QString &strPatientID,
+  QString &strPatientName,
+  QString &strPathTargetDir);
+
+QString get_output_options(const UShortImageType::Pointer &m_spFixed);
+
 #endif // CBCTRECON_IO_H

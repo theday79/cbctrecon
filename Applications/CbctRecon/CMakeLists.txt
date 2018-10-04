@@ -29,11 +29,11 @@ configure_file (
 ############## Qt start wrapping ##############
 SET(CbctRecon_SOURCES
   cbctrecon.cpp
+  cbctregistration.cpp
   qt-utils/YK16GrayImage.cxx
   qt-utils/AG17RGBAImage.cxx
   qt-utils/qyklabel.cpp
   qt-utils/qcustomplot.cpp
-  DlgRegistration.cxx
   StructureSet.cxx
   PlmWrapper.cxx
   WEPL.cxx
@@ -48,6 +48,8 @@ SET(CbctRecon_SOURCES
 )
 
 SET(CbctRecon_NonQt_HEADERS
+  cbctrecon.h
+  cbctregistration.h
   qt-utils/YK16GrayImage.h
   qt-utils/AG17RGBAImage.h
   PlmWrapper.h
@@ -70,10 +72,8 @@ SET(CbctRecon_NonQt_HEADERS
 
 SET(CbctRecon_HEADERS
   cbctrecon_mainwidget.h
-  cbctrecon.h
   qt-utils/qyklabel.h
   qt-utils/qcustomplot.h
-  DlgRegistration.h
   DlgExternalCommand.h
 )
 SET(CbctRecon_FORMS
@@ -94,10 +94,10 @@ set(CBCTRECON_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension
   )
 
-if(MSVC AND NOT(MSVC_VERSION LESS 1400))
-  set_source_files_properties(cbctrecon.cpp
-    PROPERTIES COMPILE_FLAGS "/bigobj")
-endif()
+#if(MSVC AND NOT(MSVC_VERSION LESS 1400))
+#  set_source_files_properties(cbctrecon.cpp
+#    PROPERTIES COMPILE_FLAGS "/bigobj")
+#endif()
 
 if(CBCTRECON_BUILD_SHARED_LIBS)
   set(SHARED_FLAG SHARED)
@@ -116,6 +116,8 @@ add_executable(CbctRecon
   main.cpp
   cbctrecon_mainwidget.cxx
   cbctrecon_mainwidget.h
+  DlgRegistration.cxx
+  DlgRegistration.h
 )
 
 set_target_properties(CbctRecon
