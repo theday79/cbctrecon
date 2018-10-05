@@ -17,6 +17,7 @@
 #include "DlgRegistration.h"
 #include "DlgExternalCommand.h"
 
+class QStandardItemModel;
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT
@@ -26,6 +27,7 @@ public:
   //~CbctReconWidget() = default;
   void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
   void FileExportByGUI();
+  FDK_options getFDKoptions();
 
 private:
   std::tuple<bool, bool> probeUser(const QString &guessDir);
@@ -53,6 +55,7 @@ public:
   CbctRegistration* m_cbctregistration; // just for convienience
   std::unique_ptr<DlgExternalCommand> m_dlgExternalCommand;
   std::unique_ptr<QTimer> m_Timer;
+  std::unique_ptr<QStandardItemModel> m_pTableModel;
   bool m_busyTimer;
 
 public slots:

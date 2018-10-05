@@ -72,14 +72,10 @@
 
 // RTK includes
 #include <rtkConstantImageSource.h>
-#include <rtkDisplacedDetectorImageFilter.h>
 #include <rtkElektaSynergyGeometryReader.h>
-#include <rtkFDKBackProjectionImageFilter.h>
-#include <rtkFDKConeBeamReconstructionFilter.h>
 #include <rtkFieldOfViewImageFilter.h>
 #include <rtkForwardProjectionImageFilter.h>
 #include <rtkJosephForwardProjectionImageFilter.h>
-#include <rtkParkerShortScanImageFilter.h>
 #include <rtkProjectionsReader.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
 #include <rtkThreeDCircularProjectionGeometryXMLFile.h>
@@ -88,10 +84,7 @@
 
 #if USE_CUDA
 #include <itkCudaImage.h>
-#include <rtkCudaDisplacedDetectorImageFilter.h>
-#include <rtkCudaFDKConeBeamReconstructionFilter.h>
 #include <rtkCudaForwardProjectionImageFilter.h>
-#include <rtkCudaParkerShortScanImageFilter.h>
 using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #endif // USE_CUDA
 
@@ -153,8 +146,6 @@ CbctRecon::CbctRecon() {
   m_arrYKBufProj.clear();
   m_iCntSelectedProj = 0;
 
-  m_pTableModel = nullptr;
-
   m_structures = std::make_unique<StructureSet>();
 
   m_iFixedOffset_ScatterMap = 10000; // fixed! allows negative value of scatter
@@ -186,10 +177,6 @@ void CbctRecon::ReleaseMemory() {
   if (!m_arrYKImage.empty()) {
     // m_iImgCnt = 0;
     m_arrYKImage.clear();
-  }
-
-  if (m_pTableModel != nullptr) {
-    m_pTableModel = nullptr;
   }
 
   if (!m_arrYKBufProj.empty()) {
@@ -4386,7 +4373,9 @@ void CbctRecon::ResampleItkImage2D(FloatImage2DType::Pointer &spSrcImg2D,
   // std::cout << "resampled Origin: " << spTarImg2D->GetOrigin() << std::endl;
 }
 
-void CbctRecon::AfterScatCorrectionMacro(bool use_cuda, bool save_dicom) {
+void CbctRecon::AfterScatCorrectionMacro(bool use_cuda, bool use_opencl,
+                                         bool save_dicom,
+                                         FDK_options fdk_options) {
   // Original projection file can be replaced by the corrected one
   // Current projection map (float) used for the reconstruction is:
   // m_spProjImg3DFloat and this is resampled one
@@ -4398,9 +4387,11 @@ void CbctRecon::AfterScatCorrectionMacro(bool use_cuda, bool save_dicom) {
 
   // Truncation is invalidated inside the function
   if (use_cuda) {
-    DoReconstructionFDK<CUDA_DEVT>(REGISTER_COR_CBCT);
+    DoReconstructionFDK<CUDA_DEVT>(REGISTER_COR_CBCT, fdk_options);
+  } else if (use_opencl) {
+    DoReconstructionFDK<OPENCL_DEVT>(REGISTER_COR_CBCT, fdk_options);
   } else {
-    DoReconstructionFDK<CPU_DEVT>(REGISTER_COR_CBCT);
+    DoReconstructionFDK<CPU_DEVT>(REGISTER_COR_CBCT, fdk_options);
   }
 
   // Save Image as DICOM
@@ -6401,9 +6392,10 @@ void CbctRecon::GetWEPLDataFromSingleFile(const QString &filePath,
   }
 }
 
-void CbctRecon::ScatterCorPerProjRef(double scaMedian, double scaGaussian,
-                                     int postScatMedianSize, bool use_cuda,
-                                     bool save_dicom) // load text file
+void CbctRecon::ScatterCorPerProjRef(
+    double scaMedian, double scaGaussian, int postScatMedianSize, bool use_cuda,
+    bool use_opencl, bool save_dicom,
+    FDK_options fdk_options) // load text file
 {
   if (m_strListPerProjRefVol.empty()) {
     std::cout << "Error! Ref Vol list is not ready yet. Load it first"
@@ -6572,7 +6564,7 @@ void CbctRecon::ScatterCorPerProjRef(double scaMedian, double scaGaussian,
   m_spProjImgScat3D->Initialize(); // memory saving
 
   std::cout << "AfterCorrectionMacro is ongoing..." << std::endl;
-  AfterScatCorrectionMacro(use_cuda, save_dicom);
+  AfterScatCorrectionMacro(use_cuda, use_opencl, save_dicom, fdk_options);
   std::cout << "FINISHED!Scatter correction: CBCT DICOM files are saved"
             << std::endl;
 

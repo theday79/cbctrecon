@@ -35,6 +35,7 @@ SET(CbctReconLib_SOURCES
   cbctrecon_io.cxx
   cbctrecon_compute.cxx
   cbctrecon_fdk.cxx
+  cbctrecon_fdk.hxx
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
   OpenCLFFTFilter.cxx

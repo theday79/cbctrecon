@@ -12,6 +12,7 @@
 #include <qmessagebox.h>
 #include <qstandarditemmodel.h>
 #include <qstring.h>
+#include <qtimer.h>
 
 // ITK
 #include "itkCastImageFilter.h"
@@ -20,16 +21,17 @@
 #include "itkImageSliceIteratorWithIndex.h"
 #include "itkMinimumMaximumImageCalculator.h"
 #include "itkMultiplyImageFilter.h"
+#include "itkTimeProbe.h"
 
 // PLM
 #include "mha_io.h"
 #include "nki_io.h"
 
 // Local
-#include "cbctrecon.h"
-#include "cbctregistration.h"
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
+#include "cbctrecon.h"
+#include "cbctregistration.h"
 #include "qcustomplot.h"
 
 #pragma GCC poison new
@@ -107,10 +109,10 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
 }
 
 void CbctReconWidget::init_DlgRegistration(
-  QString &strDCM_UID) // init dlgRegistrations
+    QString &strDCM_UID) // init dlgRegistrations
 {
   m_dlgRegistration->initDlgRegistration(
-    strDCM_UID); // NULLing all temporary spImage
+      strDCM_UID); // NULLing all temporary spImage
 }
 
 void CbctReconWidget::SLT_LoadRawImages() { LoadRawHisImages(); }
@@ -413,20 +415,74 @@ void CbctReconWidget::SLT_SetOutputPath() {
   ui.lineEdit_OutputFilePath->setText(strPath);
 }
 
+FDK_options CbctReconWidget::getFDKoptions() {
+  FDK_options fdk_options;
+
+  fdk_options.TruncCorFactor =
+      ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
+  fdk_options.HannCutX = ui.lineEdit_Ramp_HannCut->text().toDouble();
+  fdk_options.HannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
+  fdk_options.CosCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
+  fdk_options.HammCut = ui.lineEdit_Ramp_Hamming->text().toDouble();
+
+  fdk_options.displacedDetectorFilter = ui.checkBox_UseDDF->isChecked();
+  fdk_options.updateAfterDDF = ui.checkBox_UpdateAfterFiltering->isChecked();
+  fdk_options.ParkerShortScan = ui.checkBox_UsePSSF->isChecked();
+
+  fdk_options.ct_spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
+  fdk_options.ct_spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
+  fdk_options.ct_spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
+
+  fdk_options.ct_size[0] = ui.lineEdit_outImgDim_AP->text().toInt();
+  fdk_options.ct_size[1] = ui.lineEdit_outImgDim_SI->text().toInt();
+  fdk_options.ct_size[2] = ui.lineEdit_outImgDim_LR->text().toInt();
+
+  fdk_options.medianRadius[0] =
+      ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+  fdk_options.medianRadius[1] =
+      ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+  fdk_options.medianRadius[2] =
+      ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along z
+  fdk_options.medianFilter = ui.checkBox_PostMedianOn->isChecked();
+
+  fdk_options.outputFilePath = ui.lineEdit_OutputFilePath->text();
+
+  return fdk_options;
+}
+
 void CbctReconWidget::SLT_DoReconstruction() {
+  auto fdk_options = getFDKoptions();
+
+  itk::TimeProbe reconTimeProbe;
+  reconTimeProbe.Start();
+
   if (ui.radioButton_UseCUDA->isChecked()) {
-    m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT);
+    m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT, fdk_options);
   } else if (ui.radioButton_UseOpenCL->isChecked()) {
-    m_cbctrecon->OpenCLDoReconstructionFDK(REGISTER_RAW_CBCT);
+    m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
+                                                  fdk_options);
   } else {
-    m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT);
+    m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT, fdk_options);
   }
+
+  reconTimeProbe.Stop();
+  std::cout << "It took " << reconTimeProbe.GetMean() << ' '
+            << reconTimeProbe.GetUnit() << std::endl;
+  ui.lineEdit_ReconstructionTime->setText(
+      QString("%1").arg(reconTimeProbe.GetMean()));
+
+  ui.spinBoxReconImgSliceNo->setMinimum(0);
+  ui.spinBoxReconImgSliceNo->setMaximum(fdk_options.ct_size[1] - 1);
+  ui.spinBoxReconImgSliceNo->setValue(qRound(
+      fdk_options.ct_size[1] / 2.0)); // DrawReconImage is called automatically
+
+  SLT_DrawProjImages();
 
   QString update_text("RAW_CBCT");
   UpdateReconImage(m_cbctrecon->m_spCrntReconImg, update_text);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
-                                                            // signalis called
+                                              // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   // m_pDlgRegistration->SelectComboExternal(0, REGISTER_RAW_CBCT); // will call
   // fixedImageSelected  m_pDlgRegistration->SelectComboExternal(1,
@@ -508,8 +564,8 @@ void CbctReconWidget::SLT_CopyTableToClipBoard() {
 
   QStringList list;
 
-  int rowCnt = m_cbctrecon->m_pTableModel->rowCount();
-  int columnCnt = m_cbctrecon->m_pTableModel->columnCount();
+  int rowCnt = m_pTableModel->rowCount();
+  int columnCnt = m_pTableModel->columnCount();
 
   list << "\n";
   // for (int i = 0 ; i < columnCnt ; i++)
@@ -525,7 +581,7 @@ void CbctReconWidget::SLT_CopyTableToClipBoard() {
 
   for (int j = 0; j < rowCnt; j++) {
     for (int i = 0; i < columnCnt; i++) {
-      QStandardItem *item = m_cbctrecon->m_pTableModel->item(j, i);
+      QStandardItem *item = m_pTableModel->item(j, i);
       list << item->text();
     }
     list << "\n";
@@ -804,10 +860,9 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   m_cbctrecon->saveHisHeader();
 
   //  Insta Recon, Dcm read
-  auto geopath = geomFileInfo.absolutePath(); 
+  auto geopath = geomFileInfo.absolutePath();
   std::tuple<bool, bool> answers;
-  auto bowtie_reader =
-      ReadBowtieFileWhileProbing(geopath, answers);
+  auto bowtie_reader = ReadBowtieFileWhileProbing(geopath, answers);
 
   calc_thread.join();
   std::cout << "Reader re-attached to main thread" << std::endl;
@@ -957,7 +1012,7 @@ void CbctReconWidget::SLT_DataProbeRecon() {
 
 void CbctReconWidget::SLT_DrawGraph() // based on profile
 {
-  if (m_cbctrecon->m_pTableModel == nullptr) {
+  if (m_pTableModel == nullptr) {
     return;
   }
 
@@ -967,7 +1022,7 @@ void CbctReconWidget::SLT_DrawGraph() // based on profile
   QVector<double> vAxisY;
 
   // QStandardItemModel 	m_pTableModel.item()
-  int dataLen = m_cbctrecon->m_pTableModel->rowCount();
+  int dataLen = m_pTableModel->rowCount();
 
   if (dataLen < 1) {
     return;
@@ -980,8 +1035,8 @@ void CbctReconWidget::SLT_DrawGraph() // based on profile
   double maxX = -1.0;
 
   for (int i = 0; i < dataLen; i++) {
-    QStandardItem *tableItem1 = m_cbctrecon->m_pTableModel->item(i, 0);
-    QStandardItem *tableItem2 = m_cbctrecon->m_pTableModel->item(i, 1);
+    QStandardItem *tableItem1 = m_pTableModel->item(i, 0);
+    QStandardItem *tableItem2 = m_pTableModel->item(i, 1);
     double tableVal1 = tableItem1->text().toDouble();
     double tableVal2 = tableItem2->text().toDouble();
 
@@ -1084,8 +1139,8 @@ void CbctReconWidget::SLT_UpdateTable() {
   }
 
   // std::cout << "check 4" << std::endl;
-  m_cbctrecon->m_pTableModel.reset();
-  m_cbctrecon->m_pTableModel = std::make_unique<QStandardItemModel>(
+  m_pTableModel.reset();
+  m_pTableModel = std::make_unique<QStandardItemModel>(
       rowSize, columnSize, this); // 2 Rows and 3 Columns
 
   // for (int i = 0 ; i<columnSize ; i++)
@@ -1097,10 +1152,8 @@ void CbctReconWidget::SLT_UpdateTable() {
   auto pos_item = std::make_unique<QStandardItem>(QString("Position(mm)"));
   auto val_item = std::make_unique<QStandardItem>(QString("Value"));
 
-  m_cbctrecon->m_pTableModel->setHorizontalHeaderItem(
-      0, std::move(pos_item.get()));
-  m_cbctrecon->m_pTableModel->setHorizontalHeaderItem(
-      1, std::move(val_item.get()));
+  m_pTableModel->setHorizontalHeaderItem(0, std::move(pos_item.get()));
+  m_pTableModel->setHorizontalHeaderItem(1, std::move(val_item.get()));
   //}
 
   // std::cout << "check 5" << std::endl;
@@ -1153,16 +1206,15 @@ void CbctReconWidget::SLT_UpdateTable() {
     auto tmpVal1 = vPos[i];
     auto xpos_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal1));
-    m_cbctrecon->m_pTableModel->setItem(i, 0, std::move(xpos_item.get()));
+    m_pTableModel->setItem(i, 0, std::move(xpos_item.get()));
 
     auto tmpVal2 = vProfile[i] / fMultiPlyFactor + fMinValue;
     auto profval_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal2));
-    m_cbctrecon->m_pTableModel->setItem(i, 1, std::move(profval_item.get()));
+    m_pTableModel->setItem(i, 1, std::move(profval_item.get()));
   }
 
-  ui.tableViewReconImgProfile->setModel(
-      m_cbctrecon->m_pTableModel.get()); // also for proj
+  ui.tableViewReconImgProfile->setModel(m_pTableModel.get()); // also for proj
 
   // std::cout << "check 7" << std::endl;
   SLT_DrawGraph();
@@ -1600,11 +1652,9 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     return;
   }
 
-  for (int i = 0;
-       i < m_dlgRegistration->ui.comboBoxImgFixed->count(); i++) {
+  for (int i = 0; i < m_dlgRegistration->ui.comboBoxImgFixed->count(); i++) {
     m_dlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
-    QString strDirName =
-        m_dlgRegistration->ui.comboBoxImgFixed->currentText();
+    QString strDirName = m_dlgRegistration->ui.comboBoxImgFixed->currentText();
     bool tmpResult = crntDir.mkdir(strDirName); // what if the directory exists?
     if (!tmpResult) {
       std::cout
@@ -1616,9 +1666,9 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     QString strFullName = strLastName + ", " + strFirstName;
     m_dlgRegistration->LoadImgFromComboBox(0, strDirName);
 
-    m_cbctrecon->SaveUSHORTAsSHORT_DICOM(
-        m_cbctregistration->m_spFixed, strPatientID, strFullName,
-        strSavingFolder);
+    m_cbctrecon->SaveUSHORTAsSHORT_DICOM(m_cbctregistration->m_spFixed,
+                                         strPatientID, strFullName,
+                                         strSavingFolder);
     QString mhaFileName = strSavingFolder + "/" + strDirName + ".mha";
     m_cbctrecon->ExportReconSHORT_HU(m_cbctregistration->m_spFixed,
                                      mhaFileName);
@@ -1672,7 +1722,7 @@ void CbctReconWidget::SLT_DoBowtieCorrection() {
 void CbctReconWidget::SLT_ViewRegistration() // default showing function
 {
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
-                                                            // signalis called
+                                              // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->show();
 }
@@ -1794,9 +1844,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   // false); //final moving image
   if (m_cbctregistration->m_spMoving != nullptr) {
     ForwardProjection(
-        m_cbctregistration->m_spMoving,
-        m_cbctrecon->m_spCustomGeometry, m_cbctrecon->m_spProjImgCT3D,
-        bExportProj_Fwd,
+        m_cbctregistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
+        m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
         ui.radioButton_UseCUDA->isChecked()); // final moving image
   } else if (m_cbctrecon->m_spRefCTImg != nullptr) {
     std::cout << "No Moving image in Registration is found. Ref CT image will "
@@ -1876,14 +1925,17 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   SLT_InitializeGraphLim();
   SLT_DrawProjImages(); // Update Table is called
 
-  m_cbctrecon->AfterScatCorrectionMacro(
-      ui.radioButton_UseCUDA->isChecked(),
-      ui.checkBox_ExportVolDICOM->isChecked());
+  auto fdk_options = getFDKoptions();
+
+  m_cbctrecon->AfterScatCorrectionMacro(ui.radioButton_UseCUDA->isChecked(),
+                                        ui.radioButton_UseOpenCL->isChecked(),
+                                        ui.checkBox_ExportVolDICOM->isChecked(),
+                                        fdk_options);
 
   // Skin removal (using CT contour w/ big margin)
   std::cout
-    << "Post  FDK reconstruction is done. Moving on to post skin removal"
-    << std::endl;
+      << "Post  FDK reconstruction is done. Moving on to post skin removal"
+      << std::endl;
 
   m_cbctregistration->PostSkinRemovingCBCT(m_cbctrecon->m_spRawReconImg);
   m_cbctregistration->PostSkinRemovingCBCT(m_cbctrecon->m_spScatCorrReconImg);
@@ -1899,14 +1951,16 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   // m_spScatCorrReconImg, threshold_HU);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection signalis
-                                               // called
+                                              // called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-    0, REGISTER_RAW_CBCT); // will call fixedImageSelected
+      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
   m_dlgRegistration
-    ->SLT_DoLowerMaskIntensity(); // it will check the check button.
+      ->SLT_DoLowerMaskIntensity(); // it will check the check button.
+
+  SLT_DrawProjImages();
 
   std::cout << "Updating ReconImage..";
   QString updated_text = QString("Scatter corrected CBCT");
@@ -2225,17 +2279,17 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
   double croppingMargin = ui.lineEdit_SkinMargin->text().toDouble();
   QString update_text = QString("RS-based skin cropped image");
   if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRawReconImg) {
-    m_cbctregistration->CropSkinUsingRS(
-        m_cbctrecon->m_spRawReconImg, strPathRS, croppingMargin);
+    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spRawReconImg, strPathRS,
+                                        croppingMargin);
     UpdateReconImage(m_cbctrecon->m_spRawReconImg, update_text);
   } else if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRefCTImg) {
-    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spRefCTImg,
-                                                     strPathRS, croppingMargin);
+    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spRefCTImg, strPathRS,
+                                        croppingMargin);
     UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
   } else if (m_cbctrecon->m_spCrntReconImg ==
              m_cbctrecon->m_spScatCorrReconImg) {
-    m_cbctregistration->CropSkinUsingRS(
-        m_cbctrecon->m_spScatCorrReconImg, strPathRS, croppingMargin);
+    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spScatCorrReconImg,
+                                        strPathRS, croppingMargin);
     UpdateReconImage(m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
 }
@@ -3032,10 +3086,9 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   switch (enFwdRefImg) {
   case REGISTER_MANUAL_RIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_dlgRegistration
-        ->SLT_ConfirmManualRegistration(); // skin cropping for
-                                           // CBCT. only works when
-                                           // CBCT_skin crop is on
+    m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping for
+                                                        // CBCT. only works when
+                                                        // CBCT_skin crop is on
     strSuffix = strSuffix + "_man";
 
     if (bCBCT_IntensityShift) {
@@ -3045,8 +3098,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     break;
   case REGISTER_AUTO_RIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_dlgRegistration
-        ->SLT_ConfirmManualRegistration(); // skin cropping
+    m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
 
     if (bCBCT_IntensityShift) {
       m_dlgRegistration->SLT_IntensityNormCBCT();
@@ -3064,8 +3116,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   case REGISTER_DEFORM_FINAL:
     std::cout << "REGISTER_DEFORM_FINAL was chosen." << std::endl;
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_dlgRegistration
-        ->SLT_ConfirmManualRegistration(); // skin cropping
+    m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
 
     if (bCBCT_IntensityShift) {
       std::cout << "IntensityShift is underway" << std::endl;
@@ -3084,8 +3135,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
 
   case REGISTER_DEFORM_SKIP_AUTORIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
-    m_dlgRegistration
-        ->SLT_ConfirmManualRegistration(); // skin cropping
+    m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
     // m_pDlgRegistration->SLT_DoRegistrationRigid();
 
     if (bCBCT_IntensityShift) {
@@ -3333,7 +3383,7 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
   ui.radioButton_graph_recon->setChecked(true);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
-                                                            // signalis called
+                                              // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
@@ -3399,7 +3449,7 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
       couchShiftTrans, couchShiftRot);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
-                                                            // signalis called
+                                              // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
@@ -3504,10 +3554,15 @@ void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
   double scaGaussian = ui.lineEdit_scaGaussian->text().toDouble();
   int postScatMedianSize = ui.lineEdit_scaPostMedian->text().toInt();
 
-  m_cbctrecon->ScatterCorPerProjRef(
-      scaMedian, scaGaussian, postScatMedianSize,
-      ui.radioButton_UseCUDA->isChecked(),
-      ui.checkBox_ExportVolDICOM->isChecked()); // load text file
+  auto fdk_options = getFDKoptions();
+
+  m_cbctrecon->ScatterCorPerProjRef(scaMedian, scaGaussian, postScatMedianSize,
+                                    ui.radioButton_UseCUDA->isChecked(),
+                                    ui.radioButton_UseOpenCL->isChecked(),
+                                    ui.checkBox_ExportVolDICOM->isChecked(),
+                                    fdk_options); // load text file
+  
+    SLT_DrawProjImages();
 }
 
 void CbctReconWidget::SLTM_LoadPerProjRefList() {
@@ -3619,8 +3674,8 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
     QString mask_fn = maskFilePath.toLocal8Bit().constData();
     QString output_fn = curPath.toLocal8Bit().constData();
     float mask_value = -1024.0; // unsigned short
-    m_cbctregistration->plm_mask_main(
-        mask_option, input_fn, mask_fn, output_fn, mask_value);
+    m_cbctregistration->plm_mask_main(mask_option, input_fn, mask_fn, output_fn,
+                                      mask_value);
     std::cout << i + 1 << "/" << iCnt << std::endl;
   }
 
@@ -3675,8 +3730,8 @@ void CbctReconWidget::SLT_CropSupInf() {
   // QString strPath = m_strPathDirDefault + "/" + "TempSI_Cropped.mha";
   // QString strTmpFile = "C:/TmpSI_Cropped.mha";
 
-  QString strPath = m_cbctregistration->m_strPathPlastimatch +
-                    "/" + "tmp_SI_cropped.mha";
+  QString strPath =
+      m_cbctregistration->m_strPathPlastimatch + "/" + "tmp_SI_cropped.mha";
   m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
 
   QString strName = "SI_Cropped";
@@ -4150,7 +4205,7 @@ void CbctReconWidget::LoadRawHisImages() {
   if (m_cbctrecon->m_iImgCnt < 1) {
     return;
   }
-
+  m_pTableModel.reset();
   m_cbctrecon->ReleaseMemory();
 
   m_cbctrecon->m_arrYKImage.resize(m_cbctrecon->m_iImgCnt);
