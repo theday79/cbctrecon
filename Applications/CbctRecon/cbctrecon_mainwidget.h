@@ -14,8 +14,8 @@
 #include "cbctrecon.h"
 #include "cbctregistration.h"
 
-class DlgRegistration;
-class DlgExternalCommand;
+#include "DlgRegistration.h"
+#include "DlgExternalCommand.h"
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT

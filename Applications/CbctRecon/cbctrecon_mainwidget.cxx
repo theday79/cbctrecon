@@ -1,17 +1,11 @@
 #include "cbctrecon_mainwidget.h"
 
-#if USE_TINYREFL
-#include "cbctrecon.h"
-#include "cbctrecon.h.tinyrefl"
-#include <tinyrefl/api.hpp>
-#else
-#include "cbctrecon.h"
-#endif
-
+// Std
 #include <iostream>
 #include <thread>
 #include <vector>
 
+// Qt
 #include <qclipboard.h>
 #include <qfiledialog.h>
 #include <qinputdialog.h>
@@ -19,6 +13,7 @@
 #include <qstandarditemmodel.h>
 #include <qstring.h>
 
+// ITK
 #include "itkCastImageFilter.h"
 #include "itkExtractImageFilter.h"
 #include "itkImageDuplicator.h"
@@ -26,9 +21,12 @@
 #include "itkMinimumMaximumImageCalculator.h"
 #include "itkMultiplyImageFilter.h"
 
+// PLM
 #include "mha_io.h"
 #include "nki_io.h"
 
+// Local
+#include "cbctrecon.h"
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
 #include "qcustomplot.h"

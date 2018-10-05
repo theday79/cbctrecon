@@ -30,7 +30,7 @@ DlgRegistration::DlgRegistration(CbctReconWidget *parent) : QDialog(parent) {
   /* Sets up the GUI */
   ui.setupUi(this);
   m_pParent = parent;
-  m_cbctregistration = std::make_unique<CbctRegistration>(parent->m_cbctrecon);
+  m_cbctregistration = std::make_unique<CbctRegistration>(parent->m_cbctrecon.get());
 
   m_YKImgFixed = m_cbctregistration->m_YKImgFixed;
   m_YKImgMoving = m_cbctregistration->m_YKImgMoving;
