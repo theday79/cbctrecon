@@ -804,9 +804,10 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   m_cbctrecon->saveHisHeader();
 
   //  Insta Recon, Dcm read
+  auto geopath = geomFileInfo.absolutePath(); 
   std::tuple<bool, bool> answers;
-  auto &bowtie_reader =
-      ReadBowtieFileWhileProbing(geomFileInfo.absolutePath(), answers);
+  auto bowtie_reader =
+      ReadBowtieFileWhileProbing(geopath, answers);
 
   calc_thread.join();
   std::cout << "Reader re-attached to main thread" << std::endl;

@@ -39,7 +39,7 @@
 #include <synthetic_vf.h>
 #include <warp_parms.h>
 
-CbctRegistration::CbctRegistration(CbctRecon *&parent) {
+CbctRegistration::CbctRegistration(CbctRecon* parent) {
 
   m_pParent = parent;
 

@@ -111,14 +111,13 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include <volume_adjust.h>
 
 // Local
-#include "DlgExternalCommand.h"
-#include "DlgRegistration.h"
 #include "OpenCLFFTFilter.h"
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
+#include "cbctregistration.h"
 
 struct TIFIFD {
   unsigned short TagID;

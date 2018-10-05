@@ -1,6 +1,5 @@
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_AUTOMOC ON)
 
 set(test_target
   CbctRecon_test

@@ -1,12 +1,16 @@
 #ifndef DLGEXTERNALCOMMAND_H
 #define DLGEXTERNALCOMMAND_H
 
-#include "cbctrecon_config.h"
-#include "cbctrecon_mainwidget.h"
-#include "ui_DlgExternalCommand.h"
+// Qt
 #include <QDialog>
 #include <QString>
 #include <QStringList>
+
+// Local
+#include "cbctrecon_config.h"
+#include "ui_DlgExternalCommand.h"
+
+class CbctReconWidget;
 
 class CBCTRECON_API DlgExternalCommand : public QDialog, public Ui::DlgExternalCommandClass {
   Q_OBJECT

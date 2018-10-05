@@ -10,9 +10,9 @@
 #include "qyklabel.h"
 #include "cbctrecon.h"
 #include "StructureSet.h"
+#include "cbctregistration.h"
 
 class CbctReconWidget;
-class CbctRegistration;
 
 
 class CBCTRECON_API DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
@@ -46,7 +46,7 @@ private: // Just pointers to m_cbctregistration members, for convienience
 public:
   DlgRegistration();
   DlgRegistration(CbctReconWidget *parent);
-  ~DlgRegistration() = default;
+  // ~DlgRegistration() = default;
   void UpdateVOICombobox(ctType ct_type);
   void UpdateListOfComboBox(int idx);
   void SelectComboExternal(int idx, enREGI_IMAGES iImage);

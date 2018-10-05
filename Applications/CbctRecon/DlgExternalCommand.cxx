@@ -1,7 +1,12 @@
-#include "DlgExternalCommand.h"
-#include "DlgRegistration.h"
+// Qt
 #include <QFileDialog>
 #include <QProcess>
+
+// Local
+#include "cbctrecon_mainwidget.h"
+#include "DlgExternalCommand.h"
+#include "cbctregistration.h"
+#include "DlgRegistration.h"
 
 DlgExternalCommand::DlgExternalCommand() {
   /* Sets up the GUI */

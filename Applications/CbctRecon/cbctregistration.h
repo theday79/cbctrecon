@@ -12,7 +12,6 @@
 #include "YK16GrayImage.h"
 #include "WEPL.h"
 #include "cbctrecon.h"
-#include "ui_DlgRegistration.h"
 #include "qyklabel.h"
 #include "StructureSet.h"
 
@@ -47,7 +46,7 @@ enum enRegisterOption {
 class CBCTRECON_API CbctRegistration {
 
 public:
-  CbctRegistration(CbctRecon* &parent);
+  CbctRegistration(CbctRecon* parent);
   ~CbctRegistration();
 
   void GenPlastiRegisterCommandFile(

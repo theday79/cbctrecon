@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  /*QApplication a(argc, argv);
+  //QApplication a(argc, argv);
 
   std::cout << "Running cbctrecon_test!" << std::endl;
   auto cbctrecon = std::make_unique<CbctRecon>();
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "image was read" << std::endl;
 
-  cbctrecon->m_pDlgRegistration->UpdateVOICombobox(PLAN_CT);
+  /*cbctrecon->m_pDlgRegistration->UpdateVOICombobox(PLAN_CT);
   cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
   cbctrecon->m_pDlgRegistration->LoadImgFromComboBox(1, QString("REF_CT"));
   cbctrecon->m_pDlgRegistration->ui.comboBox_VOI->setCurrentIndex(1);

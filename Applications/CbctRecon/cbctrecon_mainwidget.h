@@ -12,17 +12,18 @@
 #include <qstring.h>
 
 #include "cbctrecon.h"
+#include "cbctregistration.h"
 
-class DlgRegistration;
-class DlgExternalCommand;
-class CbctRegistration;
+#include "DlgRegistration.h"
+#include "DlgExternalCommand.h"
+
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT
 
 public:
   CbctReconWidget(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
-  ~CbctReconWidget() = default;
+  //~CbctReconWidget() = default;
   void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
   void FileExportByGUI();
 

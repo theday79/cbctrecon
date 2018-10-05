@@ -1,14 +1,11 @@
 ### The main application ###
+set(CMAKE_CXX_STARDARD 17) # only for this sub directory
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOUIC_SEARCH_PATHS
-  ${CMAKE_AUTOUIC_SEARCH_PATHS}
-  ${CMAKE_CURRENT_SOURCE_DIR}/ui
-  )
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
+# set(CMAKE_AUTOMOC ON)
+# set(CMAKE_AUTOUIC ON)
+# set(CMAKE_AUTORCC ON)
 
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH bin)
@@ -110,7 +107,7 @@ if(CBCTRECON_BUILD_SHARED_LIBS)
 endif()
 
 add_library(CbctReconLib ${SHARED_FLAG}
-  ${CbctRecon_SOURCES}
+  ${CbctReconLib_SOURCES}
   ${CbctRecon_NonQt_HEADERS}
   )
 
