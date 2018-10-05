@@ -44,7 +44,6 @@
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMaskImageFilter.h>
 #include <itkMedianImageFilter.h>
-#include <itkMemoryProbesCollectorBase.h>
 #include <itkMinimumMaximumImageCalculator.h>
 #include <itkMultiplyImageFilter.h>
 #include <itkNearestNeighborInterpolateImageFunction.h>

@@ -11,7 +11,7 @@
 #include "AG17RGBAImage.h"
 #include "YK16GrayImage.h"
 #include "WEPL.h"
-#include "cbctrecon_mainwidget.h"
+#include "cbctrecon.h"
 #include "ui_DlgRegistration.h"
 #include "qyklabel.h"
 #include "StructureSet.h"

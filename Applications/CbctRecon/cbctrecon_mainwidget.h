@@ -12,10 +12,10 @@
 #include <qstring.h>
 
 #include "cbctrecon.h"
-#include "cbctregistration.h"
 
-#include "DlgRegistration.h"
-#include "DlgExternalCommand.h"
+class DlgRegistration;
+class DlgExternalCommand;
+class CbctRegistration;
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT

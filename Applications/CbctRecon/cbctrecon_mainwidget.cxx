@@ -27,6 +27,7 @@
 
 // Local
 #include "cbctrecon.h"
+#include "cbctregistration.h"
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
 #include "qcustomplot.h"

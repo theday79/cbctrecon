@@ -6,11 +6,13 @@
 #include <itkImage.h>
 
 #include "cbctrecon_config.h"
-#include "cbctrecon_mainwidget.h"
 #include "ui_DlgRegistration.h"
 #include "qyklabel.h"
-#include "cbctregistration.h"
+#include "cbctrecon.h"
+#include "StructureSet.h"
 
+class CbctReconWidget;
+class CbctRegistration;
 
 
 class CBCTRECON_API DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
