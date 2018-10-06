@@ -10,14 +10,13 @@
 #include <QtWidgets/QMainWindow>
 #include <qtimer.h>
 #include <qstring.h>
+#include <QStandardItemModel>
 
 #include "cbctrecon.h"
 #include "cbctregistration.h"
 
 #include "DlgRegistration.h"
 #include "DlgExternalCommand.h"
-
-class QStandardItemModel;
 
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT

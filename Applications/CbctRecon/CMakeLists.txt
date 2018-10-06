@@ -38,6 +38,7 @@ SET(CbctReconLib_SOURCES
   cbctrecon_fdk.hxx
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
+  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
   OpenCLFFTFilter.cxx
 )
 
@@ -61,7 +62,6 @@ SET(CbctRecon_NonQt_HEADERS
   cbctrecon_compute.h
   StructureSet.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
-  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
   rtkExtension/rtkOpenCLFFTRampImageFilter.h
   rtkExtension/rtkOpenCLFFTConvolutionImageFilter.h

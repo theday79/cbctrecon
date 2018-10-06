@@ -31,15 +31,15 @@
 #include "rtkParkerShortScanImageFilter.h"
 #include "rtkThreeDCircularProjectionGeometry.h" // for ThreeDCircularProje...
 
+#if USE_OPENCL_RTK
+#include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
+#endif
+
 #if USE_CUDA
 #include <rtkCudaDisplacedDetectorImageFilter.h>
 #include <rtkCudaFDKConeBeamReconstructionFilter.h>
 #include <rtkCudaParkerShortScanImageFilter.h>
 #endif // USE_CUDA
-
-#if USE_OPENCL_RTK
-#include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
-#endif
 
 #include "cbctrecon.h"
 
@@ -62,13 +62,13 @@ typename ImageType::Pointer RTKOpenCLFDK(
 
   // Generate image sources for cone beam CT reconstruction
   using ConstantImageSourceType = rtk::ConstantImageSource<ImageType>;
-  ConstantImageSourceType::PointType origin;
+  typename ConstantImageSourceType::PointType origin;
 
   origin[0] = -0.5 * sizeOutput[0] * spacing[0]; // Y in DCM?
   origin[1] = -0.5 * sizeOutput[1] * spacing[1]; // Z in DCM?
   origin[2] = -0.5 * sizeOutput[2] * spacing[2]; // X in DCM?
 
-  ConstantImageSourceType::Pointer constantImageSource =
+  typename ConstantImageSourceType::Pointer constantImageSource =
       ConstantImageSourceType::New();
   constantImageSource->SetOrigin(origin);
   constantImageSource->SetSpacing(spacing);
@@ -101,17 +101,19 @@ typename ImageType::Pointer RTKOpenCLFDK(
   return castFilter2->GetOutput();
 }
 
-using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
                                     FDK_options fdk_options) {
   if (Tdev == CUDA_DEVT) {
+#if USE_CUDA
+    using CUDAFloatImageType = itk::CudaImage<float, 3U>;
     using DDFType = rtk::CudaDisplacedDetectorImageFilter;
     using PSSFType = rtk::CudaParkerShortScanImageFilter;
     using FDKType = rtk::CudaFDKConeBeamReconstructionFilter;
     DoReconstructionFDK<Tdev, CUDAFloatImageType, DDFType, PSSFType, FDKType>(
         target, fdk_options);
+#endif
   } else {
     using DDFType = rtk::DisplacedDetectorImageFilter<FloatImageType>;
     using PSSFType = rtk::ParkerShortScanImageFilter<FloatImageType>;
@@ -126,11 +128,11 @@ template <enDeviceType Tdev, typename ImageType, typename DDFType,
 void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
                                     FDK_options fdk_options) {
 
-  using castToCudaType = itk::CastImageFilter<FloatImageType, ImageType>;
-  castToCudaType::Pointer castToCuda = castToCudaType::New();
-  castToCuda->SetInput(m_spProjImg3DFloat);
-  castToCuda->Update();
-  auto cuda_spProjImg3DFloat = castToCuda->GetOutput();
+  using castToImageType = itk::CastImageFilter<FloatImageType, ImageType>;
+  typename castToImageType::Pointer castfilter = castToImageType::New();
+  castfilter->SetInput(m_spProjImg3DFloat);
+  castfilter->Update();
+  auto cuda_spProjImg3DFloat = castfilter->GetOutput();
 
   if (cuda_spProjImg3DFloat == nullptr) {
     std::cout << "processed Projection image is not ready yet" << std::endl;
@@ -140,7 +142,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   std::cout << "CUDA method will be used..." << std::endl;
 
   using DuplicatorType = itk::ImageDuplicator<ImageType>;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
+  typename DuplicatorType::Pointer duplicator = DuplicatorType::New();
   duplicator->SetInputImage(cuda_spProjImg3DFloat);
   duplicator->Update();
 
@@ -188,12 +190,12 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
 
   if (fdk_options.updateAfterDDF) {
     using DuplicatorType = itk::ImageDuplicator<ImageType>;
-    DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
+    typename DuplicatorType::Pointer ImDuplicator = DuplicatorType::New();
     ImDuplicator->SetInputImage(spCurImg);
     ImDuplicator->Update();
 
     using CastFilterType = itk::CastImageFilter<ImageType, FloatImageType>;
-    CastFilterType::Pointer CastFilter = CastFilterType::New();
+    typename CastFilterType::Pointer CastFilter = CastFilterType::New();
     CastFilter->SetInput(ImDuplicator->GetOutput());
     CastFilter->Update();
 
@@ -373,7 +375,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   transform->SetOffset(offset);
 
   using ResampleFilterType = itk::ResampleImageFilter<ImageType, ImageType>;
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+  typename ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 
   resampler->SetInput(targetImg);
   resampler->SetSize(size_trans);
@@ -386,9 +388,9 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   // LR flip
 
   std::cout << "Flip filter is being applied" << std::endl;
-  using FilterType = itk::FlipImageFilter<ImageType>;
-  FilterType::Pointer flipFilter = FilterType::New();
-  using FlipAxesArrayType = FilterType::FlipAxesArrayType;
+  using FlipFilterType = itk::FlipImageFilter<ImageType>;
+  typename FlipFilterType::Pointer flipFilter = FlipFilterType::New();
+  using FlipAxesArrayType = typename FlipFilterType::FlipAxesArrayType;
   FlipAxesArrayType arrFlipAxes;
   arrFlipAxes[0] = true;
   arrFlipAxes[1] = false;
@@ -397,20 +399,20 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   flipFilter->SetInput(resampler->GetOutput());
 
   using AbsImageFilterType = itk::AbsImageFilter<ImageType, ImageType>;
-  AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
+  typename AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
   absImgFilter->SetInput(
       flipFilter
           ->GetOutput()); // 20140206 modified it was a bug
                           // absImgFilter->SetInput(resampler->GetOutput());
 
   using MultiplyImageFilterType = itk::MultiplyImageFilter<ImageType>;
-  MultiplyImageFilterType::Pointer multiplyImageFilter =
+  typename MultiplyImageFilterType::Pointer multiplyImageFilter =
       MultiplyImageFilterType::New();
   multiplyImageFilter->SetInput(absImgFilter->GetOutput());
   multiplyImageFilter->SetConstant(65536); // calculated already
 
   using CastFilterType = itk::CastImageFilter<ImageType, UShortImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
+  typename CastFilterType::Pointer castFilter = CastFilterType::New();
   castFilter->SetInput(multiplyImageFilter->GetOutput());
   try {
     castFilter->Update(); // YK20150109
@@ -509,7 +511,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1], 0);
 
   using CastBackType = itk::CastImageFilter<ImageType, FloatImageType>;
-  CastBackType::Pointer castBack = CastBackType::New();
+  typename CastBackType::Pointer castBack = CastBackType::New();
   castBack->SetInput(cuda_spProjImg3DFloat);
   castBack->Update();
   m_spProjImg3DFloat = castBack->GetOutput();

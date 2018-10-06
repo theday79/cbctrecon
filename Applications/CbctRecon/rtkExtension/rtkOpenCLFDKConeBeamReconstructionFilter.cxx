@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#ifndef RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
-#define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
+//#ifndef RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
+//#define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
 
 #include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
 
@@ -67,4 +67,4 @@ void OpenCLFDKConeBeamReconstructionFilter ::GenerateData() {
 
 } // end namespace rtk
 
-#endif // RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
+//#endif // RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX

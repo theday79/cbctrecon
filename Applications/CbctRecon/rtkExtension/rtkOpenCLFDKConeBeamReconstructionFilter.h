@@ -91,8 +91,8 @@ public:
 
 } // end namespace rtk
 
-#ifndef ITK_MANUAL_INSTANTIATION
-#include "rtkOpenCLFDKConeBeamReconstructionFilter.hxx"
-#endif
+//#ifndef ITK_MANUAL_INSTANTIATION
+//#include "rtkOpenCLFDKConeBeamReconstructionFilter.hxx"
+//#endif
 
 #endif
