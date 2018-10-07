@@ -108,6 +108,7 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"
+#include "AG17RGBAImage.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
 #include "cbctregistration.h"

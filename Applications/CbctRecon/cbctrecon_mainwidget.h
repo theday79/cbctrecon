@@ -18,6 +18,8 @@
 #include "DlgRegistration.h"
 #include "DlgExternalCommand.h"
 
+#include "ui_cbctrecon.h"
+
 class CBCTRECON_API CbctReconWidget : public QMainWindow {
   Q_OBJECT
 

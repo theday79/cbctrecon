@@ -8,6 +8,7 @@
 #endif
 
 //#include <QtTest/QtTest>
+#include <QDir>
 
 #include "DlgRegistration.h"
 
@@ -24,9 +25,21 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Running cbctrecon_test!" << std::endl;
   auto cbctrecon = std::make_unique<CbctRecon>();
-  auto dcm_dir = QString(argv[1]);
-  if (!cbctrecon->ReadDicomDir(dcm_dir)) {
-    std::cerr << "Couldn't read DICOM" << std::endl;
+  auto dcm_dir = QDir(argv[1]);
+  auto dcm_path = dcm_dir.absolutePath();
+  if (!dcm_dir.exists()){
+    std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << std::endl;
+    return -2;
+  } 
+  if (dcm_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)){
+    std::cerr << "Directory was empty: " << dcm_path.toStdString() << std::endl;
+    return -3;
+  }
+  try {
+    cbctrecon->ReadDicomDir(dcm_path);
+  }
+  catch (std::exception& e) {
+    std::cerr << "Couldn't read DICOM: " << e.what() << std::endl;
     return 1;
   }
 

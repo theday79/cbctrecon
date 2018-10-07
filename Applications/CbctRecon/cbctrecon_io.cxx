@@ -30,11 +30,9 @@
 #include "dcmtk_rt_study.h"
 
 // local
-#include "DlgRegistration.h"
 #include "StructureSet.h"
 #include "YK16GrayImage.h" // for YK16GrayImage
 #include "cbctrecon_io.h"
-#include "ui_cbctrecon.h" // for CbctReconClass
 
 QString CbctRecon::MakeElektaXML(const QString &filePath_ImageDBF,
                                  const QString &filePath_FrameDBF,
@@ -307,6 +305,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   drs.load_directory(); // parse_directory();
 
   Plm_image plmImg;
+  std::cout << "PLM_imagetype: " << drs.get_image()->m_type << std::endl;
   plmImg.set(drs.get_image());
   // plmImg.load_native(dirPath.toLocal8Bit().constData());
 
