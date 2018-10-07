@@ -33,7 +33,6 @@
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
-#include "ui_cbctrecon.h"
 
 #if USE_CUDA
 using CUDAFloatImageType = itk::CudaImage<float, 3U>;

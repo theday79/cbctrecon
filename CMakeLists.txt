@@ -174,6 +174,8 @@ if(CBCTRECON_BUILD_TESTS)
   include(${CbctRecon_SOURCE_DIR}/cmake/ctest_setup.cmake)
   message(STATUS "Configuring CbctRecon tests...")
   add_subdirectory(Testing)
+  include(ExternalData)
+  ExternalData_Add_Target(CbctData)
 endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
