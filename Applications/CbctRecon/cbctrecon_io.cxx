@@ -322,11 +322,6 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
       itk::MinimumMaximumImageCalculator<ShortImageType>;
   ImageCalculatorFilterType::Pointer imageCalculatorFilter =
       ImageCalculatorFilterType::New();
-  // imageCalculatorFilter->SetImage(spShortImg);
-  // imageCalculatorFilter->Compute();
-
-  // double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
-  // double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());
 
   // Thresholding
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
