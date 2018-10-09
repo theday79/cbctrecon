@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "Directory was empty: " << dcm_path.toStdString() << std::endl;
     return -3;
   }
-  try {
+  /*try { // This will have to wait, unfortunately
     cbctrecon->ReadDicomDir(dcm_path);
   }
   catch (std::exception& e) {
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "image was read" << std::endl;
-
+  */
   /*cbctrecon->m_pDlgRegistration->UpdateVOICombobox(PLAN_CT);
   cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
   cbctrecon->m_pDlgRegistration->LoadImgFromComboBox(1, QString("REF_CT"));

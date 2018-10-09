@@ -33,6 +33,7 @@ set(ExternalData_URL_TEMPLATES
   )
 
 set(ExternalData_LINK_CONTENT MD5)
+set(ExternalData_NO_SYMLINKS 1)
 ##### EXTERNAL DATA END #####
 
 

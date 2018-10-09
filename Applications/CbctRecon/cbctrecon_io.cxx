@@ -27,6 +27,7 @@
 #include "rtkThreeDCircularProjectionGeometryXMLFileWriter.h" // for ThreeDCircularProje...
 
 // PLM
+#include "plm_image.h"
 #include "dcmtk_rt_study.h"
 
 // local
@@ -305,8 +306,13 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   drs.load_directory(); // parse_directory();
 
   Plm_image plmImg;
-  std::cout << "PLM_imagetype: " << drs.get_image()->m_type << std::endl;
-  plmImg.set(drs.get_image());
+  auto tmp_img = drs.get_image();
+  
+  if (!tmp_img->have_image()){
+    return false;
+  }
+  std::cout << "PLM_imagetype: " << tmp_img->m_type << std::endl;
+  plmImg.set(tmp_img);
   // plmImg.load_native(dirPath.toLocal8Bit().constData());
 
   auto planCT_ss = drs.get_rtss(); // dies at end of scope...
