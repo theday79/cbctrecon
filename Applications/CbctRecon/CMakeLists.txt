@@ -123,6 +123,13 @@ add_executable(CbctRecon
   ${CbctRecon_RCC}
 )
 
+# Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
+set_target_cpu_flags(CbctReconLib)
+set_target_cpu_flags(CbctRecon)
+
+# Only sets report flags if Intel Compiler:
+set_target_vectorizer_report_flags(CbctReconLib)
+
 set_target_properties(CbctRecon
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"

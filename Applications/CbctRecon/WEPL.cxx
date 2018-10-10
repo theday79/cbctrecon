@@ -61,9 +61,13 @@ double lin_interpolate(std::array<int, 3> point_id,
   const double sum_weights =
       std::accumulate(weights.begin(), weights.end(), 0.0);
 
-  std::transform(
-      weights.begin(), weights.end(), weights.begin(),
-      [&sum_weights](double val) -> double { return val / sum_weights; });
+  auto divide_by_weight = [&sum_weights](double &val) -> void {
+    val /= sum_weights;
+  };
+
+  std::for_each(
+      std::begin(weights), std::end(weights),
+      divide_by_weight);
 
   double out_val = 0.0;
   for (int i = 0; i < 8; i++) {
@@ -412,7 +416,7 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
 
   FloatImageType::PointType itk_p0;
   wepl_cube->TransformIndexToPhysicalPoint(itk_p0_idx, itk_p0);
-  VectorType p_0 = itk_p0.Get_vnl_vector();
+  VectorType p_0 = itk_p0.GetVnlVector();
 
   std::array<VectorType, 3U> n = {{
       VectorType(sgn(vec_basis.at(0)), 0.0, 0.0),
@@ -425,17 +429,17 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
                dot_product(p_0 - l, n.at(1)) / dot_product(l, n.at(1)),
                dot_product(p_0 - l, n.at(2)) / dot_product(l, n.at(2)));
 
-  std::array<VectorType, 3U> p = {
+  auto p = std::array<VectorType, 3U>{
       {d.get(0) * l + l_0, d.get(1) * l + l_0, d.get(2) * l + l_0}};
 
   // Now find the plane closest to l_0:
-  std::array<double, 3U> p_dist = {
+  auto p_dist = std::array<double, 3U>{
       {std::sqrt(dot_product(l_0 - p.at(0), l_0 - p.at(0))),
        std::sqrt(dot_product(l_0 - p.at(1), l_0 - p.at(1))),
        std::sqrt(dot_product(l_0 - p.at(2), l_0 - p.at(2)))}};
-  auto it_min_dist = std::min_element(p_dist.begin(), p_dist.end());
+  const auto it_min_dist = std::min_element(std::begin(p_dist), std::end(p_dist));
   // index of min:
-  auto min_dist_plane = std::distance(p_dist.begin(), it_min_dist);
+  const auto min_dist_plane = std::distance(std::begin(p_dist), it_min_dist);
   // Point of intersection:
   DoubleVector intersect = {p.at(min_dist_plane).get(0),
                             p.at(min_dist_plane).get(1),
@@ -449,11 +453,9 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
 }
 
 /**** Convert CT to dEdx ****/
-
-using double_pair_list = std::array<std::pair<float, double>, 16>;
-const double_pair_list lookup = {
+constexpr auto lookup = std::array<std::pair<float, double>, 16>{
     {// Data from TRiP: 19990218.hlut
-     std::pair<float, double>(NLMIN(float), 0),
+     std::pair<float, double>(std::numeric_limits<float>::min(), 0),
      std::pair<float, double>(-1000.0f, 0.041),
      std::pair<float, double>(-798.0f, 0.244),
      std::pair<float, double>(-750.0f, 0.297),
@@ -468,7 +470,8 @@ const double_pair_list lookup = {
      std::pair<float, double>(1432.0f, 1.634),
      std::pair<float, double>(1974.0f, 1.778),
      std::pair<float, double>(3000.0f, 2.051),
-     std::pair<float, double>(NLMAX(float), 2.051)}};
+     std::pair<float, double>(std::numeric_limits<float>::max(), 2.051)}};
+
 /*{ // plastimatch data:
         std::pair<float, double>(NLMIN(float), 0),
                 std::pair<float, double>(-1000, 0.00106),
@@ -479,11 +482,13 @@ const double_pair_list lookup = {
 
 // Linear interpolator (as first class function)
 float hu_to_dEdx(float val) {
+  auto lookup_cond = [&val](const std::pair<float, double> cur_pair) {
+    return val < cur_pair.first;
+  };
   // Find first index in lookup that satisfies "val < lookup[i].first" :
-  auto lookup_upper_ptr = std::find_if(
-      lookup.begin(), lookup.end(), [val](std::pair<float, double> cur_pair) {
-        return val < cur_pair.first;
-      });
+  const auto lookup_upper_ptr = std::find_if(
+      std::begin(lookup), std::end(lookup), lookup_cond);
+
   const auto lookup_upper = *lookup_upper_ptr;
 
   // Get the previous index:
