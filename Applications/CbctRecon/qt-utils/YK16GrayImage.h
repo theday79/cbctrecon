@@ -2,6 +2,7 @@
 #define YK16GRAYIMAGE_H
 
 // v20130830 : his header buffer, itk compatible
+#include "cbctrecon_config.h"
 
 class QPixmap;
 class QLabel;
@@ -44,7 +45,7 @@ using FloatImageType2D = itk::Image<float, 2>;
 
 // using namespace std; please no
 
-class YK16GrayImage {
+class CBCTRECON_API YK16GrayImage {
 public:
   YK16GrayImage();
   YK16GrayImage(int width, int height);
@@ -92,10 +93,11 @@ public:
 
   static void CopyYKImage2ItkImage(YK16GrayImage *pYKImage,
                                    UnsignedShortImageType::Pointer &spTarImage);
-  static void CopyItkImage2YKImage(
-    UnsignedShortImageType::Pointer &spSrcImage, YK16GrayImage* pYKImage);
-  static std::unique_ptr<YK16GrayImage> CopyItkImage2YKImage(
-    UnsignedShortImageType::Pointer &spSrcImage, std::unique_ptr<YK16GrayImage> pYKImage);
+  static void CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
+                                   YK16GrayImage *pYKImage);
+  static std::unique_ptr<YK16GrayImage>
+  CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
+                       std::unique_ptr<YK16GrayImage> pYKImage);
 
   QString m_strFilePath;
 

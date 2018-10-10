@@ -1,15 +1,17 @@
 #ifndef CBCTRECON_IO_H
 #define CBCTRECON_IO_H
 /*All IO functions used with cbctrecon*/
+#include "cbctrecon_config.h"
 #include "cbctrecon.h"
 
-bool SaveDoseGrayImage(const char *filePath, int width, int height,
+bool CBCTRECON_API SaveDoseGrayImage(const char *filePath, int width,
+                                     int height,
                        double spacingX, double spacingY, double originLeft_mm,
                        double originTop_mm, unsigned short *pData);
 
 
 template <typename ImageType> // image by value, because we call this from std::thread
-void saveImageAsMHA(typename ImageType::Pointer const image) {
+void saveImageAsMHA(typename ImageType::Pointer &image) {
   using ImageWriterType = itk::ImageFileWriter<ImageType>;
   typename ImageWriterType::Pointer writer = ImageWriterType::New();
   writer->SetInput(image);

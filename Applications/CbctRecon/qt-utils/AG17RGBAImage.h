@@ -1,12 +1,12 @@
 #ifndef AG17RGBAIMAGE_H
 #define AG17RGBAIMAGE_H
-
+#include "cbctrecon_config.h"
 #include "YK16GrayImage.h" // for enumerators and types without overloading
 #include <QImage>
 #include <QVector>
 #include <vector>
 
-class AG17RGBAImage {
+class CBCTRECON_API AG17RGBAImage {
 public:
   AG17RGBAImage();
   AG17RGBAImage(int width, int height);

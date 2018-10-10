@@ -18,7 +18,7 @@
 
 #ifndef RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_H
 #define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_H
-
+#include "cbctrecon_config.h"
 #include "rtkFDKConeBeamReconstructionFilter.h"
 // #include "rtkOpenCLFDKWeightProjectionFilter.h" <- hard, because cpu is not
 // bad and cuda is full of textures
@@ -43,7 +43,7 @@ namespace rtk {
  *
  * \ingroup ReconstructionAlgorithm OpenCLImageToImageFilter
  */
-class ITK_EXPORT OpenCLFDKConeBeamReconstructionFilter
+class CBCTRECON_API OpenCLFDKConeBeamReconstructionFilter
     : public FDKConeBeamReconstructionFilter<itk::Image<float, 3>,
                                              itk::Image<float, 3>, float> {
 public:

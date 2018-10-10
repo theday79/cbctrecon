@@ -20,7 +20,7 @@
 
 #include "ui_cbctrecon.h"
 
-class CBCTRECON_API CbctReconWidget : public QMainWindow {
+class CbctReconWidget : public QMainWindow {
   Q_OBJECT
 
 public:

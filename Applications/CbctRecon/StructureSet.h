@@ -1,5 +1,6 @@
 #ifndef STRUCTURESET_H
 #define STRUCTURESET_H
+#include "cbctrecon_config.h"
 #include "PlmWrapper.h"
 #include "cbctrecon.h"
 
@@ -14,7 +15,7 @@ enum ctType {
   DEFORM_CT = 2,
 };
 
-class StructureSet {
+class CBCTRECON_API StructureSet {
 public:
   StructureSet();
   ~StructureSet();

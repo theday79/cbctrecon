@@ -875,10 +875,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     SLT_DoBowtieCorrection();
   }
 
-  std::thread save_thread(saveImageAsMHA<FloatImageType>,
-                          m_cbctrecon->m_spProjImg3DFloat);
-  // Make sure the projections are saved before going out of scope.
-  save_thread.join();
+  saveImageAsMHA<FloatImageType>(m_cbctrecon->m_spProjImg3DFloat);
 
   if (!m_cbctrecon->ResampleProjections(
           ui.lineEdit_DownResolFactor->text().toDouble())) { // 0.5

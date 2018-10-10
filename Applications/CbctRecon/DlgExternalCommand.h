@@ -12,7 +12,7 @@
 
 class CbctReconWidget;
 
-class CBCTRECON_API DlgExternalCommand : public QDialog, public Ui::DlgExternalCommandClass {
+class DlgExternalCommand : public QDialog, public Ui::DlgExternalCommandClass {
   Q_OBJECT
 
 public slots:

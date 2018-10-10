@@ -15,7 +15,7 @@
 class CbctReconWidget;
 
 
-class CBCTRECON_API DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
+class DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
   Q_OBJECT
 
 public:
