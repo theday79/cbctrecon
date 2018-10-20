@@ -52,3 +52,6 @@
 # Visual studio generated files
 *.json
 .vs/*
+
+# JetBrains
+.idea/*
