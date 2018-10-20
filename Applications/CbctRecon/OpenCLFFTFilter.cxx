@@ -114,7 +114,7 @@ void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
                     const cl_uint4 inputSize,
                     const float *hostVolume, // input
                     float *hostPaddedVolume, // output
-                    const std::vector<cl_float> &mirrorWeights) {
+                    const std::vector<float> &mirrorWeights) {
   cl_int err = CL_SUCCESS;
   cl_program m_Program;
 
@@ -126,9 +126,9 @@ void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
   const auto device = std::get<2>(ctx_queue_dev);
   /* Prepare OpenCL memory objects and place data inside them. */
   const size_t w_buffer_size = mirrorWeights.size() * sizeof(float);
-  const cl_uint w_buf_sizeof =
-      mirrorWeights
-          .size(); // just because intellisense couldn't understand it below...
+  const auto w_buf_sizeof =
+          static_cast<cl_uint>(mirrorWeights
+                    .size()); // just because intellisense couldn't understand it below...
   cl_mem weights_d =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                      w_buffer_size, (void *)&mirrorWeights[0], &err);

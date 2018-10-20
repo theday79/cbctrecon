@@ -15,7 +15,7 @@
 void OpenCL_padding(cl_int4 paddingIndex, cl_uint4 paddingSize,
                     cl_uint4 inputSize, const float *hostVolume,
                     float *hostPaddedVolume,
-                    const std::vector<cl_float> &mirrorWeights);
+                    const std::vector<float> &mirrorWeights);
 
 void OpenCL_fft_convolution(cl_int4 inputDimension, cl_int2 kernelDimension,
                             float *hostProjection,

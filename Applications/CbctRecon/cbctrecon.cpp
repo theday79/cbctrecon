@@ -6145,7 +6145,7 @@ bool SaveDoseGrayImage(
     // dataVal이 초기값이면 insert 안함
   }
   if (m_iStripOffset >= 0) {
-    const auto tififd_tmp = TIFIFD{273, 4, data_cnt, m_iStripOffset};
+    const auto tififd_tmp = TIFIFD{273, 4, data_cnt, static_cast<int>(m_iStripOffset)};
     IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
   }
   if (m_iSamplePerPixel >= 0) {
@@ -6156,11 +6156,11 @@ bool SaveDoseGrayImage(
     // dataVal이 초기값이면 insert 안함
   }
   if (m_iRowsPerStrip >= 0) {
-    const auto tififd_tmp = TIFIFD{278, data_type, data_cnt, m_iRowsPerStrip};
+    const auto tififd_tmp = TIFIFD{278, data_type, data_cnt, static_cast<int>(m_iRowsPerStrip)};
     IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
   }
   if (m_iStripByteCnts >= 0) {
-    const auto tififd_tmp = TIFIFD{279, 4, data_cnt, m_iStripByteCnts};
+    const auto tififd_tmp = TIFIFD{279, 4, data_cnt, static_cast<int>(m_iStripByteCnts)};
     IFDarr.push_back(tififd_tmp);
     /*if (m_iSamplePerPixel == 1)
     dataVal = m_iStripByteCnts;

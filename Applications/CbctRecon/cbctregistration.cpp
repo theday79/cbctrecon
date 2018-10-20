@@ -19,7 +19,6 @@
 
 // PLM
 #undef TIMEOUT // used in an enum in dlib, and may be defined as 7 in lp of RTK
-#include "cbctrecon_io.h"
 #include "xform.h"
 #include <dcmtk_rt_study.h>
 #include <distance_map.h>
@@ -37,6 +36,9 @@
 #include <string_util.h>
 #include <synthetic_vf.h>
 #include <warp_parms.h>
+
+#include "cbctrecon_io.h"
+#include "StructureSet.h"
 
 CbctRegistration::CbctRegistration(CbctRecon *parent) {
 

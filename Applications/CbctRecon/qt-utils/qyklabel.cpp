@@ -258,7 +258,7 @@ void qyklabel::SetBaseImage(YK16GrayImage *pYKImage) {
 }
 
 void qyklabel::SetOverlayImage(AG17RGBAImage *pRGBAImage) {
-  if (pRGBAImage->m_pData != nullptr && !pRGBAImage->m_QImage.isNull()) {
+  if (pRGBAImage->m_pData.size() != 0 && !pRGBAImage->m_QImage.isNull()) {
     m_pRGBAImage = pRGBAImage;
   }
 }

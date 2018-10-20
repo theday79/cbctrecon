@@ -15,7 +15,9 @@
 #include "rtkFieldOfViewImageFilter.h"
 #include "rtkThreeDCircularProjectionGeometry.h"
 
-#include "cbctrecon.h"
+#include "cbctrecon_types.h"
+
+class QXmlStreamReader;
 
 CBCTRECON_API void ApplyBowtie(ProjReaderType::Pointer &reader,
                                FilterReaderType::Pointer &bowtie_reader);
@@ -27,11 +29,6 @@ CBCTRECON_API double GetMaxAndMinValueOfProjectionImage(
 CBCTRECON_API void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
                                FloatImage2DType::Pointer &spTargetImg2D,
                                int idx, enPLANE iDirection);
-
-CBCTRECON_API void SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
-                                           QString &strPatientID,
-                                           QString &strPatientName,
-                                           QString &strPathTargetDir);
 
 CBCTRECON_API void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
                                        ShortImageType::Pointer &spImgShort);
@@ -94,7 +91,7 @@ AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
 
 template <typename T>
 T CBCTRECON_API
-GetValueFrom3DImage(int reqX, int reqY, int reqZ,
+GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY, const unsigned int reqZ,
                     typename itk::Image<T, 3>::Pointer &sp3DImage) {
   if (sp3DImage == nullptr) {
     return 0;
@@ -137,7 +134,7 @@ GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
 }
 
 template <typename T, typename ImageType>
-bool GetOutputResolutionFromFOV(
+bool CBCTRECON_API GetOutputResolutionFromFOV(
     typename T::SizeType &sizeOutput, typename T::SpacingType &spacing,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
     const typename ImageType::Pointer &ProjStack,

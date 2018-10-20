@@ -509,7 +509,7 @@ float hu_to_dEdx(float val) {
 FloatImageType::Pointer
 ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   ShortImageType::Pointer hu_image_tmp;
-  CbctRecon::ConvertUshort2Short(spImgUshort, hu_image_tmp);
+  ConvertUshort2Short(spImgUshort, hu_image_tmp);
 
   using CastFilterType = itk::CastImageFilter<ShortImageType, FloatImageType>;
   CastFilterType::Pointer cast_filter = CastFilterType::New();

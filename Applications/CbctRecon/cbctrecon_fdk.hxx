@@ -41,7 +41,8 @@
 #endif // USE_CUDA
 
 #include "YK16GrayImage.h"
-#include "cbctrecon.h" // lies
+#include "cbctrecon_compute.h"
+
 
 template <typename ImageType>
 typename ImageType::Pointer RTKOpenCLFDK(

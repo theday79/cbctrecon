@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>
 
+#include "itkMacro.h"
+
 /** \brief Macro to check errors when running an OpenCL command.
  *
  * \author Simon Rit

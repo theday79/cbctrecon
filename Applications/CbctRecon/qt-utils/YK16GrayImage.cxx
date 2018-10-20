@@ -5,19 +5,18 @@
 #include "itkResampleImageFilter.h"
 #include <QPixmap>
 #include <fstream>
-#include "../../../../../../../../cbct-vs17/DCMTK-src/dcmjpls/libcharls/util.h"
 
 YK16GrayImage::YK16GrayImage(void) {
   m_iWidth = 0;
   m_iHeight = 0;
 
-  m_pData = NULL;
-  m_pPixmap = NULL; // for display
-  m_pElektaHisHeader = NULL;
+  m_pData = nullptr;
+  m_pPixmap = nullptr; // for display
+  m_pElektaHisHeader = nullptr;
 
-  // m_pQImage = NULL;
+  // m_pQImage = nullptr;
 
-  // m_pPainter = NULL;
+  // m_pPainter = nullptr;
 
   m_fPixelMean = 0.0;
   m_fPixelSD = 0.0;
@@ -62,9 +61,9 @@ YK16GrayImage::YK16GrayImage(int width, int height) {
   m_iWidth = width;
   m_iHeight = height;
 
-  m_pData = NULL;
-  m_pPixmap = NULL; // for display
-  m_pElektaHisHeader = NULL;
+  m_pData = nullptr;
+  m_pPixmap = nullptr; // for display
+  m_pElektaHisHeader = nullptr;
 
   m_fPixelMean = 0.0;
   m_fPixelSD = 0.0;
@@ -101,7 +100,7 @@ YK16GrayImage::YK16GrayImage(int width, int height) {
   m_iOffsetX = 0;
   m_iOffsetY = 0;
 
-  // m_pQImage = NULL;
+  // m_pQImage = nullptr;
   m_enSplitOption = PRI_LEFT_TOP;
   m_fResampleFactor = 1.0;
 
@@ -111,28 +110,28 @@ YK16GrayImage::YK16GrayImage(int width, int height) {
 YK16GrayImage::~YK16GrayImage(void) { ReleaseBuffer(); }
 
 bool YK16GrayImage::ReleaseBuffer() {
-  if (m_pData != NULL) {
+  if (m_pData != nullptr) {
     delete[] m_pData;
-    m_pData = NULL;
+    m_pData = nullptr;
   }
-  if (m_pPixmap != NULL) {
+  if (m_pPixmap != nullptr) {
     delete m_pPixmap; // delete  m_pPixmap??
-    m_pPixmap = NULL;
+    m_pPixmap = nullptr;
   }
 
   m_iWidth = 0;
   m_iHeight = 0;
 
-  if (m_pElektaHisHeader != NULL) {
+  if (m_pElektaHisHeader != nullptr) {
     delete[] m_pElektaHisHeader;
-    m_pElektaHisHeader = NULL;
+    m_pElektaHisHeader = nullptr;
   }
 
   return true;
 }
 
 bool YK16GrayImage::IsEmpty() {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return true;
   else
     return false;
@@ -145,7 +144,7 @@ bool YK16GrayImage::CreateImage(int width, int height, unsigned short usVal) {
   if (usVal < 0 || usVal > 65535)
     usVal = 0;
 
-  // if (m_pData != NULL)
+  // if (m_pData != nullptr)
   // delete [] m_pData;
 
   ReleaseBuffer();
@@ -169,7 +168,7 @@ bool YK16GrayImage::LoadRawImage(const char *filePath, int width, int height) {
   if (width < 1 || height < 1)
     return false;
 
-  // if (m_pData != NULL)
+  // if (m_pData != nullptr)
   //	delete [] m_pData;
   ReleaseBuffer();
 
@@ -256,12 +255,12 @@ void fill_array(std::valarray<quint32> &tmpData, unsigned short *m_pData,
                 bool m_bShowInvert) {
   if (!m_bShowInvert) {
     std::transform(&m_pData[0], &m_pData[tmpData.size() - 1],
-                   std::begin(tmpData), [](auto data) {
+                   std::begin(tmpData), [&lowVal, &uppVal, &d_win_width](auto data) {
                      return fill_pixel(data, lowVal, uppVal, d_win_width);
                    });
   } else {
     std::transform(&m_pData[0], &m_pData[tmpData.size() - 1],
-                   std::begin(tmpData), [](auto data) {
+                   std::begin(tmpData), [&lowVal, &uppVal, &d_win_width](auto data) {
                      return fill_pixel_invert(data, lowVal, uppVal,
                                               d_win_width);
                    });
@@ -269,14 +268,14 @@ void fill_array(std::valarray<quint32> &tmpData, unsigned short *m_pData,
 }
 
 bool YK16GrayImage::FillPixMap(int winMid,
-                               int winWidth) // 0-65535 Áß window level
+                               int winWidth) // 0-65535 ï¿½ï¿½ window level
 {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return false;
 
-  if (m_pPixmap != NULL) {
+  if (m_pPixmap != nullptr) {
     delete m_pPixmap;
-    m_pPixmap = NULL;
+    m_pPixmap = nullptr;
   }
   m_pPixmap = new QPixmap(QSize(
       m_iWidth, m_iHeight)); // something happened here!!!: w: 4289140  h: 0
@@ -372,7 +371,7 @@ bool YK16GrayImage::FillPixMap(int winMid,
 }
 
 bool YK16GrayImage::FillPixMapMinMax(int winMin,
-                                     int winMax) // 0-65535 Áß window level
+                                     int winMax) // 0-65535 ï¿½ï¿½ window level
 {
   if (winMin < 0 || winMax > 65535 || winMin > winMax) {
     winMin = 0;
@@ -388,12 +387,12 @@ bool YK16GrayImage::FillPixMapMinMax(int winMin,
 bool YK16GrayImage::SaveDataAsRaw(
     const char *filePath) // save 16 bit gray raw file
 {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return false;
 
   int imgSize = m_iWidth * m_iHeight;
 
-  FILE *fd = NULL;
+  FILE *fd = nullptr;
   fd = fopen(filePath, "wb");
 
   for (int i = 0; i < imgSize; i++) {
@@ -405,7 +404,7 @@ bool YK16GrayImage::SaveDataAsRaw(
 }
 
 bool YK16GrayImage::CalcImageInfo() {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return false;
 
   int nTotal;
@@ -456,7 +455,7 @@ bool YK16GrayImage::CalcImageInfo() {
 }
 
 double YK16GrayImage::CalcAveragePixelDiff(YK16GrayImage &other) const {
-  if (m_pData == NULL || other.m_pData == NULL)
+  if (m_pData == NULL || other.m_pData == nullptr)
     return 0.0;
 
   int totalPixCnt = m_iWidth * m_iHeight;
@@ -469,7 +468,7 @@ double YK16GrayImage::CalcAveragePixelDiff(YK16GrayImage &other) const {
 }
 
 void YK16GrayImage::Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB) {
-  if (pImgA == NULL || pImgB == NULL)
+  if (pImgA == NULL || pImgB == nullptr)
     return;
 
   if (pImgA->IsEmpty() || pImgB->IsEmpty())
@@ -487,13 +486,13 @@ void YK16GrayImage::Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB) {
 }
 
 bool YK16GrayImage::SaveDataAsHis(const char *filePath, bool bInverse) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return false;
 
-  if (m_pElektaHisHeader == NULL)
+  if (m_pElektaHisHeader == nullptr)
     return false;
 
-  FILE *fd = NULL;
+  FILE *fd = nullptr;
   fd = fopen(filePath, "wb");
 
   fwrite(m_pElektaHisHeader, 100, 1, fd);
@@ -525,7 +524,7 @@ void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
               << "	" << hisFilePath << std::endl;
 
   // read header
-  if (m_pElektaHisHeader != NULL)
+  if (m_pElektaHisHeader != nullptr)
     delete[] m_pElektaHisHeader;
 
   m_pElektaHisHeader = new char
@@ -556,7 +555,7 @@ void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
 
 void YK16GrayImage::CopyYKImage2ItkImage(
     YK16GrayImage *pYKImage, UnsignedShortImageType::Pointer &spTarImage) {
-  if (pYKImage == NULL)
+  if (pYKImage == nullptr)
     return;
   // Raw File open
   // UnsignedShortImageType::SizeType tmpSize =
@@ -585,7 +584,7 @@ void YK16GrayImage::CopyYKImage2ItkImage(
 std::unique_ptr<YK16GrayImage>
 YK16GrayImage::CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
                                     std::unique_ptr<YK16GrayImage> pYKImage) {
-  if (pYKImage == NULL)
+  if (pYKImage == nullptr)
     return pYKImage;
   UnsignedShortImageType::RegionType region = spSrcImage->GetRequestedRegion();
   UnsignedShortImageType::SizeType tmpSize = region.GetSize();
@@ -609,7 +608,7 @@ YK16GrayImage::CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
 
 void YK16GrayImage::CopyItkImage2YKImage(
     UnsignedShortImageType::Pointer &spSrcImage, YK16GrayImage *pYKImage) {
-  if (pYKImage == NULL)
+  if (pYKImage == nullptr)
     return;
   UnsignedShortImageType::RegionType region = spSrcImage->GetRequestedRegion();
   UnsignedShortImageType::SizeType tmpSize = region.GetSize();
@@ -630,7 +629,7 @@ void YK16GrayImage::CopyItkImage2YKImage(
 }
 
 bool YK16GrayImage::CalcImageInfo_ROI() {
-  if (m_pData == NULL) {
+  if (m_pData == nullptr) {
     m_fPixelMean_ROI = -1.0;
     m_fPixelSD_ROI = -1.0;
     m_fPixelMin_ROI = -1.0;
@@ -723,7 +722,7 @@ void YK16GrayImage::DrawROIOn(bool bROI_Draw) {
 }
 
 bool YK16GrayImage::CloneImage(YK16GrayImage &other) {
-  if (other.m_pData == NULL)
+  if (other.m_pData == nullptr)
     return false;
 
   // first, delete existing things
@@ -736,7 +735,7 @@ bool YK16GrayImage::CloneImage(YK16GrayImage &other) {
   CreateImage(width, height, 0);
   CopyFromBuffer(other.m_pData, width, height);
 
-  if (other.m_pElektaHisHeader != NULL) {
+  if (other.m_pElektaHisHeader != nullptr) {
     m_pElektaHisHeader = new char[DEFAULT_ELEKTA_HIS_HEADER_SIZE];
     for (int i = 0; i < DEFAULT_ELEKTA_HIS_HEADER_SIZE; i++) {
       m_pElektaHisHeader[i] = other.m_pElektaHisHeader[i];
@@ -790,7 +789,7 @@ bool YK16GrayImage::CloneImage(YK16GrayImage &other) {
 }
 
 void YK16GrayImage::MultiplyConstant(double multiplyFactor) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   for (int i = 0; i < m_iHeight; i++) {
@@ -815,7 +814,7 @@ void YK16GrayImage::SetProfileProbePos(int dataX, int dataY) {
 
 unsigned short YK16GrayImage::GetProfileProbePixelVal() {
   unsigned short resultVal = 0;
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return 0;
 
   if (m_ptProfileProbe.y() >= 0 && m_ptProfileProbe.y() < m_iHeight &&
@@ -830,7 +829,7 @@ unsigned short YK16GrayImage::GetProfileProbePixelVal() {
 void YK16GrayImage::GetProfileData(int dataX, int dataY,
                                    QVector<double> &vTarget,
                                    enProfileDirection direction) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth)
@@ -856,7 +855,7 @@ void YK16GrayImage::GetProfileData(int dataX, int dataY,
 }
 void YK16GrayImage::GetProfileData(QVector<double> &vTarget,
                                    enProfileDirection direction) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   int dataX = m_ptProfileProbe.x();
@@ -935,7 +934,7 @@ bool YK16GrayImage::ConstituteFromTwo(YK16GrayImage &YKImg1,
 }
 
 void YK16GrayImage::EditImage_Flip() {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   auto imgSize = static_cast<size_t>(m_iWidth * m_iHeight);
@@ -943,7 +942,7 @@ void YK16GrayImage::EditImage_Flip() {
   if (imgSize <= 0)
     return;
 
-  //º¹»çÇÒ ÀÓ½Ã buffer »ý¼º
+  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ó½ï¿½ buffer ï¿½ï¿½ï¿½ï¿½
   auto pPrevImg = std::valarray<unsigned short>(imgSize);
 
   int i, j;
@@ -968,7 +967,7 @@ void YK16GrayImage::EditImage_Flip() {
 }
 
 void YK16GrayImage::EditImage_Mirror() const {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   int imgSize = m_iWidth * m_iHeight;
@@ -981,7 +980,7 @@ void YK16GrayImage::EditImage_Mirror() const {
 
   auto pPrevImg = std::valarray<unsigned short>(imgSize);
 
-  //º¯È¯ Àü ÀÌ¹ÌÁö¸¦ copy
+  //ï¿½ï¿½È¯ ï¿½ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ copy
 
   for (i = 0; i < m_iHeight; i++) {
     for (j = 0; j < m_iWidth; j++) {
@@ -1019,12 +1018,12 @@ inline void fill_index(size_t i, size_t j, size_t iWidth, size_t uppVal,
 
 bool YK16GrayImage::FillPixMapDual(int winMid1, int winMid2, int winWidth1,
                                    int winWidth2) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return false;
 
-  if (m_pPixmap != NULL) {
+  if (m_pPixmap != nullptr) {
     delete m_pPixmap;
-    m_pPixmap = NULL;
+    m_pPixmap = nullptr;
   }
   m_pPixmap = new QPixmap(QSize(
       m_iWidth, m_iHeight)); // something happened here!!!: w: 4289140  h: 0
@@ -1184,7 +1183,7 @@ void YK16GrayImage::SetZoom(double fZoom) {
 }
 
 void YK16GrayImage::MedianFilter(int iMedianSizeX, int iMedianSizeY) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   UnsignedShortImageType::Pointer spTmpItkImg = UnsignedShortImageType::New();
@@ -1238,7 +1237,7 @@ void YK16GrayImage::MedianFilter(int iMedianSizeX, int iMedianSizeY) {
 }
 
 UnsignedShortImageType::Pointer YK16GrayImage::CloneItkImage() {
-  if (m_pData == NULL) {
+  if (m_pData == nullptr) {
     std::cerr << "Could not CloneItkImage" << std::endl;
     return nullptr;
   }
@@ -1297,7 +1296,7 @@ UnsignedShortImageType::Pointer YK16GrayImage::CloneItkImage() {
 }
 
 void YK16GrayImage::ResampleImage(double fResampleFactor) {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   if (fResampleFactor <= 0)
@@ -1366,21 +1365,21 @@ void YK16GrayImage::UpdateFromItkImage(
   if (!spRefItkImg)
     return;
 
-  if (m_pData != NULL) {
+  if (m_pData != nullptr) {
     delete[] m_pData;
-    m_pData = NULL;
+    m_pData = nullptr;
   }
-  if (m_pPixmap != NULL) {
+  if (m_pPixmap != nullptr) {
     delete m_pPixmap;
-    m_pPixmap = NULL;
+    m_pPixmap = nullptr;
   }
 
   UnsignedShortImageType::SizeType size =
       spRefItkImg->GetRequestedRegion().GetSize();
   // UnsignedShortImageType::SpacingType spacing = spRefItkImg->GetSpacing();
 
-  m_iWidth = size[0];
-  m_iHeight = size[1];
+  m_iWidth = static_cast<int>(size[0]);
+  m_iHeight = static_cast<int>(size[1]);
 
   m_pData = new unsigned short[m_iWidth * m_iHeight];
 
@@ -1399,20 +1398,20 @@ void YK16GrayImage::UpdateFromItkImageFloat(
   if (!spRefItkImg)
     return;
 
-  if (m_pData != NULL) {
+  if (m_pData != nullptr) {
     delete[] m_pData;
-    m_pData = NULL;
+    m_pData = nullptr;
   }
-  if (m_pPixmap != NULL) {
+  if (m_pPixmap != nullptr) {
     delete m_pPixmap;
-    m_pPixmap = NULL;
+    m_pPixmap = nullptr;
   }
 
   FloatImageType2D::SizeType size = spRefItkImg->GetRequestedRegion().GetSize();
   // FloatImageType2D::SpacingType spacing = spRefItkImg->GetSpacing();
 
-  m_iWidth = size[0];
-  m_iHeight = size[1];
+  m_iWidth = static_cast<int>(size[0]);
+  m_iHeight = static_cast<int>(size[1]);
 
   m_pData = new unsigned short[m_iWidth * m_iHeight];
 
@@ -1437,12 +1436,12 @@ void YK16GrayImage::UpdateFromItkImageFloat(
 }
 
 void YK16GrayImage::InvertImage() {
-  if (m_pData == NULL)
+  if (m_pData == nullptr)
     return;
 
   int imgSize = m_iWidth * m_iHeight;
   // Data inversion: Default for Elekta XVI system
   for (int i = 0; i < imgSize; i++) {
-    m_pData[i] = 65535 - m_pData[i];
+    m_pData[i] = static_cast<unsigned short>(65535U - m_pData[i]);
   }
 }

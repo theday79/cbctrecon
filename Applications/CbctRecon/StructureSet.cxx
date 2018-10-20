@@ -1,5 +1,8 @@
 #include <memory>
 
+#include "xform.h"
+#include "xform_convert.h"
+
 #include "StructureSet.h"
 
 StructureSet::StructureSet() = default;

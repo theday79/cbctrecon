@@ -1216,7 +1216,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
 
       // Image Pointer here
       UShortImageType::Pointer spRoiMask;
-      AllocateByRef(m_spFixed, spRoiMask);
+      AllocateByRef<UShortImageType, UShortImageType>(m_spFixed, spRoiMask);
       m_pParent->m_cbctrecon->GenerateCylinderMask(spRoiMask, FOV_DcmPosX,
                                                    FOV_DcmPosY, FOV_Radius);
 
@@ -1892,7 +1892,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
 
       // Image Pointer here
       UShortImageType::Pointer spRoiMask;
-      AllocateByRef(m_spFixed, spRoiMask);
+      AllocateByRef<UShortImageType, UShortImageType>(m_spFixed, spRoiMask);
       m_cbctregistration->m_pParent->GenerateCylinderMask(
           spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
 

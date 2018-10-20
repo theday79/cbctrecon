@@ -73,7 +73,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   /* Set up device memory */
   Opencl_buf *ocl_buf_vol =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-                        vol->pix_size * vol->npix, vol->img);
+                        static_cast<size_t>(vol->pix_size * vol->npix), vol->img);
 
   Opencl_buf *ocl_buf_img =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
@@ -85,7 +85,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
                         12 * sizeof(float), nullptr);
 
   /* Copy volume dim (convert from size_t to int) */
-  auto ocl_vol_dim = cl_int4{{vol->dim[0], vol->dim[1], vol->dim[2]}};
+  auto ocl_vol_dim = cl_int4{{static_cast<cl_int>(vol->dim[0]), static_cast<cl_int>(vol->dim[1]), static_cast<cl_int>(vol->dim[2])}};
 
   Opencl_buf *ocl_buf_vol_origin =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -96,7 +96,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
                         3 * sizeof(float), &vol->spacing[0]);
 
   /* Copy projection image dim (convert from size_t to int) */
-  auto ocl_proj_dim = cl_int2{{proj_dim[0], proj_dim[1]}};
+  auto ocl_proj_dim = cl_int2{{static_cast<cl_int>(proj_dim[0]), static_cast<cl_int>(proj_dim[1])}};
 
   Opencl_buf *ocl_buf_nrm =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,

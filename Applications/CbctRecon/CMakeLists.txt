@@ -53,6 +53,7 @@ set(CbctReconExe_SOURCES
 )
 
 SET(CbctRecon_NonQt_HEADERS
+  cbctrecon_types.h
   cbctrecon.h
   cbctregistration.h
   qt-utils/YK16GrayImage.h
