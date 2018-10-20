@@ -31,7 +31,8 @@ OpenCLImageToImageFilter<TInputImage, TOutputImage,
 
 template <class TInputImage, class TOutputImage, class TParentImageFilter>
 OpenCLImageToImageFilter<TInputImage, TOutputImage,
-                         TParentImageFilter>::~OpenCLImageToImageFilter() {}
+                         TParentImageFilter>::~OpenCLImageToImageFilter() =
+    default;
 
 template <class TInputImage, class TOutputImage, class TParentImageFilter>
 void OpenCLImageToImageFilter<TInputImage, TOutputImage,

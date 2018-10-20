@@ -31,7 +31,7 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
 }
 
 std::vector<cl_device_id>
-GetListOfOpenCLDevices(const cl_platform_id platform) {
+GetListOfOpenCLDevices(cl_platform_id platform) {
   cl_uint numberOfDevices;
   OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
                                     &numberOfDevices));

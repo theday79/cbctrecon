@@ -1,16 +1,19 @@
 #include "DlgRegistration.h"
 
+#include <QDialog>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProcess>
+#include <QString>
 #include <qcombobox.h>
 
 // configs
-#include <itkConfigure.h>
-#include <plm_config.h>
+// #include <itkConfigure.h>
+// #include <plm_config.h>
 
 #include "StructureSet.h"
 #include "cbctrecon.h"
+#include "cbctrecon_compute.h"
 #include "cbctrecon_mainwidget.h"
 #include "cbctregistration.h"
 
@@ -24,13 +27,21 @@
 DlgRegistration::DlgRegistration() {
   /* Sets up the GUI */
   ui.setupUi(this);
+  m_YKImgFixed = nullptr;
+  m_YKImgMoving = nullptr;
+  m_YKDisp = nullptr;
+
+  m_DoseImgFixed = nullptr;
+  m_DoseImgMoving = nullptr;
+  m_AGDisp_Overlay = nullptr;
 }
 
 DlgRegistration::DlgRegistration(CbctReconWidget *parent) : QDialog(parent) {
   /* Sets up the GUI */
   ui.setupUi(this);
   m_pParent = parent;
-  m_cbctregistration = std::make_unique<CbctRegistration>(parent->m_cbctrecon.get());
+  m_cbctregistration =
+      std::make_unique<CbctRegistration>(parent->m_cbctrecon.get());
 
   m_YKImgFixed = m_cbctregistration->m_YKImgFixed;
   m_YKImgMoving = m_cbctregistration->m_YKImgMoving;
@@ -40,10 +51,10 @@ DlgRegistration::DlgRegistration(CbctReconWidget *parent) : QDialog(parent) {
   m_DoseImgMoving = m_cbctregistration->m_DoseImgMoving;
   m_AGDisp_Overlay = m_cbctregistration->m_AGDisp_Overlay;
 
-  m_spFixed = m_cbctregistration->m_spFixed;
-  m_spMoving = m_cbctregistration->m_spMoving;
-  m_spFixedDose = m_cbctregistration->m_spFixedDose;
-  m_spMovingDose = m_cbctregistration->m_spMovingDose;
+  // m_spFixed = m_cbctregistration->m_spFixed;
+  // m_spMoving = m_cbctregistration->m_spMoving;
+  // m_spFixedDose = m_cbctregistration->m_spFixedDose;
+  // m_spMovingDose = m_cbctregistration->m_spMovingDose;
 
   connect(ui.labelOverlapWnd1, SIGNAL(Mouse_Move()), this,
           SLOT(SLT_UpdateSplit1())); // added
@@ -131,7 +142,7 @@ void DlgRegistration::SLT_CrntPosGo() {
   // (CbctRecon*)(this->parent());
   /*whenFixedImgLoaded();
   SLT_DrawImageWhenSliceChange();    	    */
-  if (m_cbctregistration->m_spFixed == nullptr) {
+  if (m_spFixed == nullptr) {
     return;
   }
 
@@ -142,10 +153,8 @@ void DlgRegistration::SLT_CrntPosGo() {
 
   // UShortImageType::SizeType imgSize =
   // m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
-  UShortImageType::PointType imgOrigin =
-      m_cbctregistration->m_spFixed->GetOrigin();
-  UShortImageType::SpacingType imgSpacing =
-      m_cbctregistration->m_spFixed->GetSpacing();
+  UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
+  UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
   // double curPhysPos[3];
   // curPhysPos[0] = imgOrigin[2] + sliderPosIdxZ*imgSpacing[2] ; //Z in default
@@ -202,8 +211,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   }
 
   UShortImageType::SizeType imgSize =
-      m_cbctregistration->m_spFixed->GetRequestedRegion()
-          .GetSize(); // 1016x1016 x z
+      m_spFixed->GetRequestedRegion().GetSize(); // 1016x1016 x z
   UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
   UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
 
@@ -962,6 +970,9 @@ void DlgRegistration::updateSliceLabel() {
     ui.labelDisp2->setText("AXIAL");
     ui.labelDisp3->setText("FRONTAL");
     break;
+  default:
+    std::cerr << "WTF!?" << std::endl;
+    break;
   }
 }
 
@@ -1028,7 +1039,7 @@ void DlgRegistration::LoadVOIFromComboBox(int idx,
   ctType ct_type = PLAN_CT;
   auto ct = ui.comboBoxImgMoving->currentText().toStdString();
   if (ct == std::string("REF_CT")) {
-    ct_type = PLAN_CT;
+    // ct_type = PLAN_CT;
   } else if (ct == std::string("AUTO_RIGID_CT")) {
     ct_type = RIGID_CT;
   } else if (ct == std::string("DEFORMED_CT_FINAL")) {
@@ -1191,25 +1202,21 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   writer1->Update();
   writer2->Update();
 
-  float FOV_DcmPosX = 0.0; // mm
-  float FOV_DcmPosY = 0.0; // mm
-  float FOV_Radius = 0.0;
-
   if (ui.checkBoxUseROIForRigid->isChecked()) {
     std::cout << "Creating a ROI mask for Rigid registration " << std::endl;
     QString strFOVGeom = ui.lineEditFOVPos->text();
 
     QStringList strListFOV = strFOVGeom.split(",");
     if (strListFOV.count() == 3) {
-      FOV_DcmPosX = strListFOV.at(0).toFloat();
-      FOV_DcmPosY = strListFOV.at(1).toFloat();
-      FOV_Radius = strListFOV.at(2).toFloat();
+      const auto FOV_DcmPosX = strListFOV.at(0).toFloat(); // mm
+      const auto FOV_DcmPosY = strListFOV.at(1).toFloat();
+      const auto FOV_Radius = strListFOV.at(2).toFloat();
 
       // Create Image using FixedImage sp
 
       // Image Pointer here
       UShortImageType::Pointer spRoiMask;
-      m_pParent->m_cbctrecon->AllocateByRef(m_spFixed, spRoiMask);
+      AllocateByRef(m_spFixed, spRoiMask);
       m_pParent->m_cbctrecon->GenerateCylinderMask(spRoiMask, FOV_DcmPosX,
                                                    FOV_DcmPosY, FOV_Radius);
 
@@ -1761,6 +1768,22 @@ void DlgRegistration::SLT_PreProcessCT() {
     std::cout
         << "Reference CT DIR should be specified for structure based cropping"
         << std::endl;
+    if ((m_spMoving == nullptr) || (m_spFixed == nullptr)) {
+      return;
+    }
+    if (m_spFixed->GetLargestPossibleRegion().GetSize()[0] !=
+            m_spMoving->GetLargestPossibleRegion().GetSize()[0] ||
+        m_spFixed->GetLargestPossibleRegion().GetSize()[1] !=
+            m_spMoving->GetLargestPossibleRegion().GetSize()[1] ||
+        m_spFixed->GetLargestPossibleRegion().GetSize()[2] !=
+            m_spMoving->GetLargestPossibleRegion().GetSize()[2]) {
+      std::cout
+          << "Fixed and moving image is not the same size, consider using "
+             "a platimatch registration to solve this."
+          << std::endl;
+      return;
+    }
+
     QMessageBox::StandardButton reply;
     reply = QMessageBox::question(this, "No reference structures found!",
                                   "Do you wan't to attempt an auto correction "
@@ -1769,7 +1792,8 @@ void DlgRegistration::SLT_PreProcessCT() {
     if (reply == QMessageBox::Yes) {
       std::cout << "Attempting automatic air filling and skin cropping..."
                 << std::endl;
-      m_cbctregistration->autoPreprocessCT(iAirThresholdShort);
+      m_cbctregistration->autoPreprocessCT(iAirThresholdShort, m_spFixed,
+                                           m_spMoving);
     }
     return;
   }
@@ -1814,9 +1838,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     return;
   }
 
-  bool bPrepareMaskOnly = false;
-
-  bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
+  bool bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
 
   std::cout << "0: DoRegistrationDeform: writing temporary files" << std::endl;
 
@@ -1856,25 +1878,21 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
 
   // Create a mask image based on the fixed sp image
 
-  float FOV_DcmPosX = 0.0; // mm
-  float FOV_DcmPosY = 0.0; // mm
-  float FOV_Radius = 0.0;
-
   if (ui.checkBoxUseROIForDIR->isChecked()) {
     std::cout << "Creating a ROI mask for DIR.. " << std::endl;
     QString strFOVGeom = ui.lineEditFOVPos->text();
 
     QStringList strListFOV = strFOVGeom.split(",");
     if (strListFOV.count() == 3) {
-      FOV_DcmPosX = strListFOV.at(0).toFloat();
-      FOV_DcmPosY = strListFOV.at(1).toFloat();
-      FOV_Radius = strListFOV.at(2).toFloat();
+      const auto FOV_DcmPosX = strListFOV.at(0).toFloat(); // mm
+      const auto FOV_DcmPosY = strListFOV.at(1).toFloat();
+      const auto FOV_Radius = strListFOV.at(2).toFloat();
 
       // Create Image using FixedImage sp
 
       // Image Pointer here
       UShortImageType::Pointer spRoiMask;
-      m_cbctregistration->m_pParent->AllocateByRef(m_spFixed, spRoiMask);
+      AllocateByRef(m_spFixed, spRoiMask);
       m_cbctregistration->m_pParent->GenerateCylinderMask(
           spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
 
@@ -2225,12 +2243,12 @@ void DlgRegistration::SLT_Override() {
     break;
   }
 
-  UShortImageType::SizeType imgSize =
-      m_spFixed->GetRequestedRegion().GetSize(); // 1016x1016 x z
+  // UShortImageType::SizeType img_size =
+  //  m_spFixed->GetRequestedRegion().GetSize(); // 1016x1016 x z
   UShortImageType::PointType imgOrigin = m_spFixed->GetOrigin();
   UShortImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
   if (!isFixed) {
-    imgSize = m_spMoving->GetRequestedRegion().GetSize(); // 1016x1016 x z
+    // img_size = m_spMoving->GetRequestedRegion().GetSize(); // 1016x1016 x z
     imgOrigin = m_spMoving->GetOrigin();
     imgSpacing = m_spMoving->GetSpacing();
   }
@@ -2243,9 +2261,15 @@ void DlgRegistration::SLT_Override() {
 
   UShortImageType::IndexType centerIdx{};
   if (!isFixed) {
-    m_spMoving->TransformPhysicalPointToIndex(curPhysPos, centerIdx);
+    if (!m_spMoving->TransformPhysicalPointToIndex(curPhysPos, centerIdx)) {
+      std::cerr << "Point not in fixed image!" << std::endl;
+      return;
+    };
   } else {
-    m_spFixed->TransformPhysicalPointToIndex(curPhysPos, centerIdx);
+    if (!m_spFixed->TransformPhysicalPointToIndex(curPhysPos, centerIdx)) {
+      std::cerr << "Point not in moving image!" << std::endl;
+      return;
+    };
   }
 
   const int radius = ui.spinBox_overrideRadius->value();
@@ -2280,7 +2304,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
     return;
   }
 
-  QString plan_filepath = "";
+  QString plan_filepath;
   // Load dcm rtplan.
   if (ui.spinBox_NdcmPlans->value() == 1) {
     plan_filepath = QFileDialog::getOpenFileName(
@@ -2292,7 +2316,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
         this, "Open DCMRT Plan file",
         m_cbctregistration->m_pParent->m_strPathDirDefault,
         "DCMRT Plan (*.dcm)", nullptr, nullptr);
-    for (int i = 1; i < ui.spinBox_NdcmPlans->value(); i++) {
+    for (auto i = 1; i < ui.spinBox_NdcmPlans->value(); i++) {
       plan_filepath =
           QString("%1,%2")
               .arg(plan_filepath)
@@ -2324,11 +2348,12 @@ void DlgRegistration::SLT_gPMCrecalc() {
   if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
     gPMC_device = CPU_DEV;
   }
-  auto n_sims = ui.spinBox_Nsims->value();
-  auto n_plans = ui.spinBox_NdcmPlans->value();
+  const auto n_sims = ui.spinBox_Nsims->value();
+  const auto n_plans = ui.spinBox_NdcmPlans->value();
 
-  auto success = m_cbctregistration->CallingGPMCcommand(gPMC_device, n_sims,
-                                                        n_plans, plan_filepath);
+  auto success = m_cbctregistration->CallingGPMCcommand(
+      gPMC_device, n_sims, n_plans, plan_filepath, m_spFixed, m_spMoving,
+      m_spFixedDose, m_spMovingDose);
   if (!success) {
     std::cerr << "Dose calc failed, due to the RNG in goPMC you may want to "
                  "just try again"
@@ -2344,7 +2369,8 @@ void DlgRegistration::SLT_WEPLcalc() {
 
   auto gantry_angle = ui.spinBox_GantryAngle->value();
   auto couch_angle = ui.spinBox_CouchAngle->value();
-  m_cbctregistration->CalculateWEPLtoVOI(voi_name, gantry_angle, couch_angle);
+  m_cbctregistration->CalculateWEPLtoVOI(voi_name, gantry_angle, couch_angle,
+                                         m_spMoving);
   // Draw WEPL
   SLT_DrawImageWhenSliceChange();
 }
@@ -2467,9 +2493,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   // Apply post processing for raw CBCT image and generate
   std::cout << "Preprocessing for CBCT" << std::endl;
 
-  bool bPrepareMaskOnly = false;
-
-  bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
+  bool bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
 
   UShortImageType::PointType originBefore =
       m_cbctregistration->m_pParent->m_spRefCTImg->GetOrigin();
@@ -2598,8 +2622,7 @@ void DlgRegistration::SLT_IntensityNormCBCT() {
 
   // m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));
 
-  m_cbctregistration->m_pParent->AddConstHU(
-      m_spFixed, static_cast<int>(meanIntensityMov - meanIntensityFix));
+  AddConstHU(m_spFixed, static_cast<int>(meanIntensityMov - meanIntensityFix));
   // SLT_PassMovingImgForAnalysis();
 
   std::cout << "Intensity shifting is done! Added value = "

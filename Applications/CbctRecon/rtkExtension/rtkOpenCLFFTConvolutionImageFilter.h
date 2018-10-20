@@ -38,7 +38,7 @@ namespace rtk {
  *
  * \author Simon Rit
  *
- * \ingroup CudaImageToImageFilter
+ * \ingroup OpenCLImageToImageFilter
  */
 
 template <class TParentImageFilter>
@@ -72,9 +72,9 @@ public:
 
 protected:
   OpenCLFFTConvolutionImageFilter();
-  ~OpenCLFFTConvolutionImageFilter() {}
+  ~OpenCLFFTConvolutionImageFilter() = default;
 
-  virtual void GPUGenerateData();
+  virtual void GPUGenerateData() override;
 
   /** Pad the inputRegion region of the input image and returns a pointer to the
    * new padded image. Padding includes a correction for truncation [Ohnesorge,
@@ -82,12 +82,12 @@ protected:
    * corresponds to inputRegion.
    */
   virtual FFTInputImagePointer
-  PadInputImageRegion(const RegionType &inputRegion);
+  PadInputImageRegion(const RegionType &inputRegion) override;
 
+public:
+  OpenCLFFTConvolutionImageFilter(const Self &) = delete; // purposely not implemented
+  void operator=(const Self &) = delete;                  // purposely not implemented
 private:
-  OpenCLFFTConvolutionImageFilter(const Self &); // purposely not implemented
-  void operator=(const Self &);                  // purposely not implemented
-
   OpenCLFFTOutputImagePointer m_KernelFFTOpenCL;
 }; // end of class
 

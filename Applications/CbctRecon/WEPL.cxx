@@ -1,20 +1,21 @@
-#include <cmath>                          // for sqrt, pow, sin, cos
-#include <algorithm>                      // for find_if, min_element, transform
-#include <iostream>                       // for operator<<, endl, basic_ostream, cerr, ostream
-#include <numeric>                        // for accumulate, adjacent_difference
-#include <utility>                        // for pair
-#include <valarray>                       // for valarray
+#include <algorithm> // for find_if, min_element, transform
+#include <array>
+#include <cmath>    // for sqrt, pow, sin, cos
+#include <iostream> // for operator<<, endl, basic_ostream, cerr, ostream
+#include <numeric>  // for accumulate, adjacent_difference
+#include <utility>  // for pair
+#include <valarray> // for valarray
 
-#include <vnl_vector_fixed.h>             // for vnl_vector_fixed
-#include <itkCastImageFilter.h>           // for CastImageFilter
-#include <itkFixedArray.h>                // for FixedArray
-#include <itkImage.h>                     // for Image<>::Pointer, Image, Image<>::IndexType, Image<>::PointType
-#include <itkImageFileWriter.h>           // for ImageFileWriter
-#include <itkMacro.h>                     // for CastImageFilter::New, ImageFileWriter::New
+#include <itkCastImageFilter.h> // for CastImageFilter
+#include <itkFixedArray.h>      // for FixedArray
+#include <itkImage.h> // for Image<>::Pointer, Image, Image<>::IndexType, Image<>::PointType
+#include <itkImageFileWriter.h> // for ImageFileWriter
+#include <itkMacro.h>         // for CastImageFilter::New, ImageFileWriter::New
+#include <vnl_vector_fixed.h> // for vnl_vector_fixed
 
 #include "WEPL.h"
-#include "cbctrecon.h"                    // for CbctRecon
-#include "plm_math.h"                     // for M_PI, NLMAX, NLMIN
+#include "cbctrecon.h" // for CbctRecon
+#include "plm_math.h"  // for M_PI, NLMAX, NLMIN
 
 double lin_interpolate(std::array<int, 3> point_id,
                        std::array<double, 3> point_id_pos, const int idx_2,
@@ -58,19 +59,17 @@ double lin_interpolate(std::array<int, 3> point_id,
       std::pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
       std::pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
 
-  const double sum_weights =
+  auto sum_weights = 1.0 /
       std::accumulate(weights.begin(), weights.end(), 0.0);
 
   auto divide_by_weight = [&sum_weights](double &val) -> void {
-    val /= sum_weights;
+    val *= sum_weights;
   };
 
-  std::for_each(
-      std::begin(weights), std::end(weights),
-      divide_by_weight);
+  std::for_each(std::begin(weights), std::end(weights), divide_by_weight);
 
-  double out_val = 0.0;
-  for (int i = 0; i < 8; i++) {
+  auto out_val = 0.0;
+  for (auto i = 0; i < 8; i++) {
     // convert point_id to cube_ids
     FloatImageType::IndexType cube_id{};
     cube_id[0] = point_id.at(0) + (idx_2 * (i % 2));       // x= 0,1,0,1,0,1,0,1
@@ -165,7 +164,7 @@ std::array<double, 3> get_basis_from_angles(double gantry, double couch) {
   gantry *= M_PI / 180.0;
   couch *= M_PI / 180.0;
 
-  std::array<double, 3> basis = {
+  const std::array<double, 3> basis = {
       {sin(gantry) * cos(couch), -cos(gantry), sin(couch) * sin(gantry)}};
   return basis;
 }
@@ -215,17 +214,17 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
         {point.at(0) * inv_cubesize.at(0), point.at(1) * inv_cubesize.at(1),
          point.at(2) * inv_cubesize.at(2)}};
 
-    int idx_2 = -1;
+    auto idx_2 = -1;
     if (point_id.at(0) < (point_id_pos.at(0))) {
       idx_2 = 1;
     }
 
-    int idy_2 = -1;
+    auto idy_2 = -1;
     if (point_id.at(1) < (point_id_pos.at(1))) {
       idx_2 = 1;
     }
 
-    int idz_2 = -1;
+    auto idz_2 = -1;
     if (point_id.at(2) < (point_id_pos.at(2))) {
       idz_2 = 1;
     }
@@ -253,18 +252,18 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
   std::adjacent_difference(cumWEPL.begin(), cumWEPL.end(), &vdiff[0]);
 
   std::vector<double> out_vec;
-  double revWEPL = cumWEPL.at(cumWEPL.size() - 1);
+  auto rev_wepl = cumWEPL.at(cumWEPL.size() - 1);
 
   for (auto val : vdiff) {
-    revWEPL -= val;
-    out_vec.push_back(revWEPL * step_length);
+    rev_wepl -= val;
+    out_vec.push_back(rev_wepl * step_length);
   }
 
   return out_vec;
 }
 
 std::vector<WEPLVector>
-WEPLContourFromRtssContour(Rtss_contour_modern rt_contour,
+WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
                            const std::array<double, 3> vec_basis,
                            const FloatImageType::Pointer &wepl_cube) {
 
@@ -285,11 +284,14 @@ WEPLContourFromRtssContour(Rtss_contour_modern rt_contour,
     p.SetElement(1, point.y);
     p.SetElement(2, point.z);
     FloatImageType::IndexType cur_idx{};
-    wepl_cube->TransformPhysicalPointToIndex(p, cur_idx);
+    if (!wepl_cube->TransformPhysicalPointToIndex(p, cur_idx)) {
+      std::cerr << "Physical point out of bounds in WEPL calculation" << std::endl;
+      return WEPL_contour;
+    }
     const std::array<size_t, 3> point_id = {{static_cast<size_t>(cur_idx[0]),
                                              static_cast<size_t>(cur_idx[1]),
                                              static_cast<size_t>(cur_idx[2])}};
-    double wepl =
+    const auto wepl =
         WEPL_from_point(point_id, vec_basis, pixel_size, cubedim, wepl_cube);
     WEPL_contour.push_back({wepl, point});
   }
@@ -334,17 +336,17 @@ DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
     const std::array<double, 3> point_id_pos = {{point.x * inv_pixel_size.x,
                                                  point.y * inv_pixel_size.y,
                                                  point.z * inv_pixel_size.z}};
-    int idx_2 = -1;
+    auto idx_2 = -1;
     if (point_id.at(0) < (point_id_pos.at(0))) {
       idx_2 = 1;
     }
 
-    int idy_2 = -1;
+    auto idy_2 = -1;
     if (point_id.at(1) < (point_id_pos.at(1))) {
       idx_2 = 1;
     }
 
-    int idz_2 = -1;
+    auto idz_2 = -1;
     if (point_id.at(2) < (point_id_pos.at(2))) {
       idz_2 = 1;
     }
@@ -395,8 +397,8 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
    * l is a vector in direction of line <- vec_basis
    * => p = d * l + l_0
    */
-  VectorType l_0(vwepl.point.x, vwepl.point.y, vwepl.point.z);
-  VectorType l(vec_basis.at(0), vec_basis.at(1), vec_basis.at(2));
+  const VectorType l_0(vwepl.point.x, vwepl.point.y, vwepl.point.z);
+  const VectorType l(vec_basis.at(0), vec_basis.at(1), vec_basis.at(2));
 
   /* We will only need to check three planes
    * Depending on the sign of vec_basis:
@@ -410,13 +412,13 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
    */
   // Find p_0 and n of the three planes:
   // p_0 can be the corner where the three planes intersect:
-  FloatImageType::IndexType itk_p0_idx = {{0 ? l.get(0) < 0.0 : cubedim.x,
-                                           0 ? l.get(1) < 0.0 : cubedim.y,
-                                           0 ? l.get(2) < 0.0 : cubedim.z}};
+  const FloatImageType::IndexType itk_p0_idx = {{l.get(0) < 0.0 ? 0 : cubedim.x,
+                                           l.get(1) < 0.0 ? 0 : cubedim.y,
+                                           l.get(2) < 0.0 ? 0 : cubedim.z}};
 
   FloatImageType::PointType itk_p0;
   wepl_cube->TransformIndexToPhysicalPoint(itk_p0_idx, itk_p0);
-  VectorType p_0 = itk_p0.GetVnlVector();
+  const VectorType p_0 = itk_p0.GetVnlVector();
 
   std::array<VectorType, 3U> n = {{
       VectorType(sgn(vec_basis.at(0)), 0.0, 0.0),
@@ -425,7 +427,7 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
   }};
 
   // d = (p_0 - l_0) dot n / ( l dot n)
-  VectorType d(dot_product(p_0 - l, n.at(0)) / dot_product(l, n.at(0)),
+  const VectorType d(dot_product(p_0 - l, n.at(0)) / dot_product(l, n.at(0)),
                dot_product(p_0 - l, n.at(1)) / dot_product(l, n.at(1)),
                dot_product(p_0 - l, n.at(2)) / dot_product(l, n.at(2)));
 
@@ -437,7 +439,8 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
       {std::sqrt(dot_product(l_0 - p.at(0), l_0 - p.at(0))),
        std::sqrt(dot_product(l_0 - p.at(1), l_0 - p.at(1))),
        std::sqrt(dot_product(l_0 - p.at(2), l_0 - p.at(2)))}};
-  const auto it_min_dist = std::min_element(std::begin(p_dist), std::end(p_dist));
+  const auto it_min_dist =
+      std::min_element(std::begin(p_dist), std::end(p_dist));
   // index of min:
   const auto min_dist_plane = std::distance(std::begin(p_dist), it_min_dist);
   // Point of intersection:
@@ -445,7 +448,7 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
                             p.at(min_dist_plane).get(1),
                             p.at(min_dist_plane).get(2)};
 
-  auto out_point = point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);
+  const auto out_point = point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);
 
   return FloatVector{static_cast<float>(out_point.x),
                      static_cast<float>(out_point.y),
@@ -486,8 +489,8 @@ float hu_to_dEdx(float val) {
     return val < cur_pair.first;
   };
   // Find first index in lookup that satisfies "val < lookup[i].first" :
-  const auto lookup_upper_ptr = std::find_if(
-      std::begin(lookup), std::end(lookup), lookup_cond);
+  const auto lookup_upper_ptr =
+      std::find_if(std::begin(lookup), std::end(lookup), lookup_cond);
 
   const auto lookup_upper = *lookup_upper_ptr;
 
@@ -495,9 +498,9 @@ float hu_to_dEdx(float val) {
   const auto lookup_lower = lookup.at((lookup_upper_ptr - lookup.begin()) - 1);
 
   // Do linear interpolation between upper and lower data point:
-  const double a = (lookup_upper.second - lookup_lower.second) /
+  const auto a = (lookup_upper.second - lookup_lower.second) /
                    static_cast<double>(lookup_upper.first - lookup_lower.first);
-  const double b =
+  const auto b =
       lookup_upper.second - a * static_cast<double>(lookup_upper.first);
 
   return a * val + b;
@@ -509,11 +512,11 @@ ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   CbctRecon::ConvertUshort2Short(spImgUshort, hu_image_tmp);
 
   using CastFilterType = itk::CastImageFilter<ShortImageType, FloatImageType>;
-  CastFilterType::Pointer castFilter = CastFilterType::New();
-  castFilter->SetInput(hu_image_tmp);
-  castFilter->Update();
+  CastFilterType::Pointer cast_filter = CastFilterType::New();
+  cast_filter->SetInput(hu_image_tmp);
+  cast_filter->Update();
 
-  FloatImageType::Pointer wepl_image = castFilter->GetOutput();
+  FloatImageType::Pointer wepl_image = cast_filter->GetOutput();
 
   itk::ImageRegionIterator<FloatImageType> it(
       wepl_image, wepl_image->GetLargestPossibleRegion());

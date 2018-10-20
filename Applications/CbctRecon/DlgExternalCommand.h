@@ -7,7 +7,6 @@
 #include <QStringList>
 
 // Local
-#include "cbctrecon_config.h"
 #include "ui_DlgExternalCommand.h"
 
 class CbctReconWidget;

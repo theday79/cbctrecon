@@ -3,10 +3,10 @@
 #include <QProcess>
 
 // Local
-#include "cbctrecon_mainwidget.h"
 #include "DlgExternalCommand.h"
-#include "cbctregistration.h"
 #include "DlgRegistration.h"
+#include "cbctrecon_mainwidget.h"
+#include "cbctregistration.h"
 
 DlgExternalCommand::DlgExternalCommand() {
   /* Sets up the GUI */
@@ -141,7 +141,8 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 
   QTime curTime = QTime::currentTime();
   QString strTimeStamp = curTime.toString("hhmmss");
-  QDir tmpPlmDir = QDir(m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
+  QDir tmpPlmDir = QDir(
+      m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
 
   if (!tmpPlmDir.exists()) {
     std::cout << "Error! No tmp plm path is available."
@@ -334,15 +335,20 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
   std::cout << "External RTK reconstruction is done" << std::endl;
   std::cout << "File is being loaded" << std::endl;
 
-  m_pParent->m_cbctrecon->LoadExternalFloatImage(m_strRecentOutputPath,
-                                    true); // true: conversion (float, direction
+  m_pParent->m_cbctrecon->LoadExternalFloatImage(
+      m_strRecentOutputPath,
+      true); // true: conversion (float, direction
 
   if (m_pParent->ui.checkBox_PostMedianOn->isChecked()) {
     UShortImageType::SizeType indexRadius{};
-    indexRadius[0] = m_pParent->ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
-    indexRadius[1] = m_pParent->ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
-    indexRadius[2] = m_pParent->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
-    m_pParent->m_cbctrecon->MedianFilterByGUI(indexRadius); // applied to raw image
+    indexRadius[0] =
+        m_pParent->ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+    indexRadius[1] =
+        m_pParent->ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+    indexRadius[2] =
+        m_pParent->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
+    m_pParent->m_cbctrecon->MedianFilterByGUI(
+        indexRadius); // applied to raw image
   }
 
   m_pParent->FileExportByGUI(); // applied to raw image

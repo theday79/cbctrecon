@@ -7,6 +7,7 @@
 class QPixmap;
 class QLabel;
 class QPainter;
+
 // class QImage;
 
 #define DEFAULT_WINLEVEL_MID 10000
@@ -17,7 +18,6 @@ class QPainter;
 #include "itkImage.h"
 #include <QImage>
 #include <QVector>
-#include <vector>
 
 struct BADPIXELMAP {
   int BadPixX;
@@ -64,7 +64,8 @@ public:
   // QPainter* m_pPainter;
 
   bool LoadRawImage(const char *filePath, int width, int height);
-  bool CopyFromBuffer(unsigned short *pImageBuf, int width, int height);
+  bool CopyFromBuffer(const unsigned short *p_image_buf, int width,
+                      int height) const;
   bool CloneImage(YK16GrayImage &other);
 
   bool CreateImage(int width, int height, unsigned short usVal);
@@ -85,7 +86,7 @@ public:
   // bool CalcImageInfo (double& meanVal, double& STDV, double& minVal, double&
   // maxVal);
   bool CalcImageInfo();
-  double CalcAveragePixelDiff(YK16GrayImage &other);
+  double CalcAveragePixelDiff(YK16GrayImage &other) const;
 
   // bool DoPixelReplacement(std::vector<BADPIXELMAP>& vPixelMapping); //based
   // on pixel mapping information, some bad pixels will be replaced with median
@@ -185,7 +186,7 @@ public:
   void GetProfileData(QVector<double> &vTarget, enProfileDirection direction);
 
   void EditImage_Flip();
-  void EditImage_Mirror();
+  void EditImage_Mirror() const;
 
   void MedianFilter(int iMedianSizeX, int iMedianSizeY);
 

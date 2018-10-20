@@ -1,10 +1,14 @@
 #ifndef AG17RGBAIMAGE_H
 #define AG17RGBAIMAGE_H
-#include "cbctrecon_config.h"
+
+// Qt (gets these from YK16 )
+// #include <QImage>
+// #include <QVector>
+// #include <QString>
+
+// Local
 #include "YK16GrayImage.h" // for enumerators and types without overloading
-#include <QImage>
-#include <QVector>
-#include <vector>
+#include "cbctrecon_config.h"
 
 class CBCTRECON_API AG17RGBAImage {
 public:
@@ -18,13 +22,14 @@ public:
   double m_fSpacingX; //[mm/px]
   double m_fSpacingY;
 
-  unsigned short *m_pData; // 0 - 65535
+  std::valarray<unsigned short> m_pData; // 0 - 65535
 
   QPixmap *m_pPixmap; // Actually, no need!
   QImage m_QImage;
   // QPainter* m_pPainter;
 
-  bool CopyFromBuffer(const unsigned short *pImageBuf, int width, int height);
+  bool CopyFromBuffer(const std::valarray<unsigned short> &pImageBuf, int width,
+                      int height);
   bool CloneImage(AG17RGBAImage &other);
 
   bool CreateImage(int width, int height, unsigned short usVal);
@@ -36,7 +41,7 @@ public:
   bool FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
                             int winMax2); // 0-65535 Сп window level
 
-  bool IsEmpty();
+  bool IsEmpty() const;
   bool ReleaseBuffer();
 
   // bool CalcImageInfo (double& meanVal, double& STDV, double& minVal, double&
@@ -121,7 +126,7 @@ public:
                          AG17RGBAImage &YKImg2); // YKImg1 and two should be in
                                                  // exactly same dimension and
                                                  // spacing
-  bool isPtInFirstImage(int dataX, int dataY);
+  bool isPtInFirstImage(int dataX, int dataY) const;
 
   void SetProfileProbePos(int dataX, int dataY);
   unsigned short GetProfileProbePixelVal();
@@ -137,7 +142,7 @@ public:
   double m_fResampleFactor{}; // if it is not the 1.0, the data is already
                               // resampled.
 
-  UnsignedShortImageType::Pointer CloneItkImage();
+  UnsignedShortImageType::Pointer CloneItkImage() const;
   void ResampleImage(double fResampleFactor);
 
   void UpdateFromItkImage(UnsignedShortImageType::Pointer &spRefItkImg);

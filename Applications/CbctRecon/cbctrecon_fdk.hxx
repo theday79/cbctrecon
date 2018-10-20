@@ -7,8 +7,8 @@
 #include <QString> // for QString
 
 // ITK
+#include "itkAbsImageFilter.h"
 #include "itkAddImageFilter.h"
-#include "itkCastImageFilter.h"
 #include "itkFlipImageFilter.h"
 #include "itkImageDuplicator.h"
 #include "itkMatrixOffsetTransformBase.h"
@@ -17,7 +17,6 @@
 #include "itkResampleImageFilter.h"
 #include "itkStreamingImageFilter.h"
 #include "itkThresholdImageFilter.h"
-#include "itkAbsImageFilter.h"
 
 // RTK
 #include "rtkBackProjectionImageFilter.h" // for BackProje...
@@ -41,8 +40,8 @@
 #include <rtkCudaParkerShortScanImageFilter.h>
 #endif // USE_CUDA
 
-#include "cbctrecon.h"
 #include "YK16GrayImage.h"
+#include "cbctrecon.h" // lies
 
 template <typename ImageType>
 typename ImageType::Pointer RTKOpenCLFDK(
@@ -79,8 +78,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
 
   // FDK reconstruction filtering
   using FDKOPENCLType = rtk::OpenCLFDKConeBeamReconstructionFilter;
-  FDKOPENCLType::Pointer feldkampOCL;
-  feldkampOCL = FDKOPENCLType::New();
+  FDKOPENCLType::Pointer feldkampOCL = FDKOPENCLType::New();
 
   feldkampOCL->SetInput(0, constantImageSource->GetOutput());
   feldkampOCL->SetInput(1, castFilter->GetOutput());
@@ -94,14 +92,13 @@ typename ImageType::Pointer RTKOpenCLFDK(
 
   // feldkampOCL->Update();
   // feldkampOCL->PrintTiming(std::cout); Deprecated in rtk 1.4
-  
+
   using CastFilterType2 = itk::CastImageFilter<FloatImageType, ImageType>;
   typename CastFilterType2::Pointer castFilter2 = CastFilterType2::New();
   castFilter2->SetInput(feldkampOCL->GetOutput());
   castFilter2->Update();
   return castFilter2->GetOutput();
 }
-
 
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
@@ -242,8 +239,8 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   if (Tdev == OPENCL_DEVT) {
 
     std::cout << "Starting RTK fdk" << std::endl;
-    targetImg = RTKOpenCLFDK<ImageType>(spCurImg, m_spCustomGeometry, spacing, sizeOutput,
-                             fdk_options);
+    targetImg = RTKOpenCLFDK<ImageType>(spCurImg, m_spCustomGeometry, spacing,
+                                        sizeOutput, fdk_options);
   } else {
 
     typename ConstantImageSourceType::PointType origin;
@@ -368,7 +365,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   CoordChangeMatrix[2][1] = 0.0;
   CoordChangeMatrix[2][2] = 0.0;
 
-  itk::Vector<double, 3U> offset(0.0);
+  const itk::Vector<double, 3U> offset(0.0);
 
   using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
   TransformType::Pointer transform = TransformType::New();
@@ -403,7 +400,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   typename AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
   absImgFilter->SetInput(
       flipFilter
-          ->GetOutput()); // 20140206 modified it was a bug
+          ->GetOutput()); // 20140206 modified it was a buug
                           // absImgFilter->SetInput(resampler->GetOutput());
 
   using MultiplyImageFilterType = itk::MultiplyImageFilter<ImageType>;

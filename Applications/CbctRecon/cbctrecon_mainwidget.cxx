@@ -15,7 +15,7 @@
 #include <qtimer.h>
 
 // ITK
-#include "itkCastImageFilter.h"
+// #include "itkCastImageFilter.h"
 #include "itkExtractImageFilter.h"
 #include "itkImageDuplicator.h"
 #include "itkImageSliceIteratorWithIndex.h"
@@ -24,6 +24,7 @@
 #include "itkTimeProbe.h"
 
 // PLM
+#include "itk_mask.h"
 #include "mha_io.h"
 #include "nki_io.h"
 
@@ -31,6 +32,8 @@
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
 #include "cbctrecon.h"
+#include "cbctrecon_compute.h"
+#include "cbctrecon_io.h"
 #include "cbctregistration.h"
 #include "qcustomplot.h"
 
@@ -83,8 +86,7 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
 
   // 20141017 QTIMER for sync
   m_Timer = std::make_unique<QTimer>(this);
-  connect(std::move(m_Timer.get()), SIGNAL(timeout()), this,
-          SLOT(SLT_TimerEvent()));
+  connect(m_Timer.get(), SIGNAL(timeout()), this, SLOT(SLT_TimerEvent()));
   m_busyTimer = false;
 
   m_cbctrecon->m_strPathDirDefault =
@@ -154,7 +156,7 @@ void CbctReconWidget::SLT_DrawProjImages() {
     return;
   }
 
-  int iReqSlice = ui.spinBoxImgIdx->value();
+  // int iReqSlice = ui.spinBoxImgIdx->value();
 
   if (!m_cbctrecon->FillProjForDisplay(ui.spinBoxImgIdx->value())) {
     return;
@@ -226,8 +228,8 @@ void CbctReconWidget::SLT_MakeElektaXML() {
     return;
   }
 
-  QString genFilePath = m_cbctrecon->MakeElektaXML(
-      filePath_ImageDBF, filePath_FrameDBF, DICOM_UID);
+  QString genFilePath =
+      MakeElektaXML(filePath_ImageDBF, filePath_FrameDBF, DICOM_UID);
   std::cout << "Generated ElektaXML path: "
             << genFilePath.toLocal8Bit().constData() << std::endl;
 }
@@ -235,15 +237,15 @@ void CbctReconWidget::SLT_MakeElektaXML() {
 void CbctReconWidget::SLT_OpenOffsetFile() {
   // QString strPath = QFileDialog::getOpenFileNames(this,"Select one or more
   // files to open","/home","Images (*.raw)");
-  QString strPath = QFileDialog::getOpenFileName(
+  auto strPath = QFileDialog::getOpenFileName(
       this, "Select a single file to open", m_cbctrecon->m_strPathDirDefault,
       "raw image (*.raw)");
 
   if (strPath.length() <= 1) {
     return;
   }
-
-  m_cbctrecon->LoadCalibData(strPath.toLocal8Bit().constData(), OFFSET_CALIB);
+  auto stdstr_path = strPath.toStdString();
+  m_cbctrecon->LoadCalibData(stdstr_path, OFFSET_CALIB);
 
   ui.lineEdit_offsetPath->setText(strPath);
 }
@@ -258,8 +260,8 @@ void CbctReconWidget::SLT_OpenGainFile() {
   }
 
   ui.lineEdit_gainPath->setText(strPath);
-
-  m_cbctrecon->LoadCalibData(strPath.toLocal8Bit().constData(), GAIN_CALIB);
+  auto stdstr_path = strPath.toStdString();
+  m_cbctrecon->LoadCalibData(stdstr_path, GAIN_CALIB);
 }
 
 void CbctReconWidget::SLT_OpenBadpixelFile() {
@@ -272,7 +274,8 @@ void CbctReconWidget::SLT_OpenBadpixelFile() {
   }
 
   ui.lineEdit_badpixelPath->setText(strPath);
-  m_cbctrecon->LoadCalibData(strPath.toLocal8Bit().constData(), BADPIXEL_CALIB);
+  auto stdstr_path = strPath.toStdString();
+  m_cbctrecon->LoadCalibData(stdstr_path, BADPIXEL_CALIB);
   // m_pImgGain->LoadRawImage(strPath.toLocal8Bit(),IMG_WIDTH, IMG_HEIGHT);
 }
 
@@ -318,18 +321,16 @@ void CbctReconWidget::SLT_DrawReconImage() {
 
   extractFilter->SetDirectionCollapseToSubmatrix();
 
-  UShortImageType::RegionType crntRegion3D = clonedImage->GetBufferedRegion();
-
-  crntRegion3D = clonedImage->GetBufferedRegion();
+  UShortImageType::RegionType crnt_region_3d = clonedImage->GetBufferedRegion();
 
   //  We take the size from the region and collapse the size in the $Z$
   //  component by setting its value to $1$.
 
   // Get Image Size and Extraction Index info.
-  UShortImageType::SizeType size = crntRegion3D.GetSize();
+  UShortImageType::SizeType size = crnt_region_3d.GetSize();
   size[2] = 0; // z size number = 0 --> should not be 1
 
-  UShortImageType::IndexType start = crntRegion3D.GetIndex();
+  UShortImageType::IndexType start = crnt_region_3d.GetIndex();
   const int iSliceNumber = ui.spinBoxReconImgSliceNo->value();
   start[2] = iSliceNumber; // 60
 
@@ -614,8 +615,7 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   float kVp = 0.0;
   float mA = 0.0;
   float ms = 0.0;
-  m_cbctrecon->GetXrayParamFromINI(m_cbctrecon->m_strPathElektaINI, kVp, mA,
-                                   ms);
+  GetXrayParamFromINI(m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
 
   if (kVp * mA * ms != 0) {
     // update GUI
@@ -630,8 +630,8 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   VEC3D couch_rot = {-999, -999,
                      -999}; // mm. In the text file, these values are in cm.
 
-  bool res = m_cbctrecon->GetCouchShiftFromINIXVI(
-      m_cbctrecon->m_strPathElektaINIXVI2, &couch_trans, &couch_rot);
+  bool res = GetCouchShiftFromINIXVI(m_cbctrecon->m_strPathElektaINIXVI2,
+                                     &couch_trans, &couch_rot);
 
   if (res) {
     QString strTransX = QString::number(couch_trans.x, 'f', 1);
@@ -868,7 +868,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   std::cout << "Reader re-attached to main thread" << std::endl;
 
   if (bowtie_reader != nullptr) {
-    m_cbctrecon->ApplyBowtie(reader, bowtie_reader);
+    ApplyBowtie(reader, bowtie_reader);
   }
   if (m_cbctrecon->m_projFormat == HND_FORMAT) {
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
@@ -876,9 +876,8 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   }
 
   saveImageAsMHA<FloatImageType>(m_cbctrecon->m_spProjImg3DFloat);
-
-  if (!m_cbctrecon->ResampleProjections(
-          ui.lineEdit_DownResolFactor->text().toDouble())) { // 0.5
+  auto res_factor = ui.lineEdit_DownResolFactor->text().toDouble();
+  if (!m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
     // reset factor if image was not resampled
     ui.lineEdit_DownResolFactor->setText("1.0");
   }
@@ -920,54 +919,53 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
 void CbctReconWidget::SLT_DataProbeProj() {
   double dspWidth = ui.labelImageRaw->width();
   double dspHeight = ui.labelImageRaw->height();
-  int dataWidth = 0;
-  int dataHeight = 0;
-  int dataX = 0;
-  int dataY = 0;
-  int dataZ = 0;
-  double fProbeValue = 0.0;
 
   if (m_cbctrecon->m_iImgCnt > 0) // there is indep loaded projection files
   {
-    dataWidth = m_cbctrecon->m_dspYKImgProj->m_iWidth;
-    dataHeight = m_cbctrecon->m_dspYKImgProj->m_iHeight;
+    auto dataWidth = m_cbctrecon->m_dspYKImgProj->m_iWidth;
+    auto dataHeight = m_cbctrecon->m_dspYKImgProj->m_iHeight;
 
-    dataX = qRound(ui.labelImageRaw->x / dspWidth * dataWidth);
-    dataY = qRound(ui.labelImageRaw->y / dspHeight * dataHeight);
-    dataZ = ui.spinBoxImgIdx->value();
-    fProbeValue =
-        m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX];
+    auto dataX = qRound(ui.labelImageRaw->x / dspWidth * dataWidth);
+    auto dataY = qRound(ui.labelImageRaw->y / dspHeight * dataHeight);
+    auto dataZ = ui.spinBoxImgIdx->value();
+    auto fProbeValue = static_cast<double>(
+        m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]);
+    auto dspText = QString("(%1, %2, %3): %4")
+                       .arg(dataX)
+                       .arg(dataY)
+                       .arg(dataZ)
+                       .arg(fProbeValue, 0, 'f', 2);
+    ui.lineEdit_DataProbe_Proj->setText(dspText);
   } else {
     if (m_cbctrecon->m_spProjImg3DFloat == nullptr) {
       return;
     }
 
-    dataWidth = static_cast<int>(
+    auto dataWidth = static_cast<int>(
         m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0]);
-    dataHeight = static_cast<int>(
+    auto dataHeight = static_cast<int>(
         m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1]);
 
     // int crntIdx = ui.spinBoxImgIdx->value();
     // These are displayed data (just index data)
-    dataX = qRound(ui.labelImageRaw->x / dspWidth * dataWidth);
-    dataY = qRound(ui.labelImageRaw->y / dspHeight * dataHeight);
-    dataZ = ui.spinBoxImgIdx->value();
+    auto dataX = qRound(ui.labelImageRaw->x / dspWidth * dataWidth);
+    auto dataY = qRound(ui.labelImageRaw->y / dspHeight * dataHeight);
+    auto dataZ = ui.spinBoxImgIdx->value();
 
     // fProbeValue = m_dspYKImgProj->m_pData[dataWidth*dataY +
     // dataX]/m_multiplyFactor;
-    fProbeValue =
-        m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX] /
+    auto fProbeValue =
+        static_cast<double>(
+            m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]) /
             m_cbctrecon->m_multiplyFactor +
         m_cbctrecon->m_fProjImgValueMin;
+    auto dspText = QString("(%1, %2, %3): %4")
+                       .arg(dataX)
+                       .arg(dataY)
+                       .arg(dataZ)
+                       .arg(fProbeValue, 0, 'f', 2);
+    ui.lineEdit_DataProbe_Proj->setText(dspText);
   }
-
-  QString dspText;
-  dspText = QString("(%1, %2, %3): %4")
-                .arg(dataX)
-                .arg(dataY)
-                .arg(dataZ)
-                .arg(fProbeValue, 0, 'f', 2);
-  ui.lineEdit_DataProbe_Proj->setText(dspText);
 }
 
 void CbctReconWidget::SLT_DataProbeRecon() {
@@ -1096,7 +1094,7 @@ void CbctReconWidget::SLT_UpdateTable() {
   }
 
   // std::cout << "check 1" << std::endl;
-  YK16GrayImage *pYKImg = nullptr;
+  YK16GrayImage *pYKImg;
   double fMultiPlyFactor = 1.0;
   double fMinValue = 0.0;
 
@@ -1112,7 +1110,6 @@ void CbctReconWidget::SLT_UpdateTable() {
     }
   } else {
     pYKImg = m_cbctrecon->m_dspYKReconImage.get();
-    fMultiPlyFactor = 1.0;
     fMinValue = 0.0;
   }
   if (pYKImg == nullptr) {
@@ -1122,17 +1119,14 @@ void CbctReconWidget::SLT_UpdateTable() {
   // std::cout << "check 2" << std::endl;
 
   // std::cout << "check 3" << std::endl;
-  int columnSize = 1;
-  int rowSize = 0;
+  int columnSize = 2;
+  int rowSize = pYKImg->m_iHeight;
 
   /// int rowSize = pYKImg->m_iWidth;
 
   if (ui.radioButton_Profile_Hor->isChecked()) {
-    columnSize = 2;
+    // columnSize = 2;
     rowSize = pYKImg->m_iWidth;
-  } else {
-    columnSize = 2;
-    rowSize = pYKImg->m_iHeight;
   }
 
   // std::cout << "check 4" << std::endl;
@@ -1149,8 +1143,8 @@ void CbctReconWidget::SLT_UpdateTable() {
   auto pos_item = std::make_unique<QStandardItem>(QString("Position(mm)"));
   auto val_item = std::make_unique<QStandardItem>(QString("Value"));
 
-  m_pTableModel->setHorizontalHeaderItem(0, std::move(pos_item.get()));
-  m_pTableModel->setHorizontalHeaderItem(1, std::move(val_item.get()));
+  m_pTableModel->setHorizontalHeaderItem(0, pos_item.get());
+  m_pTableModel->setHorizontalHeaderItem(1, val_item.get());
   //}
 
   // std::cout << "check 5" << std::endl;
@@ -1203,12 +1197,12 @@ void CbctReconWidget::SLT_UpdateTable() {
     auto tmpVal1 = vPos[i];
     auto xpos_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal1));
-    m_pTableModel->setItem(i, 0, std::move(xpos_item.get()));
+    m_pTableModel->setItem(i, 0, xpos_item.get());
 
     auto tmpVal2 = vProfile[i] / fMultiPlyFactor + fMinValue;
     auto profval_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal2));
-    m_pTableModel->setItem(i, 1, std::move(profval_item.get()));
+    m_pTableModel->setItem(i, 1, profval_item.get());
   }
 
   ui.tableViewReconImgProfile->setModel(m_pTableModel.get()); // also for proj
@@ -1389,15 +1383,9 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
   double fForcedProbePosY = ui.lineEdit_ForcedProbePosY->text().toDouble();
   double fForcedProbePosZ = ui.lineEdit_ForcedProbePosZ->text().toDouble();
 
-  double dspWidth = 0.0;
-  double dspHeight = 0.0;
-  int dataWidth = 0;
-  int dataHeight = 0;
-
   // First change the scene acc to Z value
   double originX, originY, originZ;
   double spacingX, spacingY, spacingZ;
-  int sliceIdx = 0;
 
   int dataX, dataY;
 
@@ -1415,7 +1403,7 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
     spacingY = ProjImg3D->GetSpacing()[1];
     spacingZ = ProjImg3D->GetSpacing()[2];
 
-    sliceIdx = qRound((fForcedProbePosZ - originZ) / spacingZ);
+    const auto sliceIdx = qRound((fForcedProbePosZ - originZ) / spacingZ);
 
     if (sliceIdx < 0 || sliceIdx >= m_cbctrecon->m_iImgCnt) {
       return;
@@ -1423,11 +1411,11 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
 
     ui.spinBoxImgIdx->setValue(sliceIdx); // Draw function is called
 
-    dspWidth = ui.labelImageRaw->width();
-    dspHeight = ui.labelImageRaw->height();
+    const auto dspWidth = ui.labelImageRaw->width();
+    const auto dspHeight = ui.labelImageRaw->height();
 
-    dataWidth = m_cbctrecon->m_dspYKImgProj->m_iWidth;
-    dataHeight = m_cbctrecon->m_dspYKImgProj->m_iHeight;
+    const auto dataWidth = m_cbctrecon->m_dspYKImgProj->m_iWidth;
+    const auto dataHeight = m_cbctrecon->m_dspYKImgProj->m_iHeight;
 
     dataX = qRound((fForcedProbePosX - originX) / spacingX);
     dataY = qRound((fForcedProbePosY - originY) / spacingY);
@@ -1455,7 +1443,7 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
     spacingY = CrntReconImg->GetSpacing()[1];
     spacingZ = CrntReconImg->GetSpacing()[2];
 
-    sliceIdx = qRound((fForcedProbePosZ - originZ) / spacingZ);
+    const auto sliceIdx = qRound((fForcedProbePosZ - originZ) / spacingZ);
 
     if (sliceIdx < 0 ||
         sliceIdx >=
@@ -1465,11 +1453,11 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
 
     ui.spinBoxReconImgSliceNo->setValue(sliceIdx); // Draw function is called
 
-    dspWidth = ui.labelReconImage->width();
-    dspHeight = ui.labelReconImage->height();
+    const auto dspWidth = ui.labelReconImage->width();
+    const auto dspHeight = ui.labelReconImage->height();
 
-    dataWidth = m_cbctrecon->m_dspYKReconImage->m_iWidth;
-    dataHeight = m_cbctrecon->m_dspYKReconImage->m_iHeight;
+    const auto dataWidth = m_cbctrecon->m_dspYKReconImage->m_iWidth;
+    const auto dataHeight = m_cbctrecon->m_dspYKReconImage->m_iHeight;
 
     dataX = qRound((fForcedProbePosX - originX) / spacingX);
     dataY = qRound((fForcedProbePosY - originY) / spacingY);
@@ -1553,26 +1541,18 @@ void CbctReconWidget::SLT_PostProcCropInv() {
   it.GoToBegin();
 
   int iNumSlice = 0;
-  int iPosX = 0;
-  int iPosY = 0;
-
-  // int i = 0;//height
-  // int j = 0; // width
-
-  double crntPhysX = 0.0;
-  double crntPhysY = 0.0;
 
   while (!it.IsAtEnd()) {
-    iPosY = 0;
+    auto iPosY = 0;
     while (!it.IsAtEndOfSlice()) {
-      iPosX = 0;
+      auto iPosX = 0;
       while (!it.IsAtEndOfLine()) {
         // Calculate physical position
 
-        crntPhysX = iPosX * static_cast<double>(spacing[0]) +
-                    static_cast<double>(origin[0]);
-        crntPhysY = iPosY * static_cast<double>(spacing[1]) +
-                    static_cast<double>(origin[1]);
+        const auto crntPhysX = iPosX * static_cast<double>(spacing[0]) +
+                               static_cast<double>(origin[0]);
+        const auto crntPhysY = iPosY * static_cast<double>(spacing[1]) +
+                               static_cast<double>(origin[1]);
 
         // crop inside of FOV
         if (pow(crntPhysX - physPosX, 2.0) + pow(crntPhysY - physPosY, 2.0) <
@@ -1663,12 +1643,10 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     QString strFullName = strLastName + ", " + strFirstName;
     m_dlgRegistration->LoadImgFromComboBox(0, strDirName);
 
-    m_cbctrecon->SaveUSHORTAsSHORT_DICOM(m_cbctregistration->m_spFixed,
-                                         strPatientID, strFullName,
-                                         strSavingFolder);
+    SaveUSHORTAsSHORT_DICOM(m_dlgRegistration->m_spFixed, strPatientID,
+                            strFullName, strSavingFolder);
     QString mhaFileName = strSavingFolder + "/" + strDirName + ".mha";
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctregistration->m_spFixed,
-                                     mhaFileName);
+    ExportReconSHORT_HU(m_dlgRegistration->m_spFixed, mhaFileName);
   }
   SLT_GeneratePOIData();
   QString angle_end_one("1");
@@ -1683,7 +1661,7 @@ void CbctReconWidget::SLT_ExportReconSHORT_HU() {
   if (strPath.length() <= 1) {
     return;
   }
-  m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
+  ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
 }
 
 void CbctReconWidget::SLT_DoBHC() {
@@ -1839,9 +1817,9 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
-  if (m_cbctregistration->m_spMoving != nullptr) {
+  if (m_dlgRegistration->m_spMoving != nullptr) {
     ForwardProjection(
-        m_cbctregistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
+        m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
         m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
         ui.radioButton_UseCUDA->isChecked()); // final moving image
   } else if (m_cbctrecon->m_spRefCTImg != nullptr) {
@@ -1888,8 +1866,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
 
   std::cout << "To account for the mAs values, the intensity scale factor of "
-            << m_cbctrecon->GetRawIntensityScaleFactor(
-                   m_cbctrecon->m_strRef_mAs, m_cbctrecon->m_strCur_mAs)
+            << GetRawIntensityScaleFactor(m_cbctrecon->m_strRef_mAs,
+                                          m_cbctrecon->m_strCur_mAs)
             << "was multiplied during scatter correction to avoid negative "
                "scatter"
             << std::endl;
@@ -2059,14 +2037,14 @@ void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
   double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
   double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
 
-  VEC3D curPOI{};
-  curPOI.x = ui.lineEdit_ForcedProbePosX->text().toDouble(); // in mm
-  curPOI.y = ui.lineEdit_ForcedProbePosY->text().toDouble();
-  curPOI.z = ui.lineEdit_ForcedProbePosZ->text().toDouble();
+  const auto cur_poi =
+      VEC3D{ui.lineEdit_ForcedProbePosX->text().toDouble(), // in mm
+            ui.lineEdit_ForcedProbePosY->text().toDouble(),
+            ui.lineEdit_ForcedProbePosZ->text().toDouble()};
 
   m_cbctrecon->GetAngularWEPL_SinglePoint(m_cbctrecon->m_spCrntReconImg,
                                           fAngleGap, fAngleStart, fAngleEnd,
-                                          curPOI, 0, vOutputWEPL, true);
+                                          cur_poi, 0, vOutputWEPL, true);
   std::cout << "Computed WEPL points: " << vOutputWEPL.size() << std::endl;
 
   // export arrWEPL
@@ -2215,9 +2193,8 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
 
   QString strSavingFolder = dirPath + "/" + strDirName;
   QString strFullName = strLastName + ", " + strFirstName;
-  m_cbctrecon->SaveUSHORTAsSHORT_DICOM(m_cbctrecon->m_spCrntReconImg,
-                                       strPatientID, strFullName,
-                                       strSavingFolder);
+  SaveUSHORTAsSHORT_DICOM(m_cbctrecon->m_spCrntReconImg, strPatientID,
+                          strFullName, strSavingFolder);
 }
 
 void CbctReconWidget::SLT_AddConstHUToCurImg() {
@@ -2225,7 +2202,7 @@ void CbctReconWidget::SLT_AddConstHUToCurImg() {
     return;
   }
   int addingVal = ui.lineEdit_AddConstHU->text().toInt();
-  m_cbctrecon->AddConstHU(m_cbctrecon->m_spCrntReconImg, addingVal);
+  AddConstHU(m_cbctrecon->m_spCrntReconImg, addingVal);
   QString updated_text = QString("Added%1").arg(addingVal);
   UpdateReconImage(m_cbctrecon->m_spCrntReconImg, updated_text);
 }
@@ -2444,6 +2421,8 @@ void CbctReconWidget::SLT_StopSyncFromSharedMem() {
       fout << "Thread " << GetCurrentThreadId() << ": wait timed out "
            << std::endl;
       break;
+    default:
+      break;
     }
     //	ReleaseSemaphore(hSemaphore, 1, &prev_counter);
   }
@@ -2481,16 +2460,15 @@ void CbctReconWidget::SLT_TimerEvent() {
 
   int size = 1024 * 1024 * 2;
   auto pix_size = static_cast<int>(size / 2.0);
-  unsigned char *charBuf = nullptr;
-  charBuf = static_cast<unsigned char *>(
+  auto char_buf = static_cast<unsigned char *>(
       MapViewOfFile(handle, FILE_MAP_READ, 0, 0, size));
 
-  if (charBuf == nullptr) {
+  if (char_buf == nullptr) {
     std::cout << "Shared memory was not read. Timer will be stopped"
               << std::endl;
     SLT_StopSyncFromSharedMem();
     CloseHandle(handle);
-    delete[] charBuf;
+    delete[] char_buf;
     return;
   }
 
@@ -2498,15 +2476,13 @@ void CbctReconWidget::SLT_TimerEvent() {
   // assuming little endian
 
   // unsigned short* imgBuf = new unsigned short [pix_size];
-  int idxA = 0;
-  int idxB = 0;
 
   for (int i = 0; i < pix_size; i++) {
-    idxA = i * 2 + 1;
-    idxB = i * 2;
+    const auto idxA = i * 2 + 1;
+    const auto idxB = i * 2;
     // 0: 1,0  1: 3,2 ...
     m_cbctrecon->m_arrYKImage.at(0).m_pData[i] =
-        ((charBuf[idxA] << 8) | charBuf[idxB]); // little endian
+        ((char_buf[idxA] << 8) | char_buf[idxB]); // little endian
   }
 
   ui.spinBoxImgIdx->setValue(0);
@@ -2700,22 +2676,20 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     double curSrcOffsetX = 0.0;
     double curSrcOffsetY = 0.0;
 
-    double curMVGantryAngle = 0.0;
-
     // double startAngle = 180.0; //kV = 270.0, CW
     double startAngle = 270; // kV = 360.0, CW
     // int NumOfProj = 360;
     int NumOfProj = 1;
 
     for (int i = 0; i < NumOfProj; i++) {
-      curMVGantryAngle = startAngle + i;
-      if (curMVGantryAngle > 360.0) {
-        curMVGantryAngle = curMVGantryAngle - 360.0;
+      auto cur_mv_gantry_angle = startAngle + i;
+      if (cur_mv_gantry_angle > 360.0) {
+        cur_mv_gantry_angle = cur_mv_gantry_angle - 360.0;
       }
       // AddProjection: current CBCT software version only requires MV gantry
       // angle!!!
       crntGeometry->AddProjection(
-          curSID, curSDD, curMVGantryAngle, curProjOffsetX,
+          curSID, curSDD, cur_mv_gantry_angle, curProjOffsetX,
           curProjOffsetY,                        // Flexmap
           curOutOfPlaneAngles, curInPlaneAngles, // In elekta, these are 0
           curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
@@ -3188,16 +3162,11 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
                                 strSuffix + "_deformCT.mha";
 
   if (bExportImages) {
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spRawReconImg,
-                                     outputPath_rawCBCT);
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spScatCorrReconImg,
-                                     outputPath_corrCBCT);
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spManualRigidCT,
-                                     outputPath_manCT);
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spAutoRigidCT,
-                                     outputPath_rigidCT);
-    m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spDeformedCT_Final,
-                                     outputPath_deformCT);
+    ExportReconSHORT_HU(m_cbctrecon->m_spRawReconImg, outputPath_rawCBCT);
+    ExportReconSHORT_HU(m_cbctrecon->m_spScatCorrReconImg, outputPath_corrCBCT);
+    ExportReconSHORT_HU(m_cbctrecon->m_spManualRigidCT, outputPath_manCT);
+    ExportReconSHORT_HU(m_cbctrecon->m_spAutoRigidCT, outputPath_rigidCT);
+    ExportReconSHORT_HU(m_cbctrecon->m_spDeformedCT_Final, outputPath_deformCT);
   }
 
   // 2) Calculate batched WEPL points
@@ -3415,15 +3384,13 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
     return;
   }
 
-  VEC3D couchShiftTrans{}, couchShiftRot{};
+  const auto couchShiftTrans =
+      VEC3D{strListTrans.at(0).toDouble(), // mm
+            strListTrans.at(1).toDouble(), strListTrans.at(2).toDouble()};
 
-  couchShiftTrans.x = strListTrans.at(0).toDouble(); // mm
-  couchShiftTrans.y = strListTrans.at(1).toDouble();
-  couchShiftTrans.z = strListTrans.at(2).toDouble();
-
-  couchShiftRot.x = strListRot.at(0).toDouble();
-  couchShiftRot.y = strListRot.at(1).toDouble();
-  couchShiftRot.z = strListRot.at(2).toDouble();
+  const auto couchShiftRot =
+      VEC3D{strListRot.at(0).toDouble(), strListRot.at(1).toDouble(),
+            strListRot.at(2).toDouble()};
   // Images to correct:
   /*m_spRawReconImg;
   m_spScatCorrReconImg;
@@ -3432,18 +3399,18 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
 
   // not manual CT!!!
 
-  m_cbctrecon->ImageTransformUsingCouchCorrection(
-      m_cbctrecon->m_spRawReconImg, m_cbctrecon->m_spRawReconImg,
-      couchShiftTrans, couchShiftRot);
-  m_cbctrecon->ImageTransformUsingCouchCorrection(
-      m_cbctrecon->m_spScatCorrReconImg, m_cbctrecon->m_spScatCorrReconImg,
-      couchShiftTrans, couchShiftRot);
-  m_cbctrecon->ImageTransformUsingCouchCorrection(
-      m_cbctrecon->m_spDeformedCT_Final, m_cbctrecon->m_spDeformedCT_Final,
-      couchShiftTrans, couchShiftRot);
-  m_cbctrecon->ImageTransformUsingCouchCorrection(
-      m_cbctrecon->m_spAutoRigidCT, m_cbctrecon->m_spAutoRigidCT,
-      couchShiftTrans, couchShiftRot);
+  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spRawReconImg,
+                                     m_cbctrecon->m_spRawReconImg,
+                                     couchShiftTrans, couchShiftRot);
+  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spScatCorrReconImg,
+                                     m_cbctrecon->m_spScatCorrReconImg,
+                                     couchShiftTrans, couchShiftRot);
+  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spDeformedCT_Final,
+                                     m_cbctrecon->m_spDeformedCT_Final,
+                                     couchShiftTrans, couchShiftRot);
+  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spAutoRigidCT,
+                                     m_cbctrecon->m_spAutoRigidCT,
+                                     couchShiftTrans, couchShiftRot);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                               // signalis called
@@ -3518,17 +3485,16 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   }
   fout << std::endl;
 
-  int cntWEPL = vArrOutputWEPL.at(0).size();
-  int curCount = 0;
-  for (int i = 0; i < iCntFiles; i++) {
-    curCount = vArrOutputWEPL.at(i).size();
-    if (cntWEPL != curCount) {
+  const auto cnt_wepl = vArrOutputWEPL.at(0).size();
+  for (auto i = 0; i < iCntFiles; i++) {
+    const auto cur_count = vArrOutputWEPL.at(i).size();
+    if (cnt_wepl != cur_count) {
       std::cout << "Error! some of the WEPL count doesn't match!" << std::endl;
       return;
     }
   }
 
-  for (int i = 0; i < cntWEPL; i++) {
+  for (int i = 0; i < cnt_wepl; i++) {
     fout << vArrOutputWEPL.at(0).at(i).ptIndex << "\t"
          << vArrOutputWEPL.at(0).at(i).fGanAngle << "\t" << i;
 
@@ -3558,8 +3524,8 @@ void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
                                     ui.radioButton_UseOpenCL->isChecked(),
                                     ui.checkBox_ExportVolDICOM->isChecked(),
                                     fdk_options); // load text file
-  
-    SLT_DrawProjImages();
+
+  SLT_DrawProjImages();
 }
 
 void CbctReconWidget::SLTM_LoadPerProjRefList() {
@@ -3729,18 +3695,16 @@ void CbctReconWidget::SLT_CropSupInf() {
 
   QString strPath =
       m_cbctregistration->m_strPathPlastimatch + "/" + "tmp_SI_cropped.mha";
-  m_cbctrecon->ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
+  ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
 
   QString strName = "SI_Cropped";
   if (bRaw != 0) {
-    if (!m_cbctrecon->LoadShortImageToUshort(strPath,
-                                             m_cbctrecon->m_spRawReconImg)) {
+    if (!LoadShortImageToUshort(strPath, m_cbctrecon->m_spRawReconImg)) {
       std::cout << "error! in LoadShortImageToUshort" << std::endl;
     }
     UpdateReconImage(m_cbctrecon->m_spRawReconImg, strName);
   } else {
-    if (!m_cbctrecon->LoadShortImageToUshort(strPath,
-                                             m_cbctrecon->m_spRefCTImg)) {
+    if (LoadShortImageToUshort(strPath, m_cbctrecon->m_spRefCTImg)) {
       std::cout << "error! in LoadShortImageToUshort" << std::endl;
     }
     UpdateReconImage(m_cbctrecon->m_spRefCTImg, strName);
@@ -3870,8 +3834,7 @@ void CbctReconWidget::SLT_Load3DImageShort() {
     return;
   }
 
-  if (!m_cbctrecon->LoadShortImageToUshort(fileName,
-                                           m_cbctrecon->m_spRawReconImg)) {
+  if (!LoadShortImageToUshort(fileName, m_cbctrecon->m_spRawReconImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -3949,8 +3912,7 @@ void CbctReconWidget::SLT_LoadNKIImage() {
   // corrImg.ReleaseBuffer();
   // NKI to mha
 
-  if (!m_cbctrecon->LoadShortImageToUshort(newPath,
-                                           m_cbctrecon->m_spRawReconImg)) {
+  if (!LoadShortImageToUshort(newPath, m_cbctrecon->m_spRawReconImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -4111,8 +4073,7 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
     return;
   }
 
-  if (!m_cbctrecon->LoadShortImageToUshort(fileName,
-                                           m_cbctrecon->m_spRefCTImg)) {
+  if (!LoadShortImageToUshort(fileName, m_cbctrecon->m_spRefCTImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -4417,12 +4378,11 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) {
     QStringList strList = tmpStr.split("\t"); // tab
 
     QString strHeader, strContent;
-    bool bFlagContent = false;
     if (strList.count() == 2) {
       strHeader = strList.at(0);
       strContent = strList.at(1);
 
-      bFlagContent = strContent.toInt() == 1;
+      const auto bFlagContent = strContent.toInt() == 1;
 
       if (strHeader == "strRefmAs") {
         ui.lineEdit_RefmAs->setText(strContent);

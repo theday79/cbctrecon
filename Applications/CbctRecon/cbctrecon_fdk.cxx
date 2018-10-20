@@ -2,15 +2,11 @@
 #include "cbctrecon.h"
 
 // std
-#include <algorithm> // for copy, min
-#include <complex>   // for operator*
-#include <iostream>  // for operator<<, endl, basic_ostream, cout
-#include <math.h>    // for asin, cos
-#include <memory>    // for unique_ptr
-#include <stdlib.h>
-#include <string>  // for operator<<
-#include <utility> // for swap
-
+#include <cmath>   // for asin, cos
+#include <complex> // for operator*
+#include <cstdlib>
+#include <iostream> // for operator<<, endl, basic_ostream, cout
+#include <string>   // for operator<<
 
 // PLM
 #if USE_OPENCL_PLM
@@ -19,14 +15,13 @@
 #include <fdk_opencl.h>
 #include <opencl_util.h>
 #include <plm_image.h>
-#include <plmreconstruct_config.h>
+// #include <plmreconstruct_config.h>
 #include <proj_image.h>
 #include <proj_image_filter.h>
 #include <proj_matrix.h>
 #endif // USE_OPENCL_PLM
 
 // Local
-#include "YK16GrayImage.h" // for YK16GrayImage
 #include "cbctrecon_compute.h"
 
 #if USE_OPENCL_PLM
@@ -40,15 +35,6 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   // Copy of opencl_reconstruct_conebeam from fdk_opencl.cxx in plastimatch
   // (because we already have loaded projections into memory)
   Opencl_device ocl_dev{};
-  Opencl_buf *ocl_buf_vol;
-  Opencl_buf *ocl_buf_img;
-  Opencl_buf *ocl_buf_matrix;
-  cl_int4 ocl_vol_dim{};
-  Opencl_buf *ocl_buf_vol_origin;
-  Opencl_buf *ocl_buf_vol_spacing;
-  cl_int2 ocl_proj_dim{};
-  Opencl_buf *ocl_buf_nrm;
-  Opencl_buf *ocl_buf_ic;
   // Proj_image *proj;
   // int image_num;
   // float scale;
@@ -85,41 +71,38 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   std::cout << "Buffer proj: " << proj_dim[1] * proj_dim[0] * sizeof(float)
             << std::endl;
   /* Set up device memory */
-  ocl_buf_vol =
+  Opencl_buf *ocl_buf_vol =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                         vol->pix_size * vol->npix, vol->img);
 
-  ocl_buf_img =
+  Opencl_buf *ocl_buf_img =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         proj_dim[1] * proj_dim[0] * sizeof(float), // is 0
                         nullptr);
 
-  ocl_buf_matrix =
+  Opencl_buf *ocl_buf_matrix =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         12 * sizeof(float), nullptr);
 
   /* Copy volume dim (convert from size_t to int) */
-  ocl_vol_dim.x = vol->dim[0];
-  ocl_vol_dim.y = vol->dim[1];
-  ocl_vol_dim.z = vol->dim[2];
+  auto ocl_vol_dim = cl_int4{{vol->dim[0], vol->dim[1], vol->dim[2]}};
 
-  ocl_buf_vol_origin =
+  Opencl_buf *ocl_buf_vol_origin =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                         3 * sizeof(float), &vol->origin[0]);
 
-  ocl_buf_vol_spacing =
+  Opencl_buf *ocl_buf_vol_spacing =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                         3 * sizeof(float), &vol->spacing[0]);
 
   /* Copy projection image dim (convert from size_t to int) */
-  ocl_proj_dim.x = proj_dim[0];
-  ocl_proj_dim.y = proj_dim[1];
+  auto ocl_proj_dim = cl_int2{{proj_dim[0], proj_dim[1]}};
 
-  ocl_buf_nrm =
+  Opencl_buf *ocl_buf_nrm =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         3 * sizeof(float), nullptr);
 
-  ocl_buf_ic =
+  Opencl_buf *ocl_buf_ic =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         2 * sizeof(float), nullptr);
 
@@ -212,13 +195,13 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
 
     /* Compute workgroup size */
     /* (Max local_work_size for (Greg's?) ATI RV710 is 128) */
-    size_t local_work_size = 128;
-    size_t global_work_size = static_cast<float>(vol->npix);
+    const size_t local_work_size = 128;
+    const size_t global_work_size = static_cast<float>(vol->npix);
 
     /* Invoke kernel */
     opencl_kernel_enqueue(&ocl_dev, global_work_size, local_work_size);
-    itShiftX++;
-    itShiftY++;
+    ++itShiftX;
+    ++itShiftY;
 
     delete proj->pmat;
     delete proj;
@@ -234,4 +217,3 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   //////////////////////// end PLM fdk /////////////////////////////
 }
 #endif
-

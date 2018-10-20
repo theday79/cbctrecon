@@ -1,35 +1,37 @@
 #ifndef DLGREGISTRATION_H
 #define DLGREGISTRATION_H
 
-#include <QDialog>
-#include <QString>
+// #include <QDialog>
+// #include <QString>
+
 #include <itkImage.h>
 
-#include "cbctrecon_config.h"
-#include "ui_DlgRegistration.h"
-#include "qyklabel.h"
-#include "cbctrecon.h"
 #include "StructureSet.h"
+#include "cbctrecon.h"
 #include "cbctregistration.h"
+#include "qyklabel.h"
+#include "ui_DlgRegistration.h"
 
+class QDialog;
+class QString;
 class CbctReconWidget;
-
 
 class DlgRegistration : public QDialog, public Ui::DlgRegistrationClass {
   Q_OBJECT
 
 public:
-  CbctReconWidget *m_pParent{};            // to pull 3D images
+  CbctReconWidget *m_pParent{}; // to pull 3D images
   std::unique_ptr<CbctRegistration> m_cbctregistration;
-private: // Just pointers to m_cbctregistration members, for convienience
-  YK16GrayImage* m_YKImgFixed;
-  YK16GrayImage* m_YKImgMoving;
-  YK16GrayImage* m_YKDisp;
-  AG17RGBAImage* m_DoseImgFixed;
-  AG17RGBAImage* m_DoseImgMoving;
-  AG17RGBAImage* m_AGDisp_Overlay;
   UShortImageType::Pointer m_spFixed;  // pointer only, for display
   UShortImageType::Pointer m_spMoving; // pointer only, for display
+
+private: // Just pointers to m_cbctregistration members, for convienience
+  YK16GrayImage *m_YKImgFixed;
+  YK16GrayImage *m_YKImgMoving;
+  YK16GrayImage *m_YKDisp;
+  AG17RGBAImage *m_DoseImgFixed;
+  AG17RGBAImage *m_DoseImgMoving;
+  AG17RGBAImage *m_AGDisp_Overlay;
   UShortImageType::Pointer m_spFixedDose;  // pointer only, for display
   UShortImageType::Pointer m_spMovingDose; // pointer only, for display
   int m_enViewArrange{};
@@ -38,7 +40,7 @@ private: // Just pointers to m_cbctregistration members, for convienience
   bool m_bPressedLeft[3]{}; // Left Mouse Pressed but not released
   bool m_bPressedRight[3]{};
   QPoint m_ptWindowLevelStart; // data point
-  QPoint m_ptPanStart; // data point
+  QPoint m_ptPanStart;         // data point
   QPoint m_ptTmpOriginalDataOffset;
   int m_iTmpOriginalW{};
   int m_iTmpOriginalL{};
@@ -67,9 +69,9 @@ private:
 
   void ImageManualMove(int direction, double resol);
   void ImageManualMoveOneShot(float shiftX, float shiftY,
-    float shiftZ); // DICOM coordinate
+                              float shiftZ); // DICOM coordinate
   void AddImageToCombo(int comboIdx,
-    enREGI_IMAGES option); // comboIdx 0: fixed, 1: moving
+                       enREGI_IMAGES option); // comboIdx 0: fixed, 1: moving
   void LoadVOIFromComboBox(int idx, QString &strSelectedComboTxt);
 
 public slots:

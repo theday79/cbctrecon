@@ -77,23 +77,23 @@ public:
   itkGetConstMacro(GPUEnabled, bool);
   itkBooleanMacro(GPUEnabled);
 
-  void GenerateData();
+  void GenerateData() override;
 
 protected:
   OpenCLImageToImageFilter();
   ~OpenCLImageToImageFilter();
 
-  virtual void PrintSelf(std::ostream &os, Indent indent) const;
+  virtual void PrintSelf(std::ostream &os, Indent indent) const override;
 
   virtual void GPUGenerateData() {}
 
   // OpenCL kernel manager
   // typename OpenCLKernelManager::Pointer m_OpenCLKernelManager;
 
+public:
+  OpenCLImageToImageFilter(const Self &) = delete; // purposely not implemented
+  void operator=(const Self &) = delete;           // purposely not implemented
 private:
-  OpenCLImageToImageFilter(const Self &); // purposely not implemented
-  void operator=(const Self &);           // purposely not implemented
-
   bool m_GPUEnabled;
 };
 

@@ -25,32 +25,30 @@ struct IntVector {
   int z;
 };
 
-double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
-                       const std::array<double, 3> vec_basis,
-                       const std::array<double, 3> vec_cubesize,
-                       const std::array<size_t, 3> cubedim,
+double WEPL_from_point(std::array<size_t, 3> cur_point_id,
+                       std::array<double, 3> vec_basis,
+                       std::array<double, 3> vec_cubesize,
+                       std::array<size_t, 3> cubedim,
                        const FloatImageType::Pointer &wepl_cube);
 
 std::array<double, 3> get_basis_from_angles(double gantry, double couch);
 
-std::vector<double>
-WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
-                      const std::array<double, 3> vec_basis,
-                      const std::array<double, 3> vec_cubesize,
-                      const std::array<size_t, 3> cubedim,
-                      const FloatImageType::Pointer &wepl_cube);
+std::vector<double> WEPL_trace_from_point(
+    std::array<size_t, 3> cur_point_id, std::array<double, 3> vec_basis,
+    std::array<double, 3> vec_cubesize, std::array<size_t, 3> cubedim,
+    const FloatImageType::Pointer &wepl_cube);
 
 std::vector<WEPLVector>
-WEPLContourFromRtssContour(const Rtss_contour_modern rt_contour,
-                           const std::array<double, 3> vec_basis,
+WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
+                           std::array<double, 3> vec_basis,
                            const FloatImageType::Pointer &wepl_cube);
 
-DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
-                             const std::array<double, 3> vec_basis,
+DoubleVector point_from_WEPL(DoubleVector start_point, const double fWEPL,
+                             std::array<double, 3> vec_basis,
                              const FloatImageType::Pointer &wepl_cube);
 
-FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
-                                     const std::array<double, 3> vec_basis,
+FloatVector NewPoint_from_WEPLVector(WEPLVector vwepl,
+                                     std::array<double, 3> vec_basis,
                                      const FloatImageType::Pointer &wepl_cube);
 
 FloatImageType::Pointer

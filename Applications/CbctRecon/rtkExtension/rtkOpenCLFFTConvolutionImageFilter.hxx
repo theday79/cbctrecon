@@ -29,7 +29,6 @@
 #include "OpenCLFFTFilter.h"
 #include <itkCropImageFilter.h>
 #include <itkImageRegionIterator.h>
-#include <itkImageRegionIteratorWithIndex.h>
 
 namespace rtk {
 
@@ -47,7 +46,7 @@ typename OpenCLFFTConvolutionImageFilter<
     TParentImageFilter>::FFTInputImagePointer
 OpenCLFFTConvolutionImageFilter<TParentImageFilter>::PadInputImageRegion(
     const RegionType &inputRegion) {
-  FloatImageType::RegionType inBuffRegion =
+  itk::Image<float, 3>::RegionType inBuffRegion =
       this->GetInput()->GetBufferedRegion();
   if (inBuffRegion != this->GetInput()->GetRequestedRegion()) {
     itkExceptionMacro(<< "OpenCLFFTConvolutionImageFilter assumes that input "

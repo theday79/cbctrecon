@@ -8,8 +8,7 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
     vol);*/
 
   using ImageType = VectorFieldType;
-  int i, d1, d2;
-  auto img = reinterpret_cast<FloatVector *>(vol->img);
+  const auto img = reinterpret_cast<FloatVector *>(vol->img);
   ImageType::SizeType sz;
   ImageType::IndexType st;
   ImageType::RegionType rg;
@@ -18,12 +17,12 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   ImageType::DirectionType dc;
 
   /* Copy header & allocate data for itk */
-  for (d1 = 0; d1 < 3; d1++) {
+  for (auto d1 = 0; d1 < 3; d1++) {
     st[d1] = 0;
     sz[d1] = vol->dim[d1];
     sp[d1] = vol->spacing[d1];
     og[d1] = vol->origin[d1];
-    for (d2 = 0; d2 < 3; d2++) {
+    for (auto d2 = 0; d2 < 3; d2++) {
       dc[d1][d2] = vol->direction_cosines[d1 * 3 + d2];
     }
   }
@@ -41,6 +40,7 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   /* Copy data into itk */
   using IteratorType = itk::ImageRegionIterator<ImageType>;
   IteratorType it(itk_img, rg);
+  int i;
   for (it.GoToBegin(), i = 0; !it.IsAtEnd(); ++it, ++i) {
     float vec[] = {img[i].x, img[i].y, img[i].z};
     it.Set(vec);
@@ -67,8 +67,7 @@ Rtss_contour_modern::Rtss_contour_modern(Rtss_contour *old_contour) {
   });
 };
 
-Rtss_contour_modern::Rtss_contour_modern(
-    Rtss_contour_modern *old_contour) {
+Rtss_contour_modern::Rtss_contour_modern(Rtss_contour_modern *old_contour) {
   ct_slice_uid = old_contour->ct_slice_uid;
   slice_no = old_contour->slice_no;
   num_vertices = old_contour->num_vertices;
@@ -85,9 +84,9 @@ Rtss_roi_modern::Rtss_roi_modern(Rtss_roi *old_roi) {
   num_contours = old_roi->num_contours;
   pslist.resize(num_contours);
   // To avoid illegal destruction of objects that migth have been moved:
-  //old_roi->num_contours = 0;
+  // old_roi->num_contours = 0;
   std::copy(&old_roi->pslist[0], &old_roi->pslist[num_contours - 1],
-            pslist.begin());  // "Copy" but probably is memmove
+            pslist.begin()); // "Copy" but probably is memmove
 };
 
 Rtss_roi_modern::Rtss_roi_modern(Rtss_roi_modern *old_roi) {
@@ -168,9 +167,10 @@ Rtss_modern::Rtss_modern(Rtss_modern *old_rtss) {
   std::copy(old_rtss->slist.begin(), old_rtss->slist.end(), slist.begin());
 };
 
-std::unique_ptr<Rtss_roi_modern> Rtss_modern::get_roi_by_name(std::string name){
-  for(auto roi: slist) {
-    if (roi.name.compare(name) == 0) {
+std::unique_ptr<Rtss_roi_modern>
+Rtss_modern::get_roi_by_name(std::string &name) {
+  for (auto &roi : slist) {
+    if (roi.name == name) {
       return std::make_unique<Rtss_roi_modern>(roi);
     }
   }

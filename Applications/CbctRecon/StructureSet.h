@@ -4,11 +4,6 @@
 #include "PlmWrapper.h"
 #include "cbctrecon.h"
 
-#include <bspline_xform.h>
-#include <plm_image.h>
-#include <xform.h>
-#include <xform_convert.h>
-
 enum ctType {
   PLAN_CT = 0,
   RIGID_CT = 1,

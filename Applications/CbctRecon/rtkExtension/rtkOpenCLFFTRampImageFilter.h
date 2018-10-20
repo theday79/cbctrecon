@@ -19,11 +19,10 @@
 #ifndef rtkOpenCLFFTRampImageFilter_h
 #define rtkOpenCLFFTRampImageFilter_h
 
-#include "rtkConfiguration.h"
+#include "cbctrecon_config.h"
+
 #include "rtkFFTRampImageFilter.h"
-#include "rtkMacro.h"
 #include "rtkOpenCLFFTConvolutionImageFilter.h"
-#include <itkConceptChecking.h>
 
 namespace rtk {
 
@@ -47,7 +46,8 @@ class OpenCLFFTRampImageFilter
 public:
   /** Standard class typedefs. */
   typedef OpenCLFFTRampImageFilter Self;
-  typedef FFTRampImageFilter<FloatImageType, FloatImageType, float> Superclass;
+  typedef FFTRampImageFilter<itk::Image<float, 3>, itk::Image<float, 3>, float>
+      Superclass;
   typedef itk::SmartPointer<Self> Pointer;
   typedef itk::SmartPointer<const Self> ConstPointer;
 
@@ -58,8 +58,8 @@ public:
   itkTypeMacro(OpenCLFFTRampImageFilter, FFTRampImageFilter);
 
 protected:
-  rtkcuda_EXPORT OpenCLFFTRampImageFilter() {}
-  ~OpenCLFFTRampImageFilter() {}
+  CBCTRECON_API OpenCLFFTRampImageFilter() = default;
+  ~OpenCLFFTRampImageFilter() = default;
 
   // virtual void GenerateInputRequestedRegion() ITK_OVERRIDE;
 
@@ -67,10 +67,10 @@ protected:
    * space. Used in generate data functions.  */
   // void UpdateFFTConvolutionKernel(const SizeType size) ITK_OVERRIDE;
 
-private:
-  OpenCLFFTRampImageFilter(const Self &); // purposely not implemented
-  void operator=(const Self &);           // purposely not implemented
-};                                        // end of class
+public:
+  OpenCLFFTRampImageFilter(const Self &) = delete; // purposely not implemented
+  void operator=(const Self &) = delete;           // purposely not implemented
+};                                                 // end of class
 
 } // end namespace rtk
 

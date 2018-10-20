@@ -8,7 +8,6 @@
 
 // ITK
 #include "gdcmUIDGenerator.h"
-#include "itkAddImageFilter.h"
 #include "itkGDCMImageIO.h"
 #include "itkImageDuplicator.h"
 #include "itkImageFileWriter.h"
@@ -22,22 +21,21 @@
 #include "rtkElektaSynergyGeometryReader.h"
 #include "rtkMacro.h" // for TRY_AND_EXIT_ON_ITK...
 #include "rtkProjectionsReader.h"
-#include "rtkThreeDCircularProjectionGeometry.h" // for ThreeDCircularProje...
 #include "rtkThreeDCircularProjectionGeometryXMLFileReader.h" // for ThreeDCircularProje...
 #include "rtkThreeDCircularProjectionGeometryXMLFileWriter.h" // for ThreeDCircularProje...
 
 // PLM
-#include "plm_image.h"
 #include "dcmtk_rt_study.h"
+#include "plm_image.h"
+#include <rt_study_metadata.h>
 
 // local
 #include "StructureSet.h"
-#include "YK16GrayImage.h" // for YK16GrayImage
 #include "cbctrecon_io.h"
 
-QString CbctRecon::MakeElektaXML(const QString &filePath_ImageDBF,
-                                 const QString &filePath_FrameDBF,
-                                 const QString &DICOM_UID) {
+QString MakeElektaXML(const QString &filePath_ImageDBF,
+                      const QString &filePath_FrameDBF,
+                      const QString &DICOM_UID) {
   std::cout << "Elekta geometry XML file is being generated." << std::endl;
   // Define FRAME.DBF path
   rtk::ElektaSynergyGeometryReader::Pointer reader =
@@ -48,11 +46,11 @@ QString CbctRecon::MakeElektaXML(const QString &filePath_ImageDBF,
   // string strDbfFrame = filePath_FrameDBF.toStdString();
 
   QFileInfo info = QFileInfo(filePath_ImageDBF);
-  QString dirPath = info.absolutePath();
+  const QString dirPath = info.absolutePath();
 
-  QString fileName = "ElektaGeom_" + DICOM_UID + ".xml";
+  const QString fileName = "ElektaGeom_" + DICOM_UID + ".xml";
 
-  QString strOutput = dirPath + "/" + fileName;
+  QString str_output = dirPath + "/" + fileName;
 
   reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
   reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
@@ -63,19 +61,19 @@ QString CbctRecon::MakeElektaXML(const QString &filePath_ImageDBF,
   // Write
   rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
       rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-  xmlWriter->SetFilename(strOutput.toLocal8Bit().constData());
+  xmlWriter->SetFilename(str_output.toLocal8Bit().constData());
   xmlWriter->SetObject(reader->GetGeometry());
   TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile())
 
   std::cout << "Reading succeed" << std::endl;
 
-  return strOutput;
+  return str_output;
 }
 
 // Get the projection geometry
 void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
-  rtk::ThreeDCircularProjectionGeometryXMLFileReader::Pointer geometryReader;
-  geometryReader = rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
+  rtk::ThreeDCircularProjectionGeometryXMLFileReader::Pointer geometryReader =
+      rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
   geometryReader->SetFilename(filePath);
   TRY_AND_EXIT_ON_ITK_EXCEPTION(geometryReader->GenerateOutputInformation())
   std::cout << "Geometry reading succeed" << std::endl;
@@ -83,7 +81,7 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   m_spFullGeometry = geometryReader->GetOutputObject();
 
   // fullGeometry->GetGantryAngles();
-  int geoDataSize =
+  const int geoDataSize =
       m_spFullGeometry->GetGantryAngles().size(); // This is MV gantry angle!!!
   std::cout << "Geometry data size(projection gantry angles): " << geoDataSize
             << std::endl;
@@ -107,10 +105,10 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
 
   std::vector<double> vTempConvAngles;
 
-  auto itBegin = (m_spFullGeometry->GetGantryAngles()).begin();
-  auto itEnd = (m_spFullGeometry->GetGantryAngles()).end();
+  const auto itBegin = (m_spFullGeometry->GetGantryAngles()).begin();
+  const auto itEnd = (m_spFullGeometry->GetGantryAngles()).end();
 
-  for (auto it = itBegin; it != itEnd; it++) {
+  for (auto it = itBegin; it != itEnd; ++it) {
     double tmpAngle = (*it);
 
     if (tmpAngle > 180.0) {
@@ -121,8 +119,8 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   }
 
   // compare 2 points in the middle of the angle list
-  auto iLowerIdx = static_cast<int>(geoDataSize * 1.0 / 3.0);
-  auto iUpperIdx = static_cast<int>(geoDataSize * 2.0 / 3.0);
+  const auto iLowerIdx = static_cast<int>(geoDataSize * 1.0 / 3.0);
+  const auto iUpperIdx = static_cast<int>(geoDataSize * 2.0 / 3.0);
 
   if (vTempConvAngles.at(iLowerIdx) <
       vTempConvAngles.at(iUpperIdx)) // ascending
@@ -143,8 +141,8 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
             << std::endl;
 }
 
-bool CbctRecon::LoadShortImageToUshort(QString &strPath,
-                                       UShortImageType::Pointer &pUshortImage) {
+bool LoadShortImageToUshort(QString &strPath,
+                            UShortImageType::Pointer &pUshortImage) {
   using ReaderType = itk::ImageFileReader<ShortImageType>;
   ReaderType::Pointer reader = ReaderType::New();
 
@@ -166,8 +164,8 @@ bool CbctRecon::LoadShortImageToUshort(QString &strPath,
   imageCalculatorFilter->SetImage(reader->GetOutput());
   imageCalculatorFilter->Compute();
 
-  auto minVal0 = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal0 = static_cast<double>(imageCalculatorFilter->GetMaximum());
+  const auto minVal0 = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal0 = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
   std::cout << "Original Min and Max Values are	" << minVal0 << "	"
             << maxVal0 << std::endl;
@@ -199,8 +197,8 @@ bool CbctRecon::LoadShortImageToUshort(QString &strPath,
   imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
   imageCalculatorFilter->Compute();
 
-  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
   std::cout << "Current Min and Max Values are	" << minVal << "	"
             << maxVal << std::endl;
@@ -226,8 +224,8 @@ bool CbctRecon::LoadShortImageToUshort(QString &strPath,
   return true;
 }
 
-void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
-                                    QString &outputFilePath) {
+void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
+                         QString &outputFilePath) {
   if (spUsImage == nullptr) {
     std::cout << " no image to export" << std::endl;
     return;
@@ -237,7 +235,7 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   DuplicatorType::Pointer duplicator = DuplicatorType::New();
   duplicator->SetInputImage(spUsImage);
   duplicator->Update();
-  UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
+  const UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
   ShortImageType::Pointer clonedReconImageSHORT;
 
   using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
@@ -260,12 +258,12 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
       ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
   imageCalculatorFilter->Compute();
-  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
   // Min value is always 3024 --> outside the FOV
-  auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
-  auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
+  const auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
+  const auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
@@ -278,22 +276,22 @@ void CbctRecon::ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   // clonedReconImageSHORT = spRescaleFilter->GetOutput();
 
   // waterHU = 1024;
-
+  /*
   using AddImageFilterType =
       itk::AddImageFilter<ShortImageType, ShortImageType, ShortImageType>;
   AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
   addImageFilter->SetInput1(spRescaleFilter->GetOutput());
 
-  int addingVal = 0; // 1024-680
+  const int addingVal = 0; // 1024-680
   addImageFilter->SetConstant2(addingVal);
   addImageFilter->Update();
-
+  */
   using WriterType = itk::ImageFileWriter<ShortImageType>;
   WriterType::Pointer writer = WriterType::New();
   writer->SetFileName(outputFilePath.toLocal8Bit().constData());
   // writer->SetUseCompression(true);
   writer->SetUseCompression(false); // for plastimatch
-  writer->SetInput(addImageFilter->GetOutput());
+  writer->SetInput(spRescaleFilter->GetOutput());
 
   std::cout << "Writing is under progress...: "
             << outputFilePath.toLocal8Bit().constData() << std::endl;
@@ -307,8 +305,8 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
 
   Plm_image plmImg;
   auto tmp_img = drs.get_image();
-  
-  if (!tmp_img->have_image()){
+
+  if (!tmp_img->have_image()) {
     return false;
   }
   std::cout << "PLM_imagetype: " << tmp_img->m_type << std::endl;
@@ -316,12 +314,12 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   // plmImg.load_native(dirPath.toLocal8Bit().constData());
 
   auto planCT_ss = drs.get_rtss(); // dies at end of scope...
-  if (planCT_ss.get() != nullptr) {
+  if (!planCT_ss) {
     // ... so I copy to my own modern-C++ implementation
     m_structures->set_planCT_ss(planCT_ss.get());
   }
 
-  ShortImageType::Pointer spShortImg = plmImg.itk_short();
+  const ShortImageType::Pointer spShortImg = plmImg.itk_short();
 
   // Figure out whether this is NKI
   using ImageCalculatorFilterType =
@@ -342,14 +340,14 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
   imageCalculatorFilter->Compute();
 
-  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
   std::cout << "Current Min and Max Values are	" << minVal << "	"
             << maxVal << std::endl;
 
-  auto outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
-  auto outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
+  const auto outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
+  const auto outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
@@ -382,12 +380,12 @@ void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
       ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
   imageCalculatorFilter->Compute();
-  auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
 
   // Min value is always 3024 --> outside the FOV
-  auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
-  auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
+  const auto outputMinVal = static_cast<SHORT_PixelType>(minVal - 1024);
+  const auto outputMaxVal = static_cast<SHORT_PixelType>(maxVal - 1024);
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
@@ -404,7 +402,7 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
                                 QString &strPatientID, QString &strPatientName,
                                 QString &strPathTargetDir) {
   if (spImg == nullptr) {
-    return "";
+    return QString("");
   }
 
   ShortImageType::Pointer spShortImg;
@@ -412,12 +410,18 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
 
   Plm_image plm_img(spShortImg);
 
-  QString newDirPath =
-      strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
+  QString endFix = "_DCM";
+
+  QString newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
+  // QString newDirPath =
+  //  strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
 
   QDir dirNew(newDirPath);
   if (!dirNew.exists()) {
-    dirNew.mkdir(".");
+    if (!dirNew.mkdir(".")) {
+      std::cerr << "Could not create dir for dicom" << std::endl;
+      return QString("");
+    }
   }
 
   Rt_study_metadata rsm;
@@ -425,6 +429,7 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
   rsm.set_patient_name(strPatientName.toLocal8Bit().constData());
 
   plm_img.save_short_dicom(newDirPath.toLocal8Bit().constData(), &rsm);
+
   return newDirPath.toLocal8Bit().constData();
 }
 
@@ -444,11 +449,17 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
 
   QDir dirNew(newDirPath);
   if (!dirNew.exists()) {
-    dirNew.mkdir(".");
+    if (!dirNew.mkdir(".")) {
+      std::cerr << "Could not create dir for gdcm dicom" << std::endl;
+      return QString("");
+    }
   } else {
     if (dirNew.removeRecursively()) {
       QDir dirReNew(newDirPath);
-      dirReNew.mkdir(".");
+      if (!dirNew.mkdir(".")) {
+        std::cerr << "Could not create dir for gdcm dicom (2)" << std::endl;
+        return QString("");
+      }
     }
   }
   using OutputImageType =
@@ -463,8 +474,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
 
   ImageIOType::Pointer gdcmIO = ImageIOType::New();
   itk::MetaDataDictionary &dict = gdcmIO->GetMetaDataDictionary();
-  std::string value;
-  value = "CT";
+  std::string value = "CT";
   itk::EncapsulateMetaData<std::string>(dict, "0008|0060", value); // Modality
   value = "DERIVED\\SECONDARY\\AXIAL"; // This is virtually always correct when
                                        // using ITK to write an image
@@ -472,7 +482,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   value = "SI";
   itk::EncapsulateMetaData<std::string>(dict, "0008|0064",
                                         value); // Conversion Type
-  double value_double = spShortImg->GetSpacing()[2];
+  const double value_double = spShortImg->GetSpacing()[2];
   std::ostringstream strs;
   strs << value_double;
   value = strs.str();
@@ -483,7 +493,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
                                         '-' + value); // SpacingBetweenSlices
 
   gdcm::UIDGenerator stduid;
-  std::string studyUID = stduid.Generate();
+  const std::string studyUID = stduid.Generate();
   std::cout << studyUID << std::endl;
   itk::EncapsulateMetaData<std::string>(dict, "0020|000d", studyUID);
 
@@ -516,35 +526,212 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
 
 QString get_output_options(const UShortImageType::Pointer &m_spFixed) {
 
-  QString str_fixedOrigin =
+  const QString str_fixed_origin =
       QString("%1,%2,%3") // done per image because CT might be different from
                           // reconstructed CBCT
           .arg(m_spFixed->GetOrigin()[0])
           .arg(m_spFixed->GetOrigin()[1])
           .arg(m_spFixed->GetOrigin()[2]);
-  QString str_fixedDimension =
+  const QString str_fixed_dimension =
       QString("%1,%2,%3")
           .arg(m_spFixed->GetBufferedRegion().GetSize()[0])
           .arg(m_spFixed->GetBufferedRegion().GetSize()[1])
           .arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
-  QString str_fixedSpacing = QString("%1,%2,%3")
-                                 .arg(m_spFixed->GetSpacing()[0])
-                                 .arg(m_spFixed->GetSpacing()[1])
-                                 .arg(m_spFixed->GetSpacing()[2]);
-  QString str_fixedDirection = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
-                                   .arg(m_spFixed->GetDirection()[0][0])
-                                   .arg(m_spFixed->GetDirection()[0][1])
-                                   .arg(m_spFixed->GetDirection()[0][2])
-                                   .arg(m_spFixed->GetDirection()[1][0])
-                                   .arg(m_spFixed->GetDirection()[1][1])
-                                   .arg(m_spFixed->GetDirection()[1][2])
-                                   .arg(m_spFixed->GetDirection()[2][0])
-                                   .arg(m_spFixed->GetDirection()[2][1])
-                                   .arg(m_spFixed->GetDirection()[2][2]);
+  const QString str_fixed_spacing = QString("%1,%2,%3")
+                                        .arg(m_spFixed->GetSpacing()[0])
+                                        .arg(m_spFixed->GetSpacing()[1])
+                                        .arg(m_spFixed->GetSpacing()[2]);
+  const QString str_fixed_direction = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
+                                          .arg(m_spFixed->GetDirection()[0][0])
+                                          .arg(m_spFixed->GetDirection()[0][1])
+                                          .arg(m_spFixed->GetDirection()[0][2])
+                                          .arg(m_spFixed->GetDirection()[1][0])
+                                          .arg(m_spFixed->GetDirection()[1][1])
+                                          .arg(m_spFixed->GetDirection()[1][2])
+                                          .arg(m_spFixed->GetDirection()[2][0])
+                                          .arg(m_spFixed->GetDirection()[2][1])
+                                          .arg(m_spFixed->GetDirection()[2][2]);
 
   return QString(" --origin %1 --spacing %2 --dimension %3 --direction %4")
-      .arg(str_fixedOrigin)
-      .arg(str_fixedSpacing)
-      .arg(str_fixedDimension)
-      .arg(str_fixedDirection);
+      .arg(str_fixed_origin)
+      .arg(str_fixed_spacing)
+      .arg(str_fixed_dimension)
+      .arg(str_fixed_direction);
+}
+
+bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
+                             VEC3D *pRot) {
+  QFileInfo fInfo(strPathINIXVI);
+  if (!fInfo.exists()) {
+    return false;
+  }
+
+  std::ifstream fin;
+  fin.open(strPathINIXVI.toLocal8Bit().constData());
+
+  if (fin.fail()) {
+    return false;
+  }
+
+  char str[MAX_LINE_LENGTH];
+
+  float couch_Lat_cm = 0.0;
+  float couch_Long_cm = 0.0;
+  float couch_Vert_cm = 0.0;
+
+  float couch_Pitch = 0.0;
+  float couch_Yaw = 0.0;
+  float couch_Roll = 0.0;
+
+  bool bFound = false;
+  while (!fin.eof()) {
+    memset(&str[0], 0, MAX_LINE_LENGTH);
+    fin.getline(&str[0], MAX_LINE_LENGTH);
+    QString tmpStr = QString(&str[0]);
+    QStringList strListParam = tmpStr.split("=");
+
+    QString tagName, strVal;
+
+    if (strListParam.count() == 2) {
+      tagName = strListParam.at(0);
+      strVal = strListParam.at(1);
+      tagName = tagName.trimmed();
+      strVal = strVal.trimmed();
+
+      if (tagName == "CouchShiftLat") {
+        couch_Lat_cm = strVal.toFloat();
+        bFound = true;
+      } else if (tagName == "CouchShiftLong") {
+        couch_Long_cm = strVal.toFloat();
+      } else if (tagName == "CouchShiftHeight") {
+        couch_Vert_cm = strVal.toFloat();
+      } else if (tagName == "CouchPitch") {
+        couch_Pitch = strVal.toFloat();
+      } else if (tagName == "CouchRoll") {
+        couch_Yaw = strVal.toFloat();
+      } else if (tagName == "CouchYaw") {
+        couch_Roll = strVal.toFloat();
+      }
+    }
+  }
+  fin.close();
+
+  if (!bFound) {
+    return false;
+  }
+
+  // Warning!! dicom convention!
+  pTrans->x = couch_Lat_cm * 10.0; // sign should be checked
+  // pTrans->y = couch_Vert_cm*10.0; //sign should be checked // IEC-->DICOM is
+  // already accounted for..but sign!
+  pTrans->y = couch_Vert_cm * (-10.0); // consistent with Tracking software
+  pTrans->z = couch_Long_cm * 10.0;    // sign should be checked
+
+  pRot->x = couch_Pitch;
+  pRot->y = couch_Yaw;
+  pRot->z = couch_Roll;
+  // x,y,z: dicom
+  return true;
+}
+
+bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
+                         float &ms) {
+  QFileInfo info = QFileInfo(strPathINI);
+
+  kVp = 0.0;
+  mA = 0.0;
+  ms = 0.0;
+
+  if (!info.exists()) {
+    return false;
+  }
+
+  // TubeMA=64.0000
+  // TubeKV = 120.0000
+  // TubeKVLength = 40.0000
+  std::ifstream fin;
+  fin.open(strPathINI.toLocal8Bit().constData());
+
+  if (fin.fail()) {
+    return false;
+  }
+
+  char str[MAX_LINE_LENGTH];
+
+  while (!fin.eof()) {
+    memset(&str[0], 0, MAX_LINE_LENGTH);
+    fin.getline(&str[0], MAX_LINE_LENGTH);
+    QString tmpStr = QString(&str[0]);
+    QStringList strListParam = tmpStr.split("=");
+
+    QString tagName;
+    QString strVal;
+
+    if (strListParam.count() == 2) {
+      tagName = strListParam.at(0);
+      strVal = strListParam.at(1);
+      tagName = tagName.trimmed();
+      strVal = strVal.trimmed();
+
+      if (tagName == "TubeMA") {
+        mA = strVal.toFloat();
+      }
+      if (tagName == "TubeKVLength") {
+        ms = strVal.toFloat();
+      }
+      if (tagName == "TubeKV") {
+        kVp = strVal.toFloat();
+      }
+    }
+  }
+  fin.close();
+
+  return !(kVp == 0 || mA == 0 || ms == 0);
+}
+
+// Projection image Median filtering using CUDA
+
+// Dir or File
+bool LoadShortImageDirOrFile(QString &strPathDir,
+                             ShortImageType::Pointer &spOutputShortImg) {
+  QFileInfo fInfo(strPathDir);
+  if (!fInfo.exists()) {
+    return false;
+  }
+
+  Plm_image plmImg;
+  plmImg.load_native(strPathDir.toLocal8Bit().constData());
+  const ShortImageType::Pointer spShortImg = plmImg.itk_short();
+
+  // Figure out whether this is NKI
+  using ImageCalculatorFilterType =
+      itk::MinimumMaximumImageCalculator<ShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+      ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(spShortImg);
+  imageCalculatorFilter->Compute();
+
+  /* double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
+  double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());*/
+
+  // Thresholding
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
+
+  ThresholdImageFilterType::Pointer thresholdFilterAbove =
+      ThresholdImageFilterType::New();
+  thresholdFilterAbove->SetInput(spShortImg);
+  thresholdFilterAbove->ThresholdAbove(3072);
+  thresholdFilterAbove->SetOutsideValue(3072);
+
+  ThresholdImageFilterType::Pointer thresholdFilterBelow =
+      ThresholdImageFilterType::New();
+  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+  thresholdFilterBelow->ThresholdBelow(-1024);
+  thresholdFilterBelow->SetOutsideValue(-1024);
+  thresholdFilterBelow->Update();
+
+  spOutputShortImg = thresholdFilterBelow->GetOutput();
+  std::cout << "Image file was loaded" << std::endl;
+
+  return true;
 }

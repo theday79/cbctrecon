@@ -1,3 +1,6 @@
+#include <tuple>
+#include <valarray>
+
 #include "AG17RGBAImage.h"
 #include "itkAffineTransform.h"
 #include "itkMedianImageFilter.h"
@@ -9,7 +12,7 @@ AG17RGBAImage::AG17RGBAImage() {
   m_iWidth = 0;
   m_iHeight = 0;
 
-  m_pData = nullptr;
+  m_pData.resize(0);
   m_pPixmap = nullptr; // for display
 
   // m_pQImage = NULL;
@@ -56,7 +59,7 @@ AG17RGBAImage::AG17RGBAImage(int width, int height) {
   m_iWidth = width;
   m_iHeight = height;
 
-  m_pData = nullptr;
+  m_pData.resize(0);
   m_pPixmap = nullptr; // for display
 
   m_fPixelMean = 0.0;
@@ -102,9 +105,9 @@ AG17RGBAImage::AG17RGBAImage(int width, int height) {
 AG17RGBAImage::~AG17RGBAImage() { ReleaseBuffer(); }
 
 bool AG17RGBAImage::ReleaseBuffer() {
-  if (m_pData != nullptr) {
-    delete[] m_pData;
-    m_pData = nullptr;
+  if (m_pData.size() != 0) {
+    // delete[] m_pData;
+    m_pData.resize(0);
   }
   if (m_pPixmap != nullptr) {
     delete m_pPixmap; // delete  m_pPixmap??
@@ -117,7 +120,7 @@ bool AG17RGBAImage::ReleaseBuffer() {
   return true;
 }
 
-bool AG17RGBAImage::IsEmpty() { return m_pData == nullptr; }
+bool AG17RGBAImage::IsEmpty() const { return m_pData.size() == 0; }
 
 bool AG17RGBAImage::CreateImage(int width, int height, unsigned short usVal) {
   if (width < 1 || height < 1) {
@@ -136,35 +139,36 @@ bool AG17RGBAImage::CreateImage(int width, int height, unsigned short usVal) {
   m_iWidth = width;
   m_iHeight = height;
 
-  int imgSize = width * height;
-  m_pData = new unsigned short[imgSize];
-
-  for (int i = 0; i < imgSize; i++) {
+  const int imgSize = width * height;
+  m_pData.resize(imgSize);
+  m_pData = usVal;
+  /*for (int i = 0; i < imgSize; i++) {
     m_pData[i] = usVal;
-  }
+  }*/
 
   // m_QImage = QImage(m_iWidth, m_iHeight,QImage::Format_RGB888);
 
   return true;
 }
 
-bool AG17RGBAImage::CopyFromBuffer(const unsigned short *pImageBuf, int width,
-                                   int height) {
-  if (m_pData == nullptr) {
+bool AG17RGBAImage::CopyFromBuffer(
+    const std::valarray<unsigned short> &pImageBuf, int width, int height) {
+  if (m_pData.size() == 0) {
     return false;
   }
-  if (pImageBuf == nullptr) {
+  if (pImageBuf.size() == 0) {
     return false;
   }
   if (width != m_iWidth || height != m_iHeight) {
     return false;
   }
+  m_pData = pImageBuf;
 
-  int imgSize = m_iWidth * m_iHeight;
+  /*const auto imgSize = static_cast<size_t>(m_iWidth * m_iHeight);
 
-  for (int i = 0; i < imgSize; i++) {
+  for (auto i = 0U; i < imgSize; i++) {
     m_pData[i] = pImageBuf[i];
-  }
+  }*/
 
   // CalcImageInfo();
 
@@ -220,9 +224,9 @@ inline QRgb val_to_inv_rgba_scale(const double val) {
 
 inline void fill_index(size_t i, size_t j, size_t m_iWidth, size_t uppVal,
                        size_t lowVal, bool m_bShowInvert,
-                       const unsigned short *m_pData,
-                       std::vector<quint32> &tmpData, int winWidth) {
-  int tmpIdx = (i * m_iWidth + j);
+                       const std::valarray<unsigned short> &m_pData,
+                       std::valarray<quint32> &tmpData, int winWidth) {
+  const int tmpIdx = (i * m_iWidth + j);
 
   if (!m_bShowInvert) {
     if (m_pData[i * m_iWidth + j] >= uppVal) {
@@ -248,7 +252,7 @@ inline void fill_index(size_t i, size_t j, size_t m_iWidth, size_t uppVal,
 bool AG17RGBAImage::FillPixMap(int winMid,
                                int winWidth) // 0-65535 중 window level
 {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return false;
   }
 
@@ -261,12 +265,12 @@ bool AG17RGBAImage::FillPixMap(int winMid,
 
   // 8 bit gray buffer preparing
 
-  int size = m_iWidth * m_iHeight;
+  const auto size = static_cast<size_t>(m_iWidth * m_iHeight);
 
   // uchar* tmpData = new uchar [size*3];//RGB
-  std::vector<quint32> tmpData(size); // rgb represented as 0xffRRGGBB
-  unsigned short uppVal = static_cast<int>(winMid + winWidth / 2.0);
-  unsigned short lowVal = static_cast<int>(winMid - winWidth / 2.0);
+  std::valarray<quint32> tmpData(size); // rgb represented as 0xffRRGGBB
+  const unsigned short uppVal = static_cast<int>(winMid + winWidth / 2.0);
+  const unsigned short lowVal = static_cast<int>(winMid - winWidth / 2.0);
 
   // It takes 0.4 s in Release mode
 
@@ -278,17 +282,17 @@ bool AG17RGBAImage::FillPixMap(int winMid,
   }
 
   QImage tmpQImage =
-      QImage(reinterpret_cast<unsigned char *>(tmpData.data()), m_iWidth,
+      QImage(reinterpret_cast<unsigned char *>(&tmpData[0]), m_iWidth,
              m_iHeight, 4 * m_iWidth, QImage::Format_ARGB32); // not deep copy!
 
-  int newWidth = qRound(m_iWidth / m_fZoom);
-  int newHeight = qRound(m_iHeight / m_fZoom);
+  const int newWidth = qRound(m_iWidth / m_fZoom);
+  const int newHeight = qRound(m_iHeight / m_fZoom);
 
-  int centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
-  int centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
+  const int centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
+  const int centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
 
-  int newLeftTopX = centerX - qRound(newWidth / 2.0);
-  int newLeftTopY = centerY - qRound(newHeight / 2.0);
+  const int newLeftTopX = centerX - qRound(newWidth / 2.0);
+  const int newLeftTopY = centerY - qRound(newHeight / 2.0);
 
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
@@ -305,75 +309,65 @@ bool AG17RGBAImage::FillPixMapMinMax(int winMin,
     winMax = 65535;
   }
 
-  auto midVal = static_cast<int>((winMin + winMax) / 2.0);
-  int widthVal = winMax - winMin;
+  const auto midVal = static_cast<int>((winMin + winMax) / 2.0);
+  const int widthVal = winMax - winMin;
 
   return FillPixMap(midVal, widthVal);
 }
 
+template <typename T>
+std::tuple<double, double> get_mean_and_sd(std::valarray<T> data) {
+  const auto sum = data.sum();
+  double mean_pixelval = sum / static_cast<double>(data.size());
+
+  auto sd_arr = std::valarray<double>(data.size());
+  std::copy(std::begin(data), std::end(data), std::begin(sd_arr));
+  sd_arr -= mean_pixelval;
+  sd_arr *= sd_arr;
+  /*= sd_arr.apply([meanPixelval](double val) -> double {
+    return std::pow(val - meanPixelval, 2.0);
+  });*/
+  const auto sqr_sum = sd_arr.sum();
+
+  /*double sqrSum = 0.0;
+  for (i = 0; i < npixels; i++) {
+    sqrSum =
+        sqrSum + pow((static_cast<double>(m_pData[i]) - meanPixelval), 2.0);
+  }*/
+  const auto SD = sqrt(sqr_sum / static_cast<double>(data.size()));
+
+  return std::make_tuple(mean_pixelval, SD);
+};
+
 bool AG17RGBAImage::CalcImageInfo() {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return false;
   }
 
-  int nTotal;
-  long minPixel, maxPixel;
-  int i;
-  double pixel, sumPixel;
-
-  int npixels = m_iWidth * m_iWidth;
+  const int npixels = m_iWidth * m_iWidth;
 
   if (npixels <= 0) {
     return false;
   }
-
-  nTotal = 0;
   // minPixel = 4095;
-  minPixel = 65535;
-  maxPixel = 0;
-  sumPixel = 0.0;
+  const auto min_pixel = m_pData.min(); // 65535;
+  const auto max_pixel = m_pData.max(); // 0;
+  const auto mean_sd = get_mean_and_sd(m_pData);
 
-  for (i = 0; i < npixels; i++) {
-    pixel = static_cast<double>(m_pData[i]);
-    sumPixel += pixel;
-    if (m_pData[i] > maxPixel) {
-      maxPixel = m_pData[i];
-    }
-    if (m_pData[i] < minPixel) {
-      minPixel = m_pData[i];
-    }
-    nTotal++;
-  }
-
-  double meanPixelval = 0.0;
-
-  if (nTotal <= 0) {
-    meanPixelval = 0.0;
-  } else {
-    meanPixelval = sumPixel / static_cast<double>(nTotal);
-  }
-
-  double sqrSum = 0.0;
-  for (i = 0; i < npixels; i++) {
-    sqrSum =
-        sqrSum + pow((static_cast<double>(m_pData[i]) - meanPixelval), 2.0);
-  }
-  double SD = sqrt(sqrSum / static_cast<double>(nTotal));
-
-  m_fPixelMean = meanPixelval;
-  m_fPixelSD = SD;
-  m_fPixelMin = minPixel;
-  m_fPixelMax = maxPixel;
+  m_fPixelMean = std::get<0>(mean_sd);
+  m_fPixelSD = std::get<1>(mean_sd);
+  m_fPixelMin = min_pixel;
+  m_fPixelMax = max_pixel;
 
   return true;
 }
 
 double AG17RGBAImage::CalcAveragePixelDiff(AG17RGBAImage &other) {
-  if (m_pData == nullptr || other.m_pData == nullptr) {
+  if (m_pData.size() == 0 || other.m_pData.size() == 0) {
     return 0.0;
   }
 
-  int totalPixCnt = m_iWidth * m_iHeight;
+  const int totalPixCnt = m_iWidth * m_iHeight;
   double tmpSum = 0.0;
   for (int i = 0; i < totalPixCnt; i++) {
     tmpSum = tmpSum + fabs(static_cast<double>(m_pData[i]) -
@@ -413,8 +407,8 @@ void AG17RGBAImage::CopyYKImage2ItkImage(
   UnsignedShortImageType::RegionType region = spTarImage->GetRequestedRegion();
   UnsignedShortImageType::SizeType tmpSize = region.GetSize();
 
-  int sizeX = tmpSize[0];
-  int sizeY = tmpSize[1];
+  const int sizeX = tmpSize[0];
+  const int sizeY = tmpSize[1];
 
   if (sizeX < 1 || sizeY < 1) {
     return;
@@ -443,8 +437,8 @@ void AG17RGBAImage::CopyItkImage2YKImage(
   UnsignedShortImageType::RegionType region = spSrcImage->GetRequestedRegion();
   UnsignedShortImageType::SizeType tmpSize = region.GetSize();
 
-  int sizeX = tmpSize[0];
-  int sizeY = tmpSize[1];
+  const int sizeX = tmpSize[0];
+  const int sizeY = tmpSize[1];
 
   if (sizeX < 1 || sizeY < 1) {
     return;
@@ -471,7 +465,7 @@ void AG17RGBAImage::CopyItkImage2YKImage(
 }
 
 bool AG17RGBAImage::CalcImageInfo_ROI() {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     m_fPixelMean_ROI = -1.0;
     m_fPixelSD_ROI = -1.0;
     m_fPixelMin_ROI = -1.0;
@@ -487,57 +481,12 @@ bool AG17RGBAImage::CalcImageInfo_ROI() {
     return false;
   }
 
-  int nTotal;
-  long minPixel, maxPixel;
+  const auto mean_sd = get_mean_and_sd(m_pData);
 
-  double pixel, sumPixel;
-
-  // int npixels = m_iWidth*m_iWidth;
-  nTotal = 0;
-  // minPixel = 4095;
-  minPixel = 65535;
-  maxPixel = 0;
-  sumPixel = 0.0;
-
-  int i, j;
-
-  for (i = m_rtROI.top(); i < m_rtROI.bottom(); i++) {
-    for (j = m_rtROI.left(); j < m_rtROI.right(); j++) {
-      int idx = m_iWidth * i + j;
-      pixel = static_cast<double>(m_pData[idx]);
-      sumPixel += pixel;
-      if (m_pData[idx] > maxPixel) {
-        maxPixel = m_pData[idx];
-      }
-      if (m_pData[idx] < minPixel) {
-        minPixel = m_pData[idx];
-      }
-      nTotal++;
-    }
-  }
-
-  double meanPixelval = sumPixel / static_cast<double>(nTotal);
-
-  double sqrSum = 0.0;
-  /*for (i = 0; i < nTotal; i++)
-  {
-          sqrSum = sqrSum + pow(((double)m_pData[i] - meanPixelval),2.0);
-  }*/
-
-  for (i = m_rtROI.top(); i < m_rtROI.bottom(); i++) {
-    for (j = m_rtROI.left(); j < m_rtROI.right(); j++) {
-      int idx = m_iWidth * i + j;
-      sqrSum =
-          sqrSum + pow((static_cast<double>(m_pData[idx]) - meanPixelval), 2.0);
-    }
-  }
-
-  double SD = sqrt(sqrSum / static_cast<double>(nTotal));
-
-  m_fPixelMean_ROI = meanPixelval;
-  m_fPixelSD_ROI = SD;
-  m_fPixelMin_ROI = minPixel;
-  m_fPixelMax_ROI = maxPixel;
+  m_fPixelMean_ROI = std::get<0>(mean_sd);
+  m_fPixelSD_ROI = std::get<1>(mean_sd);
+  m_fPixelMin_ROI = m_pData.min();
+  m_fPixelMax_ROI = m_pData.max();
 
   return true;
 }
@@ -568,7 +517,7 @@ void AG17RGBAImage::DrawROIOn(bool bROI_Draw) {
 }
 
 bool AG17RGBAImage::CloneImage(AG17RGBAImage &other) {
-  if (other.m_pData == nullptr) {
+  if (other.m_pData.size() == 0) {
     return false;
   }
 
@@ -576,8 +525,8 @@ bool AG17RGBAImage::CloneImage(AG17RGBAImage &other) {
   ReleaseBuffer(); // Redundancy. CreateImage will call this too. also Create is
                    // calling this func.
 
-  int width = other.m_iWidth;
-  int height = other.m_iHeight;
+  const int width = other.m_iWidth;
+  const int height = other.m_iHeight;
 
   CreateImage(width, height, 0);
   CopyFromBuffer(other.m_pData, width, height);
@@ -629,7 +578,7 @@ bool AG17RGBAImage::CloneImage(AG17RGBAImage &other) {
 }
 
 void AG17RGBAImage::MultiplyConstant(double multiplyFactor) {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
@@ -654,15 +603,13 @@ void AG17RGBAImage::SetProfileProbePos(int dataX, int dataY) {
 
 unsigned short AG17RGBAImage::GetProfileProbePixelVal() {
   unsigned short resultVal = 0;
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return 0;
   }
 
   if (m_ptProfileProbe.y() >= 0 && m_ptProfileProbe.y() < m_iHeight &&
       m_ptProfileProbe.x() >= 0 && m_ptProfileProbe.x() < m_iWidth) {
     resultVal = m_pData[m_iWidth * m_ptProfileProbe.y() + m_ptProfileProbe.x()];
-  } else {
-    resultVal = 0;
   }
 
   return resultVal;
@@ -671,7 +618,7 @@ unsigned short AG17RGBAImage::GetProfileProbePixelVal() {
 void AG17RGBAImage::GetProfileData(int dataX, int dataY,
                                    QVector<double> &vTarget,
                                    enProfileDirection direction) {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
@@ -682,14 +629,14 @@ void AG17RGBAImage::GetProfileData(int dataX, int dataY,
   vTarget.clear();
 
   if (direction == DIRECTION_HOR) {
-    int fixedY = dataY;
+    const int fixedY = dataY;
     for (int j = 0; j < m_iWidth; j++) {
       vTarget.push_back(m_pData[m_iWidth * fixedY + j]);
     }
   } else if (direction == DIRECTION_VER) {
     // Upper to Lower profile
 
-    int fixedX = dataX;
+    const int fixedX = dataX;
     for (int i = 0; i < m_iHeight; i++) {
       vTarget.push_back(m_pData[m_iWidth * i + fixedX]);
     }
@@ -697,12 +644,12 @@ void AG17RGBAImage::GetProfileData(int dataX, int dataY,
 }
 void AG17RGBAImage::GetProfileData(QVector<double> &vTarget,
                                    enProfileDirection direction) {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
-  int dataX = m_ptProfileProbe.x();
-  int dataY = m_ptProfileProbe.y();
+  const int dataX = m_ptProfileProbe.x();
+  const int dataY = m_ptProfileProbe.y();
 
   if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth) {
     return;
@@ -711,14 +658,14 @@ void AG17RGBAImage::GetProfileData(QVector<double> &vTarget,
   vTarget.clear();
 
   if (direction == DIRECTION_HOR) {
-    int fixedY = dataY;
+    const int fixedY = dataY;
     for (int j = 0; j < m_iWidth; j++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * fixedY + j]));
     }
   } else if (direction == DIRECTION_VER) {
     // Upper to Lower profile
 
-    int fixedX = dataX;
+    const int fixedX = dataX;
     for (int i = 0; i < m_iHeight; i++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * i + fixedX]));
     }
@@ -735,13 +682,13 @@ bool AG17RGBAImage::ConstituteFromTwo(AG17RGBAImage &YKImg1,
     return false;
   }
 
-  int width = YKImg1.m_iWidth;
-  int height = YKImg1.m_iHeight;
+  const int width = YKImg1.m_iWidth;
+  const int height = YKImg1.m_iHeight;
 
   CreateImage(width, height, 0);
 
-  int centerX = m_ptSplitCenter.x(); // data index
-  int centerY = m_ptSplitCenter.y();
+  const int centerX = m_ptSplitCenter.x(); // data index
+  const int centerY = m_ptSplitCenter.y();
 
   int i, j;
   switch (m_enSplitOption) {
@@ -779,77 +726,63 @@ bool AG17RGBAImage::ConstituteFromTwo(AG17RGBAImage &YKImg1,
 }
 
 void AG17RGBAImage::EditImage_Flip() {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
-  int imgSize = m_iWidth * m_iHeight;
+  const int imgSize = m_iWidth * m_iHeight;
 
   if (imgSize <= 0) {
     return;
   }
 
-  auto *pPrevImg = new unsigned short[imgSize];
+  auto pPrevImg = std::valarray<unsigned short>(imgSize);
 
-  int i, j;
+  std::copy(std::begin(m_pData), std::end(m_pData), std::begin(pPrevImg));
 
-  for (i = 0; i < m_iHeight; i++) {
-    for (j = 0; j < m_iWidth; j++) {
-      pPrevImg[i * m_iWidth + j] = m_pData[i * m_iWidth + j];
-    }
-  }
-
-  for (i = 0; i < m_iHeight; i++) {
-    for (j = 0; j < m_iWidth; j++) {
-      int tmpX = j;
-      int tmpY = m_iHeight - i - 1;
+  for (auto i = 0; i < m_iHeight; i++) {
+    for (auto j = 0; j < m_iWidth; j++) {
+      const int tmpX = j;
+      const int tmpY = m_iHeight - i - 1;
 
       m_pData[i * m_iWidth + j] = pPrevImg[tmpY * m_iWidth + tmpX];
     }
   }
 
-  delete[] pPrevImg;
+  // delete[] pPrevImg;
 }
 
 void AG17RGBAImage::EditImage_Mirror() {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
-  int imgSize = m_iWidth * m_iHeight;
+  const auto imgSize = static_cast<size_t>(m_iWidth * m_iHeight);
 
   if (imgSize <= 0) {
     return;
   }
 
-  int i = 0;
-  int j = 0;
-
-  auto *pPrevImg = new unsigned short[imgSize];
+  // auto p_prev_img = std::valarray<unsigned short>(imgSize); should copy even
+  // if not preallocated
 
   //변환 전 이미지를 copy
+  auto p_prev_img = m_pData;
 
-  for (i = 0; i < m_iHeight; i++) {
-    for (j = 0; j < m_iWidth; j++) {
-      pPrevImg[i * m_iWidth + j] = m_pData[i * m_iWidth + j];
+  for (auto i = 0; i < m_iHeight; i++) {
+    for (auto j = 0; j < m_iWidth; j++) {
+      const auto tmp_x = m_iWidth - j - 1;
+
+      m_pData[i * m_iWidth + j] = p_prev_img[i * m_iWidth + tmp_x];
     }
   }
 
-  for (i = 0; i < m_iHeight; i++) {
-    for (j = 0; j < m_iWidth; j++) {
-      int tmpX = m_iWidth - j - 1;
-      int tmpY = i;
-
-      m_pData[i * m_iWidth + j] = pPrevImg[tmpY * m_iWidth + tmpX];
-    }
-  }
-
-  delete[] pPrevImg;
+  // delete[] pPrevImg;
 }
 
 bool AG17RGBAImage::FillPixMapDual(int winMid1, int winMid2, int winWidth1,
                                    int winWidth2) {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return false;
   }
 
@@ -860,15 +793,15 @@ bool AG17RGBAImage::FillPixMapDual(int winMid1, int winMid2, int winWidth1,
   m_pPixmap = new QPixmap(QSize(m_iWidth, m_iHeight));
 
   // 8 bit gray buffer preparing
-  int size = m_iWidth * m_iHeight;
+  const int size = m_iWidth * m_iHeight;
 
-  std::vector<quint32> tmpData(size); // ARGB
+  std::valarray<quint32> tmpData(size); // ARGB
 
   auto uppVal1 = static_cast<int>(winMid1 + winWidth1 / 2.0);
   auto lowVal1 = static_cast<int>(winMid1 - winWidth1 / 2.0);
 
   auto uppVal2 = static_cast<int>(winMid2 + winWidth2 / 2.0);
-  auto lowVal2 = static_cast<int>(winMid2 - winWidth2 / 2.0);
+  const auto lowVal2 = static_cast<int>(winMid2 - winWidth2 / 2.0);
 
   if (uppVal1 > 65535) {
     uppVal1 = 65535;
@@ -890,8 +823,8 @@ bool AG17RGBAImage::FillPixMapDual(int winMid1, int winMid2, int winWidth1,
     return false;
   }
 
-  int splitX = m_ptSplitCenter.x();
-  int splitY = m_ptSplitCenter.y();
+  const int splitX = m_ptSplitCenter.x();
+  const int splitY = m_ptSplitCenter.y();
 
   // 1/4 sector
   for (int i = 0; i < splitY; i++) {
@@ -927,21 +860,21 @@ bool AG17RGBAImage::FillPixMapDual(int winMid1, int winMid2, int winWidth1,
 
   // int iBytesPerLine = m_iWidth * 4;
   QImage tmpQImage =
-      QImage(reinterpret_cast<unsigned char *>(tmpData.data()), m_iWidth,
+      QImage(reinterpret_cast<unsigned char *>(&tmpData[0]), m_iWidth,
              m_iHeight, QImage::Format_ARGB32); // not deep copy!
 
   // Copy only a ROI region. All below are data-point, rather than display
   // points  Outside region wiill be filled with Black by QImage inherent
   // function
 
-  int newWidth = qRound(m_iWidth / m_fZoom);
-  int newHeight = qRound(m_iHeight / m_fZoom);
+  const int newWidth = qRound(m_iWidth / m_fZoom);
+  const int newHeight = qRound(m_iHeight / m_fZoom);
 
-  int centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
-  int centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
+  const int centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
+  const int centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
 
-  int newLeftTopX = centerX - qRound(newWidth / 2.0);  // data position
-  int newLeftTopY = centerY - qRound(newHeight / 2.0); // data position
+  const int newLeftTopX = centerX - qRound(newWidth / 2.0);  // data position
+  const int newLeftTopY = centerY - qRound(newHeight / 2.0); // data position
 
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
@@ -963,16 +896,16 @@ bool AG17RGBAImage::FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
     winMax2 = 65535;
   }
 
-  auto midVal1 = static_cast<int>((winMin1 + winMax1) / 2.0);
-  auto midVal2 = static_cast<int>((winMin2 + winMax2) / 2.0);
+  const auto midVal1 = static_cast<int>((winMin1 + winMax1) / 2.0);
+  const auto midVal2 = static_cast<int>((winMin2 + winMax2) / 2.0);
 
-  int widthVal1 = winMax1 - winMin1;
-  int widthVal2 = winMax2 - winMin2;
+  const int widthVal1 = winMax1 - winMin1;
+  const int widthVal2 = winMax2 - winMin2;
 
   return FillPixMapDual(midVal1, midVal2, widthVal1, widthVal2);
 }
 
-bool AG17RGBAImage::isPtInFirstImage(int dataX, int dataY) {
+bool AG17RGBAImage::isPtInFirstImage(int dataX, int dataY) const {
   if (dataX < 0 || dataX >= m_iWidth || dataY < 0 || dataY >= m_iHeight) {
     std::cout
         << "Fatal error in isPtInFirstImage! Given point is out of image point"
@@ -1012,7 +945,7 @@ void AG17RGBAImage::SetZoom(double fZoom) {
 }
 
 void AG17RGBAImage::MedianFilter(int iMedianSizeX, int iMedianSizeY) {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
@@ -1066,8 +999,8 @@ void AG17RGBAImage::MedianFilter(int iMedianSizeX, int iMedianSizeY) {
   CopyItkImage2YKImage(spTmpItkImg, this);
 }
 
-UnsignedShortImageType::Pointer AG17RGBAImage::CloneItkImage() {
-  if (m_pData == nullptr) {
+UnsignedShortImageType::Pointer AG17RGBAImage::CloneItkImage() const {
+  if (m_pData.size() == 0) {
     return nullptr;
   }
 
@@ -1113,7 +1046,7 @@ UnsignedShortImageType::Pointer AG17RGBAImage::CloneItkImage() {
 }
 
 void AG17RGBAImage::ResampleImage(double fResampleFactor) {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
@@ -1145,9 +1078,9 @@ void AG17RGBAImage::ResampleImage(double fResampleFactor) {
   outputSpacing[1] = m_fSpacingY * (static_cast<double>(inputSize[1]) /
                                     static_cast<double>(outputSize[1]));
 
-  UnsignedShortImageType::Pointer input =
+  const UnsignedShortImageType::Pointer input =
       CloneItkImage(); // returns Ushort itk image from data buf
-  UnsignedShortImageType::PointType outputOrigin =
+  const UnsignedShortImageType::PointType outputOrigin =
       input->GetOrigin(); //-204.6 - 204.6  0
 
   //// Resample the image
@@ -1185,9 +1118,9 @@ void AG17RGBAImage::UpdateFromItkImage(
     return;
   }
 
-  if (m_pData != nullptr) {
-    delete[] m_pData;
-    m_pData = nullptr;
+  if (m_pData.size() != 0) {
+    // delete[] m_pData;
+    m_pData.resize(0); // = nullptr;
   }
   if (m_pPixmap != nullptr) {
     delete m_pPixmap;
@@ -1201,7 +1134,7 @@ void AG17RGBAImage::UpdateFromItkImage(
   m_iWidth = size[0];
   m_iHeight = size[1];
 
-  m_pData = new unsigned short[m_iWidth * m_iHeight];
+  m_pData.resize(m_iWidth * m_iHeight);
 
   itk::ImageRegionIterator<UnsignedShortImageType> it(
       spRefItkImg, spRefItkImg->GetRequestedRegion());
@@ -1219,9 +1152,9 @@ void AG17RGBAImage::UpdateFromItkImageFloat(
     return;
   }
 
-  if (m_pData != nullptr) {
-    delete[] m_pData;
-    m_pData = nullptr;
+  if (m_pData.size() != 0) {
+    // delete[] m_pData;
+    m_pData.resize(0); // = nullptr;
   }
   if (m_pPixmap != nullptr) {
     delete m_pPixmap;
@@ -1234,14 +1167,14 @@ void AG17RGBAImage::UpdateFromItkImageFloat(
   m_iWidth = size[0];
   m_iHeight = size[1];
 
-  m_pData = new unsigned short[m_iWidth * m_iHeight];
+  m_pData.resize(m_iWidth * m_iHeight);
 
   itk::ImageRegionIterator<FloatImageType2D> it(
       spRefItkImg, spRefItkImg->GetRequestedRegion());
 
   int i = 0;
   for (it.GoToBegin(); !it.IsAtEnd(); ++it) {
-    float curVal = it.Get();
+    const float curVal = it.Get();
     unsigned short outVal;
 
     if (curVal < 0.0) {
@@ -1258,13 +1191,15 @@ void AG17RGBAImage::UpdateFromItkImageFloat(
 }
 
 void AG17RGBAImage::InvertImage() {
-  if (m_pData == nullptr) {
+  if (m_pData.size() == 0) {
     return;
   }
 
-  int imgSize = m_iWidth * m_iHeight;
+  // const int imgSize = m_iWidth * m_iHeight;
   // Data inversion: Default for Elekta XVI system
-  for (int i = 0; i < imgSize; i++) {
+  m_pData = m_pData.apply(
+      [](unsigned short val) -> unsigned short { return 65535U - val; });
+  /*for (int i = 0; i < imgSize; i++) {
     m_pData[i] = 65535 - m_pData[i];
-  }
+  }*/
 }

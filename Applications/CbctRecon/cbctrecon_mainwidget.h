@@ -1,22 +1,20 @@
 #ifndef CBCTRECON_MAINWIDGET_H
 #define CBCTRECON_MAINWIDGET_H
 
-#include "cbctrecon_config.h"
-
 #include <memory>
 #include <tuple>
 
 // Qt
-#include <QtWidgets/QMainWindow>
-#include <qtimer.h>
-#include <qstring.h>
 #include <QStandardItemModel>
+#include <QtWidgets/QMainWindow>
+#include <qstring.h>
+#include <qtimer.h>
 
 #include "cbctrecon.h"
 #include "cbctregistration.h"
 
-#include "DlgRegistration.h"
 #include "DlgExternalCommand.h"
+#include "DlgRegistration.h"
 
 #include "ui_cbctrecon.h"
 
@@ -32,19 +30,20 @@ public:
 
 private:
   std::tuple<bool, bool> probeUser(const QString &guessDir);
-  FilterReaderType::Pointer ReadBowtieFileWhileProbing(const QString &proj_path, std::tuple<bool, bool> &answers);
+  FilterReaderType::Pointer
+  ReadBowtieFileWhileProbing(const QString &proj_path,
+                             std::tuple<bool, bool> &answers);
   bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
-    enREGI_IMAGES enFwdRefImg,
-    bool bFullResolRecon,
-    bool bExportImages,
-    bool bCBCT_IntensityShift);
+                                        enREGI_IMAGES enFwdRefImg,
+                                        bool bFullResolRecon,
+                                        bool bExportImages,
+                                        bool bCBCT_IntensityShift);
   void ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-    GeometryType::Pointer &spGeometry,
-    UShortImageType::Pointer &spProjCT3D,
-    bool bSave, bool use_cuda);
+                         GeometryType::Pointer &spGeometry,
+                         UShortImageType::Pointer &spProjCT3D, bool bSave,
+                         bool use_cuda);
 
-  template<enREGI_IMAGES imagetype>
-  void LoadMHAfileAs();
+  template <enREGI_IMAGES imagetype> void LoadMHAfileAs();
   void LoadRawHisImages();
   bool SaveCurrentSetting(QString &strPathConfigFile);
   bool LoadCurrentSetting(QString &strPathConfigFile);
@@ -53,7 +52,7 @@ private:
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon;
   std::unique_ptr<DlgRegistration> m_dlgRegistration;
-  CbctRegistration* m_cbctregistration; // just for convienience
+  CbctRegistration *m_cbctregistration; // just for convienience
   std::unique_ptr<DlgExternalCommand> m_dlgExternalCommand;
   std::unique_ptr<QTimer> m_Timer;
   std::unique_ptr<QStandardItemModel> m_pTableModel;
@@ -162,7 +161,6 @@ public slots:
 
 public:
   Ui::CbctReconClass ui{};
-
 };
 
 #endif // CBCTRECON_MAINWIDGET_H

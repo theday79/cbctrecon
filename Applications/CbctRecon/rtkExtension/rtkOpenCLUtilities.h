@@ -25,7 +25,6 @@
 #include <CL/cl.h>
 #endif
 
-#include <itkMacro.h>
 #include <string>
 #include <vector>
 
