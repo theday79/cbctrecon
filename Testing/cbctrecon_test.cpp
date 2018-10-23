@@ -8,15 +8,25 @@
 #include "cbctrecon.h"
 #endif
 
+#include <valarray>
+
 //#include <QtTest/QtTest>
 #include <QDir>
 
+#include "gdcmAttribute.h"
+#include "gdcmDataElement.h"
+#include "gdcmDataSet.h"
+#include "gdcmFile.h"
+#include "gdcmReader.h"
+#include "gdcmWriter.h"
+
 int main(int argc, char *argv[]) {
+
+  
   if (argc < 2) {
     std::cerr << "Usage:\n" << argv[0] << " ./dicom/directory" << std::endl;
     return -1;
   }
-
   std::cout << "Running cbctrecon_test!" << std::endl;
   auto cbctrecon = std::make_unique<CbctRecon>();
   auto dcm_dir = QDir(argv[1]);
@@ -30,6 +40,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Directory was empty: " << dcm_path.toStdString() << std::endl;
     return -3;
   }
+  
+
   /*try { // This will have to wait, unfortunately
     cbctrecon->ReadDicomDir(dcm_path);
   }

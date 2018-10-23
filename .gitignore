@@ -55,3 +55,4 @@
 
 # JetBrains
 .idea/*
+cmake_build_*
