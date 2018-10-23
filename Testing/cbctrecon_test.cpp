@@ -8,17 +8,8 @@
 #include "cbctrecon.h"
 #endif
 
-#include <valarray>
-
 //#include <QtTest/QtTest>
 #include <QDir>
-
-#include "gdcmAttribute.h"
-#include "gdcmDataElement.h"
-#include "gdcmDataSet.h"
-#include "gdcmFile.h"
-#include "gdcmReader.h"
-#include "gdcmWriter.h"
 
 int main(int argc, char *argv[]) {
 

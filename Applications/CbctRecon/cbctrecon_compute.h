@@ -66,8 +66,7 @@ ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                        FloatImageType::Pointer &spAttImgFloat);
 
 template <typename RefImageType, typename TargetImageType>
-void CBCTRECON_API
-AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
+void AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
               typename TargetImageType::Pointer &spTarImg3D) {
   const auto sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
   const auto startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
@@ -90,8 +89,7 @@ AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
 }
 
 template <typename T>
-T CBCTRECON_API
-GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY, const unsigned int reqZ,
+T GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY, const unsigned int reqZ,
                     typename itk::Image<T, 3>::Pointer &sp3DImage) {
   if (sp3DImage == nullptr) {
     return 0;
@@ -106,8 +104,7 @@ GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY, const unsi
 }
 
 template <typename ImageType>
-double CBCTRECON_API
-GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
+double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
              const typename ImageType::Pointer &ProjStack) {
 
   using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, ImageType>;
@@ -134,7 +131,7 @@ GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
 }
 
 template <typename T, typename ImageType>
-bool CBCTRECON_API GetOutputResolutionFromFOV(
+bool GetOutputResolutionFromFOV(
     typename T::SizeType &sizeOutput, typename T::SpacingType &spacing,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
     const typename ImageType::Pointer &ProjStack,

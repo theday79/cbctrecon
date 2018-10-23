@@ -25,7 +25,7 @@ bool CBCTRECON_API SaveDoseGrayImage(const char *filePath, int width,
 
 template <
     typename ImageType> // image by value, because we call this from std::thread
-void CBCTRECON_API saveImageAsMHA(typename ImageType::Pointer &image) {
+void saveImageAsMHA(typename ImageType::Pointer &image) {
   using ImageWriterType = itk::ImageFileWriter<ImageType>;
   typename ImageWriterType::Pointer writer = ImageWriterType::New();
   writer->SetInput(image);
