@@ -1,9 +1,10 @@
 // For testing CbctRecon
 
 #ifdef USE_TINYREFL
+#include <tinyrefl/api.hpp> // MUST BE INCLUDED FIRST, FFS!
+
 #include "cbctrecon.h"
 #include "cbctrecon.h.tinyrefl"
-#include <tinyrefl/api.hpp>
 #else
 #include "cbctrecon.h"
 #endif
