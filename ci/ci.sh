@@ -29,5 +29,6 @@ fi
 cmake ..
 make $MAKE_CONCURRENCY CbctRecon
 cmake .. # Just to make sure tinyrefl data is generated
+make $MAKE_CONCURRENCY CbctData
 make $MAKE_CONCURRENCY CbctRecon_test
 ctest -V

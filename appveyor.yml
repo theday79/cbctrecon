@@ -163,6 +163,7 @@ build_script:
   # Build CbctRecon (and all targets, necessary for packaging)
   - cmake --build . --config %BUILD_TYPE%
   # - cmake "%APPVEYOR_BUILD_FOLDER%" may be necessary when tinyrefl supports windows
+  - cmake --build . --config %BUILD_TYPE% --target CbctData
   - cmake --build . --config %BUILD_TYPE% --target CbctRecon_test
   # Run CbctRecon_test
   - ctest -V -C %BUILD_TYPE%
