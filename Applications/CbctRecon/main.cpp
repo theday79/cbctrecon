@@ -3,7 +3,7 @@
 int main(int argc, char *argv[]) {
   QApplication a(argc, argv);
   // Load color theme if it exists:
-  const QString app_path = QCoreApplication::applicationDirPath();
+  const auto app_path = QCoreApplication::applicationDirPath();
   QFile f(app_path + "/ui/style.qss");
   if (!f.exists()) {
     std::cout << "Unable to set stylesheet, file: "
@@ -12,7 +12,8 @@ int main(int argc, char *argv[]) {
   } else {
     f.open(QFile::ReadOnly | QFile::Text);
     QTextStream ts(&f);
-    qApp->setStyleSheet(ts.readAll());
+    a.setStyleSheet(ts.readAll());
+    // qApp->setStyleSheet(ts.readAll());
   }
 
   CbctReconWidget w;

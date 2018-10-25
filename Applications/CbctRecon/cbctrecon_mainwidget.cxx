@@ -6,6 +6,7 @@
 #include <vector>
 
 // Qt
+#include <QtWidgets/QMainWindow>
 #include <qclipboard.h>
 #include <qfiledialog.h>
 #include <qinputdialog.h>
@@ -39,42 +40,42 @@
 
 #pragma GCC poison new
 
-CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
+CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
     : QMainWindow(parent, flags) {
 
-  ui.setupUi(this);
+  this->ui.setupUi(this);
 
   // Disable cuda & opencl as defaults
-  ui.radioButton_UseCPU->setChecked(true);
-  ui.radioButton_UseCUDA->setDisabled(true);
-  ui.radioButton_UseOpenCL->setDisabled(true);
+  this->ui.radioButton_UseCPU->setChecked(true);
+  this->ui.radioButton_UseCUDA->setDisabled(true);
+  this->ui.radioButton_UseOpenCL->setDisabled(true);
 
-  ui.pushButton_DoRecon->setDisabled(true);
+  this->ui.pushButton_DoRecon->setDisabled(true);
 
-  connect(ui.labelImageRaw, SIGNAL(Mouse_Move()), this,
+  connect(this->ui.labelImageRaw, SIGNAL(Mouse_Move()), this,
           SLOT(SLT_DataProbeProj()));
-  connect(ui.labelImageRaw, SIGNAL(Mouse_Pressed_Left()), this,
+  connect(this->ui.labelImageRaw, SIGNAL(Mouse_Pressed_Left()), this,
           SLOT(SLT_CalculateROI_Proj())); // added
 
-  connect(ui.labelReconImage, SIGNAL(Mouse_Move()), this,
+  connect(this->ui.labelReconImage, SIGNAL(Mouse_Move()), this,
           SLOT(SLT_DataProbeRecon()));
-  connect(ui.labelReconImage, SIGNAL(Mouse_Pressed_Left()), this,
+  connect(this->ui.labelReconImage, SIGNAL(Mouse_Pressed_Left()), this,
           SLOT(SLT_CalculateROI_Recon()));
 
   // Mouse_Left
 
-  // connect(ui.MyLabel, SIGNAL(Mouse_Pos()), this, SLOT(MouseCurrPos()));
+  // connect(this->ui.MyLabel, SIGNAL(Mouse_Pos()), this, SLOT(MouseCurrPos()));
 
 #if USE_CUDA
-  ui.radioButton_UseCUDA->setDisabled(false);
-  ui.radioButton_UseCUDA->setChecked(true);
+  this->ui.radioButton_UseCUDA->setDisabled(false);
+  this->ui.radioButton_UseCUDA->setChecked(true);
 #endif
 
 #if USE_OPENCL_PLM
-  ui.radioButton_UseOpenCL->setDisabled(false);
+  this->ui.radioButton_UseOpenCL->setDisabled(false);
 #endif
 
-  m_cbctrecon = std::make_unique<CbctRecon>();
+  this->m_cbctrecon = std::make_unique<CbctRecon>();
   m_dlgRegistration = std::make_unique<DlgRegistration>(this);
   m_cbctregistration = m_dlgRegistration->m_cbctregistration.get();
 
@@ -82,91 +83,92 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, Qt::WindowFlags flags)
   init_DlgRegistration(tmp_folder); // to Setup plastimatch folder. this is
                                     // useful if registration will be only done
   // m_pDlgHistogram = new DlgHistogram(this);
-  m_dlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
+  this->m_dlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
 
   // 20141017 QTIMER for sync
   m_Timer = std::make_unique<QTimer>(this);
   connect(m_Timer.get(), SIGNAL(timeout()), this, SLOT(SLT_TimerEvent()));
   m_busyTimer = false;
 
-  m_cbctrecon->m_strPathDirDefault =
+  this->m_cbctrecon->m_strPathDirDefault =
       R"(D:\Program_data\01_20140827_CBCT_All\04_patient_phan_pelvis_M\IMAGES\img_1.3.46.423632.135786.1409186054.9_M20mAs6440)";
 
   QString strPathCurAppDir = QDir::currentPath(); // should be same as .exe file
   std::cout << "Current app path= "
             << strPathCurAppDir.toLocal8Bit().constData() << std::endl;
-  m_cbctrecon->m_strPathDefaultConfigFile =
+  this->m_cbctrecon->m_strPathDefaultConfigFile =
       strPathCurAppDir + "/" + "DefaultConfig.cfg";
 
   if (!LoadCurrentSetting(
-          m_cbctrecon->m_strPathDefaultConfigFile)) // Update GUI
+          this->m_cbctrecon->m_strPathDefaultConfigFile)) // Update GUI
   {
     std::cout << "DefaultConfig.cfg is not found in the application folder. A "
                  "new one will be created"
               << std::endl;
-    if (!SaveCurrentSetting(m_cbctrecon->m_strPathDefaultConfigFile)) {
+    if (!SaveCurrentSetting(this->m_cbctrecon->m_strPathDefaultConfigFile)) {
       std::cout << "Error in SaveCurrentSetting" << std::endl;
     }
   }
 }
 
 void CbctReconWidget::init_DlgRegistration(
-    QString &strDCM_UID) // init dlgRegistrations
+    QString &str_dcm_uid) const
+// init dlgRegistrations
 {
-  m_dlgRegistration->initDlgRegistration(
-      strDCM_UID); // NULLing all temporary spImage
+  this->m_dlgRegistration->initDlgRegistration(
+      str_dcm_uid); // NULLing all temporary spImage
 }
 
 void CbctReconWidget::SLT_LoadRawImages() { LoadRawHisImages(); }
 
-void CbctReconWidget::SLT_DrawRawImages() {
-  const auto crntIdx = ui.spinBoxImgIdx->value();
+void CbctReconWidget::SLT_DrawRawImages() const {
+  const auto crntIdx = this->ui.spinBoxImgIdx->value();
 
-  if (crntIdx >= m_cbctrecon->m_iImgCnt) {
+  if (crntIdx >= this->m_cbctrecon->m_iImgCnt) {
     return;
   }
 
-  const auto windowMin = ui.sliderRawMin->value();
-  const auto windowMax = ui.sliderRawMax->value();
+  const auto windowMin = this->ui.sliderRawMin->value();
+  const auto windowMax = this->ui.sliderRawMax->value();
 
   QFileInfo tmpInfo =
-      QFileInfo(m_cbctrecon->m_arrYKImage[crntIdx].m_strFilePath);
-  ui.lineEditFileName->setText(tmpInfo.fileName());
+      QFileInfo(this->m_cbctrecon->m_arrYKImage[crntIdx].m_strFilePath);
+  this->ui.lineEditFileName->setText(tmpInfo.fileName());
 
-  const auto width = m_cbctrecon->m_arrYKImage[crntIdx].m_iWidth;
-  const auto height = m_cbctrecon->m_arrYKImage[crntIdx].m_iHeight;
-  m_cbctrecon->m_dspYKImgProj->CreateImage(width, height, 0);
-  m_cbctrecon->m_dspYKImgProj->CopyFromBuffer(
-      m_cbctrecon->m_arrYKImage[crntIdx].m_pData, width, height);
+  const auto width = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iWidth;
+  const auto height = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iHeight;
+  this->m_cbctrecon->m_dspYKImgProj->CreateImage(width, height, 0);
+  this->m_cbctrecon->m_dspYKImgProj->CopyFromBuffer(
+      this->m_cbctrecon->m_arrYKImage[crntIdx].m_pData, width, height);
 
-  m_cbctrecon->m_dspYKImgProj->FillPixMapMinMax(windowMin, windowMax);
-  ui.labelImageRaw->SetBaseImage(m_cbctrecon->m_dspYKImgProj.get());
-  ui.labelImageRaw->update();
+  this->m_cbctrecon->m_dspYKImgProj->FillPixMapMinMax(windowMin, windowMax);
+  this->ui.labelImageRaw->SetBaseImage(this->m_cbctrecon->m_dspYKImgProj.get());
+  this->ui.labelImageRaw->update();
 }
 
 void CbctReconWidget::SLT_DrawProjImages() {
-  if (m_cbctrecon->m_dspYKImgProj == nullptr) {
+  if (this->m_cbctrecon->m_dspYKImgProj == nullptr) {
     return;
   }
 
-  if (m_cbctrecon->m_iImgCnt > 0) {
+  if (this->m_cbctrecon->m_iImgCnt > 0) {
     SLT_DrawRawImages();
     //		SLT_DrawGraph();
     SLT_UpdateTable();
     return;
   }
 
-  // int iReqSlice = ui.spinBoxImgIdx->value();
+  // int iReqSlice = this->ui.spinBoxImgIdx->value();
 
-  if (!m_cbctrecon->FillProjForDisplay(ui.spinBoxImgIdx->value())) {
+  if (!this->m_cbctrecon->FillProjForDisplay(this->ui.spinBoxImgIdx->value())) {
     return;
   }
 
-  m_cbctrecon->m_dspYKImgProj->FillPixMapMinMax(ui.sliderRawMin->value(),
-                                                ui.sliderRawMax->value());
+  this->m_cbctrecon->m_dspYKImgProj->FillPixMapMinMax(this->ui.sliderRawMin->value(),
+                                                this->ui.sliderRawMax->value());
 
-  ui.labelImageRaw->SetBaseImage(m_cbctrecon->m_dspYKImgProj.get());
-  ui.labelImageRaw->update();
+  this->ui.labelImageRaw->SetBaseImage(this->m_cbctrecon->m_dspYKImgProj.get());
+  this->ui.labelImageRaw->update();
 
   SLT_UpdateTable();
 }
@@ -174,7 +176,7 @@ void CbctReconWidget::SLT_DrawProjImages() {
 void CbctReconWidget::SLT_FileNameHex2Dec() {
   QStringList files = QFileDialog::getOpenFileNames(
       this, "Select one or more files to open",
-      m_cbctrecon->m_strPathDirDefault, "projection images (*.his)");
+      this->m_cbctrecon->m_strPathDirDefault, "projection images (*.his)");
 
   const auto cnt = files.size();
   if (cnt <= 0) {
@@ -191,14 +193,14 @@ void CbctReconWidget::SLT_FileNameHex2Dec() {
   const auto res = msgBox.exec();
 
   if (res == QMessageBox::Yes) {
-    m_cbctrecon->RenameFromHexToDecimal(files);
+    this->m_cbctrecon->RenameFromHexToDecimal(files);
   }
 }
 
 void CbctReconWidget::SLT_MakeElektaXML() {
   // Define IMAGE.DBF path
   QString filePath_ImageDBF = QFileDialog::getOpenFileName(
-      this, "SelectIMAGE.DBF file", m_cbctrecon->m_strPathDirDefault,
+      this, "SelectIMAGE.DBF file", this->m_cbctrecon->m_strPathDirDefault,
       "Elekta DB file (*.dbf)", nullptr, nullptr);
 
   if (filePath_ImageDBF.length() < 2) {
@@ -206,7 +208,7 @@ void CbctReconWidget::SLT_MakeElektaXML() {
   }
 
   QString filePath_FrameDBF = QFileDialog::getOpenFileName(
-      this, "Select FRAME.DBF file", m_cbctrecon->m_strPathDirDefault,
+      this, "Select FRAME.DBF file", this->m_cbctrecon->m_strPathDirDefault,
       "Elekta DB file (*.dbf)", nullptr, nullptr);
 
   if (filePath_FrameDBF.length() < 2) {
@@ -238,69 +240,69 @@ void CbctReconWidget::SLT_OpenOffsetFile() {
   // QString strPath = QFileDialog::getOpenFileNames(this,"Select one or more
   // files to open","/home","Images (*.raw)");
   auto strPath = QFileDialog::getOpenFileName(
-      this, "Select a single file to open", m_cbctrecon->m_strPathDirDefault,
+      this, "Select a single file to open", this->m_cbctrecon->m_strPathDirDefault,
       "raw image (*.raw)");
 
   if (strPath.length() <= 1) {
     return;
   }
   auto stdstr_path = strPath.toStdString();
-  m_cbctrecon->LoadCalibData(stdstr_path, OFFSET_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, OFFSET_CALIB);
 
-  ui.lineEdit_offsetPath->setText(strPath);
+  this->ui.lineEdit_offsetPath->setText(strPath);
 }
 
 void CbctReconWidget::SLT_OpenGainFile() {
   QString strPath = QFileDialog::getOpenFileName(
-      this, "Select a single file to open", m_cbctrecon->m_strPathDirDefault,
+      this, "Select a single file to open", this->m_cbctrecon->m_strPathDirDefault,
       "raw image (*.raw)");
 
   if (strPath.length() <= 1) {
     return;
   }
 
-  ui.lineEdit_gainPath->setText(strPath);
+  this->ui.lineEdit_gainPath->setText(strPath);
   auto stdstr_path = strPath.toStdString();
-  m_cbctrecon->LoadCalibData(stdstr_path, GAIN_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, GAIN_CALIB);
 }
 
 void CbctReconWidget::SLT_OpenBadpixelFile() {
   QString strPath = QFileDialog::getOpenFileName(
-      this, "Select a single file to open", m_cbctrecon->m_strPathDirDefault,
+      this, "Select a single file to open", this->m_cbctrecon->m_strPathDirDefault,
       "bad pixel map file (*.pmf)");
 
   if (strPath.length() <= 1) {
     return;
   }
 
-  ui.lineEdit_badpixelPath->setText(strPath);
+  this->ui.lineEdit_badpixelPath->setText(strPath);
   auto stdstr_path = strPath.toStdString();
-  m_cbctrecon->LoadCalibData(stdstr_path, BADPIXEL_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, BADPIXEL_CALIB);
   // m_pImgGain->LoadRawImage(strPath.toLocal8Bit(),IMG_WIDTH, IMG_HEIGHT);
 }
 
-void CbctReconWidget::SLT_ApplyCalibration() {
-  if (m_cbctrecon->m_iImgCnt < 1) {
+void CbctReconWidget::SLT_ApplyCalibration() const {
+  if (this->m_cbctrecon->m_iImgCnt < 1) {
     return;
   }
 
-  const auto bDarkCorrApply = ui.checkBox_offsetOn->isChecked();
-  const auto bGainCorrApply = ui.checkBox_gainOn->isChecked();
-  const auto bDefectMapApply = ui.checkBox_badpixelOn->isChecked();
-  for (int i = 0; i < m_cbctrecon->m_iImgCnt; i++) {
-    m_cbctrecon->CorrectSingleFile(
-        &m_cbctrecon->m_arrYKImage[i], bDarkCorrApply, bGainCorrApply,
+  const auto bDarkCorrApply = this->ui.checkBox_offsetOn->isChecked();
+  const auto bGainCorrApply = this->ui.checkBox_gainOn->isChecked();
+  const auto bDefectMapApply = this->ui.checkBox_badpixelOn->isChecked();
+  for (int i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
+    this->m_cbctrecon->CorrectSingleFile(
+        &this->m_cbctrecon->m_arrYKImage[i], bDarkCorrApply, bGainCorrApply,
         bDefectMapApply); // pixel value will be changed
   }
   SLT_DrawRawImages();
 }
 
 void CbctReconWidget::SLT_DrawReconImage() {
-  if (m_cbctrecon->m_dspYKReconImage == nullptr) {
+  if (this->m_cbctrecon->m_dspYKReconImage == nullptr) {
     return;
   }
 
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     std::cout << "no recon image to be displayed" << std::endl;
     return;
   }
@@ -315,7 +317,7 @@ void CbctReconWidget::SLT_DrawReconImage() {
 
   using DuplicatorType = itk::ImageDuplicator<UShortImageType>;
   DuplicatorType::Pointer duplicator = DuplicatorType::New();
-  duplicator->SetInputImage(m_cbctrecon->m_spCrntReconImg);
+  duplicator->SetInputImage(this->m_cbctrecon->m_spCrntReconImg);
   duplicator->Update();
   const auto clonedImage = duplicator->GetOutput();
 
@@ -331,16 +333,16 @@ void CbctReconWidget::SLT_DrawReconImage() {
   size[2] = 0; // z size number = 0 --> should not be 1
 
   UShortImageType::IndexType start = crnt_region_3d.GetIndex();
-  const int iSliceNumber = ui.spinBoxReconImgSliceNo->value();
+  const int iSliceNumber = this->ui.spinBoxReconImgSliceNo->value();
   start[2] = iSliceNumber; // 60
 
-  const auto originZ = m_cbctrecon->m_spCrntReconImg->GetOrigin()[2];
-  const auto spacingZ = m_cbctrecon->m_spCrntReconImg->GetSpacing()[2];
+  const auto originZ = this->m_cbctrecon->m_spCrntReconImg->GetOrigin()[2];
+  const auto spacingZ = this->m_cbctrecon->m_spCrntReconImg->GetSpacing()[2];
   const auto posZ = originZ + iSliceNumber * spacingZ;
 
   const auto strPosZ = QString("%1").arg(posZ, 0, 'f', 2);
   // strPosZ.sprintf("%4.2f", posZ);
-  ui.lineEdit_CurrentPosZ->setText(strPosZ);
+  this->ui.lineEdit_CurrentPosZ->setText(strPosZ);
 
   // Define a region to generate
   UShortImageType::RegionType desiredRegion;
@@ -358,35 +360,35 @@ void CbctReconWidget::SLT_DrawReconImage() {
   extractFilter->Update();
 
   UShortImage2DType::Pointer pCrnt2D = extractFilter->GetOutput();
-  m_cbctrecon->m_dspYKReconImage = YK16GrayImage::CopyItkImage2YKImage(
+  this->m_cbctrecon->m_dspYKReconImage = YK16GrayImage::CopyItkImage2YKImage(
       pCrnt2D,
-      std::move(m_cbctrecon->m_dspYKReconImage)); // dimension should be same
+      std::move(this->m_cbctrecon->m_dspYKReconImage)); // dimension should be same
                                                   // automatically.
 
   // m_dspYKReconImage->SaveDataAsRaw("D:\\RawFile.raw"); //410 410 OK
 
-  const auto physPosX = ui.lineEdit_PostFOV_X->text().toFloat();
-  const auto physPosY = ui.lineEdit_PostFOV_Y->text().toFloat();
-  const auto physRadius = ui.lineEdit_PostFOV_R->text().toFloat();
-  const auto physTablePosY = ui.lineEdit_PostTablePosY->text().toFloat();
-  m_cbctrecon->PostApplyFOVDispParam(physPosX, physPosY, physRadius,
+  const auto physPosX = this->ui.lineEdit_PostFOV_X->text().toFloat();
+  const auto physPosY = this->ui.lineEdit_PostFOV_Y->text().toFloat();
+  const auto physRadius = this->ui.lineEdit_PostFOV_R->text().toFloat();
+  const auto physTablePosY = this->ui.lineEdit_PostTablePosY->text().toFloat();
+  this->m_cbctrecon->PostApplyFOVDispParam(physPosX, physPosY, physRadius,
                                      physTablePosY);
   // SLT_UpdatePostProcDispObj();
 
-  if (ui.checkBox_PostDispObjOn->isChecked()) {
-    m_cbctrecon->m_dspYKReconImage->m_bDrawFOVCircle = true;
-    m_cbctrecon->m_dspYKReconImage->m_bDrawTableLine = true;
+  if (this->ui.checkBox_PostDispObjOn->isChecked()) {
+    this->m_cbctrecon->m_dspYKReconImage->m_bDrawFOVCircle = true;
+    this->m_cbctrecon->m_dspYKReconImage->m_bDrawTableLine = true;
   }
 
   else {
-    m_cbctrecon->m_dspYKReconImage->m_bDrawFOVCircle = false;
-    m_cbctrecon->m_dspYKReconImage->m_bDrawTableLine = false;
+    this->m_cbctrecon->m_dspYKReconImage->m_bDrawFOVCircle = false;
+    this->m_cbctrecon->m_dspYKReconImage->m_bDrawTableLine = false;
   }
 
-  m_cbctrecon->m_dspYKReconImage->FillPixMapMinMax(
-      ui.sliderReconImgMin->value(), ui.sliderReconImgMax->value());
-  ui.labelReconImage->SetBaseImage(m_cbctrecon->m_dspYKReconImage.get());
-  ui.labelReconImage->update();
+  this->m_cbctrecon->m_dspYKReconImage->FillPixMapMinMax(
+      this->ui.sliderReconImgMin->value(), this->ui.sliderReconImgMax->value());
+  this->ui.labelReconImage->SetBaseImage(this->m_cbctrecon->m_dspYKReconImage.get());
+  this->ui.labelReconImage->update();
 
   // SLT_DrawGraph();
   SLT_UpdateTable();
@@ -394,14 +396,14 @@ void CbctReconWidget::SLT_DrawReconImage() {
 
 void CbctReconWidget::SLT_OpenElektaGeomFile() {
   QString strPath = QFileDialog::getOpenFileName(
-      this, "Select a single file to open", m_cbctrecon->m_strPathDirDefault,
+      this, "Select a single file to open", this->m_cbctrecon->m_strPathDirDefault,
       "Geometry file (*.xml)");
 
   if (strPath.length() <= 1) {
     return;
   }
 
-  ui.lineEdit_ElektaGeomPath->setText(strPath);
+  this->ui.lineEdit_ElektaGeomPath->setText(strPath);
 }
 
 void CbctReconWidget::SLT_SetOutputPath() {
@@ -413,40 +415,40 @@ void CbctReconWidget::SLT_SetOutputPath() {
     return;
   }
 
-  ui.lineEdit_OutputFilePath->setText(strPath);
+  this->ui.lineEdit_OutputFilePath->setText(strPath);
 }
 
-FDK_options CbctReconWidget::getFDKoptions() {
+FDK_options CbctReconWidget::getFDKoptions() const {
   FDK_options fdk_options;
 
   fdk_options.TruncCorFactor =
-      ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-  fdk_options.HannCutX = ui.lineEdit_Ramp_HannCut->text().toDouble();
-  fdk_options.HannCutY = ui.lineEdit_Ramp_HannCutY->text().toDouble();
-  fdk_options.CosCut = ui.lineEdit_Ramp_CosineCut->text().toDouble();
-  fdk_options.HammCut = ui.lineEdit_Ramp_Hamming->text().toDouble();
+      this->ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
+  fdk_options.HannCutX = this->ui.lineEdit_Ramp_HannCut->text().toDouble();
+  fdk_options.HannCutY = this->ui.lineEdit_Ramp_HannCutY->text().toDouble();
+  fdk_options.CosCut = this->ui.lineEdit_Ramp_CosineCut->text().toDouble();
+  fdk_options.HammCut = this->ui.lineEdit_Ramp_Hamming->text().toDouble();
 
-  fdk_options.displacedDetectorFilter = ui.checkBox_UseDDF->isChecked();
-  fdk_options.updateAfterDDF = ui.checkBox_UpdateAfterFiltering->isChecked();
-  fdk_options.ParkerShortScan = ui.checkBox_UsePSSF->isChecked();
+  fdk_options.displacedDetectorFilter = this->ui.checkBox_UseDDF->isChecked();
+  fdk_options.updateAfterDDF = this->ui.checkBox_UpdateAfterFiltering->isChecked();
+  fdk_options.ParkerShortScan = this->ui.checkBox_UsePSSF->isChecked();
 
-  fdk_options.ct_spacing[0] = ui.lineEdit_outImgSp_AP->text().toDouble();
-  fdk_options.ct_spacing[1] = ui.lineEdit_outImgSp_SI->text().toDouble();
-  fdk_options.ct_spacing[2] = ui.lineEdit_outImgSp_LR->text().toDouble();
+  fdk_options.ct_spacing[0] = this->ui.lineEdit_outImgSp_AP->text().toDouble();
+  fdk_options.ct_spacing[1] = this->ui.lineEdit_outImgSp_SI->text().toDouble();
+  fdk_options.ct_spacing[2] = this->ui.lineEdit_outImgSp_LR->text().toDouble();
 
-  fdk_options.ct_size[0] = ui.lineEdit_outImgDim_AP->text().toInt();
-  fdk_options.ct_size[1] = ui.lineEdit_outImgDim_SI->text().toInt();
-  fdk_options.ct_size[2] = ui.lineEdit_outImgDim_LR->text().toInt();
+  fdk_options.ct_size[0] = this->ui.lineEdit_outImgDim_AP->text().toInt();
+  fdk_options.ct_size[1] = this->ui.lineEdit_outImgDim_SI->text().toInt();
+  fdk_options.ct_size[2] = this->ui.lineEdit_outImgDim_LR->text().toInt();
 
   fdk_options.medianRadius[0] =
-      ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+      this->ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
   fdk_options.medianRadius[1] =
-      ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+      this->ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
   fdk_options.medianRadius[2] =
-      ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along z
-  fdk_options.medianFilter = ui.checkBox_PostMedianOn->isChecked();
+      this->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along z
+  fdk_options.medianFilter = this->ui.checkBox_PostMedianOn->isChecked();
 
-  fdk_options.outputFilePath = ui.lineEdit_OutputFilePath->text();
+  fdk_options.outputFilePath = this->ui.lineEdit_OutputFilePath->text();
 
   return fdk_options;
 }
@@ -457,30 +459,30 @@ void CbctReconWidget::SLT_DoReconstruction() {
   itk::TimeProbe reconTimeProbe;
   reconTimeProbe.Start();
 
-  if (ui.radioButton_UseCUDA->isChecked()) {
-    m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT, fdk_options);
-  } else if (ui.radioButton_UseOpenCL->isChecked()) {
-    m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
+  if (this->ui.radioButton_UseCUDA->isChecked()) {
+    this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT, fdk_options);
+  } else if (this->ui.radioButton_UseOpenCL->isChecked()) {
+    this->m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
                                                   fdk_options);
   } else {
-    m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT, fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT, fdk_options);
   }
 
   reconTimeProbe.Stop();
   std::cout << "It took " << reconTimeProbe.GetMean() << ' '
             << reconTimeProbe.GetUnit() << std::endl;
-  ui.lineEdit_ReconstructionTime->setText(
+  this->ui.lineEdit_ReconstructionTime->setText(
       QString("%1").arg(reconTimeProbe.GetMean()));
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(fdk_options.ct_size[1] - 1);
-  ui.spinBoxReconImgSliceNo->setValue(qRound(
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(fdk_options.ct_size[1] - 1);
+  this->ui.spinBoxReconImgSliceNo->setValue(qRound(
       fdk_options.ct_size[1] / 2.0)); // DrawReconImage is called automatically
 
   SLT_DrawProjImages();
 
   QString update_text("RAW_CBCT");
-  UpdateReconImage(m_cbctrecon->m_spCrntReconImg, update_text);
+  UpdateReconImage(this->m_cbctrecon->m_spCrntReconImg, update_text);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                               // signalis called
@@ -491,78 +493,80 @@ void CbctReconWidget::SLT_DoReconstruction() {
 
   // After first reconstruction, set Median size to 0 0 1 for scatter corrected
   // solution
-  /* ui.lineEdit_PostMedSizeX->setText(QString("%1").arg(0.0));
-  ui.lineEdit_PostMedSizeY->setText(QString("%1").arg(0.0));
-  ui.lineEdit_PostMedSizeZ->setText(QString("%1").arg(1.0));*/
+  /* this->ui.lineEdit_PostMedSizeX->setText(QString("%1").arg(0.0));
+  this->ui.lineEdit_PostMedSizeY->setText(QString("%1").arg(0.0));
+  this->ui.lineEdit_PostMedSizeZ->setText(QString("%1").arg(1.0));*/
 }
 
-void CbctReconWidget::SLT_InitializeGraphLim() {
+void CbctReconWidget::SLT_InitializeGraphLim() const {
   // Set Max Min at graph
-  if (ui.radioButton_graph_proj->isChecked()) {
-    if (m_cbctrecon->m_iImgCnt > 0) // if indep raw his images are loaded
+  if (this->ui.radioButton_graph_proj->isChecked()) {
+    if (this->m_cbctrecon->m_iImgCnt > 0) // if indep raw his images are loaded
     {
-      const auto horLen = m_cbctrecon->m_dspYKImgProj->m_iWidth;
+      const auto horLen = this->m_cbctrecon->m_dspYKImgProj->m_iWidth;
       // int verLen = m_dspYKImgProj->m_iHeight;
 
       // set edit maxium min
       const auto strXMin = QString("%1").arg(horLen);
-      ui.lineEditXMin->setText("0");
-      ui.lineEditXMax->setText(strXMin);
+      this->ui.lineEditXMin->setText("0");
+      this->ui.lineEditXMax->setText(strXMin);
 
       const QString strYMin =
-          QString("%1").arg(m_cbctrecon->m_fProjImgValueMin, 0, 'f', 1);
+          QString("%1").arg(this->m_cbctrecon->m_fProjImgValueMin, 0, 'f', 1);
       const QString strYMax =
-          QString("%1").arg(m_cbctrecon->m_fProjImgValueMax, 0, 'f', 1);
+          QString("%1").arg(this->m_cbctrecon->m_fProjImgValueMax, 0, 'f', 1);
 
-      ui.lineEditYMin->setText(strYMin);
-      ui.lineEditYMax->setText(strYMax);
+      this->ui.lineEditYMin->setText(strYMin);
+      this->ui.lineEditYMax->setText(strYMax);
     }
 
-    if (m_cbctrecon->m_spProjImg3DFloat == nullptr) {
+    if (this->m_cbctrecon->m_spProjImg3DFloat == nullptr) {
       return;
     }
 
     const auto horLen =
-        m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0];
+        this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0];
     // int verLen = m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1];
 
     // set edit maxium min
     const auto strXMin = QString("%1").arg(horLen);
-    ui.lineEditXMin->setText("0");
-    ui.lineEditXMax->setText(strXMin);
+    this->ui.lineEditXMin->setText("0");
+    this->ui.lineEditXMax->setText(strXMin);
 
     const QString strYMin =
-        QString("%1").arg(m_cbctrecon->m_fProjImgValueMin, 0, 'f', 1);
+        QString("%1").arg(this->m_cbctrecon->m_fProjImgValueMin, 0, 'f', 1);
     const QString strYMax =
-        QString("%1").arg(m_cbctrecon->m_fProjImgValueMax, 0, 'f', 1);
+        QString("%1").arg(this->m_cbctrecon->m_fProjImgValueMax, 0, 'f', 1);
 
-    ui.lineEditYMin->setText(strYMin);
-    ui.lineEditYMax->setText(strYMax);
-  } else if (ui.radioButton_graph_recon->isChecked()) {
-    if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+    this->ui.lineEditYMin->setText(strYMin);
+    this->ui.lineEditYMax->setText(strYMax);
+  } else if (this->ui.radioButton_graph_recon->isChecked()) {
+    if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
       return;
     }
 
     const auto horLen =
-        m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize()[0];
+        this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize()[0];
     // int verLen = m_spCrntReconImg->GetBufferedRegion().GetSize()[1];
 
     // set edit maxium min
 
     const auto strXMax = QString("%1").arg(horLen);
-    ui.lineEditXMin->setText("0");
-    ui.lineEditXMax->setText(strXMax);
+    this->ui.lineEditXMin->setText("0");
+    this->ui.lineEditXMax->setText(strXMax);
 
     const auto strYMin = QString("%1").arg(0.0, 0, 'f', 1);
     const auto strYMax = QString("%1").arg(2000.0, 0, 'f', 1);
 
-    ui.lineEditYMin->setText(strYMin);
-    ui.lineEditYMax->setText(strYMax);
+    this->ui.lineEditYMin->setText(strYMin);
+    this->ui.lineEditYMax->setText(strYMax);
   }
 }
 
-void CbctReconWidget::SLT_CopyTableToClipBoard() {
-  qApp->clipboard()->clear();
+void CbctReconWidget::SLT_CopyTableToClipBoard() const {
+  //qApp->clipboard()->clear();
+  auto clipboard = QApplication::clipboard();
+  clipboard->clear();
 
   QStringList list;
 
@@ -572,7 +576,7 @@ void CbctReconWidget::SLT_CopyTableToClipBoard() {
   list << "\n";
   // for (int i = 0 ; i < columnCnt ; i++)
   //{
-  const auto tmpInfo = QFileInfo(ui.lineEdit_Cur3DFileName->text());
+  const auto tmpInfo = QFileInfo(this->ui.lineEdit_Cur3DFileName->text());
   // list << "Index";
   list << tmpInfo.baseName();
   list << "\n";
@@ -589,7 +593,8 @@ void CbctReconWidget::SLT_CopyTableToClipBoard() {
     list << "\n";
   }
 
-  qApp->clipboard()->setText(list.join("\t"));
+  clipboard->setText(list.join("\t"));
+  // qApp->clipboard()->setText(list.join("\t"));
 }
 
 void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
@@ -598,25 +603,25 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
 
   // Set folder --> then use RTK HIS Reader
   QString dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (dirPath.length() <= 1) {
     return;
   }
 
-  ui.lineEdit_HisDirPath->setText(dirPath);
+  this->ui.lineEdit_HisDirPath->setText(dirPath);
 
-  m_cbctrecon->SetProjDir(dirPath);
-  init_DlgRegistration(m_cbctrecon->m_strDCMUID);
+  this->m_cbctrecon->SetProjDir(dirPath);
+  init_DlgRegistration(this->m_cbctrecon->m_strDCMUID);
 
-  ui.lineEdit_ElektaGeomPath->setText(m_cbctrecon->m_strPathGeomXML);
-  ui.lineEdit_PathCBCTSkinPath->setText(m_cbctrecon->m_strPathRS_CBCT);
+  this->ui.lineEdit_ElektaGeomPath->setText(this->m_cbctrecon->m_strPathGeomXML);
+  this->ui.lineEdit_PathCBCTSkinPath->setText(this->m_cbctrecon->m_strPathRS_CBCT);
 
   float kVp = 0.0;
   float mA = 0.0;
   float ms = 0.0;
-  GetXrayParamFromINI(m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
+  GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
 
   if (kVp * mA * ms != 0) {
     // update GUI
@@ -624,14 +629,14 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
               << "kVp= " << kVp << ", mA= " << mA << ", ms= " << ms
               << std::endl;
   }
-  ui.lineEdit_CurmAs->setText(QString("%1, %2").arg(mA).arg(ms));
+  this->ui.lineEdit_CurmAs->setText(QString("%1, %2").arg(mA).arg(ms));
 
   VEC3D couch_trans = {-999, -999,
                        -999}; // mm. In the text file, these values are in cm.
   VEC3D couch_rot = {-999, -999,
                      -999}; // mm. In the text file, these values are in cm.
 
-  const auto res = GetCouchShiftFromINIXVI(m_cbctrecon->m_strPathElektaINIXVI2,
+  const auto res = GetCouchShiftFromINIXVI(this->m_cbctrecon->m_strPathElektaINIXVI2,
                                            &couch_trans, &couch_rot);
 
   if (res) {
@@ -646,14 +651,14 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
 
     const auto strRotAll = strRotX + "," + strRotY + "," + strRotZ;
 
-    ui.lineEdit_CouchTrans->setText(strTransAll);
-    ui.lineEdit_CouchRot->setText(strRotAll);
+    this->ui.lineEdit_CouchTrans->setText(strTransAll);
+    this->ui.lineEdit_CouchRot->setText(strRotAll);
   } else {
-    ui.lineEdit_CouchTrans->setText("Not available");
-    ui.lineEdit_CouchRot->setText("Not available");
+    this->ui.lineEdit_CouchTrans->setText("Not available");
+    this->ui.lineEdit_CouchRot->setText("Not available");
   }
 
-  m_cbctrecon->m_vSelectedFileNames.clear();
+  this->m_cbctrecon->m_vSelectedFileNames.clear();
 
   std::cout << "Push Load button to load projection images" << std::endl;
 }
@@ -673,12 +678,12 @@ std::tuple<bool, bool> CbctReconWidget::probeUser(const QString &guessDir) {
   bool dcm_success = false;
   if (!(dirPath.length() <= 1)) {
 
-    if (m_cbctrecon->ReadDicomDir(dirPath)) {
+    if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
 
       m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
       // UpdateReconImage(m_spRefCTImg, QString("DICOM reference image"));
 
-      m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
+      this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
                                           REGISTER_MANUAL_RIGID);
       dcm_success = true;
     }
@@ -710,7 +715,7 @@ CbctReconWidget::ReadBowtieFileWhileProbing(const QString &proj_path,
 
   QString bowtiePath;
 
-  switch (m_cbctrecon->m_projFormat) {
+  switch (this->m_cbctrecon->m_projFormat) {
   case XIM_FORMAT:
     bowtiePath = getBowtiePath(this, calDir);
     if (bowtiePath.length() > 1) {
@@ -741,9 +746,9 @@ CbctReconWidget::ReadBowtieFileWhileProbing(const QString &proj_path,
 void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
                                                   // projection images
 {
-  ui.pushButton_DoRecon->setDisabled(true);
+  this->ui.pushButton_DoRecon->setDisabled(true);
   // 1) Get all projection file names
-  QString dirPath = ui.lineEdit_HisDirPath->text();
+  QString dirPath = this->ui.lineEdit_HisDirPath->text();
   //.toLocal8Bit().constData();
 
   if (!QFile::exists(dirPath)) {
@@ -751,10 +756,10 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     return;
   }
 
-  auto names = m_cbctrecon->GetProjFileNames(dirPath);
+  auto names = this->m_cbctrecon->GetProjFileNames(dirPath);
 
-  if (!m_cbctrecon->IsFileNameOrderCorrect(names) &&
-      (m_cbctrecon->m_projFormat != XIM_FORMAT)) {
+  if (!this->m_cbctrecon->IsFileNameOrderCorrect(names) &&
+      (this->m_cbctrecon->m_projFormat != XIM_FORMAT)) {
     std::cout << "Check the file name order" << std::endl;
     QMessageBox::warning(this, "warning", "Error on File Name Sorting!");
     return;
@@ -772,26 +777,26 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   std::cout << fullCnt << "  projection files were found." << std::endl;
 
   // 2) Elekta Geometry file
-  const auto geomPath = ui.lineEdit_ElektaGeomPath->text();
+  const auto geomPath = this->ui.lineEdit_ElektaGeomPath->text();
   QFileInfo geomFileInfo(geomPath);
   //! QFile::exists(geomPath)
 
-  if (!m_cbctrecon->LoadGeometry(geomFileInfo, names)) {
-    if (!m_cbctrecon->m_strError.isEmpty()) {
+  if (!this->m_cbctrecon->LoadGeometry(geomFileInfo, names)) {
+    if (!this->m_cbctrecon->m_strError.isEmpty()) {
       QMessageBox::critical(this, "LoadXVIGeometryFile",
-                            m_cbctrecon->m_strError, QMessageBox::Ok);
+                            this->m_cbctrecon->m_strError, QMessageBox::Ok);
     }
   }
 
   const auto iFullGeoDataSize =
-      m_cbctrecon->m_spFullGeometry->GetGantryAngles().size();
+      this->m_cbctrecon->m_spFullGeometry->GetGantryAngles().size();
   if (iFullGeoDataSize < 1) {
     std::cout << "Not enough projection image (should be > 0)" << std::endl;
     return;
   }
 
   if (iFullGeoDataSize != fullCnt) {
-    if (m_cbctrecon->m_projFormat != XIM_FORMAT) {
+    if (this->m_cbctrecon->m_projFormat != XIM_FORMAT) {
       std::cout << "Size of geometry data and file numbers are not same! Check "
                    "and retry"
                 << std::endl;
@@ -810,8 +815,8 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     }
   }
 
-  auto angle_gaps = m_cbctrecon->m_spFullGeometry->GetAngularGaps(
-      m_cbctrecon->m_spFullGeometry->GetSourceAngles());
+  auto angle_gaps = this->m_cbctrecon->m_spFullGeometry->GetAngularGaps(
+      this->m_cbctrecon->m_spFullGeometry->GetSourceAngles());
 
   auto sum_gap =
       std::accumulate(std::begin(angle_gaps), std::end(angle_gaps), 0.0);
@@ -822,10 +827,10 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
             << ", Mean (deg): " << mean_gap << std::endl;
 
   const auto gantryAngleInterval =
-      ui.lineEdit_ManualProjAngleGap->text().toDouble();
+      this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
 
-  // if (ui.Radio_KeepOriginalAngles->isChecked())
-  if (ui.Radio_ManualProjAngleGap->isChecked()) {
+  // if (this->ui.Radio_KeepOriginalAngles->isChecked())
+  if (this->ui.Radio_ManualProjAngleGap->isChecked()) {
     // bManualGap = true;
     // std::cout << "Input angle gap in deg: " ;
     // cin >> gantryAngleInterval;
@@ -838,15 +843,15 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     }
   }
 
-  const auto exclude_ids = m_cbctrecon->GetExcludeProjFiles(
-      ui.Radio_ManualProjAngleGap->isChecked(), gantryAngleInterval);
+  const auto exclude_ids = this->m_cbctrecon->GetExcludeProjFiles(
+      this->ui.Radio_ManualProjAngleGap->isChecked(), gantryAngleInterval);
 
-  m_cbctrecon->LoadSelectedProj(exclude_ids, names);
+  this->m_cbctrecon->LoadSelectedProj(exclude_ids, names);
 
   // Reads the cone beam projections
   using ReaderType = rtk::ProjectionsReader<FloatImageType>;
   ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileNames(m_cbctrecon->m_vSelectedFileNames);
+  reader->SetFileNames(this->m_cbctrecon->m_vSelectedFileNames);
   // TRY_AND_EXIT_ON_ITK_EXCEPTION(
   // std::thread calc_thread(read_projections, reader);
   std::thread calc_thread([&reader]() { reader->Update(); });
@@ -856,7 +861,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
 
   // After reading the whole file,
   // HIS header should be saved
-  m_cbctrecon->saveHisHeader();
+  this->m_cbctrecon->saveHisHeader();
 
   //  Insta Recon, Dcm read
   const auto geopath = geomFileInfo.absolutePath();
@@ -869,33 +874,33 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   if (bowtie_reader != nullptr) {
     ApplyBowtie(reader, bowtie_reader);
   }
-  if (m_cbctrecon->m_projFormat == HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     SLT_DoBowtieCorrection();
   }
 
-  saveImageAsMHA<FloatImageType>(m_cbctrecon->m_spProjImg3DFloat);
-  auto res_factor = ui.lineEdit_DownResolFactor->text().toDouble();
-  if (!m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
+  saveImageAsMHA<FloatImageType>(this->m_cbctrecon->m_spProjImg3DFloat);
+  auto res_factor = this->ui.lineEdit_DownResolFactor->text().toDouble();
+  if (!this->m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
     // reset factor if image was not resampled
-    ui.lineEdit_DownResolFactor->setText("1.0");
+    this->ui.lineEdit_DownResolFactor->setText("1.0");
   }
 
-  m_cbctrecon->ConvertLineInt2Intensity(
-      m_cbctrecon->m_spProjImg3DFloat, m_cbctrecon->m_spProjImgRaw3D,
+  this->m_cbctrecon->ConvertLineInt2Intensity(
+      this->m_cbctrecon->m_spProjImg3DFloat, this->m_cbctrecon->m_spProjImgRaw3D,
       65535); // if X not 1024 == input size: out_offset =
               // in_offset + (1024*res_f -
               // X*res_f)*out_spacing     <- will still
               // break down at fw_projection
 
-  ui.pushButton_DoRecon->setEnabled(true);
+  this->ui.pushButton_DoRecon->setEnabled(true);
 
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_cbctrecon->m_vSelectedFileNames.size() - 1);
-  ui.spinBoxImgIdx->setValue(0); // it doesn't call Draw Event .. don't know
+  this->ui.spinBoxImgIdx->setMinimum(0);
+  this->ui.spinBoxImgIdx->setMaximum(this->m_cbctrecon->m_vSelectedFileNames.size() - 1);
+  this->ui.spinBoxImgIdx->setValue(0); // it doesn't call Draw Event .. don't know
                                  // why.
 
-  m_cbctrecon
+  this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
 
   SLT_InitializeGraphLim();
@@ -915,89 +920,89 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   }
 }
 
-void CbctReconWidget::SLT_DataProbeProj() {
-  const auto dspWidth = ui.labelImageRaw->width();
-  const auto dspHeight = ui.labelImageRaw->height();
+void CbctReconWidget::SLT_DataProbeProj() const {
+  const auto dspWidth = this->ui.labelImageRaw->width();
+  const auto dspHeight = this->ui.labelImageRaw->height();
 
-  if (m_cbctrecon->m_iImgCnt > 0) // there is indep loaded projection files
+  if (this->m_cbctrecon->m_iImgCnt > 0) // there is indep loaded projection files
   {
-    const auto dataWidth = m_cbctrecon->m_dspYKImgProj->m_iWidth;
-    const auto dataHeight = m_cbctrecon->m_dspYKImgProj->m_iHeight;
+    const auto dataWidth = this->m_cbctrecon->m_dspYKImgProj->m_iWidth;
+    const auto dataHeight = this->m_cbctrecon->m_dspYKImgProj->m_iHeight;
 
     const auto dataX =
-        qRound(ui.labelImageRaw->x / static_cast<double>(dspWidth * dataWidth));
-    const auto dataY = qRound(ui.labelImageRaw->y /
+        qRound(this->ui.labelImageRaw->x / static_cast<double>(dspWidth * dataWidth));
+    const auto dataY = qRound(this->ui.labelImageRaw->y /
                               static_cast<double>(dspHeight * dataHeight));
-    const auto dataZ = ui.spinBoxImgIdx->value();
+    const auto dataZ = this->ui.spinBoxImgIdx->value();
     const auto fProbeValue = static_cast<double>(
-        m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]);
+        this->m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]);
     const auto dspText = QString("(%1, %2, %3): %4")
                              .arg(dataX)
                              .arg(dataY)
                              .arg(dataZ)
                              .arg(fProbeValue, 0, 'f', 2);
-    ui.lineEdit_DataProbe_Proj->setText(dspText);
+    this->ui.lineEdit_DataProbe_Proj->setText(dspText);
   } else {
-    if (m_cbctrecon->m_spProjImg3DFloat == nullptr) {
+    if (this->m_cbctrecon->m_spProjImg3DFloat == nullptr) {
       return;
     }
 
     const auto dataWidth = static_cast<int>(
-        m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0]);
+        this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[0]);
     const auto dataHeight = static_cast<int>(
-        m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1]);
+        this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[1]);
 
-    // int crntIdx = ui.spinBoxImgIdx->value();
+    // int crntIdx = this->ui.spinBoxImgIdx->value();
     // These are displayed data (just index data)
     const auto dataX =
-        qRound(ui.labelImageRaw->x / static_cast<double>(dspWidth * dataWidth));
-    const auto dataY = qRound(ui.labelImageRaw->y /
+        qRound(this->ui.labelImageRaw->x / static_cast<double>(dspWidth * dataWidth));
+    const auto dataY = qRound(this->ui.labelImageRaw->y /
                               static_cast<double>(dspHeight * dataHeight));
-    const auto dataZ = ui.spinBoxImgIdx->value();
+    const auto dataZ = this->ui.spinBoxImgIdx->value();
 
     // fProbeValue = m_dspYKImgProj->m_pData[dataWidth*dataY +
     // dataX]/m_multiplyFactor;
     const auto fProbeValue =
         static_cast<double>(
-            m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]) /
-            m_cbctrecon->m_multiplyFactor +
-        m_cbctrecon->m_fProjImgValueMin;
+            this->m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]) /
+            this->m_cbctrecon->m_multiplyFactor +
+        this->m_cbctrecon->m_fProjImgValueMin;
     const auto dspText = QString("(%1, %2, %3): %4")
                              .arg(dataX)
                              .arg(dataY)
                              .arg(dataZ)
                              .arg(fProbeValue, 0, 'f', 2);
-    ui.lineEdit_DataProbe_Proj->setText(dspText);
+    this->ui.lineEdit_DataProbe_Proj->setText(dspText);
   }
 }
 
-void CbctReconWidget::SLT_DataProbeRecon() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+void CbctReconWidget::SLT_DataProbeRecon() const {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
 
-  const auto dspWidth = ui.labelReconImage->width();
-  const auto dspHeight = ui.labelReconImage->height();
+  const auto dspWidth = this->ui.labelReconImage->width();
+  const auto dspHeight = this->ui.labelReconImage->height();
 
   const auto dataWidth =
-      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize()[0];
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize()[0];
   const auto dataHeight =
-      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize()[1];
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize()[1];
 
-  // int crntIdx = ui.spinBoxImgIdx->value();
+  // int crntIdx = this->ui.spinBoxImgIdx->value();
   // These are displayed data (just index data)
 
-  const auto dataX = std::lround(ui.labelReconImage->x / dspWidth * dataWidth);
+  const auto dataX = std::lround(this->ui.labelReconImage->x / dspWidth * dataWidth);
   const auto dataY =
-      std::lround(ui.labelReconImage->y / dspHeight * dataHeight);
-  const auto dataZ = ui.spinBoxReconImgSliceNo->value();
+      std::lround(this->ui.labelReconImage->y / dspHeight * dataHeight);
+  const auto dataZ = this->ui.spinBoxReconImgSliceNo->value();
 
   const auto iProbeValue =
-      m_cbctrecon->m_dspYKReconImage->m_pData[dataWidth * dataY + dataX];
+      this->m_cbctrecon->m_dspYKReconImage->m_pData[dataWidth * dataY + dataX];
   // unsigned short iProbeValue = GetValueFrom3DImageUshort(dataX, dataY, dataZ,
   // m_spReconImg);
 
-  QChar zero('0');
+  const auto zero = QChar('0');
   const auto dspText = QString("(%1, %2, %3): %4")
                            .arg(dataX, 3, 10, zero)
                            .arg(dataY, 3, 10, zero)
@@ -1005,10 +1010,11 @@ void CbctReconWidget::SLT_DataProbeRecon() {
                            .arg(iProbeValue);
   // dspText.sprintf("(%03d, %03d, %03d): %d", dataX, dataY, dataZ,
   // iProbeValue);
-  ui.lineEdit_DataProbe_Recon->setText(dspText);
+  this->ui.lineEdit_DataProbe_Recon->setText(dspText);
 }
 
-void CbctReconWidget::SLT_DrawGraph() // based on profile
+void CbctReconWidget::SLT_DrawGraph() const
+// based on profile
 {
   if (m_pTableModel == nullptr) {
     return;
@@ -1020,14 +1026,14 @@ void CbctReconWidget::SLT_DrawGraph() // based on profile
   QVector<double> vAxisY;
 
   // QStandardItemModel 	m_pTableModel.item()
-  int dataLen = m_pTableModel->rowCount();
+  const auto dataLen = m_pTableModel->rowCount();
 
   if (dataLen < 1) {
     return;
   }
 
   // std::cout << "check graph 1" << std::endl;
-  ui.customPlot->clearGraphs();
+  this->ui.customPlot->clearGraphs();
 
   double minX = 9999.0;
   double maxX = -1.0;
@@ -1051,49 +1057,49 @@ void CbctReconWidget::SLT_DrawGraph() // based on profile
 
   // std::cout << "check graph 2" << std::endl;
 
-  ui.customPlot->addGraph();
-  ui.customPlot->graph(0)->setData(vAxisX, vAxisY);
-  ui.customPlot->graph(0)->setPen(QPen(Qt::blue));
-  ui.customPlot->graph(0)->setName("Image profile");
+  this->ui.customPlot->addGraph();
+  this->ui.customPlot->graph(0)->setData(vAxisX, vAxisY);
+  this->ui.customPlot->graph(0)->setPen(QPen(Qt::blue));
+  this->ui.customPlot->graph(0)->setName("Image profile");
 
-  ui.lineEditXMin->setText(QString("%1").arg(minX));
-  ui.lineEditXMax->setText(QString("%1").arg(maxX));
+  this->ui.lineEditXMin->setText(QString("%1").arg(minX));
+  this->ui.lineEditXMax->setText(QString("%1").arg(maxX));
 
-  double tmpXMin = ui.lineEditXMin->text().toDouble();
-  double tmpXMax = ui.lineEditXMax->text().toDouble();
-  double tmpYMin = ui.lineEditYMin->text().toDouble();
-  double tmpYMax = ui.lineEditYMax->text().toDouble();
+  const auto tmpXMin = this->ui.lineEditXMin->text().toDouble();
+  const auto tmpXMax = this->ui.lineEditXMax->text().toDouble();
+  const auto tmpYMin = this->ui.lineEditYMin->text().toDouble();
+  const auto tmpYMax = this->ui.lineEditYMax->text().toDouble();
 
   // std::cout << "check graph 3" << std::endl;
 
-  ui.customPlot->xAxis->setRange(tmpXMin, tmpXMax);
-  ui.customPlot->yAxis->setRange(tmpYMin, tmpYMax);
+  this->ui.customPlot->xAxis->setRange(tmpXMin, tmpXMax);
+  this->ui.customPlot->yAxis->setRange(tmpYMin, tmpYMax);
 
-  ui.customPlot->xAxis->setLabel("mm");
-  ui.customPlot->yAxis->setLabel("Intensity");
-  ui.customPlot->setTitle("Image Profile");
+  this->ui.customPlot->xAxis->setLabel("mm");
+  this->ui.customPlot->yAxis->setLabel("Intensity");
+  this->ui.customPlot->setTitle("Image Profile");
   QFont titleFont = font();
   titleFont.setPointSize(10);
-  ui.customPlot->setTitleFont(titleFont);
+  this->ui.customPlot->setTitleFont(titleFont);
 
   // std::cout << "check graph 4" << std::endl;
 
-  ui.customPlot->legend->setVisible(false);
+  this->ui.customPlot->legend->setVisible(false);
   QFont legendFont = font();  // start out with MainWindow's font..
   legendFont.setPointSize(9); // and make a bit smaller for legend
-  ui.customPlot->legend->setFont(legendFont);
-  ui.customPlot->legend->setPositionStyle(QCPLegend::psTopRight);
-  ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
+  this->ui.customPlot->legend->setFont(legendFont);
+  this->ui.customPlot->legend->setPositionStyle(QCPLegend::psTopRight);
+  this->ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
 
   // std::cout << "check graph 5" << std::endl;
-  ui.customPlot->replot();
+  this->ui.customPlot->replot();
 
   // SLT_UpdateTable();
 }
 
 void CbctReconWidget::SLT_UpdateTable() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
-    ui.radioButton_graph_proj->setChecked(true);
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
+    this->ui.radioButton_graph_proj->setChecked(true);
   }
 
   // std::cout << "check 1" << std::endl;
@@ -1101,18 +1107,18 @@ void CbctReconWidget::SLT_UpdateTable() {
   double fMultiPlyFactor = 1.0;
   double fMinValue = 0.0;
 
-  if (ui.radioButton_graph_proj->isChecked()) {
+  if (this->ui.radioButton_graph_proj->isChecked()) {
     pYKImg =
-        m_cbctrecon->m_dspYKImgProj.get(); // you may look, but no touching!
+        this->m_cbctrecon->m_dspYKImgProj.get(); // you may look, but no touching!
 
-    if (m_cbctrecon->m_iImgCnt > 0) { // if indep image
+    if (this->m_cbctrecon->m_iImgCnt > 0) { // if indep image
       fMultiPlyFactor = 1.0;
     } else {
-      fMultiPlyFactor = m_cbctrecon->m_multiplyFactor;
-      fMinValue = m_cbctrecon->m_fProjImgValueMin;
+      fMultiPlyFactor = this->m_cbctrecon->m_multiplyFactor;
+      fMinValue = this->m_cbctrecon->m_fProjImgValueMin;
     }
   } else {
-    pYKImg = m_cbctrecon->m_dspYKReconImage.get();
+    pYKImg = this->m_cbctrecon->m_dspYKReconImage.get();
     fMinValue = 0.0;
   }
   if (pYKImg == nullptr) {
@@ -1127,7 +1133,7 @@ void CbctReconWidget::SLT_UpdateTable() {
 
   /// int rowSize = pYKImg->m_iWidth;
 
-  if (ui.radioButton_Profile_Hor->isChecked()) {
+  if (this->ui.radioButton_Profile_Hor->isChecked()) {
     // columnSize = 2;
     rowSize = pYKImg->m_iWidth;
   }
@@ -1160,12 +1166,12 @@ void CbctReconWidget::SLT_UpdateTable() {
   auto spacingX = 1.0;
   auto spacingY = 1.0;
 
-  if (!ui.radioButton_graph_proj->isChecked()) {
-    if (m_cbctrecon->m_spCrntReconImg != nullptr) {
+  if (!this->ui.radioButton_graph_proj->isChecked()) {
+    if (this->m_cbctrecon->m_spCrntReconImg != nullptr) {
       UShortImageType::PointType tmpOrigin =
-          m_cbctrecon->m_spCrntReconImg->GetOrigin();
+          this->m_cbctrecon->m_spCrntReconImg->GetOrigin();
       UShortImageType::SpacingType tmpSpacing =
-          m_cbctrecon->m_spCrntReconImg->GetSpacing();
+          this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
       originX = tmpOrigin[0];
       originY = tmpOrigin[1];
       spacingX = tmpSpacing[0];
@@ -1176,7 +1182,7 @@ void CbctReconWidget::SLT_UpdateTable() {
   // std::cout << "check 6" << std::endl;
 
   QVector<qreal> vPos;
-  if (ui.radioButton_Profile_Hor->isChecked()) {
+  if (this->ui.radioButton_Profile_Hor->isChecked()) {
     for (int i = 0; i < rowSize; i++) {
       vPos.push_back(originX + i * spacingX);
     }
@@ -1187,7 +1193,7 @@ void CbctReconWidget::SLT_UpdateTable() {
   }
 
   QVector<qreal> vProfile;
-  if (ui.radioButton_Profile_Hor->isChecked()) {
+  if (this->ui.radioButton_Profile_Hor->isChecked()) {
     pYKImg->GetProfileData(vProfile, DIRECTION_HOR);
   } else {
     pYKImg->GetProfileData(vProfile, DIRECTION_VER);
@@ -1195,18 +1201,18 @@ void CbctReconWidget::SLT_UpdateTable() {
 
   // int i = fixedY;
   for (int i = 0; i < rowSize; i++) {
-    auto tmpVal1 = vPos[i];
+    const auto tmpVal1 = vPos[i];
     auto xpos_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal1));
     m_pTableModel->setItem(i, 0, xpos_item.get());
 
-    auto tmpVal2 = vProfile[i] / fMultiPlyFactor + fMinValue;
+    const auto tmpVal2 = vProfile[i] / fMultiPlyFactor + fMinValue;
     auto profval_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal2));
     m_pTableModel->setItem(i, 1, profval_item.get());
   }
 
-  ui.tableViewReconImgProfile->setModel(m_pTableModel.get()); // also for proj
+  this->ui.tableViewReconImgProfile->setModel(m_pTableModel.get()); // also for proj
 
   // std::cout << "check 7" << std::endl;
   SLT_DrawGraph();
@@ -1214,53 +1220,55 @@ void CbctReconWidget::SLT_UpdateTable() {
 
 // Mouse Left Click
 void CbctReconWidget::SLT_CalculateROI_Recon() {
-  if (m_cbctrecon->m_dspYKReconImage == nullptr) {
+  if (this->m_cbctrecon->m_dspYKReconImage == nullptr) {
     return;
   }
 
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
-  auto &CrntReconImg = m_cbctrecon->m_spCrntReconImg;
-  auto &dspReconImg = m_cbctrecon->m_dspYKReconImage;
+  auto &CrntReconImg = this->m_cbctrecon->m_spCrntReconImg;
+  auto &dspReconImg = this->m_cbctrecon->m_dspYKReconImage;
 
-  double dspWidth = ui.labelReconImage->width();
-  double dspHeight = ui.labelReconImage->height();
+  const auto dspWidth = this->ui.labelReconImage->width();
+  const auto dspHeight = this->ui.labelReconImage->height();
 
-  int dataWidth = dspReconImg->m_iWidth;
-  int dataHeight = dspReconImg->m_iHeight;
+  const auto dataWidth = dspReconImg->m_iWidth;
+  const auto dataHeight = dspReconImg->m_iHeight;
   if (dataWidth * dataHeight == 0) {
     return;
   }
 
-  // int crntIdx = ui.spinBoxImgIdx->value();
+  // int crntIdx = this->ui.spinBoxImgIdx->value();
   // These are displayed data (just index data)
 
-  int dataX = qRound(ui.labelReconImage->x / dspWidth * dataWidth);
-  int dataY = qRound(ui.labelReconImage->y / dspHeight * dataHeight);
-  int dataZ = ui.spinBoxReconImgSliceNo->value();
+  const auto dataX =
+      qRound(this->ui.labelReconImage->x / static_cast<double>(dspWidth * dataWidth));
+  const auto dataY = qRound(this->ui.labelReconImage->y /
+                            static_cast<double>(dspHeight * dataHeight));
+  const auto dataZ = this->ui.spinBoxReconImgSliceNo->value();
 
-  auto originX = static_cast<double>(CrntReconImg->GetOrigin()[0]);
-  auto originY = static_cast<double>(CrntReconImg->GetOrigin()[1]);
-  auto originZ = static_cast<double>(CrntReconImg->GetOrigin()[2]);
+  const auto originX = static_cast<double>(CrntReconImg->GetOrigin()[0]);
+  const auto originY = static_cast<double>(CrntReconImg->GetOrigin()[1]);
+  const auto originZ = static_cast<double>(CrntReconImg->GetOrigin()[2]);
 
-  auto spacingX = static_cast<double>(CrntReconImg->GetSpacing()[0]);
-  auto spacingY = static_cast<double>(CrntReconImg->GetSpacing()[1]);
-  auto spacingZ = static_cast<double>(CrntReconImg->GetSpacing()[2]);
+  const auto spacingX = static_cast<double>(CrntReconImg->GetSpacing()[0]);
+  const auto spacingY = static_cast<double>(CrntReconImg->GetSpacing()[1]);
+  const auto spacingZ = static_cast<double>(CrntReconImg->GetSpacing()[2]);
 
-  double posX = originX + dataX * spacingX;
-  double posY = originY + dataY * spacingY;
-  double posZ = originZ + dataZ * spacingZ;
+  const auto posX = originX + dataX * spacingX;
+  const auto posY = originY + dataY * spacingY;
+  const auto posZ = originZ + dataZ * spacingZ;
 
   const auto tmpStr1 = QString("%1").arg(posX, 0, 'f', 2);
   const auto tmpStr2 = QString("%1").arg(posY, 0, 'f', 2);
   const auto tmpStr3 = QString("%1").arg(posZ, 0, 'f', 2);
-  ui.lineEdit_ForcedProbePosX->setText(tmpStr1);
-  ui.lineEdit_ForcedProbePosY->setText(tmpStr2);
-  ui.lineEdit_ForcedProbePosZ->setText(tmpStr3);
+  this->ui.lineEdit_ForcedProbePosX->setText(tmpStr1);
+  this->ui.lineEdit_ForcedProbePosY->setText(tmpStr2);
+  this->ui.lineEdit_ForcedProbePosZ->setText(tmpStr3);
 
   dspReconImg->SetProfileProbePos(dataX, dataY);
-  if (ui.radioButton_Profile_Hor->isChecked()) {
+  if (this->ui.radioButton_Profile_Hor->isChecked()) {
     dspReconImg->m_bDrawProfileX = true;
     dspReconImg->m_bDrawProfileY = false;
   } else {
@@ -1269,7 +1277,7 @@ void CbctReconWidget::SLT_CalculateROI_Recon() {
   }
 
   // dspReconImg value itself
-  const auto ROI_size = ui.lineEdit_ROI_size->text().toInt();
+  const auto ROI_size = this->ui.lineEdit_ROI_size->text().toInt();
   if (ROI_size < 0) {
     return;
   }
@@ -1288,8 +1296,8 @@ void CbctReconWidget::SLT_CalculateROI_Recon() {
         QString("%1").arg(dspReconImg->m_fPixelMean_ROI, 0, 'f', 2);
     const auto strSD =
         QString("%1").arg(dspReconImg->m_fPixelSD_ROI, 0, 'f', 2);
-    ui.lineEdit_ROI_mean->setText(strMean);
-    ui.lineEdit_ROI_SD->setText(strSD);
+    this->ui.lineEdit_ROI_mean->setText(strMean);
+    this->ui.lineEdit_ROI_SD->setText(strSD);
   } else {
     dspReconImg->DrawROIOn(false);
   }
@@ -1298,45 +1306,47 @@ void CbctReconWidget::SLT_CalculateROI_Recon() {
 }
 
 void CbctReconWidget::SLT_CalculateROI_Proj() {
-  if (m_cbctrecon->m_dspYKImgProj == nullptr) {
+  if (this->m_cbctrecon->m_dspYKImgProj == nullptr) {
     return;
   }
-  auto &dspProjImg = m_cbctrecon->m_dspYKImgProj;
+  auto &dspProjImg = this->m_cbctrecon->m_dspYKImgProj;
 
-  double dspWidth = ui.labelImageRaw->width();
-  double dspHeight = ui.labelImageRaw->height();
+  const auto dspWidth = this->ui.labelImageRaw->width();
+  const auto dspHeight = this->ui.labelImageRaw->height();
 
-  int dataWidth = dspProjImg->m_iWidth;
-  int dataHeight = dspProjImg->m_iHeight;
+  const auto dataWidth = dspProjImg->m_iWidth;
+  const auto dataHeight = dspProjImg->m_iHeight;
   if (dataWidth * dataHeight == 0) {
     return;
   }
 
-  // int crntIdx = ui.spinBoxImgIdx->value();
+  // int crntIdx = this->ui.spinBoxImgIdx->value();
   // These are displayed data (just index data)
-  int dataX = qRound(ui.labelImageRaw->x / dspWidth * dataWidth);
-  int dataY = qRound(ui.labelImageRaw->y / dspHeight * dataHeight);
-  int dataZ = ui.spinBoxImgIdx->value();
+  const auto dataX =
+      qRound(this->ui.labelImageRaw->x / static_cast<double>(dspWidth * dataWidth));
+  const auto dataY =
+      qRound(this->ui.labelImageRaw->y / static_cast<double>(dspHeight * dataHeight));
+  const auto dataZ = this->ui.spinBoxImgIdx->value();
 
-  double originX = 0.0; // 0
-  double originY = 0.0; // 0
-  double originZ = 0.0; // 0
+  const auto originX = 0.0; // 0
+  const auto originY = 0.0; // 0
+  const auto originZ = 0.0; // 0
 
-  double spacingX = 1.0; // 1
-  double spacingY = 1.0; // 1
-  double spacingZ = 1.0; // 1
+  const auto spacingX = 1.0; // 1
+  const auto spacingY = 1.0; // 1
+  const auto spacingZ = 1.0; // 1
 
-  double posX = originX + dataX * spacingX;
-  double posY = originY + dataY * spacingY;
-  double posZ = originZ + dataZ * spacingZ;
+  const auto posX = originX + dataX * spacingX;
+  const auto posY = originY + dataY * spacingY;
+  const auto posZ = originZ + dataZ * spacingZ;
 
-  ui.lineEdit_ForcedProbePosX->setText(QString("%1").arg(posX));
-  ui.lineEdit_ForcedProbePosY->setText(QString("%1").arg(posY));
-  ui.lineEdit_ForcedProbePosZ->setText(QString("%1").arg(posZ));
+  this->ui.lineEdit_ForcedProbePosX->setText(QString("%1").arg(posX));
+  this->ui.lineEdit_ForcedProbePosY->setText(QString("%1").arg(posY));
+  this->ui.lineEdit_ForcedProbePosZ->setText(QString("%1").arg(posZ));
 
   dspProjImg->SetProfileProbePos(dataX, dataY);
 
-  if (ui.radioButton_Profile_Hor->isChecked()) {
+  if (this->ui.radioButton_Profile_Hor->isChecked()) {
     dspProjImg->m_bDrawProfileX = true;
     dspProjImg->m_bDrawProfileY = false;
   } else {
@@ -1345,7 +1355,7 @@ void CbctReconWidget::SLT_CalculateROI_Proj() {
   }
 
   // m_dspYKReconImage value itself
-  int ROI_size = ui.lineEdit_ROI_size->text().toInt();
+  const auto ROI_size = this->ui.lineEdit_ROI_size->text().toInt();
   if (ROI_size < 0) {
     return;
   }
@@ -1358,14 +1368,14 @@ void CbctReconWidget::SLT_CalculateROI_Proj() {
     dspProjImg->DrawROIOn(true);
     // strMean.sprintf("%5.1f", dspProjImg->m_fPixelMean_ROI);
     const auto strMean = QString("%1").arg(
-        (dspProjImg->m_fPixelMean_ROI / m_cbctrecon->m_multiplyFactor) +
-            m_cbctrecon->m_fProjImgValueMin,
+        (dspProjImg->m_fPixelMean_ROI / this->m_cbctrecon->m_multiplyFactor) +
+            this->m_cbctrecon->m_fProjImgValueMin,
         0, 'f', 2);
 
     const auto strSD = QString("%1").arg(
-        dspProjImg->m_fPixelSD_ROI / m_cbctrecon->m_multiplyFactor, 0, 'f', 2);
-    ui.lineEdit_ROI_mean->setText(strMean);
-    ui.lineEdit_ROI_SD->setText(strSD);
+        dspProjImg->m_fPixelSD_ROI / this->m_cbctrecon->m_multiplyFactor, 0, 'f', 2);
+    this->ui.lineEdit_ROI_mean->setText(strMean);
+    this->ui.lineEdit_ROI_SD->setText(strSD);
   } else {
     dspProjImg->DrawROIOn(false);
   }
@@ -1376,10 +1386,10 @@ void CbctReconWidget::SLT_CalculateROI_Proj() {
 void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
                                              // clicked
 {
-  double fForcedProbePosX =
-      ui.lineEdit_ForcedProbePosX->text().toDouble(); // data is the reference
-  double fForcedProbePosY = ui.lineEdit_ForcedProbePosY->text().toDouble();
-  double fForcedProbePosZ = ui.lineEdit_ForcedProbePosZ->text().toDouble();
+  const auto fForcedProbePosX =
+      this->ui.lineEdit_ForcedProbePosX->text().toDouble(); // data is the reference
+  const auto fForcedProbePosY = this->ui.lineEdit_ForcedProbePosY->text().toDouble();
+  const auto fForcedProbePosZ = this->ui.lineEdit_ForcedProbePosZ->text().toDouble();
 
   // First change the scene acc to Z value
   double originX, originY, originZ;
@@ -1387,11 +1397,11 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
 
   int dataX, dataY;
 
-  if (ui.radioButton_graph_proj->isChecked()) {
-    if (m_cbctrecon->m_spProjImg3DFloat == nullptr) {
+  if (this->ui.radioButton_graph_proj->isChecked()) {
+    if (this->m_cbctrecon->m_spProjImg3DFloat == nullptr) {
       return;
     }
-    auto &ProjImg3D = m_cbctrecon->m_spProjImg3DFloat;
+    auto &ProjImg3D = this->m_cbctrecon->m_spProjImg3DFloat;
 
     originX = ProjImg3D->GetOrigin()[0];
     originY = ProjImg3D->GetOrigin()[1];
@@ -1403,17 +1413,17 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
 
     const auto sliceIdx = qRound((fForcedProbePosZ - originZ) / spacingZ);
 
-    if (sliceIdx < 0 || sliceIdx >= m_cbctrecon->m_iImgCnt) {
+    if (sliceIdx < 0 || sliceIdx >= this->m_cbctrecon->m_iImgCnt) {
       return;
     }
 
-    ui.spinBoxImgIdx->setValue(sliceIdx); // Draw function is called
+    this->ui.spinBoxImgIdx->setValue(sliceIdx); // Draw function is called
 
-    const auto dspWidth = ui.labelImageRaw->width();
-    const auto dspHeight = ui.labelImageRaw->height();
+    const auto dspWidth = this->ui.labelImageRaw->width();
+    const auto dspHeight = this->ui.labelImageRaw->height();
 
-    const auto dataWidth = m_cbctrecon->m_dspYKImgProj->m_iWidth;
-    const auto dataHeight = m_cbctrecon->m_dspYKImgProj->m_iHeight;
+    const auto dataWidth = this->m_cbctrecon->m_dspYKImgProj->m_iWidth;
+    const auto dataHeight = this->m_cbctrecon->m_dspYKImgProj->m_iHeight;
 
     dataX = qRound((fForcedProbePosX - originX) / spacingX);
     dataY = qRound((fForcedProbePosY - originY) / spacingY);
@@ -1422,17 +1432,17 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
       return;
     }
 
-    ui.labelImageRaw->x =
+    this->ui.labelImageRaw->x =
         qRound(dataX / static_cast<double>(dataWidth) * dspWidth);
-    ui.labelImageRaw->y =
+    this->ui.labelImageRaw->y =
         qRound(dataY / static_cast<double>(dataHeight) * dspHeight);
 
     SLT_CalculateROI_Proj();
-  } else if (ui.radioButton_graph_recon->isChecked()) {
-    if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  } else if (this->ui.radioButton_graph_recon->isChecked()) {
+    if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
       return;
     }
-    auto &CrntReconImg = m_cbctrecon->m_spCrntReconImg;
+    auto &CrntReconImg = this->m_cbctrecon->m_spCrntReconImg;
     originX = CrntReconImg->GetOrigin()[0];
     originY = CrntReconImg->GetOrigin()[1];
     originZ = CrntReconImg->GetOrigin()[2];
@@ -1449,13 +1459,13 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
       return;
     }
 
-    ui.spinBoxReconImgSliceNo->setValue(sliceIdx); // Draw function is called
+    this->ui.spinBoxReconImgSliceNo->setValue(sliceIdx); // Draw function is called
 
-    const auto dspWidth = ui.labelReconImage->width();
-    const auto dspHeight = ui.labelReconImage->height();
+    const auto dspWidth = this->ui.labelReconImage->width();
+    const auto dspHeight = this->ui.labelReconImage->height();
 
-    const auto dataWidth = m_cbctrecon->m_dspYKReconImage->m_iWidth;
-    const auto dataHeight = m_cbctrecon->m_dspYKReconImage->m_iHeight;
+    const auto dataWidth = this->m_cbctrecon->m_dspYKReconImage->m_iWidth;
+    const auto dataHeight = this->m_cbctrecon->m_dspYKReconImage->m_iHeight;
 
     dataX = qRound((fForcedProbePosX - originX) / spacingX);
     dataY = qRound((fForcedProbePosY - originY) / spacingY);
@@ -1464,9 +1474,9 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
       return;
     }
 
-    ui.labelReconImage->x =
+    this->ui.labelReconImage->x =
         qRound(dataX / static_cast<double>(dataWidth) * dspWidth);
-    ui.labelReconImage->y =
+    this->ui.labelReconImage->y =
         qRound(dataY / static_cast<double>(dataHeight) * dspHeight);
 
     SLT_CalculateROI_Recon();
@@ -1474,57 +1484,57 @@ void CbctReconWidget::SLT_GoForcedProbePos() // when forced probe button was
 }
 
 void CbctReconWidget::SLT_PostApplyFOVDispParam() {
-  // m_cbctrecon->PostApplyFOVDispParam();
+  // this->m_cbctrecon->PostApplyFOVDispParam();
   SLT_DrawReconImage();
 }
 
 void CbctReconWidget::SLT_DoPostProcessing() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
   // 1) region iterator, set 0 for all pixels outside the circle and below the
   // table top, based on physical position
 
-  float physPosX = ui.lineEdit_PostFOV_X->text().toFloat();
-  float physPosY = ui.lineEdit_PostFOV_Y->text().toFloat();
+  const auto physPosX = this->ui.lineEdit_PostFOV_X->text().toFloat();
+  const auto physPosY = this->ui.lineEdit_PostFOV_Y->text().toFloat();
 
-  float physRadius = ui.lineEdit_PostFOV_R->text().toFloat();
-  float physTablePosY = ui.lineEdit_PostTablePosY->text().toFloat();
+  const auto physRadius = this->ui.lineEdit_PostFOV_R->text().toFloat();
+  const auto physTablePosY = this->ui.lineEdit_PostTablePosY->text().toFloat();
 
   std::cout << "YKDEBUG " << physPosX << "," << physPosY << "," << physRadius
             << "," << physTablePosY << std::endl;
 
-  m_cbctrecon->CropFOV3D(m_cbctrecon->m_spCrntReconImg, physPosX, physPosY,
+  this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spCrntReconImg, physPosX, physPosY,
                          physRadius, physTablePosY);
 
   SLT_DrawReconImage();
 }
 
 void CbctReconWidget::SLT_PostProcCropInv() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
   // 1) region iterator, set 0 for all pixels outside the circle and below the
   // table top, based on physical position
 
-  double physPosX = ui.lineEdit_PostFOV_X->text().toDouble();
-  double physPosY = ui.lineEdit_PostFOV_Y->text().toDouble();
+  const auto physPosX = this->ui.lineEdit_PostFOV_X->text().toDouble();
+  const auto physPosY = this->ui.lineEdit_PostFOV_Y->text().toDouble();
 
-  double physRadius = ui.lineEdit_PostFOV_R->text().toDouble();
-  // double physTablePosY = ui.lineEdit_PostTablePosY->text().toDouble();
+  const auto physRadius = this->ui.lineEdit_PostFOV_R->text().toDouble();
+  // double physTablePosY = this->ui.lineEdit_PostTablePosY->text().toDouble();
 
   UShortImageType::PointType origin =
-      m_cbctrecon->m_spCrntReconImg->GetOrigin();
+      this->m_cbctrecon->m_spCrntReconImg->GetOrigin();
   UShortImageType::SpacingType spacing =
-      m_cbctrecon->m_spCrntReconImg->GetSpacing();
+      this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
   // UShortImageType::SizeType size =
   // m_spCrntReconImg->GetBufferedRegion().GetSize();
 
   // itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spReconImg,
   // m_spReconImg->GetRequestedRegion());
   itk::ImageSliceIteratorWithIndex<UShortImageType> it(
-      m_cbctrecon->m_spCrntReconImg,
-      m_cbctrecon->m_spCrntReconImg->GetRequestedRegion());
+      this->m_cbctrecon->m_spCrntReconImg,
+      this->m_cbctrecon->m_spCrntReconImg->GetRequestedRegion());
 
   // ImageSliceConstIteratorWithIndex<ImageType> it( image,
   // image->GetRequestedRegion() );
@@ -1576,12 +1586,12 @@ void CbctReconWidget::SLT_PostProcCropInv() {
 
 void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
 
   QString dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (dirPath.isEmpty()) {
@@ -1616,21 +1626,22 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     } else if (strListPtInfo.count() == 1) {
       strPatientID = strListPtInfo.at(0);
     } else {
-      strPatientID = m_cbctrecon->m_strDCMUID;
+      strPatientID = this->m_cbctrecon->m_strDCMUID;
     }
     // strPatientID = m_strDCMUID + "_" + strEndFix;
   } else {
-    strPatientID = m_cbctrecon->m_strDCMUID;
+    strPatientID = this->m_cbctrecon->m_strDCMUID;
   }
 
   if (strPatientID.isEmpty()) {
     return;
   }
 
-  for (int i = 0; i < m_dlgRegistration->ui.comboBoxImgFixed->count(); i++) {
-    m_dlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
-    QString strDirName = m_dlgRegistration->ui.comboBoxImgFixed->currentText();
-    bool tmpResult = crntDir.mkdir(strDirName); // what if the directory exists?
+  for (int i = 0; i < this->m_dlgRegistration->ui.comboBoxImgFixed->count(); i++) {
+    this->m_dlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
+    QString strDirName = this->m_dlgRegistration->ui.comboBoxImgFixed->currentText();
+    const auto tmpResult =
+        crntDir.mkdir(strDirName); // what if the directory exists?
     if (!tmpResult) {
       std::cout
           << "DICOM dir seems to exist already. Files will be overwritten."
@@ -1647,8 +1658,8 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     ExportReconSHORT_HU(m_dlgRegistration->m_spFixed, mhaFileName);
   }
   SLT_GeneratePOIData();
-  QString angle_end_one("1");
-  ui.lineEdit_AngEnd->setText(angle_end_one);
+  const auto angle_end_one = QString("1");
+  this->ui.lineEdit_AngEnd->setText(angle_end_one);
   SLT_ExportAngularWEPL_byFile();
 }
 
@@ -1659,40 +1670,41 @@ void CbctReconWidget::SLT_ExportReconSHORT_HU() {
   if (strPath.length() <= 1) {
     return;
   }
-  ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
+  ExportReconSHORT_HU(this->m_cbctrecon->m_spCrntReconImg, strPath);
 }
 
 void CbctReconWidget::SLT_DoBHC() {
 
   std::cout << "Beam hardening correction is under progress.." << std::endl;
-  m_cbctrecon->DoBeamHardeningCorrection(); // only for m_spProjImg3D
-  m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
+  this->m_cbctrecon->DoBeamHardeningCorrection(); // only for m_spProjImg3D
+  this->m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
 
   SLT_DrawProjImages();
 }
 
 void CbctReconWidget::SLT_DoBowtieCorrection() {
-  if (m_cbctrecon->m_spProjImg3DFloat == nullptr) {
+  if (this->m_cbctrecon->m_spProjImg3DFloat == nullptr) {
     return;
   }
 
-  if (m_cbctrecon->m_projFormat != HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat != HND_FORMAT) {
     std::cout
         << "Bow tie filtering should not be used for His data or Xim data!!"
         << std::endl;
     return;
   }
 
-  QStringList strList = ui.comboBox_fBTcor->currentText().split(';');
+  const auto strList = this->ui.comboBox_fBTcor->currentText().split(';');
 
-  m_cbctrecon->BowtieByFit(ui.checkBox_Fullfan->isChecked(), strList);
+  this->m_cbctrecon->BowtieByFit(this->ui.checkBox_Fullfan->isChecked(), strList);
 
-  m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
+  this->m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
   SLT_DrawProjImages();
   std::cout << "Bow-tie correction done." << std::endl;
 }
 
-void CbctReconWidget::SLT_ViewRegistration() // default showing function
+void CbctReconWidget::SLT_ViewRegistration() const
+// default showing function
 {
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                               // signalis called
@@ -1718,13 +1730,13 @@ void CbctReconWidget::SLT_ViewHistogram() // default showing function
 void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
                                         GeometryType::Pointer &spGeometry,
                                         UShortImageType::Pointer &spProjCT3D,
-                                        bool bSave, bool use_cuda) {
+                                        const bool bSave, const bool use_cuda) {
   if (spVolImg3D == nullptr) {
     std::cout << "ERROR! No 3D-CT file. Load 3D CT file first" << std::endl;
     return;
   }
 
-  if (m_cbctrecon->m_iCntSelectedProj < 1 && bSave) {
+  if (this->m_cbctrecon->m_iCntSelectedProj < 1 && bSave) {
     std::cout << "Error! No projection image is loaded" << std::endl;
     return;
   }
@@ -1735,14 +1747,14 @@ void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
   }
 
 #ifndef USE_CUDA
-  m_cbctrecon->CPU_ForwardProjection(spVolImg3D, spGeometry,
+  this->m_cbctrecon->CPU_ForwardProjection(spVolImg3D, spGeometry,
                                      spProjCT3D); // final moving image
 #else
   if (use_cuda) {
-    m_cbctrecon->CUDA_ForwardProjection(spVolImg3D, spGeometry,
+    this->m_cbctrecon->CUDA_ForwardProjection(spVolImg3D, spGeometry,
                                         spProjCT3D); // final moving image
   } else {
-    m_cbctrecon->CPU_ForwardProjection(spVolImg3D, spGeometry,
+    this->m_cbctrecon->CPU_ForwardProjection(spVolImg3D, spGeometry,
                                        spProjCT3D); // final moving image
   }
 #endif // !USE_CUDA
@@ -1750,35 +1762,35 @@ void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
     std::cout << " Patient DIR Path: "
-              << m_cbctrecon->m_strPathPatientDir.toLocal8Bit().constData()
+              << this->m_cbctrecon->m_strPathPatientDir.toLocal8Bit().constData()
               << std::endl;
 
     bool manuallySelectedDir = false; // <- just to make sure I don't break
                                       // usecases of the older version.
-    if (m_cbctrecon->m_strPathPatientDir.isEmpty()) {
+    if (this->m_cbctrecon->m_strPathPatientDir.isEmpty()) {
       std::cout << "File save error!: No patient DIR name" << std::endl;
 
-      m_cbctrecon->m_strPathPatientDir = QFileDialog::getExistingDirectory(
+      this->m_cbctrecon->m_strPathPatientDir = QFileDialog::getExistingDirectory(
           this, tr("Open Directory"), ".",
           QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-      if (m_cbctrecon->m_strPathPatientDir.length() <= 1) {
+      if (this->m_cbctrecon->m_strPathPatientDir.length() <= 1) {
         return;
       }
       manuallySelectedDir = true;
     }
 
     // Get current folder
-    QString subdir_images("IMAGES");
-    QString strCrntDir = m_cbctrecon->m_strPathPatientDir + "/" +
-                         subdir_images; // current Proj folder
+    const auto subdir_images("IMAGES");
+    const auto strCrntDir = this->m_cbctrecon->m_strPathPatientDir + "/" +
+                            subdir_images; // current Proj folder
 
     // Make a sub directory
     QDir crntDir(strCrntDir);
 
     if (!crntDir.exists()) {
       if (manuallySelectedDir) {
-        QDir current_dir(m_cbctrecon->m_strPathPatientDir);
-        bool success = current_dir.mkdir(subdir_images);
+        QDir current_dir(this->m_cbctrecon->m_strPathPatientDir);
+        const auto success = current_dir.mkdir(subdir_images);
         if (!success) {
           std::cerr << "Could not create subfolder IMAGES in given directory"
                     << std::endl;
@@ -1791,9 +1803,10 @@ void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
       }
     }
 
-    QString fwdDirName = "fwd_" + m_cbctrecon->m_strDCMUID;
+    const auto fwdDirName = "fwd_" + this->m_cbctrecon->m_strDCMUID;
 
-    bool tmpResult = crntDir.mkdir(fwdDirName); // what if the directory exists?
+    const auto tmpResult =
+        crntDir.mkdir(fwdDirName); // what if the directory exists?
 
     if (!tmpResult) {
       std::cout << "FwdProj directory seems to exist already. Files will be "
@@ -1802,32 +1815,32 @@ void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     }
 
     QString strSavingFolder = strCrntDir + "/" + fwdDirName;
-    m_cbctrecon->SaveProjImageAsHIS(spProjCT3D, m_cbctrecon->m_arrYKBufProj,
-                                    strSavingFolder, m_cbctrecon->m_fResampleF);
+    this->m_cbctrecon->SaveProjImageAsHIS(spProjCT3D, this->m_cbctrecon->m_arrYKBufProj,
+                                    strSavingFolder, this->m_cbctrecon->m_fResampleF);
   }
 }
 
 void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
-  bool bExportProj_Fwd = ui.checkBox_ExportFwd->isChecked();
-  bool bExportProj_Scat = ui.checkBox_ExportScat->isChecked();
-  bool bExportProj_Cor = ui.checkBox_ExportCor->isChecked();
+  const auto bExportProj_Fwd = this->ui.checkBox_ExportFwd->isChecked();
+  const auto bExportProj_Scat = this->ui.checkBox_ExportScat->isChecked();
+  const auto bExportProj_Cor = this->ui.checkBox_ExportCor->isChecked();
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
   if (m_dlgRegistration->m_spMoving != nullptr) {
     ForwardProjection(
-        m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
-        m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
-        ui.radioButton_UseCUDA->isChecked()); // final moving image
-  } else if (m_cbctrecon->m_spRefCTImg != nullptr) {
+        m_dlgRegistration->m_spMoving, this->m_cbctrecon->m_spCustomGeometry,
+        this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
+        this->ui.radioButton_UseCUDA->isChecked()); // final moving image
+  } else if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
     std::cout << "No Moving image in Registration is found. Ref CT image will "
                  "be used instead"
               << std::endl;
     ForwardProjection(
-        m_cbctrecon->m_spRefCTImg, m_cbctrecon->m_spCustomGeometry,
-        m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
-        ui.radioButton_UseCUDA->isChecked()); // final moving image
+        this->m_cbctrecon->m_spRefCTImg, this->m_cbctrecon->m_spCustomGeometry,
+        this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
+        this->ui.radioButton_UseCUDA->isChecked()); // final moving image
   } else {
     std::cout << "Error!: No ref image for forward projection is found."
               << std::endl;
@@ -1836,73 +1849,73 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   // YKTEMP
   std::cout << "ProjImgCT Size = "
-            << m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[0]
+            << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[0]
             << ", "
-            << m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[1]
+            << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[1]
             << ", "
-            << m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[2]
+            << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[2]
             << std::endl;
   std::cout << "ProjImgCT origin = "
-            << m_cbctrecon->m_spProjImgCT3D->GetOrigin()[0] << ", "
-            << m_cbctrecon->m_spProjImgCT3D->GetOrigin()[1] << ", "
-            << m_cbctrecon->m_spProjImgCT3D->GetOrigin()[2] << std::endl;
+            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[0] << ", "
+            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[1] << ", "
+            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[2] << std::endl;
   std::cout << "ProjImgCT spacing = "
-            << m_cbctrecon->m_spProjImgCT3D->GetSpacing()[0] << ", "
-            << m_cbctrecon->m_spProjImgCT3D->GetSpacing()[1] << ", "
-            << m_cbctrecon->m_spProjImgCT3D->GetSpacing()[2] << std::endl;
+            << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[0] << ", "
+            << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[1] << ", "
+            << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[2] << std::endl;
 
-  // double scaResam = ui.lineEdit_scaResam->text().toDouble();
-  double scaMedian = ui.lineEdit_scaMedian->text().toDouble();
-  double scaGaussian = ui.lineEdit_scaGaussian->text().toDouble();
+  // double scaResam = this->ui.lineEdit_scaResam->text().toDouble();
+  const auto scaMedian = this->ui.lineEdit_scaMedian->text().toDouble();
+  const auto scaGaussian = this->ui.lineEdit_scaGaussian->text().toDouble();
 
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
-  m_cbctrecon->GenScatterMap_PriorCT(
-      m_cbctrecon->m_spProjImgRaw3D, m_cbctrecon->m_spProjImgCT3D,
-      m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
-      m_cbctrecon->m_iFixedOffset_ScatterMap,
+  this->m_cbctrecon->GenScatterMap_PriorCT(
+      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgCT3D,
+      this->m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
+      this->m_cbctrecon->m_iFixedOffset_ScatterMap,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
 
   std::cout << "To account for the mAs values, the intensity scale factor of "
-            << GetRawIntensityScaleFactor(m_cbctrecon->m_strRef_mAs,
-                                          m_cbctrecon->m_strCur_mAs)
+            << GetRawIntensityScaleFactor(this->m_cbctrecon->m_strRef_mAs,
+                                          this->m_cbctrecon->m_strCur_mAs)
             << "was multiplied during scatter correction to avoid negative "
                "scatter"
             << std::endl;
 
-  ui.lineEdit_CurmAs->setText(m_cbctrecon->m_strCur_mAs);
-  ui.lineEdit_RefmAs->setText(m_cbctrecon->m_strRef_mAs);
+  this->ui.lineEdit_CurmAs->setText(this->m_cbctrecon->m_strCur_mAs);
+  this->ui.lineEdit_RefmAs->setText(this->m_cbctrecon->m_strRef_mAs);
 
-  m_cbctrecon->m_spProjImgCT3D->Initialize(); // memory saving
+  this->m_cbctrecon->m_spProjImgCT3D->Initialize(); // memory saving
 
   std::cout << "Scatter correction is in progress..." << std::endl;
 
-  int postScatMedianSize = ui.lineEdit_scaPostMedian->text().toInt();
-  m_cbctrecon->ScatterCorr_PrioriCT(
-      m_cbctrecon->m_spProjImgRaw3D, m_cbctrecon->m_spProjImgScat3D,
-      m_cbctrecon->m_spProjImgCorr3D, m_cbctrecon->m_iFixedOffset_ScatterMap,
+  const auto postScatMedianSize = this->ui.lineEdit_scaPostMedian->text().toInt();
+  this->m_cbctrecon->ScatterCorr_PrioriCT(
+      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgScat3D,
+      this->m_cbctrecon->m_spProjImgCorr3D, this->m_cbctrecon->m_iFixedOffset_ScatterMap,
       postScatMedianSize, bExportProj_Cor);
-  m_cbctrecon->m_spProjImgScat3D->Initialize(); // memory saving
+  this->m_cbctrecon->m_spProjImgScat3D->Initialize(); // memory saving
 
   std::cout << "AfterCorrectionMacro is ongoing..." << std::endl;
 
   // Update UI
-  ui.pushButton_DoRecon->setEnabled(true);
-  ui.spinBoxImgIdx->setMinimum(0);
-  int iSizeZ =
-      m_cbctrecon->m_spProjImg3DFloat->GetRequestedRegion().GetSize()[2];
-  ui.spinBoxImgIdx->setMaximum(iSizeZ - 1);
-  ui.spinBoxImgIdx->setValue(0);
-  m_cbctrecon
+  this->ui.pushButton_DoRecon->setEnabled(true);
+  this->ui.spinBoxImgIdx->setMinimum(0);
+  const auto iSizeZ =
+      this->m_cbctrecon->m_spProjImg3DFloat->GetRequestedRegion().GetSize()[2];
+  this->ui.spinBoxImgIdx->setMaximum(iSizeZ - 1);
+  this->ui.spinBoxImgIdx->setValue(0);
+  this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
   SLT_InitializeGraphLim();
   SLT_DrawProjImages(); // Update Table is called
 
   auto fdk_options = getFDKoptions();
 
-  m_cbctrecon->AfterScatCorrectionMacro(ui.radioButton_UseCUDA->isChecked(),
-                                        ui.radioButton_UseOpenCL->isChecked(),
-                                        ui.checkBox_ExportVolDICOM->isChecked(),
+  this->m_cbctrecon->AfterScatCorrectionMacro(this->ui.radioButton_UseCUDA->isChecked(),
+                                        this->ui.radioButton_UseOpenCL->isChecked(),
+                                        this->ui.checkBox_ExportVolDICOM->isChecked(),
                                         fdk_options);
 
   // Skin removal (using CT contour w/ big margin)
@@ -1910,8 +1923,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
       << "Post  FDK reconstruction is done. Moving on to post skin removal"
       << std::endl;
 
-  m_cbctregistration->PostSkinRemovingCBCT(m_cbctrecon->m_spRawReconImg);
-  m_cbctregistration->PostSkinRemovingCBCT(m_cbctrecon->m_spScatCorrReconImg);
+  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg);
+  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spScatCorrReconImg);
 
   // 20151208 Removal of high intensity skin mask
   // Main issue: raw CBCT projection includes mask, deformed CT doesn't include
@@ -1937,7 +1950,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   std::cout << "Updating ReconImage..";
   QString updated_text = QString("Scatter corrected CBCT");
-  UpdateReconImage(m_cbctrecon->m_spScatCorrReconImg,
+  UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg,
                    updated_text); // main GUI update
 
   std::cout << "FINISHED!Scatter correction: CBCT DICOM files are saved"
@@ -1947,59 +1960,57 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 // called whenver recon 3D image for display changes.
 void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
                                        QString &fileName) {
-  m_cbctrecon->m_spCrntReconImg = spNewImg;
+  this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
-  UShortImageType::PointType origin_new =
-      m_cbctrecon->m_spCrntReconImg->GetOrigin();
-  UShortImageType::SpacingType spacing_new =
-      m_cbctrecon->m_spCrntReconImg->GetSpacing();
-  UShortImageType::SizeType size_new =
-      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+  const auto origin_new = this->m_cbctrecon->m_spCrntReconImg->GetOrigin();
+  const auto spacing_new = this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
+  const auto size_new =
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
 
   std::cout << "New Origin" << origin_new << std::endl;
   std::cout << "New spacing" << spacing_new << std::endl;
   std::cout << "New size" << size_new << std::endl;
 
-  ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
   UShortImageType::SizeType size =
-      m_cbctrecon->m_spCrntReconImg->GetRequestedRegion().GetSize();
+      this->m_cbctrecon->m_spCrntReconImg->GetRequestedRegion().GetSize();
 
-  m_cbctrecon->m_dspYKReconImage->CreateImage(size[0], size[1], 0);
+  this->m_cbctrecon->m_dspYKReconImage->CreateImage(size[0], size[1], 0);
 
-  disconnect(ui.spinBoxReconImgSliceNo, SIGNAL(valueChanged(int)), this,
+  disconnect(this->ui.spinBoxReconImgSliceNo, SIGNAL(valueChanged(int)), this,
              SLOT(SLT_DrawReconImage()));
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(size[2] - 1);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(size[2] - 1);
 
-  int initVal = qRound((size[2] - 1) / 2.0);
+  const auto initVal = qRound((size[2] - 1) / 2.0);
   // SLT_DrawReconImage(); //Update Table, Update Graph
 
   // m_dspYKReconImage->CreateImage(size_trans[0], size_trans[1],0);
   SLT_InitializeGraphLim();
 
-  ui.spinBoxReconImgSliceNo->setValue(initVal);
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.spinBoxReconImgSliceNo->setValue(initVal);
+  this->ui.radioButton_graph_recon->setChecked(true);
 
-  connect(ui.spinBoxReconImgSliceNo, SIGNAL(valueChanged(int)), this,
+  connect(this->ui.spinBoxReconImgSliceNo, SIGNAL(valueChanged(int)), this,
           SLOT(SLT_DrawReconImage()));
 
   SLT_DrawReconImage();
 }
 
-void CbctReconWidget::SLT_TempAudit() {
-  if (m_cbctrecon->m_spRawReconImg != nullptr) {
-    std::cout << "m_spRawReconImg " << m_cbctrecon->m_spRawReconImg
+void CbctReconWidget::SLT_TempAudit() const {
+  if (this->m_cbctrecon->m_spRawReconImg != nullptr) {
+    std::cout << "m_spRawReconImg " << this->m_cbctrecon->m_spRawReconImg
               << std::endl;
   }
 
-  if (m_cbctrecon->m_spRefCTImg != nullptr) {
-    std::cout << "m_spRefCTImg " << m_cbctrecon->m_spRefCTImg << std::endl;
+  if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
+    std::cout << "m_spRefCTImg " << this->m_cbctrecon->m_spRefCTImg << std::endl;
   }
 
-  if (m_cbctrecon->m_spCrntReconImg != nullptr) {
-    std::cout << "m_spCrntReconImg " << m_cbctrecon->m_spCrntReconImg
+  if (this->m_cbctrecon->m_spCrntReconImg != nullptr) {
+    std::cout << "m_spCrntReconImg " << this->m_cbctrecon->m_spCrntReconImg
               << std::endl;
   }
 }
@@ -2010,7 +2021,7 @@ void CbctReconWidget::SLT_LoadPlanCT_USHORT() {
   ReaderType::Pointer reader = ReaderType::New();
 
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "Projection file (*.mha)", nullptr, nullptr);
 
   if (fileName.length() < 1) {
@@ -2020,27 +2031,27 @@ void CbctReconWidget::SLT_LoadPlanCT_USHORT() {
   reader->SetFileName(fileName.toLocal8Bit().constData());
   reader->Update();
 
-  m_cbctrecon->m_spRefCTImg = reader->GetOutput();
+  this->m_cbctrecon->m_spRefCTImg = reader->GetOutput();
   QString ref_ct = QString("RefCT");
-  UpdateReconImage(m_cbctrecon->m_spRefCTImg, ref_ct);
+  UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, ref_ct);
 
-  m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
+  this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
 }
 
 void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
 {
   std::vector<WEPLData> vOutputWEPL;
 
-  double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
-  double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
-  double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
+  const auto fAngleGap = this->ui.lineEdit_WEPL_AngRes->text().toDouble();
+  const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
+  const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
 
   const auto cur_poi =
-      VEC3D{ui.lineEdit_ForcedProbePosX->text().toDouble(), // in mm
-            ui.lineEdit_ForcedProbePosY->text().toDouble(),
-            ui.lineEdit_ForcedProbePosZ->text().toDouble()};
+      VEC3D{this->ui.lineEdit_ForcedProbePosX->text().toDouble(), // in mm
+            this->ui.lineEdit_ForcedProbePosY->text().toDouble(),
+            this->ui.lineEdit_ForcedProbePosZ->text().toDouble()};
 
-  m_cbctrecon->GetAngularWEPL_SinglePoint(m_cbctrecon->m_spCrntReconImg,
+  this->m_cbctrecon->GetAngularWEPL_SinglePoint(this->m_cbctrecon->m_spCrntReconImg,
                                           fAngleGap, fAngleStart, fAngleEnd,
                                           cur_poi, 0, vOutputWEPL, true);
   std::cout << "Computed WEPL points: " << vOutputWEPL.size() << std::endl;
@@ -2073,12 +2084,12 @@ void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
 // ElektaProjReader (intensity to lineintegral is already done. now the type is
 // float, 3D)
 void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
-  if (m_cbctrecon->m_spProjImg3DFloat == nullptr) {
+  if (this->m_cbctrecon->m_spProjImg3DFloat == nullptr) {
     return;
   }
 
   UShortImageType::Pointer spIntensityRaw;
-  m_cbctrecon->ConvertLineInt2Intensity(m_cbctrecon->m_spProjImg3DFloat,
+  this->m_cbctrecon->ConvertLineInt2Intensity(this->m_cbctrecon->m_spProjImg3DFloat,
                                         spIntensityRaw, 65535);
 
   using ScatterFilterType =
@@ -2087,9 +2098,9 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
 
   ScatterFilterType::Pointer spScatFilter = ScatterFilterType::New();
 
-  double airThre = ui.lineEdit_uniAirThre->text().toDouble();
-  double scat2PrimRatio = ui.lineEdit_uniSPR->text().toDouble();
-  double nonNagativity = ui.lineEdit_uniNegativity->text().toDouble();
+  const auto airThre = this->ui.lineEdit_uniAirThre->text().toDouble();
+  const auto scat2PrimRatio = this->ui.lineEdit_uniSPR->text().toDouble();
+  const auto nonNagativity = this->ui.lineEdit_uniNegativity->text().toDouble();
 
   std::cout << "Boallaard uniform scatter correction is being applied"
             << std::endl;
@@ -2109,15 +2120,15 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
 
   UShortImageType::Pointer spIntensityUniformCorr = spScatFilter->GetOutput();
 
-  m_cbctrecon->ConvertIntensity2LineInt(spIntensityUniformCorr,
-                                        m_cbctrecon->m_spProjImg3DFloat, 65535);
+  this->m_cbctrecon->ConvertIntensity2LineInt(spIntensityUniformCorr,
+                                        this->m_cbctrecon->m_spProjImg3DFloat, 65535);
 
   // ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
 
-  m_cbctrecon->m_spProjImgRaw3D = spIntensityUniformCorr;
+  this->m_cbctrecon->m_spProjImgRaw3D = spIntensityUniformCorr;
 
-  ui.spinBoxImgIdx->setValue(0);
-  m_cbctrecon
+  this->ui.spinBoxImgIdx->setValue(0);
+  this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
   SLT_InitializeGraphLim();
 
@@ -2131,12 +2142,12 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
 
 void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
 
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
 
   QString dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (dirPath.isEmpty()) {
@@ -2171,19 +2182,20 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
     } else if (strListPtInfo.count() == 1) {
       strPatientID = strListPtInfo.at(0);
     } else {
-      strPatientID = m_cbctrecon->m_strDCMUID;
+      strPatientID = this->m_cbctrecon->m_strDCMUID;
     }
     // strPatientID = m_strDCMUID + "_" + strEndFix;
   } else {
-    strPatientID = m_cbctrecon->m_strDCMUID;
+    strPatientID = this->m_cbctrecon->m_strDCMUID;
   }
 
   if (strPatientID.isEmpty()) {
     return;
   }
 
-  QString strDirName = strPatientID + "_DCM";
-  bool tmpResult = crntDir.mkdir(strDirName); // what if the directory exists?
+  const auto strDirName = strPatientID + "_DCM";
+  const auto tmpResult =
+      crntDir.mkdir(strDirName); // what if the directory exists?
   if (!tmpResult) {
     std::cout << "DICOM dir seems to exist already. Files will be overwritten."
               << std::endl;
@@ -2191,50 +2203,51 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
 
   QString strSavingFolder = dirPath + "/" + strDirName;
   QString strFullName = strLastName + ", " + strFirstName;
-  SaveUSHORTAsSHORT_DICOM(m_cbctrecon->m_spCrntReconImg, strPatientID,
+  SaveUSHORTAsSHORT_DICOM(this->m_cbctrecon->m_spCrntReconImg, strPatientID,
                           strFullName, strSavingFolder);
 }
 
 void CbctReconWidget::SLT_AddConstHUToCurImg() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
-  int addingVal = ui.lineEdit_AddConstHU->text().toInt();
-  AddConstHU(m_cbctrecon->m_spCrntReconImg, addingVal);
+  const auto addingVal = this->ui.lineEdit_AddConstHU->text().toInt();
+  AddConstHU(this->m_cbctrecon->m_spCrntReconImg, addingVal);
   QString updated_text = QString("Added%1").arg(addingVal);
-  UpdateReconImage(m_cbctrecon->m_spCrntReconImg, updated_text);
+  UpdateReconImage(this->m_cbctrecon->m_spCrntReconImg, updated_text);
 }
 
 void CbctReconWidget::SLT_SetCBCTSkinRSPath() {
   QString strPath = QFileDialog::getOpenFileName(
-      this, "Open RS file", m_cbctrecon->m_strPathDirDefault,
+      this, "Open RS file", this->m_cbctrecon->m_strPathDirDefault,
       "DICOM RS (*.dcm)", nullptr, nullptr);
 
   if (strPath.length() <= 1) {
     return;
   }
 
-  ui.lineEdit_PathCBCTSkinPath->setText(strPath);
+  this->ui.lineEdit_PathCBCTSkinPath->setText(strPath);
 }
 
 void CbctReconWidget::SLT_CropSkinUsingThreshold() {
 
   QString update_text = QString("Thresh-based skin cropped image");
-  auto thresh = ui.lineEdit_Threshold->text().toInt();
-  auto erode = ui.lineEdit_ErodeRadius->text().toInt();
-  auto dilate = ui.lineEdit_DilateRadius->text().toInt();
+  const auto thresh = this->ui.lineEdit_Threshold->text().toInt();
+  const auto erode = this->ui.lineEdit_ErodeRadius->text().toInt();
+  const auto dilate = this->ui.lineEdit_DilateRadius->text().toInt();
 
-  auto imgType = m_cbctrecon->CropSkinUsingThreshold(thresh, erode, dilate);
+  const auto imgType =
+      this->m_cbctrecon->CropSkinUsingThreshold(thresh, erode, dilate);
 
   switch (imgType) {
   case 1:
-    UpdateReconImage(m_cbctrecon->m_spRawReconImg, update_text);
+    UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
     break;
   case 2:
-    UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
+    UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
     break;
   case 3:
-    UpdateReconImage(m_cbctrecon->m_spScatCorrReconImg, update_text);
+    UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg, update_text);
     break;
   default:
     std::cerr << "WTF!?" << std::endl;
@@ -2243,33 +2256,33 @@ void CbctReconWidget::SLT_CropSkinUsingThreshold() {
 }
 
 void CbctReconWidget::SLT_CropSkinUsingRS() {
-  QString strPathRS = ui.lineEdit_PathCBCTSkinPath->text();
+  QString strPathRS = this->ui.lineEdit_PathCBCTSkinPath->text();
   if (strPathRS.length() < 1) {
     return;
   }
 
-  double croppingMargin = ui.lineEdit_SkinMargin->text().toDouble();
+  const auto croppingMargin = this->ui.lineEdit_SkinMargin->text().toDouble();
   QString update_text = QString("RS-based skin cropped image");
-  if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRawReconImg) {
-    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spRawReconImg, strPathRS,
+  if (this->m_cbctrecon->m_spCrntReconImg == this->m_cbctrecon->m_spRawReconImg) {
+    m_cbctregistration->CropSkinUsingRS(this->m_cbctrecon->m_spRawReconImg, strPathRS,
                                         croppingMargin);
-    UpdateReconImage(m_cbctrecon->m_spRawReconImg, update_text);
-  } else if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRefCTImg) {
-    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spRefCTImg, strPathRS,
+    UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
+  } else if (this->m_cbctrecon->m_spCrntReconImg == this->m_cbctrecon->m_spRefCTImg) {
+    m_cbctregistration->CropSkinUsingRS(this->m_cbctrecon->m_spRefCTImg, strPathRS,
                                         croppingMargin);
-    UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
-  } else if (m_cbctrecon->m_spCrntReconImg ==
-             m_cbctrecon->m_spScatCorrReconImg) {
-    m_cbctregistration->CropSkinUsingRS(m_cbctrecon->m_spScatCorrReconImg,
+    UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
+  } else if (this->m_cbctrecon->m_spCrntReconImg ==
+             this->m_cbctrecon->m_spScatCorrReconImg) {
+    m_cbctregistration->CropSkinUsingRS(this->m_cbctrecon->m_spScatCorrReconImg,
                                         strPathRS, croppingMargin);
-    UpdateReconImage(m_cbctrecon->m_spScatCorrReconImg, update_text);
+    UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
 }
 
 void CbctReconWidget::SLT_ExportAngularWEPL_byFile() {
   // export arrWEPL
   QString filePath = QFileDialog::getSaveFileName(
-      this, "Save data", m_cbctrecon->m_strPathDirDefault,
+      this, "Save data", this->m_cbctrecon->m_strPathDirDefault,
       "txt image file (*.txt)", nullptr,
       nullptr); // Filename don't need to exist
 
@@ -2277,28 +2290,29 @@ void CbctReconWidget::SLT_ExportAngularWEPL_byFile() {
     return;
   }
 
-  double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
-  double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
-  double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
+  const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
+  const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
+  const auto fAngleGap = this->ui.lineEdit_WEPL_AngRes->text().toDouble();
 
-  m_cbctrecon->ExportAngularWEPL_byFile(filePath, fAngleStart, fAngleEnd,
+  this->m_cbctrecon->ExportAngularWEPL_byFile(filePath, fAngleStart, fAngleEnd,
                                         fAngleGap);
 }
 
-void CbctReconWidget::SLT_GeneratePOIData() // it fills m_vPOI_DCM
+void CbctReconWidget::SLT_GeneratePOIData() const
+// it fills m_vPOI_DCM
 {
-  m_cbctrecon->GeneratePOIData(ui.checkBox_AP->isChecked(),
-                               ui.lineEdit_PostTablePosY->text().toDouble());
+  this->m_cbctrecon->GeneratePOIData(this->ui.checkBox_AP->isChecked(),
+                               this->ui.lineEdit_PostTablePosY->text().toDouble());
 }
 
 void CbctReconWidget::SLT_LoadPOIData() // it fills m_vPOI_DCM
 {
-  if (!m_cbctrecon->m_vPOI_DCM.empty()) {
-    m_cbctrecon->m_vPOI_DCM.clear();
+  if (!this->m_cbctrecon->m_vPOI_DCM.empty()) {
+    this->m_cbctrecon->m_vPOI_DCM.clear();
   }
 
   QString filePath = QFileDialog::getOpenFileName(
-      this, "POI data file", m_cbctrecon->m_strPathDirDefault,
+      this, "POI data file", this->m_cbctrecon->m_strPathDirDefault,
       "POI data file (*.txt)", nullptr, nullptr);
 
   if (filePath.length() < 1) {
@@ -2336,20 +2350,20 @@ void CbctReconWidget::SLT_LoadPOIData() // it fills m_vPOI_DCM
     fPOI.y = strList.at(1).toDouble();
     fPOI.z = strList.at(2).toDouble();
 
-    m_cbctrecon->m_vPOI_DCM.push_back(fPOI);
+    this->m_cbctrecon->m_vPOI_DCM.push_back(fPOI);
   }
-  for (int i = 0; i < static_cast<int>(m_cbctrecon->m_vPOI_DCM.size()); i++) {
-    std::cout << "Data " << i << "	" << m_cbctrecon->m_vPOI_DCM.at(i).x
-              << ", " << m_cbctrecon->m_vPOI_DCM.at(i).y << ", "
-              << m_cbctrecon->m_vPOI_DCM.at(i).z << std::endl;
+  for (int i = 0; i < static_cast<int>(this->m_cbctrecon->m_vPOI_DCM.size()); i++) {
+    std::cout << "Data " << i << "	" << this->m_cbctrecon->m_vPOI_DCM.at(i).x
+              << ", " << this->m_cbctrecon->m_vPOI_DCM.at(i).y << ", "
+              << this->m_cbctrecon->m_vPOI_DCM.at(i).z << std::endl;
   }
-  std::cout << "POI data has been loaded. " << m_cbctrecon->m_vPOI_DCM.size()
+  std::cout << "POI data has been loaded. " << this->m_cbctrecon->m_vPOI_DCM.size()
             << " data points are read" << std::endl;
   fin.close();
 }
 
 void CbctReconWidget::SLT_StartSyncFromSharedMem() {
-  // int msInterval = ui.lineEditTimerInterval->text().toInt();
+  // int msInterval = this->ui.lineEditTimerInterval->text().toInt();
 
   // if (msInterval > 0 && msInterval < 5000)
   //{
@@ -2389,9 +2403,9 @@ void CbctReconWidget::SLT_StopSyncFromSharedMem() {
   std::ofstream fout;
   fout.open("E:\\SemphoreLogC++.txt");
 
-  int max_cnt = 200;
+  const auto max_cnt = 200;
 
-  int cnt = 0;
+  auto cnt = 0;
   while (cnt < max_cnt) {
     cnt++;
 
@@ -2440,7 +2454,7 @@ void CbctReconWidget::SLT_TimerEvent() {
     return;
   }
 
-  if (m_cbctrecon->m_arrYKImage.empty() || m_cbctrecon->m_iImgCnt != 1) {
+  if (this->m_cbctrecon->m_arrYKImage.empty() || this->m_cbctrecon->m_iImgCnt != 1) {
     return;
   }
 
@@ -2456,9 +2470,9 @@ void CbctReconWidget::SLT_TimerEvent() {
     return;
   }
 
-  int size = 1024 * 1024 * 2;
-  auto pix_size = static_cast<int>(size / 2.0);
-  auto char_buf = static_cast<unsigned char *>(
+  const auto size = 1024 * 1024 * 2;
+  const auto pix_size = static_cast<int>(size / 2.0);
+  const auto char_buf = static_cast<unsigned char *>(
       MapViewOfFile(handle, FILE_MAP_READ, 0, 0, size));
 
   if (char_buf == nullptr) {
@@ -2479,11 +2493,11 @@ void CbctReconWidget::SLT_TimerEvent() {
     const auto idxA = i * 2 + 1;
     const auto idxB = i * 2;
     // 0: 1,0  1: 3,2 ...
-    m_cbctrecon->m_arrYKImage.at(0).m_pData[i] =
+    this->m_cbctrecon->m_arrYKImage.at(0).m_pData[i] =
         ((char_buf[idxA] << 8) | char_buf[idxB]); // little endian
   }
 
-  ui.spinBoxImgIdx->setValue(0);
+  this->ui.spinBoxImgIdx->setValue(0);
   SLT_DrawRawImages();
 
   CloseHandle(handle);
@@ -2492,43 +2506,44 @@ void CbctReconWidget::SLT_TimerEvent() {
 #endif
 }
 
-void CbctReconWidget::SLTM_ViewExternalCommand() {
-  m_dlgExternalCommand->show();
+void CbctReconWidget::SLTM_ViewExternalCommand() const {
+  this->m_dlgExternalCommand->show();
 }
 
 void CbctReconWidget::SLTM_LoadDICOMdir() {
   QString dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (dirPath.length() <= 1) {
     return;
   }
 
-  if (m_cbctrecon->ReadDicomDir(dirPath)) {
+  if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
 
     m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
     QString update_text = QString("DICOM reference image");
-    UpdateReconImage(m_cbctrecon->m_spRefCTImg, update_text);
+    UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
 
-    m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
+    this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
   }
 }
 
 void CbctReconWidget::SLTM_LoadRTKoutput() {
   QString filePath = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "rtk output float image (*.mha)", nullptr, nullptr);
-  m_cbctrecon->LoadExternalFloatImage(filePath, true);
+  this->m_cbctrecon->LoadExternalFloatImage(filePath, true);
   QFileInfo outFileInfo(filePath);
   auto strCrntFileName = outFileInfo.fileName();
-  UpdateReconImage(m_cbctrecon->m_spRawReconImg, strCrntFileName);
+  UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, strCrntFileName);
 }
 
 // Only can be used for m_spRawRecon // NOT USED AT ALL?
-void CbctReconWidget::FileExportByGUI() // USHORT
+void CbctReconWidget::FileExportByGUI() const
+// USHORT
 {
-  QString outputFilePath = ui.lineEdit_OutputFilePath->text();
+  QString outputFilePath = this->ui.lineEdit_OutputFilePath->text();
   QFileInfo outFileInfo(outputFilePath);
   QDir outFileDir = outFileInfo.absoluteDir();
 
@@ -2543,7 +2558,7 @@ void CbctReconWidget::FileExportByGUI() // USHORT
     WriterType::Pointer writer = WriterType::New();
     writer->SetFileName(outputFilePath.toLocal8Bit().constData());
     writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-    writer->SetInput(m_cbctrecon->m_spRawReconImg);
+    writer->SetInput(this->m_cbctrecon->m_spRawReconImg);
 
     std::cout << "Writing the image to: "
               << outputFilePath.toLocal8Bit().constData() << std::endl;
@@ -2555,26 +2570,26 @@ void CbctReconWidget::FileExportByGUI() // USHORT
   }
 }
 
-void CbctReconWidget::SLT_OutPathEdited() {
-  if (!ui.lineEdit_OutputFilePath->text().isEmpty()) {
-    ui.lineEdit_outImgDim_LR->setEnabled(true);
-    ui.lineEdit_outImgDim_AP->setEnabled(true);
-    ui.lineEdit_outImgDim_SI->setEnabled(true);
-    ui.lineEdit_outImgSp_LR->setEnabled(true);
-    ui.lineEdit_outImgSp_AP->setEnabled(true);
-    ui.lineEdit_outImgSp_SI->setEnabled(true);
+void CbctReconWidget::SLT_OutPathEdited() const {
+  if (!this->ui.lineEdit_OutputFilePath->text().isEmpty()) {
+    this->ui.lineEdit_outImgDim_LR->setEnabled(true);
+    this->ui.lineEdit_outImgDim_AP->setEnabled(true);
+    this->ui.lineEdit_outImgDim_SI->setEnabled(true);
+    this->ui.lineEdit_outImgSp_LR->setEnabled(true);
+    this->ui.lineEdit_outImgSp_AP->setEnabled(true);
+    this->ui.lineEdit_outImgSp_SI->setEnabled(true);
   } else {
-    ui.lineEdit_outImgDim_LR->setEnabled(false);
-    ui.lineEdit_outImgDim_AP->setEnabled(false);
-    ui.lineEdit_outImgDim_SI->setEnabled(false);
-    ui.lineEdit_outImgSp_LR->setEnabled(false);
-    ui.lineEdit_outImgSp_AP->setEnabled(false);
-    ui.lineEdit_outImgSp_SI->setEnabled(false);
+    this->ui.lineEdit_outImgDim_LR->setEnabled(false);
+    this->ui.lineEdit_outImgDim_AP->setEnabled(false);
+    this->ui.lineEdit_outImgDim_SI->setEnabled(false);
+    this->ui.lineEdit_outImgSp_LR->setEnabled(false);
+    this->ui.lineEdit_outImgSp_AP->setEnabled(false);
+    this->ui.lineEdit_outImgSp_SI->setEnabled(false);
   }
 }
 
 void CbctReconWidget::SLT_MedianFilterDoNow() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
 
@@ -2583,15 +2598,15 @@ void CbctReconWidget::SLT_MedianFilterDoNow() {
   strCrntFileName = outFileInfo.fileName();*/
 
   UShortImageType::SizeType indexRadius{};
-  indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
-  indexRadius[1] = ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
-  indexRadius[2] = ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
+  indexRadius[0] = this->ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+  indexRadius[1] = this->ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+  indexRadius[2] = this->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
 
   if (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0) {
-    m_cbctrecon->MedianFilterByGUI(indexRadius);
+    this->m_cbctrecon->MedianFilterByGUI(indexRadius);
 
-    QString prevFileName = ui.lineEdit_Cur3DFileName->text();
-    UpdateReconImage(m_cbctrecon->m_spCrntReconImg,
+    QString prevFileName = this->ui.lineEdit_Cur3DFileName->text();
+    UpdateReconImage(this->m_cbctrecon->m_spCrntReconImg,
                      prevFileName.append("_med"));
   } else {
     std::cout << "Not valid median window" << std::endl;
@@ -2601,11 +2616,11 @@ void CbctReconWidget::SLT_MedianFilterDoNow() {
 void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
                                              // image of reconstruction
 {
-  if (m_cbctrecon->m_dspYKReconImage == nullptr) {
+  if (this->m_cbctrecon->m_dspYKReconImage == nullptr) {
     return;
   }
 
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
 
@@ -2616,21 +2631,21 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
     return;
   }
 
-  auto originLeft =
-      static_cast<double>(m_cbctrecon->m_spCrntReconImg->GetOrigin()[0]);
-  auto originTop = static_cast<double>(
-      m_cbctrecon->m_spCrntReconImg->GetOrigin()[1]); // not sure...
+  const auto originLeft =
+      static_cast<double>(this->m_cbctrecon->m_spCrntReconImg->GetOrigin()[0]);
+  const auto originTop = static_cast<double>(
+      this->m_cbctrecon->m_spCrntReconImg->GetOrigin()[1]); // not sure...
 
-  auto spacingX =
-      static_cast<double>(m_cbctrecon->m_spCrntReconImg->GetSpacing()[0]);
-  auto spacingY = static_cast<double>(
-      m_cbctrecon->m_spCrntReconImg->GetSpacing()[1]); // not sure...
+  const auto spacingX =
+      static_cast<double>(this->m_cbctrecon->m_spCrntReconImg->GetSpacing()[0]);
+  const auto spacingY = static_cast<double>(
+      this->m_cbctrecon->m_spCrntReconImg->GetSpacing()[1]); // not sure...
 
   if (!SaveDoseGrayImage(strPath.toLocal8Bit().constData(),
-                         m_cbctrecon->m_dspYKReconImage->m_iWidth,
-                         m_cbctrecon->m_dspYKReconImage->m_iHeight, spacingX,
+                         this->m_cbctrecon->m_dspYKReconImage->m_iWidth,
+                         this->m_cbctrecon->m_dspYKReconImage->m_iHeight, spacingX,
                          spacingY, originLeft, originTop,
-                         m_cbctrecon->m_dspYKReconImage->m_pData)) {
+                         this->m_cbctrecon->m_dspYKReconImage->m_pData)) {
     std::cout << "Failed in save gray dose file" << std::endl;
   } else {
     std::cout << "image exported successfully." << std::endl;
@@ -2642,7 +2657,7 @@ void CbctReconWidget::SLTM_Export2DDoseMapAsMHA() {
       this, "Save Image", "", "itk compatible meta image (*.mha)", nullptr,
       nullptr);
 
-  m_cbctrecon->Export2DDoseMapAsMHA(strPath);
+  this->m_cbctrecon->Export2DDoseMapAsMHA(strPath);
 }
 
 void CbctReconWidget::SLTM_ExportProjGeometryTXT() {
@@ -2650,33 +2665,33 @@ void CbctReconWidget::SLTM_ExportProjGeometryTXT() {
   QString strPath = QFileDialog::getSaveFileName(
       this, "Save text file", "", "text (*.txt)", nullptr, nullptr);
 
-  m_cbctrecon->ExportProjGeometryTXT(strPath);
+  this->m_cbctrecon->ExportProjGeometryTXT(strPath);
 }
 
 void CbctReconWidget::SLTM_ForwardProjection() {
-  if (m_cbctrecon->m_spRawReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spRawReconImg == nullptr) {
     return;
   }
 
   GeometryType::Pointer crntGeometry = GeometryType::New();
 
-  if (m_cbctrecon->m_spCustomGeometry == nullptr) {
+  if (this->m_cbctrecon->m_spCustomGeometry == nullptr) {
     std::cout << "No geometry is ready. moving on to 360 projection"
               << std::endl;
 
-    double curSID = 1000.0;
-    double curSDD = 1536.0;
-    double curProjOffsetX = 0.0;
-    double curProjOffsetY = 0.0;
-    double curOutOfPlaneAngles = 0.0;
-    double curInPlaneAngles = 0.0;
-    double curSrcOffsetX = 0.0;
-    double curSrcOffsetY = 0.0;
+    const auto curSID = 1000.0;
+    const auto curSDD = 1536.0;
+    const auto curProjOffsetX = 0.0;
+    const auto curProjOffsetY = 0.0;
+    const auto curOutOfPlaneAngles = 0.0;
+    const auto curInPlaneAngles = 0.0;
+    const auto curSrcOffsetX = 0.0;
+    const auto curSrcOffsetY = 0.0;
 
     // double startAngle = 180.0; //kV = 270.0, CW
-    double startAngle = 270; // kV = 360.0, CW
+    const auto startAngle = 270; // kV = 360.0, CW
     // int NumOfProj = 360;
-    int NumOfProj = 1;
+    const auto NumOfProj = 1;
 
     for (int i = 0; i < NumOfProj; i++) {
       auto cur_mv_gantry_angle = startAngle + i;
@@ -2692,15 +2707,15 @@ void CbctReconWidget::SLTM_ForwardProjection() {
           curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
     }
 
-    ForwardProjection(m_cbctrecon->m_spRawReconImg, crntGeometry,
-                      m_cbctrecon->m_spProjImgRaw3D, false,
-                      ui.radioButton_UseCUDA->isChecked());
+    ForwardProjection(this->m_cbctrecon->m_spRawReconImg, crntGeometry,
+                      this->m_cbctrecon->m_spProjImgRaw3D, false,
+                      this->ui.radioButton_UseCUDA->isChecked());
     // Save proj3D;
 
     // QString outputPath = "D:/ProjTemplate.mha";
     // QString outputPath = "D:/2D3DRegi/FwdProj_0.mha";
     QString outputPath = QFileDialog::getSaveFileName(
-        this, "File path to save", m_cbctrecon->m_strPathDirDefault,
+        this, "File path to save", this->m_cbctrecon->m_strPathDirDefault,
         "Projection stack (*.mha)", nullptr,
         nullptr); // Filename don't need to exist
     if (outputPath.length() <= 1) {
@@ -2712,14 +2727,15 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     writer->SetFileName(outputPath.toLocal8Bit().constData());
     // writer->SetUseCompression(true);
     writer->SetUseCompression(true); // for plastimatch
-    writer->SetInput(m_cbctrecon->m_spProjImgRaw3D);
+    writer->SetInput(this->m_cbctrecon->m_spProjImgRaw3D);
     writer->Update();
 
     return;
   }
   // if there is a geometry
 
-  int cntProj = m_cbctrecon->m_spCustomGeometry->GetGantryAngles().size();
+  const auto cntProj =
+      this->m_cbctrecon->m_spCustomGeometry->GetGantryAngles().size();
 
   if (cntProj < 1) {
     std::cout << "ERROR: geometry is not ready" << std::endl;
@@ -2737,35 +2753,35 @@ void CbctReconWidget::SLTM_ForwardProjection() {
 
   // Regenerate geometry object
 
-  for (int i = 0; i < cntProj; i++) {
-    double curSID =
-        m_cbctrecon->m_spCustomGeometry->GetSourceToIsocenterDistances().at(i);
-    double curSDD =
-        m_cbctrecon->m_spCustomGeometry->GetSourceToDetectorDistances().at(i);
-    double curGantryAngle =
-        m_cbctrecon->m_spCustomGeometry->GetGantryAngles().at(i);
-    double kVAng = curGantryAngle * 360. / (2. * itk::Math::pi);
+  for (auto i = 0U; i < cntProj; i++) {
+    const auto curSID =
+        this->m_cbctrecon->m_spCustomGeometry->GetSourceToIsocenterDistances().at(i);
+    const auto curSDD =
+        this->m_cbctrecon->m_spCustomGeometry->GetSourceToDetectorDistances().at(i);
+    auto curGantryAngle =
+        this->m_cbctrecon->m_spCustomGeometry->GetGantryAngles().at(i);
+    const auto kVAng = curGantryAngle * 360. / (2. * itk::Math::pi);
     double MVAng =
-        kVAng - (m_cbctrecon->m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
+        kVAng - (this->m_cbctrecon->m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
     if (MVAng < 0.0) {
       MVAng = MVAng + 360.0;
     }
     curGantryAngle = MVAng;
 
-    double curProjOffsetX =
-        m_cbctrecon->m_spCustomGeometry->GetProjectionOffsetsX().at(i);
-    double curProjOffsetY =
-        m_cbctrecon->m_spCustomGeometry->GetProjectionOffsetsY().at(i);
+    const auto curProjOffsetX =
+        this->m_cbctrecon->m_spCustomGeometry->GetProjectionOffsetsX().at(i);
+    const auto curProjOffsetY =
+        this->m_cbctrecon->m_spCustomGeometry->GetProjectionOffsetsY().at(i);
 
-    double curOutOfPlaneAngles =
-        m_cbctrecon->m_spCustomGeometry->GetOutOfPlaneAngles().at(i);
-    double curInPlaneAngles =
-        m_cbctrecon->m_spCustomGeometry->GetInPlaneAngles().at(i);
+    const auto curOutOfPlaneAngles =
+        this->m_cbctrecon->m_spCustomGeometry->GetOutOfPlaneAngles().at(i);
+    const auto curInPlaneAngles =
+        this->m_cbctrecon->m_spCustomGeometry->GetInPlaneAngles().at(i);
 
-    double curSrcOffsetX =
-        m_cbctrecon->m_spCustomGeometry->GetSourceOffsetsX().at(i);
-    double curSrcOffsetY =
-        m_cbctrecon->m_spCustomGeometry->GetSourceOffsetsY().at(i);
+    const auto curSrcOffsetX =
+        this->m_cbctrecon->m_spCustomGeometry->GetSourceOffsetsX().at(i);
+    const auto curSrcOffsetY =
+        this->m_cbctrecon->m_spCustomGeometry->GetSourceOffsetsY().at(i);
 
     // if (bOverridePanelShift)
     //{
@@ -2782,9 +2798,9 @@ void CbctReconWidget::SLTM_ForwardProjection() {
         curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
   }
 
-  ForwardProjection(m_cbctrecon->m_spRawReconImg, crntGeometry,
-                    m_cbctrecon->m_spProjImgRaw3D, true,
-                    ui.radioButton_UseCUDA->isChecked());
+  ForwardProjection(this->m_cbctrecon->m_spRawReconImg, crntGeometry,
+                    this->m_cbctrecon->m_spProjImgRaw3D, true,
+                    this->ui.radioButton_UseCUDA->isChecked());
 
   // Export geometry txt
   /* QString strPath = QFileDialog::getSaveFileName(this, "Save geometry file
@@ -2835,12 +2851,12 @@ void CbctReconWidget::SLTM_ForwardProjection() {
 }
 
 void CbctReconWidget::SLTM_FineResolScatterCorrectrionMacro() {
-  float curResampleF = m_cbctrecon->m_fResampleF;
-  ui.lineEdit_DownResolFactor->setText("1.0");
+  const auto curResampleF = this->m_cbctrecon->m_fResampleF;
+  this->ui.lineEdit_DownResolFactor->setText("1.0");
   SLT_LoadSelectedProjFiles();
-  m_cbctrecon->m_fResampleF = curResampleF;
-  ui.lineEdit_DownResolFactor->setText(
-      QString("%1").arg(m_cbctrecon->m_fResampleF));
+  this->m_cbctrecon->m_fResampleF = curResampleF;
+  this->ui.lineEdit_DownResolFactor->setText(
+      QString("%1").arg(this->m_cbctrecon->m_fResampleF));
 
   // Scatter correction
 
@@ -2851,16 +2867,16 @@ void CbctReconWidget::SLTM_FullScatterCorrectionMacroAP() // single. should be
                                                           // called after HIS
                                                           // folder is defined
 {
-  if (m_cbctrecon->m_strPathPatientDir.length() < 2) {
+  if (this->m_cbctrecon->m_strPathPatientDir.length() < 2) {
     return;
   }
 
-  enREGI_IMAGES enRegImg = REGISTER_DEFORM_FINAL;
-  bool bFullResolForFinalRecon = false;
+  const auto enRegImg = REGISTER_DEFORM_FINAL;
+  const auto bFullResolForFinalRecon = false;
 
-  bool bIntensityShift = true;
+  const auto bIntensityShift = true;
 
-  FullScatterCorrectionMacroSingle(m_cbctrecon->m_strPathPatientDir, enRegImg,
+  FullScatterCorrectionMacroSingle(this->m_cbctrecon->m_strPathPatientDir, enRegImg,
                                    bFullResolForFinalRecon, false,
                                    bIntensityShift);
 }
@@ -2870,8 +2886,8 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   QTime batchmodeTime = QTime::currentTime();
 
   // 1) Get img_ file lists
-  QString dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open IMAGES Directory"), m_cbctrecon->m_strPathDirDefault,
+  const auto dirPath = QFileDialog::getExistingDirectory(
+      this, tr("Open IMAGES Directory"), this->m_cbctrecon->m_strPathDirDefault,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   QDir dirIMAGES = QDir(dirPath);
@@ -2894,7 +2910,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   // Several questions to set params
   // 1) Output Dir
   QString strOutDirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Output Directory"), m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Output Directory"), this->m_cbctrecon->m_strPathDirDefault,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (strOutDirPath.length() < 1) {
@@ -2913,7 +2929,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   enREGI_IMAGES enRegImg = REGISTER_DEFORM_FINAL;
 
   if (ok && !text.isEmpty()) {
-    int iRefImgVal = text.toInt();
+    const auto iRefImgVal = text.toInt();
 
     if (iRefImgVal == 0) {
       enRegImg = REGISTER_DEFORM_FINAL;
@@ -2929,7 +2945,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   }
 
   // 3) Fine resol option
-  bool bFullResolForFinalRecon = false;
+  const auto bFullResolForFinalRecon = false;
   bool bIntensityShift = false;
   /*QMessageBox msgBox;
   QString strMsg = "Full-resolution reconstruction after scatter generation?";
@@ -2953,7 +2969,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
    }*/
 
   QMessageBox msgBox;
-  QString strMsg = "Intensity shift for raw CBCT?";
+  const auto strMsg = QString("Intensity shift for raw CBCT?");
   msgBox.setText(strMsg);
   msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
   auto res = msgBox.exec();
@@ -2964,7 +2980,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
 
   bool bExportShortImages = false;
   QMessageBox msgBox2;
-  QString strMsg2 = "Export short images after correction?";
+  const auto strMsg2 = QString("Export short images after correction?");
   msgBox2.setText(strMsg2);
   msgBox2.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
   res = msgBox2.exec();
@@ -2981,7 +2997,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
       std::cout << "Found projection dir number: " << cntHisDir
                 << ", Current Proj Path: "
                 << curProjDirPath.toLocal8Bit().constData() << std::endl;
-      m_cbctrecon->SetProjDir(curProjDirPath);
+      this->m_cbctrecon->SetProjDir(curProjDirPath);
       FullScatterCorrectionMacroSingle(strOutDirPath, enRegImg,
                                        bFullResolForFinalRecon,
                                        bExportShortImages, bIntensityShift);
@@ -2989,7 +3005,7 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
     }
   }
 
-  float elapsedSec = batchmodeTime.elapsed() / 1000.0;
+  const auto elapsedSec = batchmodeTime.elapsed() / 1000.0f;
 
   std::cout << "Batch mode calculation is done! "
             << QString::number(elapsedSec, 'f', 2).toLocal8Bit().constData()
@@ -3000,31 +3016,31 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
 bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     QString &outputDirPath, enREGI_IMAGES enFwdRefImg, bool bFullResolRecon,
     bool bExportImages, bool bCBCT_IntensityShift) {
-  if (m_cbctrecon->m_strDCMUID.length() < 1) {
+  if (this->m_cbctrecon->m_strDCMUID.length() < 1) {
     return false;
   }
 
-  m_cbctrecon->m_bMacroContinue = true;
+  this->m_cbctrecon->m_bMacroContinue = true;
 
-  bool bFOVCropping =
-      ui.checkBox_PostDispObjOn->isChecked(); // this button is for display, but
+  const auto bFOVCropping =
+      this->ui.checkBox_PostDispObjOn->isChecked(); // this button is for display, but
                                               // use it for cropping option in
                                               // macro mode
-  float physPosX = ui.lineEdit_PostFOV_X->text().toFloat();
-  float physPosY = ui.lineEdit_PostFOV_Y->text().toFloat();
-  float physRadius = ui.lineEdit_PostFOV_R->text().toFloat();
-  float physTablePosY = ui.lineEdit_PostTablePosY->text().toFloat();
+  const auto physPosX = this->ui.lineEdit_PostFOV_X->text().toFloat();
+  const auto physPosY = this->ui.lineEdit_PostFOV_Y->text().toFloat();
+  const auto physRadius = this->ui.lineEdit_PostFOV_R->text().toFloat();
+  const auto physTablePosY = this->ui.lineEdit_PostTablePosY->text().toFloat();
 
   // Load Pushbutton
   SLT_LoadSelectedProjFiles();
 
   // float fOldValTruncation =
-  // ui.lineEdit_Ramp_TruncationCorrection->text().toFloat();;
+  // this->ui.lineEdit_Ramp_TruncationCorrection->text().toFloat();;
 
   SLT_DoReconstruction();
-  // ui.lineEdit_Ramp_TruncationCorrection->setText(QString("0.0"));
+  // this->ui.lineEdit_Ramp_TruncationCorrection->setText(QString("0.0"));
 
-  int addingVal = ui.lineEdit_AddConstHU->text().toInt();
+  const auto addingVal = this->ui.lineEdit_AddConstHU->text().toInt();
 
   if (addingVal != 0) {
     std::cout << "Raw CBCT is being added by HU of: " << addingVal << std::endl;
@@ -3034,14 +3050,14 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   if (bFOVCropping) {
     // Crop CBCT with predetermined FOV/ Table
     std::cout << "FOV cropping is under way..." << std::endl;
-    m_cbctrecon->CropFOV3D(m_cbctrecon->m_spRawReconImg, physPosX, physPosY,
+    this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spRawReconImg, physPosX, physPosY,
                            physRadius, physTablePosY);
   }
 
   SLT_ViewRegistration();
 
   m_dlgRegistration->SLT_PreProcessCT();
-  if (!m_cbctrecon->m_bMacroContinue) {
+  if (!this->m_cbctrecon->m_bMacroContinue) {
     std::cout << "Stopped during MacroSingle due to error in PreProcessCT"
               << std::endl;
     return false;
@@ -3071,7 +3087,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
 
     // OPtional
     if (bFOVCropping) {
-      m_cbctrecon->CropFOV3D(m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
+      this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
                              physRadius, physTablePosY);
     }
 
@@ -3089,7 +3105,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     }
 
     if (bFOVCropping) {
-      m_cbctrecon->CropFOV3D(m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
+      this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
                              physRadius, physTablePosY);
     }
 
@@ -3108,7 +3124,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     }
 
     if (bFOVCropping) {
-      m_cbctrecon->CropFOV3D(m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
+      this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
                              physRadius, physTablePosY);
     }
 
@@ -3123,12 +3139,12 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   if (bFullResolRecon) // if fullResol recon is on, load original proj files
                        // again
   {
-    float curResampleF = m_cbctrecon->m_fResampleF;
-    ui.lineEdit_DownResolFactor->setText("1.0");
+    const auto curResampleF = this->m_cbctrecon->m_fResampleF;
+    this->ui.lineEdit_DownResolFactor->setText("1.0");
     SLT_LoadSelectedProjFiles();
-    m_cbctrecon->m_fResampleF = curResampleF;
-    ui.lineEdit_DownResolFactor->setText(
-        QString("%1").arg(m_cbctrecon->m_fResampleF));
+    this->m_cbctrecon->m_fResampleF = curResampleF;
+    this->ui.lineEdit_DownResolFactor->setText(
+        QString("%1").arg(this->m_cbctrecon->m_fResampleF));
 
     strSuffix = strSuffix + "_HD";
   } else {
@@ -3139,53 +3155,53 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   // If there is couch shift information and this cbct is a pre-treatment CBCT,
   // couch shift can be applied  to represent the final treatment position
 
-  if (ui.checkBox_CouchShiftAddToMacro->isChecked()) {
+  if (this->ui.checkBox_CouchShiftAddToMacro->isChecked()) {
     SLT_DoCouchCorrection();
   }
 
   // 1) Save the corrCBCT image as signed short
-  QString outputPath_rawCBCT = outputDirPath + "/" + m_cbctrecon->m_strDCMUID +
+  QString outputPath_rawCBCT = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
                                strSuffix + "_rawCBCT.mha";
-  QString outputPath_corrCBCT = outputDirPath + "/" + m_cbctrecon->m_strDCMUID +
+  QString outputPath_corrCBCT = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
                                 strSuffix + "_corrCBCT.mha";
   QString outputPath_manCT =
-      outputDirPath + "/" + m_cbctrecon->m_strDCMUID + strSuffix + "_manCT.mha";
-  QString outputPath_rigidCT = outputDirPath + "/" + m_cbctrecon->m_strDCMUID +
+      outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID + strSuffix + "_manCT.mha";
+  QString outputPath_rigidCT = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
                                strSuffix + "_rigidCT.mha";
-  QString outputPath_deformCT = outputDirPath + "/" + m_cbctrecon->m_strDCMUID +
+  QString outputPath_deformCT = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
                                 strSuffix + "_deformCT.mha";
 
   if (bExportImages) {
-    ExportReconSHORT_HU(m_cbctrecon->m_spRawReconImg, outputPath_rawCBCT);
-    ExportReconSHORT_HU(m_cbctrecon->m_spScatCorrReconImg, outputPath_corrCBCT);
-    ExportReconSHORT_HU(m_cbctrecon->m_spManualRigidCT, outputPath_manCT);
-    ExportReconSHORT_HU(m_cbctrecon->m_spAutoRigidCT, outputPath_rigidCT);
-    ExportReconSHORT_HU(m_cbctrecon->m_spDeformedCT_Final, outputPath_deformCT);
+    ExportReconSHORT_HU(this->m_cbctrecon->m_spRawReconImg, outputPath_rawCBCT);
+    ExportReconSHORT_HU(this->m_cbctrecon->m_spScatCorrReconImg, outputPath_corrCBCT);
+    ExportReconSHORT_HU(this->m_cbctrecon->m_spManualRigidCT, outputPath_manCT);
+    ExportReconSHORT_HU(this->m_cbctrecon->m_spAutoRigidCT, outputPath_rigidCT);
+    ExportReconSHORT_HU(this->m_cbctrecon->m_spDeformedCT_Final, outputPath_deformCT);
   }
 
   // 2) Calculate batched WEPL points
-  if (!m_cbctrecon->m_vPOI_DCM.empty()) {
-    QString outputTxtPath = outputDirPath + "/" + m_cbctrecon->m_strDCMUID +
+  if (!this->m_cbctrecon->m_vPOI_DCM.empty()) {
+    QString outputTxtPath = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
                             strSuffix + "_WEPL.txt";
 
-    double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
-    double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
-    double fAngleGap = ui.lineEdit_WEPL_AngRes->text().toDouble();
+    const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
+    const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
+    const auto fAngleGap = this->ui.lineEdit_WEPL_AngRes->text().toDouble();
 
-    m_cbctrecon->ExportAngularWEPL_byFile(outputTxtPath, fAngleStart, fAngleEnd,
+    this->m_cbctrecon->ExportAngularWEPL_byFile(outputTxtPath, fAngleStart, fAngleEnd,
                                           fAngleGap);
   }
   return true;
 }
 
 void CbctReconWidget::SLT_OpenPhaseData() {
-  if (!m_cbctrecon->m_vPhaseFloat.empty()) {
-    m_cbctrecon->m_vPhaseFloat.clear();
+  if (!this->m_cbctrecon->m_vPhaseFloat.empty()) {
+    this->m_cbctrecon->m_vPhaseFloat.clear();
   }
 
   // Open file
   QString filePath = QFileDialog::getOpenFileName(
-      this, "Open phase text", m_cbctrecon->m_strPathDirDefault,
+      this, "Open phase text", this->m_cbctrecon->m_strPathDirDefault,
       "Phase text file (*.txt)", nullptr, nullptr);
 
   if (filePath.length() < 1) {
@@ -3198,7 +3214,7 @@ void CbctReconWidget::SLT_OpenPhaseData() {
     return;
   }
 
-  ui.lineEdit_PhaseTxtPath->setText(filePath);
+  this->ui.lineEdit_PhaseTxtPath->setText(filePath);
 
   char str[MAX_LINE_LENGTH];
 
@@ -3216,7 +3232,7 @@ void CbctReconWidget::SLT_OpenPhaseData() {
     }
 
     tmpPhase = strLine.toFloat();
-    m_cbctrecon->m_vPhaseFloat.push_back(tmpPhase);
+    this->m_cbctrecon->m_vPhaseFloat.push_back(tmpPhase);
     phaseCnt++;
     phaseSum = phaseSum + tmpPhase;
   }
@@ -3225,14 +3241,15 @@ void CbctReconWidget::SLT_OpenPhaseData() {
             << phaseSum / static_cast<double>(phaseCnt) << std::endl;
 }
 
-void CbctReconWidget::SLT_Export4DCBCT() {
-  if (m_cbctrecon->m_spCustomGeometry == nullptr) {
+void CbctReconWidget::SLT_Export4DCBCT() const {
+  if (this->m_cbctrecon->m_spCustomGeometry == nullptr) {
     std::cout << "Error! no Geometry information loaded yet" << std::endl;
     return;
   }
 
-  int NumOfGanAngle = m_cbctrecon->m_spCustomGeometry->GetGantryAngles().size();
-  int NumOfPhase = m_cbctrecon->m_vPhaseFloat.size();
+  const auto NumOfGanAngle =
+      this->m_cbctrecon->m_spCustomGeometry->GetGantryAngles().size();
+  const auto NumOfPhase = this->m_cbctrecon->m_vPhaseFloat.size();
 
   if (NumOfGanAngle != NumOfPhase) {
     std::cout << "Size not matched. NumOfProjection= " << NumOfGanAngle
@@ -3240,10 +3257,10 @@ void CbctReconWidget::SLT_Export4DCBCT() {
     return;
   }
   // build phase bins
-  QString strPhaseTextFull = ui.lineEdit_PhaseExportString->text();
+  QString strPhaseTextFull = this->ui.lineEdit_PhaseExportString->text();
   QStringList strlistPhaseFull = strPhaseTextFull.split(";");
 
-  int cntGroup = strlistPhaseFull.count();
+  const auto cntGroup = strlistPhaseFull.count();
 
   std::vector<int> vPhaseBinsSelected;
   // m_strPatientDirName = tmpDir_PatientFolder.dirName();
@@ -3260,14 +3277,14 @@ void CbctReconWidget::SLT_Export4DCBCT() {
   // rtkGeomInfo(tmpPathRTKGeometry);
 
   QString strDirForXML =
-      m_cbctrecon->m_strPathDirDefault; // where xml file is located
+      this->m_cbctrecon->m_strPathDirDefault; // where xml file is located
   // QString strUID ;//P00102030P + m_strDCMUID
-  QString strDirForProj = m_cbctrecon->m_strPathIMAGES;
+  QString strDirForProj = this->m_cbctrecon->m_strPathIMAGES;
 
   for (int i = 0; i < cntGroup; i++) {
     // for a single group
     QStringList strListGroup = strlistPhaseFull.at(i).split(",");
-    int iPhaseCnt = strListGroup.count();
+    const auto iPhaseCnt = strListGroup.count();
     vPhaseBinsSelected.clear();
 
     for (int j = 0; j < iPhaseCnt; j++) {
@@ -3278,11 +3295,11 @@ void CbctReconWidget::SLT_Export4DCBCT() {
     // m_vPhaseFloat: full data of phase
 
     // Create Dir, xml, etc
-    if (!m_cbctrecon->ResortCBCTProjection(
+    if (!this->m_cbctrecon->ResortCBCTProjection(
             vPhaseBinsSelected, strDirForXML, strDirForProj,
-            m_cbctrecon->m_strDCMUID, m_cbctrecon->m_vPhaseFloat,
-            m_cbctrecon->m_spCustomGeometry,
-            m_cbctrecon->m_vSelectedFileNames)) {
+            this->m_cbctrecon->m_strDCMUID, this->m_cbctrecon->m_vPhaseFloat,
+            this->m_cbctrecon->m_spCustomGeometry,
+            this->m_cbctrecon->m_vSelectedFileNames)) {
       std::cout << "Error in ResortCBCTProjection "
                 << strlistPhaseFull.at(i).toLocal8Bit().constData()
                 << std::endl;
@@ -3292,7 +3309,7 @@ void CbctReconWidget::SLT_Export4DCBCT() {
 
   // mkdir
   // QString strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; //current Proj
-  // folder  QString strCrntDir = ui.lineEdit_HisDirPath->text();
+  // folder  QString strCrntDir = this->ui.lineEdit_HisDirPath->text();
 
   ////Make a sub directory
   // QDir crntDir(strCrntDir);
@@ -3321,26 +3338,26 @@ void CbctReconWidget::SLT_Export4DCBCT() {
 
 template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "Short image file (*.mha)", nullptr, nullptr);
 
   if (fileName.length() < 1) {
     return;
   }
 
-  m_cbctrecon->LoadShort3DImage(fileName, imagetype);
+  this->m_cbctrecon->LoadShort3DImage(fileName, imagetype);
   UShortImageType::SizeType imgDim =
-      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
 
-  ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  const auto initVal = qRound((imgDim[2] - 1) / 2.0);
 
   SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
+  this->ui.radioButton_graph_recon->setChecked(true);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                               // signalis called
@@ -3367,8 +3384,8 @@ void CbctReconWidget::SLT_LoadCTdeformMHA() {
 }
 
 void CbctReconWidget::SLT_DoCouchCorrection() {
-  QString strTrans = ui.lineEdit_CouchTrans->text();
-  QString strRot = ui.lineEdit_CouchRot->text();
+  QString strTrans = this->ui.lineEdit_CouchTrans->text();
+  QString strRot = this->ui.lineEdit_CouchRot->text();
 
   QStringList strListTrans = strTrans.split(",");
   QStringList strListRot = strRot.split(",");
@@ -3393,17 +3410,17 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
 
   // not manual CT!!!
 
-  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spRawReconImg,
-                                     m_cbctrecon->m_spRawReconImg,
+  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spRawReconImg,
+                                     this->m_cbctrecon->m_spRawReconImg,
                                      couchShiftTrans, couchShiftRot);
-  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spScatCorrReconImg,
-                                     m_cbctrecon->m_spScatCorrReconImg,
+  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spScatCorrReconImg,
+                                     this->m_cbctrecon->m_spScatCorrReconImg,
                                      couchShiftTrans, couchShiftRot);
-  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spDeformedCT_Final,
-                                     m_cbctrecon->m_spDeformedCT_Final,
+  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spDeformedCT_Final,
+                                     this->m_cbctrecon->m_spDeformedCT_Final,
                                      couchShiftTrans, couchShiftRot);
-  ImageTransformUsingCouchCorrection(m_cbctrecon->m_spAutoRigidCT,
-                                     m_cbctrecon->m_spAutoRigidCT,
+  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spAutoRigidCT,
+                                     this->m_cbctrecon->m_spAutoRigidCT,
                                      couchShiftTrans, couchShiftRot);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
@@ -3413,7 +3430,7 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
-  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spScatCorrReconImg;
+  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spScatCorrReconImg;
   SLT_DrawReconImage();
 
   std::cout << "Couch shift and rotation was successfully applied."
@@ -3425,27 +3442,27 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   // Singed short
   QStringList listFilePath = QFileDialog::getOpenFileNames(
       this, "Select one or more files to open",
-      m_cbctrecon->m_strPathDirDefault, "signed short 3D images (*.mha)");
+      this->m_cbctrecon->m_strPathDirDefault, "signed short 3D images (*.mha)");
 
-  int iCntFiles = listFilePath.count();
+  const auto iCntFiles = listFilePath.count();
   if (iCntFiles < 1) {
     return;
   }
 
-  int iCntPOI = m_cbctrecon->m_vPOI_DCM.size();
+  int iCntPOI = this->m_cbctrecon->m_vPOI_DCM.size();
 
   if (iCntPOI < 1) {
     std::cout << "There is no POI file loaded." << std::endl;
     SLT_LoadPOIData();
   }
-  iCntPOI = m_cbctrecon->m_vPOI_DCM.size();
+  iCntPOI = this->m_cbctrecon->m_vPOI_DCM.size();
   if (iCntPOI < 1) {
     std::cout << "Error! still no POI" << std::endl;
     return;
   }
 
   QString strPathOutText = QFileDialog::getSaveFileName(
-      this, "File path to save", m_cbctrecon->m_strPathDirDefault,
+      this, "File path to save", this->m_cbctrecon->m_strPathDirDefault,
       "WEPL_value (*.txt)", nullptr, nullptr); // Filename don't need to exist
   if (strPathOutText.length() <= 1) {
     return;
@@ -3454,11 +3471,11 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   std::vector<std::vector<WEPLData>> vArrOutputWEPL;
   vArrOutputWEPL.resize(iCntFiles);
 
-  double fAngleStart = ui.lineEdit_AngStart->text().toDouble();
-  double fAngleEnd = ui.lineEdit_AngEnd->text().toDouble();
+  const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
+  const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
   for (int i = 0; i < iCntFiles; i++) {
-    m_cbctrecon->GetWEPLDataFromSingleFile(
-        listFilePath.at(i), m_cbctrecon->m_vPOI_DCM, vArrOutputWEPL.at(i),
+    this->m_cbctrecon->GetWEPLDataFromSingleFile(
+        listFilePath.at(i), this->m_cbctrecon->m_vPOI_DCM, vArrOutputWEPL.at(i),
         fAngleStart, fAngleEnd);
   }
 
@@ -3507,16 +3524,16 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
 
 void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
 {
-  const double scaMedian = ui.lineEdit_scaMedian->text().toDouble();
-  const double scaGaussian = ui.lineEdit_scaGaussian->text().toDouble();
-  const int postScatMedianSize = ui.lineEdit_scaPostMedian->text().toInt();
+  const double scaMedian = this->ui.lineEdit_scaMedian->text().toDouble();
+  const double scaGaussian = this->ui.lineEdit_scaGaussian->text().toDouble();
+  const int postScatMedianSize = this->ui.lineEdit_scaPostMedian->text().toInt();
 
   const auto fdk_options = getFDKoptions();
 
-  m_cbctrecon->ScatterCorPerProjRef(scaMedian, scaGaussian, postScatMedianSize,
-                                    ui.radioButton_UseCUDA->isChecked(),
-                                    ui.radioButton_UseOpenCL->isChecked(),
-                                    ui.checkBox_ExportVolDICOM->isChecked(),
+  this->m_cbctrecon->ScatterCorPerProjRef(scaMedian, scaGaussian, postScatMedianSize,
+                                    this->ui.radioButton_UseCUDA->isChecked(),
+                                    this->ui.radioButton_UseOpenCL->isChecked(),
+                                    this->ui.checkBox_ExportVolDICOM->isChecked(),
                                     fdk_options); // load text file
 
   SLT_DrawProjImages();
@@ -3524,7 +3541,7 @@ void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
 
 void CbctReconWidget::SLTM_LoadPerProjRefList() {
   QString filePath = QFileDialog::getOpenFileName(
-      this, "PerProjVol list", m_cbctrecon->m_strPathDirDefault,
+      this, "PerProjVol list", this->m_cbctrecon->m_strPathDirDefault,
       "File path list (*.txt)", nullptr, nullptr);
 
   if (filePath.length() < 1) {
@@ -3537,7 +3554,7 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
     return;
   }
 
-  m_cbctrecon->m_strListPerProjRefVol.clear();
+  this->m_cbctrecon->m_strListPerProjRefVol.clear();
 
   char str[MAX_LINE_LENGTH];
   // File format:
@@ -3561,10 +3578,10 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
       break;
     }
 
-    m_cbctrecon->m_strListPerProjRefVol.push_back(strList.at(3));
+    this->m_cbctrecon->m_strListPerProjRefVol.push_back(strList.at(3));
   }
 
-  std::cout << m_cbctrecon->m_strListPerProjRefVol.count()
+  std::cout << this->m_cbctrecon->m_strListPerProjRefVol.count()
             << " image paths were found" << std::endl;
 
   fin.close();
@@ -3573,7 +3590,7 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
 void CbctReconWidget::SLTM_CropMaskBatch() {
   // Specify mask file (USHORT)
   QString maskFilePath = QFileDialog::getOpenFileName(
-      this, "Mask image (Ushort)", m_cbctrecon->m_strPathDirDefault,
+      this, "Mask image (Ushort)", this->m_cbctrecon->m_strPathDirDefault,
       "3D mask file (*.mha)", nullptr, nullptr);
 
   if (maskFilePath.length() < 1) {
@@ -3613,9 +3630,9 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
   // Get File names (SHORT) where to apply Mask cropping
   QStringList targetFilePaths = QFileDialog::getOpenFileNames(
       this, "Select one or more files to open",
-      m_cbctrecon->m_strPathDirDefault, "target files (*.mha)");
+      this->m_cbctrecon->m_strPathDirDefault, "target files (*.mha)");
 
-  int iCnt = targetFilePaths.size();
+  const auto iCnt = targetFilePaths.size();
 
   if (iCnt < 1) {
     return;
@@ -3625,12 +3642,12 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
     const QString &curPath = targetFilePaths.at(i);
 
     // Overritting
-    Mask_operation mask_option = MASK_OPERATION_MASK;
+    const auto mask_option = MASK_OPERATION_MASK;
     QString input_fn = curPath.toLocal8Bit().constData();
     // QString mask_fn = strPath_mskSkinCT_final.toLocal8Bit().constData();
     QString mask_fn = maskFilePath.toLocal8Bit().constData();
     QString output_fn = curPath.toLocal8Bit().constData();
-    float mask_value = -1024.0; // unsigned short
+    const auto mask_value = -1024.0; // unsigned short
     m_cbctregistration->plm_mask_main(mask_option, input_fn, mask_fn, output_fn,
                                       mask_value);
     std::cout << i + 1 << "/" << iCnt << std::endl;
@@ -3668,40 +3685,40 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
 }
 
 void CbctReconWidget::SLT_CropSupInf() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     return;
   }
 
   int bRaw = 0;
 
-  if (m_cbctrecon->m_spCrntReconImg == m_cbctrecon->m_spRawReconImg) {
+  if (this->m_cbctrecon->m_spCrntReconImg == this->m_cbctrecon->m_spRawReconImg) {
     bRaw = 1;
   }
 
-  float dcmPosCutSup = ui.lineEdit_SupCutPos->text().toFloat(); // mm
-  float dcmPosCutInf = ui.lineEdit_InfCutPos->text().toFloat(); // mm
+  const auto dcmPosCutSup = this->ui.lineEdit_SupCutPos->text().toFloat(); // mm
+  const auto dcmPosCutInf = this->ui.lineEdit_InfCutPos->text().toFloat(); // mm
 
   // CropFOV3D(m_spCrntReconImg, physPosX, physPosY, physRadius, physTablePosY);
-  m_cbctrecon->CropSupInf(m_cbctrecon->m_spCrntReconImg, dcmPosCutInf,
+  this->m_cbctrecon->CropSupInf(this->m_cbctrecon->m_spCrntReconImg, dcmPosCutInf,
                           dcmPosCutSup);
   // QString strPath = m_strPathDirDefault + "/" + "TempSI_Cropped.mha";
   // QString strTmpFile = "C:/TmpSI_Cropped.mha";
 
   QString strPath =
       m_cbctregistration->m_strPathPlastimatch + "/" + "tmp_SI_cropped.mha";
-  ExportReconSHORT_HU(m_cbctrecon->m_spCrntReconImg, strPath);
+  ExportReconSHORT_HU(this->m_cbctrecon->m_spCrntReconImg, strPath);
 
   QString strName = "SI_Cropped";
   if (bRaw != 0) {
-    if (!LoadShortImageToUshort(strPath, m_cbctrecon->m_spRawReconImg)) {
+    if (!LoadShortImageToUshort(strPath, this->m_cbctrecon->m_spRawReconImg)) {
       std::cout << "error! in LoadShortImageToUshort" << std::endl;
     }
-    UpdateReconImage(m_cbctrecon->m_spRawReconImg, strName);
+    UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, strName);
   } else {
-    if (LoadShortImageToUshort(strPath, m_cbctrecon->m_spRefCTImg)) {
+    if (LoadShortImageToUshort(strPath, this->m_cbctrecon->m_spRefCTImg)) {
       std::cout << "error! in LoadShortImageToUshort" << std::endl;
     }
-    UpdateReconImage(m_cbctrecon->m_spRefCTImg, strName);
+    UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, strName);
   }
 
   ///*So buggy*/
@@ -3719,7 +3736,7 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
   ReaderType::Pointer reader = ReaderType::New();
 
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "3D dose float file (*.mha)", nullptr, nullptr);
 
   if (fileName.length() < 1) {
@@ -3743,32 +3760,32 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
 
   castFilter->Update();
 
-  m_cbctrecon->m_spRawReconImg = castFilter->GetOutput();
-  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+  this->m_cbctrecon->m_spRawReconImg = castFilter->GetOutput();
+  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRawReconImg;
 
   // Update UI
   UShortImageType::SizeType imgDim =
-      m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
   UShortImageType::SpacingType spacing =
-      m_cbctrecon->m_spRawReconImg->GetSpacing();
+      this->m_cbctrecon->m_spRawReconImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
-  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+  this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  const auto initVal = qRound((imgDim[2] - 1) / 2.0);
 
   SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
+  this->ui.spinBoxReconImgSliceNo->setValue(
       initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.radioButton_graph_recon->setChecked(true);
 
   SLT_DrawReconImage();
 }
@@ -3780,7 +3797,7 @@ void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
   ReaderType::Pointer reader = ReaderType::New();
 
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "Projection file (*.mha)", nullptr, nullptr);
 
   if (fileName.length() < 1) {
@@ -3790,45 +3807,45 @@ void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
   reader->SetFileName(fileName.toLocal8Bit().constData());
   reader->Update();
 
-  m_cbctrecon->m_spRawReconImg = reader->GetOutput();
-  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+  this->m_cbctrecon->m_spRawReconImg = reader->GetOutput();
+  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRawReconImg;
 
   UShortImageType::SizeType imgDim =
-      m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
   UShortImageType::SpacingType spacing =
-      m_cbctrecon->m_spRawReconImg->GetSpacing();
+      this->m_cbctrecon->m_spRawReconImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
-  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+  this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  const auto initVal = qRound((imgDim[2] - 1) / 2.0);
 
   SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
+  this->ui.spinBoxReconImgSliceNo->setValue(
       initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.radioButton_graph_recon->setChecked(true);
 
   SLT_DrawReconImage();
 }
 
 void CbctReconWidget::SLT_Load3DImageShort() {
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "short mha file (*.mha)", nullptr, nullptr);
 
   if (fileName.length() < 1) {
     return;
   }
 
-  if (!LoadShortImageToUshort(fileName, m_cbctrecon->m_spRawReconImg)) {
+  if (!LoadShortImageToUshort(fileName, this->m_cbctrecon->m_spRawReconImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -3838,46 +3855,48 @@ void CbctReconWidget::SLT_Load3DImageShort() {
   ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
       ImageCalculatorFilterType2::New();
   // imageCalculatorFilter2->SetImage(m_spReconImg);
-  imageCalculatorFilter2->SetImage(m_cbctrecon->m_spRawReconImg);
+  imageCalculatorFilter2->SetImage(this->m_cbctrecon->m_spRawReconImg);
   imageCalculatorFilter2->Compute();
 
-  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
-  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+  const auto minVal2 =
+      static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  const auto maxVal2 =
+      static_cast<double>(imageCalculatorFilter2->GetMaximum());
   std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
             << std::endl;
 
   // Update UI
-  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRawReconImg;
 
   UShortImageType::SizeType imgDim =
-      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
   UShortImageType::SpacingType spacing =
-      m_cbctrecon->m_spCrntReconImg->GetSpacing();
+      this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
-  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+  this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  const auto initVal = qRound((imgDim[2] - 1) / 2.0);
 
   SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
+  this->ui.spinBoxReconImgSliceNo->setValue(
       initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.radioButton_graph_recon->setChecked(true);
 
   SLT_DrawReconImage();
 }
 
 void CbctReconWidget::SLT_LoadNKIImage() {
   QString filePath = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault, "NKI file (*.SCAN)",
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault, "NKI file (*.SCAN)",
       nullptr, nullptr);
 
   if (filePath.length() < 1) {
@@ -3891,13 +3910,13 @@ void CbctReconWidget::SLT_LoadNKIImage() {
     return;
   }
 
-  QString endFix = "_conv";
+  const auto endFix = QString("_conv");
   QFileInfo srcFileInfo = QFileInfo(filePath);
   QDir dir = srcFileInfo.absoluteDir();
   QString baseName = srcFileInfo.completeBaseName();
-  QString extName = "mha";
+  const auto extName = QString("mha");
 
-  QString newFileName = baseName.append(endFix).append(".").append(extName);
+  const auto newFileName = baseName.append(endFix).append(".").append(extName);
   QString newPath = dir.absolutePath() + "/" + newFileName;
 
   write_mha(newPath.toLocal8Bit().constData(), v);
@@ -3906,7 +3925,7 @@ void CbctReconWidget::SLT_LoadNKIImage() {
   // corrImg.ReleaseBuffer();
   // NKI to mha
 
-  if (!LoadShortImageToUshort(newPath, m_cbctrecon->m_spRawReconImg)) {
+  if (!LoadShortImageToUshort(newPath, this->m_cbctrecon->m_spRawReconImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -3916,45 +3935,47 @@ void CbctReconWidget::SLT_LoadNKIImage() {
   ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
       ImageCalculatorFilterType2::New();
   // imageCalculatorFilter2->SetImage(m_spReconImg);
-  imageCalculatorFilter2->SetImage(m_cbctrecon->m_spRawReconImg);
+  imageCalculatorFilter2->SetImage(this->m_cbctrecon->m_spRawReconImg);
   imageCalculatorFilter2->Compute();
 
-  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
-  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+  const auto minVal2 =
+      static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  const auto maxVal2 =
+      static_cast<double>(imageCalculatorFilter2->GetMaximum());
   std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
             << std::endl;
 
   // Update UI
-  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRawReconImg;
+  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRawReconImg;
 
   UShortImageType::SizeType imgDim =
-      m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
   UShortImageType::SpacingType spacing =
-      m_cbctrecon->m_spCrntReconImg->GetSpacing();
+      this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  ui.lineEdit_Cur3DFileName->setText(newFileName);
+  this->ui.lineEdit_Cur3DFileName->setText(newFileName);
 
-  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+  this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  const auto initVal = qRound((imgDim[2] - 1) / 2.0);
 
   SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(
+  this->ui.spinBoxReconImgSliceNo->setValue(
       initVal); // DrawRecon Imge is called, but sometimes skipped
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.radioButton_graph_recon->setChecked(true);
 
   SLT_DrawReconImage();
 }
 
 void CbctReconWidget::SLT_ExportHis() {
-  if (m_cbctrecon->m_iImgCnt < 1) {
+  if (this->m_cbctrecon->m_iImgCnt < 1) {
     std::cout << "Error: Load raw his images first" << std::endl;
     return;
   }
@@ -3962,16 +3983,16 @@ void CbctReconWidget::SLT_ExportHis() {
   // Get Folder Name!
 
   // For displaying Dir only..
-  QString dir = QFileDialog::getExistingDirectory(
+  const auto dir = QFileDialog::getExistingDirectory(
       this, "Open Directory", "/home",
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   // FileName should be same, only selected folder
 
-  for (int i = 0; i < m_cbctrecon->m_iImgCnt; i++) {
-    QFileInfo tmpInfo = QFileInfo(m_cbctrecon->m_arrYKImage[i].m_strFilePath);
+  for (int i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
+    QFileInfo tmpInfo = QFileInfo(this->m_cbctrecon->m_arrYKImage[i].m_strFilePath);
     QString newPath = dir + "/" + tmpInfo.fileName();
-    m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(
+    this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(
         newPath.toLocal8Bit().constData(), false);
   }
 
@@ -3991,37 +4012,37 @@ void CbctReconWidget::SLT_ReloadProjections() {
   ImageReaderType::Pointer ImageReader = ImageReaderType::New();
   ImageReader->SetFileName(projFile.fileName().toStdString());
   ImageReader->Update();
-  m_cbctrecon->m_spProjImg3DFloat = ImageReader->GetOutput();
+  this->m_cbctrecon->m_spProjImg3DFloat = ImageReader->GetOutput();
 
   // Copied from SLT_LoadSelectedFiles:
 
-  if (m_cbctrecon->m_fResampleF != 1.0) {
-    m_cbctrecon->ResampleItkImage(
-        m_cbctrecon->m_spProjImg3DFloat, m_cbctrecon->m_spProjImg3DFloat,
-        m_cbctrecon->m_fResampleF); // was! BROKEN AF for .his where input size
+  if (this->m_cbctrecon->m_fResampleF != 1.0) {
+    this->m_cbctrecon->ResampleItkImage(
+        this->m_cbctrecon->m_spProjImg3DFloat, this->m_cbctrecon->m_spProjImg3DFloat,
+        this->m_cbctrecon->m_fResampleF); // was! BROKEN AF for .his where input size
                                     // != 1024 (tested with 1016) -> outputs
                                     // offset -inputoffset/refactor^2 and 4
                                     // pixels too few in x and y
   }
 
-  if (m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
+  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     SLT_DoBowtieCorrection();
   }
 
-  m_cbctrecon->ConvertLineInt2Intensity(
-      m_cbctrecon->m_spProjImg3DFloat, m_cbctrecon->m_spProjImgRaw3D,
+  this->m_cbctrecon->ConvertLineInt2Intensity(
+      this->m_cbctrecon->m_spProjImg3DFloat, this->m_cbctrecon->m_spProjImgRaw3D,
       65535); // if X not 1024 == input size: out_offset =
               // in_offset + (1024*res_f -
               // X*res_f)*out_spacing     <- will still
               // break down at fw_projection
 
   FloatImageType::PointType originPt =
-      m_cbctrecon->m_spProjImg3DFloat->GetOrigin();
+      this->m_cbctrecon->m_spProjImg3DFloat->GetOrigin();
   FloatImageType::SizeType FloatImgSize =
-      m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize();
   FloatImageType::SpacingType FloatImgSpacing =
-      m_cbctrecon->m_spProjImg3DFloat->GetSpacing();
+      this->m_cbctrecon->m_spProjImg3DFloat->GetSpacing();
 
   std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
             << originPt[2] << std::endl;
@@ -4031,23 +4052,23 @@ void CbctReconWidget::SLT_ReloadProjections() {
             << FloatImgSpacing[1] << ", " << FloatImgSpacing[2] << std::endl;
 
   std::cout << "Raw3DProj dimension "
-            << m_cbctrecon->m_spProjImgRaw3D->GetRequestedRegion().GetSize()
+            << this->m_cbctrecon->m_spProjImgRaw3D->GetRequestedRegion().GetSize()
             << std::endl;
 
   // m_spProjImgRaw3D is Ushort
 
   std::cout << "Projection reading succeeded."
-            << m_cbctrecon->m_vSelectedFileNames.size() << " files were read"
+            << this->m_cbctrecon->m_vSelectedFileNames.size() << " files were read"
             << std::endl;
 
   // Because you can load projections from previous run:
-  ui.pushButton_DoRecon->setEnabled(true);
+  this->ui.pushButton_DoRecon->setEnabled(true);
 
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_cbctrecon->m_vSelectedFileNames.size() - 1);
-  ui.spinBoxImgIdx->setValue(0);
+  this->ui.spinBoxImgIdx->setMinimum(0);
+  this->ui.spinBoxImgIdx->setMaximum(this->m_cbctrecon->m_vSelectedFileNames.size() - 1);
+  this->ui.spinBoxImgIdx->setValue(0);
 
-  m_cbctrecon
+  this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
   SLT_InitializeGraphLim();
 
@@ -4060,14 +4081,14 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
   // ReaderType::Pointer reader = ReaderType::New();
 
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", m_cbctrecon->m_strPathDirDefault,
+      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
       "Plan CT file (*.mha)", nullptr, nullptr);
 
   if (fileName.length() < 1) {
     return;
   }
 
-  if (!LoadShortImageToUshort(fileName, m_cbctrecon->m_spRefCTImg)) {
+  if (!LoadShortImageToUshort(fileName, this->m_cbctrecon->m_spRefCTImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -4076,43 +4097,45 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
 
   ImageCalculatorFilterType2::Pointer imageCalculatorFilter2 =
       ImageCalculatorFilterType2::New();
-  imageCalculatorFilter2->SetImage(m_cbctrecon->m_spRefCTImg);
+  imageCalculatorFilter2->SetImage(this->m_cbctrecon->m_spRefCTImg);
   imageCalculatorFilter2->Compute();
 
-  auto minVal2 = static_cast<double>(imageCalculatorFilter2->GetMinimum());
-  auto maxVal2 = static_cast<double>(imageCalculatorFilter2->GetMaximum());
+  const auto minVal2 =
+      static_cast<double>(imageCalculatorFilter2->GetMinimum());
+  const auto maxVal2 =
+      static_cast<double>(imageCalculatorFilter2->GetMaximum());
 
   std::cout << "Min and Max Values are	" << minVal2 << "	" << maxVal2
             << std::endl;
 
   // Update UI
   UShortImageType::SizeType imgDim =
-      m_cbctrecon->m_spRefCTImg->GetBufferedRegion().GetSize();
+      this->m_cbctrecon->m_spRefCTImg->GetBufferedRegion().GetSize();
   UShortImageType::SpacingType spacing =
-      m_cbctrecon->m_spRefCTImg->GetSpacing();
+      this->m_cbctrecon->m_spRefCTImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
-  m_cbctrecon->m_spCrntReconImg = m_cbctrecon->m_spRefCTImg;
+  this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
+  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRefCTImg;
 
-  ui.lineEdit_Cur3DFileName->setText(fileName);
-  m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
+  this->ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
-  ui.spinBoxReconImgSliceNo->setMinimum(0);
-  ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
-  int initVal = qRound((imgDim[2] - 1) / 2.0);
+  this->ui.spinBoxReconImgSliceNo->setMinimum(0);
+  this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
+  const auto initVal = qRound((imgDim[2] - 1) / 2.0);
 
   SLT_InitializeGraphLim();
-  ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
-  ui.radioButton_graph_recon->setChecked(true);
+  this->ui.spinBoxReconImgSliceNo->setValue(initVal); // DrawRecon Imge is called
+  this->ui.radioButton_graph_recon->setChecked(true);
 }
 
 void CbctReconWidget::SLT_ExportReconUSHORT() {
-  if (m_cbctrecon->m_spCrntReconImg == nullptr) {
+  if (this->m_cbctrecon->m_spCrntReconImg == nullptr) {
     std::cout << " no image to export" << std::endl;
     return;
   }
@@ -4128,14 +4151,14 @@ void CbctReconWidget::SLT_ExportReconUSHORT() {
   WriterType::Pointer writer = WriterType::New();
   writer->SetFileName(strPath.toLocal8Bit().constData());
   writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-  writer->SetInput(m_cbctrecon->m_spCrntReconImg);
+  writer->SetInput(this->m_cbctrecon->m_spCrntReconImg);
 
   std::cout << "Writing is under progress...: "
             << strPath.toLocal8Bit().constData() << std::endl;
   writer->Update();
   std::cout << "Writing was successfully done" << std::endl;
 
-  QString msgStr = QString("USHORT File Writing was successfully done");
+  const auto msgStr = QString("USHORT File Writing was successfully done");
   QMessageBox::information(this, "Procedure Done", msgStr);
 }
 
@@ -4144,23 +4167,23 @@ void CbctReconWidget::LoadRawHisImages() {
 
   QStringList files =
       QFileDialog::getOpenFileNames(this, "Select one or more files to open",
-                                    m_cbctrecon->m_strPathDirDefault,
+                                    this->m_cbctrecon->m_strPathDirDefault,
                                     "projection images (*.his,*.hnd,*.xim)");
 
-  m_cbctrecon->m_iImgCnt = files.size();
+  this->m_cbctrecon->m_iImgCnt = files.size();
   std::vector<std::string> fileVector;
 
   for (auto &cur_file : files) {
     fileVector.push_back(cur_file.toStdString());
   }
 
-  if (m_cbctrecon->m_iImgCnt < 1) {
+  if (this->m_cbctrecon->m_iImgCnt < 1) {
     return;
   }
   m_pTableModel.reset();
-  m_cbctrecon->ReleaseMemory();
+  this->m_cbctrecon->ReleaseMemory();
 
-  m_cbctrecon->m_arrYKImage.resize(m_cbctrecon->m_iImgCnt);
+  this->m_cbctrecon->m_arrYKImage.resize(this->m_cbctrecon->m_iImgCnt);
   using ReaderType = rtk::ProjectionsReader<FloatImageType>;
   ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileNames(fileVector);
@@ -4170,17 +4193,17 @@ void CbctReconWidget::LoadRawHisImages() {
   castFilter->SetInput(reader->GetOutput());
   castFilter->Update();
 
-  int width =
+  const auto width =
       castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0]; // width
-  int height = castFilter->GetOutput()
-                   ->GetLargestPossibleRegion()
-                   .GetSize()[1]; // height
-  int sizePix = width * height;
-  int sizeBuf = sizePix * sizeof(FloatImageType::PixelType);
-  int bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
+  const auto height = castFilter->GetOutput()
+                          ->GetLargestPossibleRegion()
+                          .GetSize()[1]; // height
+  const auto sizePix = width * height;
+  const auto sizeBuf = sizePix * sizeof(FloatImageType::PixelType);
+  const auto bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));
 
   size_t index = 0;
-  for (auto &it : m_cbctrecon->m_arrYKImage) {
+  for (auto &it : this->m_cbctrecon->m_arrYKImage) {
     const QString &strFile = files.at(index);
 
     if (bytesPerPix != 2) {
@@ -4199,13 +4222,13 @@ void CbctReconWidget::LoadRawHisImages() {
     index++;
   }
 
-  m_cbctrecon->m_multiplyFactor = 1.0;
+  this->m_cbctrecon->m_multiplyFactor = 1.0;
 
-  ui.spinBoxImgIdx->setMinimum(0);
-  ui.spinBoxImgIdx->setMaximum(m_cbctrecon->m_iImgCnt - 1);
-  ui.spinBoxImgIdx->setValue(0);
+  this->ui.spinBoxImgIdx->setMinimum(0);
+  this->ui.spinBoxImgIdx->setMaximum(this->m_cbctrecon->m_iImgCnt - 1);
+  this->ui.spinBoxImgIdx->setValue(0);
 
-  m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
+  this->m_cbctrecon->SetMaxAndMinValueOfProjectionImage();
   SLT_InitializeGraphLim();
 
   SLT_DrawRawImages(); // Change FileName as well.. read spinbox value and draw
@@ -4213,14 +4236,14 @@ void CbctReconWidget::LoadRawHisImages() {
 }
 // IO_END
 
-void CbctReconWidget::SLT_SaveCurrentSetting() {
-  if (!SaveCurrentSetting(m_cbctrecon->m_strPathDefaultConfigFile)) {
+void CbctReconWidget::SLT_SaveCurrentSetting() const {
+  if (!SaveCurrentSetting(this->m_cbctrecon->m_strPathDefaultConfigFile)) {
     std::cout << "Error! in SaveCurrentSetting" << std::endl;
     return;
   }
 }
 
-bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) {
+bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
   QFileInfo fInfo(strPathConfigFile);
   if (!fInfo.exists()) {
     std::cout << "Config file not exist. will be created now" << std::endl;
@@ -4228,55 +4251,60 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) {
     std::cout << "Config file is found. it will be overwritten now"
               << std::endl;
   }
-  auto &m_pDlgRegistration = m_dlgRegistration;
+  auto &p_dlgreg_ui = m_dlgRegistration->ui;
 
   std::ofstream fout;
   fout.open(strPathConfigFile.toLocal8Bit().constData());
 
-  QString strRefmAs = ui.lineEdit_RefmAs->text();
-  QString PostFOV_R = ui.lineEdit_PostFOV_R->text();
-  QString PostTablePosY = ui.lineEdit_PostTablePosY->text();
+  auto strRefmAs = this->ui.lineEdit_RefmAs->text();
+  auto PostFOV_R = this->ui.lineEdit_PostFOV_R->text();
+  auto PostTablePosY = this->ui.lineEdit_PostTablePosY->text();
 
-  QString strBkFillCT = m_pDlgRegistration->ui.lineEditBkFillCT->text();
-  QString strBkDetectCT = m_pDlgRegistration->ui.lineEditBkDetectCT->text();
-  QString strBubFillCT = m_pDlgRegistration->ui.lineEditBubFillCT->text();
+  auto strBkFillCT = p_dlgreg_ui.lineEditBkFillCT->text();
+  auto strBkDetectCT = p_dlgreg_ui.lineEditBkDetectCT->text();
+  auto strBubFillCT = p_dlgreg_ui.lineEditBubFillCT->text();
 
-  QString strBkFillCBCT = m_pDlgRegistration->ui.lineEditBkFillCBCT->text();
-  QString strBkDetectCBCT =
-      m_pDlgRegistration->ui.lineEditBubDetectCBCT->text();
-  QString strBubFillCBCT = m_pDlgRegistration->ui.lineEditBubFillCBCT->text();
+  auto strBkFillCBCT = p_dlgreg_ui.lineEditBkFillCBCT->text();
+  auto strBkDetectCBCT =
+      p_dlgreg_ui.lineEditBubDetectCBCT->text();
+  auto strBubFillCBCT = p_dlgreg_ui.lineEditBubFillCBCT->text();
 
-  QString strCropContourName =
-      m_pDlgRegistration->ui.lineEditCropContourName->text();
+  auto strCropContourName =
+      p_dlgreg_ui.lineEditCropContourName->text();
 
-  QString strFOVPos = m_pDlgRegistration->ui.lineEditFOVPos->text();
+  auto strFOVPos = p_dlgreg_ui.lineEditFOVPos->text();
 
-  QString strArgument1 = m_pDlgRegistration->ui.lineEditArgument1->text();
-  QString strArgument2 = m_pDlgRegistration->ui.lineEditArgument2->text();
-  QString strArgument3 = m_pDlgRegistration->ui.lineEditArgument3->text();
+  auto strArgument1 = p_dlgreg_ui.lineEditArgument1->text();
+  auto strArgument2 = p_dlgreg_ui.lineEditArgument2->text();
+  auto strArgument3 = p_dlgreg_ui.lineEditArgument3->text();
 
-  bool bExportFwd = ui.checkBox_ExportFwd->isChecked();
-  bool bExportScat = ui.checkBox_ExportScat->isChecked();
-  bool bExportCor = ui.checkBox_ExportCor->isChecked();
-  bool bExportVolDICOM = ui.checkBox_ExportVolDICOM->isChecked();
-  bool bCouchShiftAddToMacro = ui.checkBox_CouchShiftAddToMacro->isChecked();
+  const auto bExportFwd = this->ui.checkBox_ExportFwd->isChecked();
+  const auto bExportScat = this->ui.checkBox_ExportScat->isChecked();
+  const auto bExportCor = this->ui.checkBox_ExportCor->isChecked();
+  const auto bExportVolDICOM = this->ui.checkBox_ExportVolDICOM->isChecked();
+  const auto bCouchShiftAddToMacro =
+      this->ui.checkBox_CouchShiftAddToMacro->isChecked();
 
   // From Registration GUI
-  bool bCropBkgroundCT =
-      m_pDlgRegistration->ui.checkBoxCropBkgroundCT->isChecked();
-  bool bCropBkgroundCBCT =
-      m_pDlgRegistration->ui.checkBoxCropBkgroundCBCT->isChecked();
+  const auto bCropBkgroundCT =
+      p_dlgreg_ui.checkBoxCropBkgroundCT->isChecked();
+  const auto bCropBkgroundCBCT =
+      p_dlgreg_ui.checkBoxCropBkgroundCBCT->isChecked();
 
-  bool bFillBubbleCT = m_pDlgRegistration->ui.checkBoxFillBubbleCT->isChecked();
-  bool bFillBubbleCBCT =
-      m_pDlgRegistration->ui.checkBoxFillBubbleCBCT->isChecked();
+  const auto bFillBubbleCT =
+      p_dlgreg_ui.checkBoxFillBubbleCT->isChecked();
+  const auto bFillBubbleCBCT =
+      p_dlgreg_ui.checkBoxFillBubbleCBCT->isChecked();
 
-  bool bUseROIForRigid =
-      m_pDlgRegistration->ui.checkBoxUseROIForRigid->isChecked();
-  bool bUseROIForDIR = m_pDlgRegistration->ui.checkBoxUseROIForDIR->isChecked();
+  const auto bUseROIForRigid =
+      p_dlgreg_ui.checkBoxUseROIForRigid->isChecked();
+  const auto bUseROIForDIR =
+      p_dlgreg_ui.checkBoxUseROIForDIR->isChecked();
 
-  bool bRadioButton_mse = m_pDlgRegistration->ui.radioButton_mse->isChecked();
-  bool bRadioButton_mi = m_pDlgRegistration->ui.radioButton_mi->isChecked();
+  const auto bRadioButton_mse =
+      p_dlgreg_ui.radioButton_mse->isChecked();
+  const auto bRadioButton_mi =
+      p_dlgreg_ui.radioButton_mi->isChecked();
 
   fout << "strRefmAs"
        << "\t" << strRefmAs.toLocal8Bit().constData() << "\n";
@@ -4346,8 +4374,8 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) {
   return true;
 }
 
-bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) {
-  QFileInfo fInfo(strPathConfigFile);
+bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) const {
+  auto fInfo = QFileInfo(strPathConfigFile);
 
   if (!fInfo.exists()) {
     //  std::cout << "Config file doesn't exist" << std::endl;
@@ -4362,7 +4390,7 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) {
   if (fin.fail()) {
     return false;
   }
-  auto &m_pDlgRegistration = m_dlgRegistration;
+  auto &p_dlgreg_ui = m_dlgRegistration->ui;
 
   // int cnt = 0;
   while (!fin.eof()) {
@@ -4379,71 +4407,71 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) {
       const auto bFlagContent = strContent.toInt() == 1;
 
       if (strHeader == "strRefmAs") {
-        ui.lineEdit_RefmAs->setText(strContent);
+        this->ui.lineEdit_RefmAs->setText(strContent);
       } else if (strHeader == "PostFOV_R") {
-        ui.lineEdit_PostFOV_R->setText(strContent);
+        this->ui.lineEdit_PostFOV_R->setText(strContent);
       } else if (strHeader == "PostTablePosY") {
-        ui.lineEdit_PostTablePosY->setText(strContent);
+        this->ui.lineEdit_PostTablePosY->setText(strContent);
 
       } else if (strHeader == "strBkFillCT") {
-        m_pDlgRegistration->ui.lineEditBkFillCT->setText(strContent);
+        p_dlgreg_ui.lineEditBkFillCT->setText(strContent);
       } else if (strHeader == "strBkDetectCT") {
-        m_pDlgRegistration->ui.lineEditBkDetectCT->setText(strContent);
+        p_dlgreg_ui.lineEditBkDetectCT->setText(strContent);
       } else if (strHeader == "strBubFillCT") {
-        m_pDlgRegistration->ui.lineEditBubFillCT->setText(strContent);
+        p_dlgreg_ui.lineEditBubFillCT->setText(strContent);
 
       } else if (strHeader == "strBkFillCBCT") {
-        m_pDlgRegistration->ui.lineEditBkFillCBCT->setText(strContent);
+        p_dlgreg_ui.lineEditBkFillCBCT->setText(strContent);
       } else if (strHeader == "strBkDetectCBCT") {
-        m_pDlgRegistration->ui.lineEditBubDetectCBCT->setText(strContent);
+        p_dlgreg_ui.lineEditBubDetectCBCT->setText(strContent);
       } else if (strHeader == "strBubFillCBCT") {
-        m_pDlgRegistration->ui.lineEditBubFillCBCT->setText(strContent);
+        p_dlgreg_ui.lineEditBubFillCBCT->setText(strContent);
       }
 
       if (strHeader == "strCropContourName") {
-        m_pDlgRegistration->ui.lineEditCropContourName->setText(strContent);
+        p_dlgreg_ui.lineEditCropContourName->setText(strContent);
       } else if (strHeader == "strFOVPos") {
-        m_pDlgRegistration->ui.lineEditFOVPos->setText(strContent);
+        p_dlgreg_ui.lineEditFOVPos->setText(strContent);
 
       } else if (strHeader == "strArgument1") {
-        m_pDlgRegistration->ui.lineEditArgument1->setText(strContent);
+        p_dlgreg_ui.lineEditArgument1->setText(strContent);
       } else if (strHeader == "strArgument2") {
-        m_pDlgRegistration->ui.lineEditArgument2->setText(strContent);
+        p_dlgreg_ui.lineEditArgument2->setText(strContent);
       } else if (strHeader == "strArgument3") {
-        m_pDlgRegistration->ui.lineEditArgument3->setText(strContent);
+        p_dlgreg_ui.lineEditArgument3->setText(strContent);
 
       } else if (strHeader == "bExportFwd") {
-        ui.checkBox_ExportFwd->setChecked(bFlagContent);
+        this->ui.checkBox_ExportFwd->setChecked(bFlagContent);
       } else if (strHeader == "bExportScat") {
-        ui.checkBox_ExportScat->setChecked(bFlagContent);
+        this->ui.checkBox_ExportScat->setChecked(bFlagContent);
       } else if (strHeader == "bExportCor") {
-        ui.checkBox_ExportCor->setChecked(bFlagContent);
+        this->ui.checkBox_ExportCor->setChecked(bFlagContent);
 
       } else if (strHeader == "bExportVolDICOM") {
-        ui.checkBox_ExportVolDICOM->setChecked(bFlagContent);
+        this->ui.checkBox_ExportVolDICOM->setChecked(bFlagContent);
       } else if (strHeader == "bCouchShiftAddToMacro") {
-        ui.checkBox_CouchShiftAddToMacro->setChecked(bFlagContent);
+        this->ui.checkBox_CouchShiftAddToMacro->setChecked(bFlagContent);
 
       } else if (strHeader == "bCropBkgroundCT") {
-        m_pDlgRegistration->ui.checkBoxCropBkgroundCT->setChecked(bFlagContent);
+        p_dlgreg_ui.checkBoxCropBkgroundCT->setChecked(bFlagContent);
       } else if (strHeader == "bCropBkgroundCBCT") {
-        m_pDlgRegistration->ui.checkBoxCropBkgroundCBCT->setChecked(
+        p_dlgreg_ui.checkBoxCropBkgroundCBCT->setChecked(
             bFlagContent);
 
       } else if (strHeader == "bFillBubbleCT") {
-        m_pDlgRegistration->ui.checkBoxFillBubbleCT->setChecked(bFlagContent);
+        p_dlgreg_ui.checkBoxFillBubbleCT->setChecked(bFlagContent);
       } else if (strHeader == "bFillBubbleCBCT") {
-        m_pDlgRegistration->ui.checkBoxFillBubbleCBCT->setChecked(bFlagContent);
+        p_dlgreg_ui.checkBoxFillBubbleCBCT->setChecked(bFlagContent);
 
       } else if (strHeader == "bUseROIForRigid") {
-        m_pDlgRegistration->ui.checkBoxUseROIForRigid->setChecked(bFlagContent);
+        p_dlgreg_ui.checkBoxUseROIForRigid->setChecked(bFlagContent);
       } else if (strHeader == "bUseROIForDIR") {
-        m_pDlgRegistration->ui.checkBoxUseROIForDIR->setChecked(bFlagContent);
+        p_dlgreg_ui.checkBoxUseROIForDIR->setChecked(bFlagContent);
 
       } else if (strHeader == "radioButton_mse") {
-        m_pDlgRegistration->ui.radioButton_mse->setChecked(bFlagContent);
+        p_dlgreg_ui.radioButton_mse->setChecked(bFlagContent);
       } else if (strHeader == "radioButton_mi") {
-        m_pDlgRegistration->ui.radioButton_mi->setChecked(bFlagContent);
+        p_dlgreg_ui.radioButton_mi->setChecked(bFlagContent);
       }
     }
   }

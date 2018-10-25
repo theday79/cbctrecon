@@ -109,7 +109,7 @@ DlgRegistration::DlgRegistration(CbctReconWidget *parent) : QDialog(parent) {
 void DlgRegistration::initDlgRegistration(QString &strDCMUID) {
   m_cbctregistration->SetPlmOutputDir(strDCMUID);
 
-  UShortImageType::Pointer spNull;
+  const UShortImageType::Pointer spNull;
   // unlink all of the pointers
   // m_pParent->m_spReconImg->Delete(); //fixed image // ID: RawCBCT
   m_cbctregistration->m_pParent->m_spRefCTImg = spNull;
@@ -147,9 +147,9 @@ void DlgRegistration::SLT_CrntPosGo() {
   }
 
   // DICOMN position, mm
-  double curDCMPosX = ui.lineEditCurPosX->text().toDouble();
-  double curDCMPosY = ui.lineEditCurPosY->text().toDouble();
-  double curDCMPosZ = ui.lineEditCurPosZ->text().toDouble();
+  const auto curDCMPosX = ui.lineEditCurPosX->text().toDouble();
+  const auto curDCMPosY = ui.lineEditCurPosY->text().toDouble();
+  const auto curDCMPosZ = ui.lineEditCurPosZ->text().toDouble();
 
   // UShortImageType::SizeType imgSize =
   // m_spFixed->GetRequestedRegion().GetSize(); //1016x1016 x z
@@ -161,11 +161,11 @@ void DlgRegistration::SLT_CrntPosGo() {
   // setting  curPhysPos[1] = imgOrigin[1] + sliderPosIdxY*imgSpacing[1]; //Y
   // curPhysPos[2] = imgOrigin[0] + sliderPosIdxX*imgSpacing[0]; //Z
 
-  int iSliderPosIdxZ =
+  const auto iSliderPosIdxZ =
       qRound((curDCMPosZ - imgOrigin[2]) / static_cast<double>(imgSpacing[2]));
-  int iSliderPosIdxY =
+  const auto iSliderPosIdxY =
       qRound((curDCMPosY - imgOrigin[1]) / static_cast<double>(imgSpacing[1]));
-  int iSliderPosIdxX =
+  const auto iSliderPosIdxX =
       qRound((curDCMPosX - imgOrigin[0]) / static_cast<double>(imgSpacing[0]));
 
   ui.sliderPosDisp1->setValue(iSliderPosIdxZ);
@@ -234,7 +234,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   m_pParent->Draw2DFrom3D(m_pParent->m_spReconImg, PLANE_SAGITTAL, curPhysPos3,
   m_dspDlgRegi3);        */
 
-  int refIdx = 3 - m_enViewArrange;
+  const auto refIdx = 3 - m_enViewArrange;
 
   if (ui.checkBoxDrawCrosshair->isChecked()) {
     m_YKDisp[refIdx % 3].m_bDrawCrosshair = true;
@@ -367,7 +367,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
       if (contour.coordinates.empty()) {
         continue;
       }
-      auto first_point = contour.coordinates.at(0);
+      const auto first_point = contour.coordinates.at(0);
       // Axial
       if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
           first_point.z < curPhysPos[0] + imgSpacing[2]) {
@@ -437,17 +437,17 @@ void DlgRegistration::whenFixedImgLoaded() {
 
   ui.sliderPosDisp1->setMinimum(0);
   ui.sliderPosDisp1->setMaximum(static_cast<int>(imgSize[2] - 1));
-  auto curPosZ = static_cast<int>(imgSize[2] / 2);
+  const auto curPosZ = static_cast<int>(imgSize[2] / 2);
   ui.sliderPosDisp1->setValue(curPosZ);
 
   ui.sliderPosDisp2->setMinimum(0);
   ui.sliderPosDisp2->setMaximum(static_cast<int>(imgSize[1] - 1));
-  auto curPosY = static_cast<int>(imgSize[1] / 2);
+  const auto curPosY = static_cast<int>(imgSize[1] / 2);
   ui.sliderPosDisp2->setValue(curPosY);
 
   ui.sliderPosDisp3->setMinimum(0);
   ui.sliderPosDisp3->setMaximum(static_cast<int>(imgSize[0] - 1));
-  auto curPosX = static_cast<int>(imgSize[0] / 2);
+  const auto curPosX = static_cast<int>(imgSize[0] / 2);
   ui.sliderPosDisp3->setValue(curPosX);
 
   QPoint x_split = QPoint(static_cast<int>(imgSize[0] / 2),
@@ -483,8 +483,8 @@ void DlgRegistration::whenFixedImgLoaded() {
   // if (iSliderMax >= 65535)
   //  iSliderMax = 10000;
 
-  int iSliderW = 2000;
-  int iSliderL = 1024;
+  const auto iSliderW = 2000;
+  const auto iSliderL = 1024;
 
   ui.sliderFixedW->setValue(iSliderW);
   ui.sliderMovingW->setValue(iSliderW);
@@ -586,11 +586,11 @@ void DlgRegistration::SLT_DrawImageInFixedSlice() // Display Swap here!
     }
   }
 
-  int sliderW1 = ui.sliderFixedW->value();
-  int sliderW2 = ui.sliderMovingW->value();
+  const auto sliderW1 = ui.sliderFixedW->value();
+  const auto sliderW2 = ui.sliderMovingW->value();
 
-  int sliderL1 = ui.sliderFixedL->value();
-  int sliderL2 = ui.sliderMovingL->value();
+  const auto sliderL1 = ui.sliderFixedL->value();
+  const auto sliderL2 = ui.sliderMovingL->value();
 
   m_YKDisp[0].FillPixMapDual(sliderL1, sliderL2, sliderW1, sliderW2);
   m_YKDisp[1].FillPixMapDual(sliderL1, sliderL2, sliderW1, sliderW2);
@@ -619,21 +619,21 @@ void DlgRegistration::SLT_DrawImageInFixedSlice() // Display Swap here!
 
 void DlgRegistration::SLT_UpdateSplit1() // Mouse Move event
 {
-  int idx = 0;
+  const auto idx = 0;
   UpdateSplit(idx, ui.labelOverlapWnd1);
 }
 
 void DlgRegistration::SLT_UpdateSplit2() {
-  int idx = 1;
+  const auto idx = 1;
   UpdateSplit(idx, ui.labelOverlapWnd2);
 }
 void DlgRegistration::SLT_UpdateSplit3() {
-  int idx = 2;
+  const auto idx = 2;
   UpdateSplit(idx, ui.labelOverlapWnd3);
 }
 
 void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
-  int idx = viewIdx;
+  const auto idx = viewIdx;
 
   if (pOverlapWnd == nullptr) {
     return;
@@ -647,17 +647,17 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
     return;
   }
 
-  double dspWidth = pOverlapWnd->width();
-  double dspHeight = pOverlapWnd->height();
+  const auto dspWidth = pOverlapWnd->width();
+  const auto dspHeight = pOverlapWnd->height();
 
-  int dataWidth = m_YKDisp[idx].m_iWidth;
-  int dataHeight = m_YKDisp[idx].m_iHeight;
+  const auto dataWidth = m_YKDisp[idx].m_iWidth;
+  const auto dataHeight = m_YKDisp[idx].m_iHeight;
   if (dataWidth * dataHeight == 0) {
     return;
   }
 
-  int dataX = pOverlapWnd->GetDataPtFromMousePos().x();
-  int dataY = pOverlapWnd->GetDataPtFromMousePos().y();
+  const auto dataX = pOverlapWnd->GetDataPtFromMousePos().x();
+  const auto dataY = pOverlapWnd->GetDataPtFromMousePos().y();
 
   // only works when while the left Mouse is being clicked
   if (m_bPressedLeft[idx]) {
@@ -691,11 +691,11 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
     m_ptPanStart.y()); QPoint ptDataEnd=
     pOverlapWnd->GetDataPtFromViewPt(pOverlapWnd->x, pOverlapWnd->y);*/
 
-    int curOffsetX = ptDataPanEndRel.x() - ptDataPanStartRel.x();
-    int curOffsetY = ptDataPanEndRel.y() - ptDataPanStartRel.y();
+    const auto curOffsetX = ptDataPanEndRel.x() - ptDataPanStartRel.x();
+    const auto curOffsetY = ptDataPanEndRel.y() - ptDataPanStartRel.y();
 
-    int prevOffsetX = m_ptTmpOriginalDataOffset.x();
-    int prevOffsetY = m_ptTmpOriginalDataOffset.y();
+    const auto prevOffsetX = m_ptTmpOriginalDataOffset.x();
+    const auto prevOffsetY = m_ptTmpOriginalDataOffset.y();
 
     // double fZoom = m_YKDisp[idx].m_fZoom;
 
@@ -705,12 +705,12 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
   } else if (m_bPressedRight[idx] &&
              !ui.checkBoxPan->isChecked()) // Window Level
   {
-    double wWidth = 2.0;
-    double wLevel = 2.0;
+    const auto wWidth = 2.0;
+    const auto wLevel = 2.0;
 
-    auto iAddedWidth =
+    const auto iAddedWidth =
         static_cast<int>((m_ptWindowLevelStart.y() - pOverlapWnd->y) * wWidth);
-    auto iAddedLevel =
+    const auto iAddedLevel =
         static_cast<int>((pOverlapWnd->x - m_ptWindowLevelStart.x()) * wLevel);
 
     // Which image is clicked first??
@@ -737,9 +737,9 @@ void DlgRegistration::UpdateSplit(int viewIdx, qyklabel *pOverlapWnd) {
 // Slide change by scrolling
 void DlgRegistration::SLT_MouseWheelUpdate1() {
   if (ui.checkBoxZoom->isChecked()) {
-    double oldZoom = ui.labelOverlapWnd1->m_pYK16Image->m_fZoom;
+    const auto oldZoom = ui.labelOverlapWnd1->m_pYK16Image->m_fZoom;
 
-    double fWeighting = 0.2;
+    const auto fWeighting = 0.2;
 
     ui.labelOverlapWnd1->m_pYK16Image->SetZoom(
         oldZoom + ui.labelOverlapWnd1->m_iMouseWheelDelta * fWeighting);
@@ -752,8 +752,8 @@ void DlgRegistration::SLT_MouseWheelUpdate1() {
 
 void DlgRegistration::SLT_MouseWheelUpdate2() {
   if (ui.checkBoxZoom->isChecked()) {
-    double oldZoom = ui.labelOverlapWnd2->m_pYK16Image->m_fZoom;
-    double fWeighting = 0.2;
+    const auto oldZoom = ui.labelOverlapWnd2->m_pYK16Image->m_fZoom;
+    const auto fWeighting = 0.2;
 
     ui.labelOverlapWnd2->m_pYK16Image->SetZoom(
         oldZoom + ui.labelOverlapWnd2->m_iMouseWheelDelta * fWeighting);
@@ -767,8 +767,8 @@ void DlgRegistration::SLT_MouseWheelUpdate2() {
 
 void DlgRegistration::SLT_MouseWheelUpdate3() {
   if (ui.checkBoxZoom->isChecked()) {
-    double oldZoom = ui.labelOverlapWnd3->m_pYK16Image->m_fZoom;
-    double fWeighting = 0.2;
+    const auto oldZoom = ui.labelOverlapWnd3->m_pYK16Image->m_fZoom;
+    const auto fWeighting = 0.2;
 
     ui.labelOverlapWnd3->m_pYK16Image->SetZoom(
         oldZoom + ui.labelOverlapWnd3->m_iMouseWheelDelta * fWeighting);
@@ -821,17 +821,17 @@ void DlgRegistration::MousePressedRight(int wndIdx, qyklabel *pWnd) {
 }
 
 void DlgRegistration::SLT_MousePressedRight1() {
-  int idx = 0;
+  const auto idx = 0;
   MousePressedRight(idx, ui.labelOverlapWnd1);
 }
 
 void DlgRegistration::SLT_MousePressedRight2() {
-  int idx = 1;
+  const auto idx = 1;
   MousePressedRight(idx, ui.labelOverlapWnd2);
 }
 
 void DlgRegistration::SLT_MousePressedRight3() {
-  int idx = 2;
+  const auto idx = 2;
   MousePressedRight(idx, ui.labelOverlapWnd3);
 }
 
@@ -857,7 +857,7 @@ void DlgRegistration::SLT_ChangeView() {
   }
 
   for (int i = 0; i < 3; i++) {
-    int nextIdx = (i + 1) % 3;
+    const auto nextIdx = (i + 1) % 3;
     m_YKDisp[i].CloneImage(tmpBufYK[nextIdx]);
   }
   // /*if (m_enViewArrange > 2)
@@ -924,7 +924,7 @@ void DlgRegistration::shiftSliceSlider() // shift one slice slider information
   crntValue[2] = ui.sliderPosDisp3->value();
 
   for (int i = 0; i < 3; i++) {
-    int newIdx = (i + 1) % 3;
+    const auto newIdx = (i + 1) % 3;
     newMin[i] = crntMin[newIdx];
     newMax[i] = crntMax[newIdx];
     newValue[i] = crntValue[newIdx];
@@ -1037,7 +1037,7 @@ void DlgRegistration::LoadVOIFromComboBox(int idx,
                                           QString &strSelectedComboTxt) {
 
   ctType ct_type = PLAN_CT;
-  auto ct = ui.comboBoxImgMoving->currentText().toStdString();
+  const auto ct = ui.comboBoxImgMoving->currentText().toStdString();
   if (ct == std::string("REF_CT")) {
     // ct_type = PLAN_CT;
   } else if (ct == std::string("AUTO_RIGID_CT")) {
@@ -1120,7 +1120,7 @@ void DlgRegistration::UpdateListOfComboBox(int idx) {
 }
 
 void DlgRegistration::SLT_RestoreImageSingle() {
-  int mainWndIdx = 0;
+  const auto mainWndIdx = 0;
   m_YKDisp[mainWndIdx].SetZoom(1.0);
   m_YKDisp[mainWndIdx].SetOffset(0, 0);
 
@@ -1180,7 +1180,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
       m_cbctregistration->m_strPathPlastimatch + "/" + "moving_rigid.mha";
   QString filePathOutput =
       m_cbctregistration->m_strPathPlastimatch + "/" + "output_rigid.mha";
-  QString filePathXform =
+  const auto filePathXform =
       m_cbctregistration->m_strPathPlastimatch + "/" + "xform_rigid.txt";
   QString filePathROI = m_cbctregistration->m_strPathPlastimatch + "/" +
                         "fixed_roi_rigid.mha"; // optional
@@ -1242,7 +1242,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
       m_cbctregistration->m_strPathPlastimatch + "/" +
       "fixed_rigid_proc.mha"; // After autoRigidbody Regi
 
-  QString strPath_mskSkinCT_manRegi_exp =
+  const auto strPath_mskSkinCT_manRegi_exp =
       m_cbctregistration->m_strPathPlastimatch +
       "/msk_skin_CT_manRegi_exp.mha"; // proof of preproceesing for CBCT
 
@@ -1272,13 +1272,13 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
     fShift[2] = (originBefore[2] - originAfter[2]);
 
     QFileInfo finfoSkinFile1 = QFileInfo(m_cbctregistration->m_strPathCTSkin);
-    QString strPathAlternateSkin =
+    const auto strPathAlternateSkin =
         m_cbctregistration->m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
     QFileInfo finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
 
     //&& ui.checkBoxCropBkgroundCBCT->isChecked()
-    double skinExp = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-    int bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); // 0
+    const auto skinExp = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
+    const auto bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); // 0
 
     if (finfoSkinFile1.exists()) {
       strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
@@ -1318,7 +1318,8 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
     reader2->Update();
     m_pParent->m_cbctrecon->m_spRawReconImg = reader2->GetOutput();
 
-    double tmpSkinMargin = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
+    const auto tmpSkinMargin =
+        ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
     QString update_message =
         QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
     m_pParent->UpdateReconImage(m_pParent->m_cbctrecon->m_spRawReconImg,
@@ -1331,7 +1332,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
 
   std::cout << "2: Creating a plastimatch command file" << std::endl;
 
-  QString fnCmdRegisterRigid = "cmd_register_rigid.txt";
+  const auto fnCmdRegisterRigid = QString("cmd_register_rigid.txt");
   // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   QString pathCmdRegister =
       m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
@@ -1342,10 +1343,10 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   // PLAST_RIGID,
   //"","","");
 
-  QString strDummy = "";
+  const auto strDummy = QString("");
 
-  bool mse = ui.radioButton_mse->isChecked();
-  bool cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
+  const auto mse = ui.radioButton_mse->isChecked();
+  const auto cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
   QString GradOptionStr = ui.lineEditGradOption->text();
   // For Cropped patients, FOV mask is applied.
   if (ui.checkBoxUseROIForRigid->isChecked()) {
@@ -1402,9 +1403,9 @@ bool DlgRegistration::eventFilter(QObject *target, QEvent *event) {
 
     auto *keyEvent = dynamic_cast<QKeyEvent *>(event);
 
-    auto iArrowKey = static_cast<int>(keyEvent->nativeVirtualKey());
+    const auto iArrowKey = static_cast<int>(keyEvent->nativeVirtualKey());
     // std::cout << iArrowKey << std::endl;
-    double resol = ui.lineEditMovingResol->text().toDouble(); // mm
+    const auto resol = ui.lineEditMovingResol->text().toDouble(); // mm
 
     switch (iArrowKey) {
       // case Qt::Key_Left: //37
@@ -1710,7 +1711,7 @@ void DlgRegistration::SelectComboExternal(int idx, enREGI_IMAGES iImage) {
   // Below are actually redendency. don't know why setCurrentIndex sometimes
   // doesn't trigger the SLT_MovingImageSelected slot func.
 
-  QString crntStr = crntCombo->currentText();
+  const auto crntStr = crntCombo->currentText();
   if (idx == 0) {
     SLT_FixedImageSelected(crntStr);
   } else if (idx == 1) {
@@ -1760,7 +1761,7 @@ void DlgRegistration::SLT_PreProcessCT() {
     return;
   }
 
-  int iAirThresholdShort = ui.lineEditBkDetectCT->text().toInt();
+  const auto iAirThresholdShort = ui.lineEditBkDetectCT->text().toInt();
 
   if (m_cbctregistration->m_pParent->m_strPathPlanCTDir.length() < 3) {
     std::cout
@@ -1796,11 +1797,11 @@ void DlgRegistration::SLT_PreProcessCT() {
     return;
   }
 
-  QString strRSName = ui.lineEditCropContourName->text();
-  bool fill_bubble = ui.checkBoxFillBubbleCT->isChecked();
-  int iBubbleFillingVal =
+  const auto strRSName = ui.lineEditCropContourName->text();
+  const auto fill_bubble = ui.checkBoxFillBubbleCT->isChecked();
+  const auto iBubbleFillingVal =
       ui.lineEditBubFillCT->text().toInt();                   // 0 = soft tissue
-  int iAirFillValShort = ui.lineEditBkFillCT->text().toInt(); //-1024
+  const auto iAirFillValShort = ui.lineEditBkFillCT->text().toInt(); //-1024
 
   if (!m_cbctregistration->PreprocessCT(iAirThresholdShort, strRSName,
                                         fill_bubble, iBubbleFillingVal,
@@ -1836,7 +1837,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     return;
   }
 
-  bool bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
+  const auto bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
 
   std::cout << "0: DoRegistrationDeform: writing temporary files" << std::endl;
 
@@ -1848,9 +1849,9 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   QString filePathROI = m_cbctregistration->m_strPathPlastimatch + "/" +
                         "fixed_roi_DIR.mha"; // optional
 
-  QString filePathOutput =
+  const auto filePathOutput =
       m_cbctregistration->m_strPathPlastimatch + "/" + "output_deform.mha";
-  QString filePathXform =
+  const auto filePathXform =
       m_cbctregistration->m_strPathPlastimatch + "/" + "xform_deform.txt";
 
   QString filePathOutputStage1 = m_cbctregistration->m_strPathPlastimatch +
@@ -1920,11 +1921,11 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     filePathFixed_proc = m_cbctregistration->m_strPathPlastimatch + "/" +
                          "fixed_deform_proc.mha";
     // skin removal and bubble filling : output file = filePathFixed_proc
-    bool bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
-    double skinExp = ui.lineEditCBCTSkinCropBfDIR->text().toDouble();
+    const auto bBubbleRemoval = ui.checkBoxFillBubbleCBCT->isChecked();
+    const auto skinExp = ui.lineEditCBCTSkinCropBfDIR->text().toDouble();
 
-    int iBubThresholdUshort = ui.lineEditBubDetectCBCT->text().toInt();
-    int iBubFillUshort = ui.lineEditBubFillCBCT->text().toInt(); // 700
+    const auto iBubThresholdUshort = ui.lineEditBubDetectCBCT->text().toInt();
+    const auto iBubFillUshort = ui.lineEditBubFillCBCT->text().toInt(); // 700
 
     m_cbctregistration->ProcessCBCT_beforeDeformRegi(
         filePathFixed, m_cbctregistration->m_strPathCTSkin_manRegi,
@@ -1940,7 +1941,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   std::cout << "2: DoRegistrationDeform: Creating a plastimatch command file"
             << std::endl;
 
-  QString fnCmdRegisterRigid = "cmd_register_deform.txt";
+  const auto fnCmdRegisterRigid = QString("cmd_register_deform.txt");
   // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   QString pathCmdRegister =
       m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
@@ -1954,8 +1955,8 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   strDeformableStage2.append(", ").append(filePathOutputStage2);
   strDeformableStage3.append(", ").append(filePathOutputStage3);
 
-  bool mse = ui.radioButton_mse->isChecked();
-  bool cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
+  const auto mse = ui.radioButton_mse->isChecked();
+  const auto cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
   QString GradOptionStr = ui.lineEditGradOption->text();
   // For Cropped patients, FOV mask is applied.
   if (ui.checkBoxUseROIForDIR->isChecked()) {
@@ -2050,16 +2051,16 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     strPathDeformCTFinal =
         m_cbctregistration->m_strPathPlastimatch + "/deformCTpuncFin.mha";
 
-    Mask_operation enMaskOp = MASK_OPERATION_FILL;
+    const auto enMaskOp = MASK_OPERATION_FILL;
     QString input_fn = filePathOutput;
     QString mask_fn = m_cbctregistration->m_strPathMskCBCTBubble;
     QString output_fn = strPathDeformCTFinal;
 
     // int iBubblePunctureVal = ui.lineEditBkFillCT->text().toInt(); //0 = soft
     // tissue
-    int iBubblePunctureVal =
+    const auto iBubblePunctureVal =
         0; // 0 = air. deformed CT is now already a USHORT image
-    int mask_value = iBubblePunctureVal;
+    const auto mask_value = iBubblePunctureVal;
     m_cbctregistration->plm_mask_main(enMaskOp, input_fn, mask_fn, output_fn,
                                       static_cast<float>(mask_value));
   }
@@ -2110,9 +2111,9 @@ void DlgRegistration::SLT_DoLowerMaskIntensity() {
     return;
   }
 
-  int iDiffThreshold = ui.lineEditRawCorThre->text().toInt();
+  const auto iDiffThreshold = ui.lineEditRawCorThre->text().toInt();
 
-  int iNoTouchThreshold = ui.lineEditiNoTouchThreshold->text().toInt();
+  const auto iNoTouchThreshold = ui.lineEditiNoTouchThreshold->text().toInt();
 
   /*if (!m_pParent->m_spScatCorrReconImg || !m_pParent->m_spRawReconImg)
   {
@@ -2120,8 +2121,8 @@ void DlgRegistration::SLT_DoLowerMaskIntensity() {
       std::cout << "You need both raw and corr CBCT images" << std::endl;
       return;
   }*/
-  double fInnerMargin = ui.lineEditThermoInner->text().toDouble();
-  double fOuterMargin = ui.lineEditThermoOuter->text().toDouble();
+  const auto fInnerMargin = ui.lineEditThermoInner->text().toDouble();
+  const auto fOuterMargin = ui.lineEditThermoOuter->text().toDouble();
 
   m_cbctregistration->ThermoMaskRemovingCBCT(m_spFixed, m_spMoving,
                                              iDiffThreshold, iNoTouchThreshold,
@@ -2140,7 +2141,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
     return;
   }
 
-  auto final_iso_pos = m_cbctregistration->ManualMoveByDCM();
+  const auto final_iso_pos = m_cbctregistration->ManualMoveByDCM();
 
   if (final_iso_pos == nullptr) {
     std::cout << "Error!  No isocenter position was found. " << std::endl;
@@ -2167,7 +2168,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
     return;
   }
 
-  VEC3D planIso = m_cbctregistration->GetIsocenterDCM_FromRTPlan(filePath);
+  const auto planIso = m_cbctregistration->GetIsocenterDCM_FromRTPlan(filePath);
 
   if (planIso.x == 0.0 && planIso.y == 0.0 && planIso.z == 0.0) {
     std::cout
@@ -2348,7 +2349,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
   const auto n_sims = ui.spinBox_Nsims->value();
   const auto n_plans = ui.spinBox_NdcmPlans->value();
 
-  auto success = m_cbctregistration->CallingGPMCcommand(
+  const auto success = m_cbctregistration->CallingGPMCcommand(
       gPMC_device, n_sims, n_plans, plan_filepath, m_spFixed, m_spMoving,
       m_spFixedDose, m_spMovingDose);
   if (!success) {
@@ -2364,8 +2365,8 @@ void DlgRegistration::SLT_WEPLcalc() {
   // Get VOI
   auto voi_name = ui.comboBox_VOI->currentText().toStdString();
 
-  auto gantry_angle = ui.spinBox_GantryAngle->value();
-  auto couch_angle = ui.spinBox_CouchAngle->value();
+  const auto gantry_angle = ui.spinBox_GantryAngle->value();
+  const auto couch_angle = ui.spinBox_CouchAngle->value();
   m_cbctregistration->CalculateWEPLtoVOI(voi_name, gantry_angle, couch_angle,
                                          m_spMoving);
   // Draw WEPL
@@ -2390,9 +2391,9 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
       m_cbctregistration->m_strPathPlastimatch + "/" + "fixed_gradient.mha";
   QString filePathMoving =
       m_cbctregistration->m_strPathPlastimatch + "/" + "moving_gradient.mha";
-  QString filePathOutput =
+  const auto filePathOutput =
       m_cbctregistration->m_strPathPlastimatch + "/" + "output_gradient.mha";
-  QString filePathXform =
+  const auto filePathXform =
       m_cbctregistration->m_strPathPlastimatch + "/" + "xform_gradient.txt";
 
   using writerType = itk::ImageFileWriter<UShortImageType>;
@@ -2417,7 +2418,7 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
   std::cout << "2: Creating a plastimatch command file" << std::endl;
   ui.progressBar->setValue(10);
 
-  QString fnCmdRegisterGradient = "cmd_register_gradient.txt";
+  const auto fnCmdRegisterGradient = QString("cmd_register_gradient.txt");
   // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   QString pathCmdRegister =
       m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterGradient;
@@ -2429,10 +2430,10 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
                "image is fixed image"
             << std::endl;
 
-  bool mse = ui.radioButton_mse->isChecked();
-  bool cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
+  const auto mse = ui.radioButton_mse->isChecked();
+  const auto cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
   auto GradOptionStr = ui.lineEditGradOption->text();
-  auto dummyStr = QString("");
+  const auto dummyStr = QString("");
   m_cbctregistration->GenPlastiRegisterCommandFile(
       pathCmdRegister, filePathMoving, filePathFixed, filePathOutput,
       filePathXform, PLAST_GRADIENT, dummyStr, dummyStr, dummyStr, dummyStr,
@@ -2490,7 +2491,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   // Apply post processing for raw CBCT image and generate
   std::cout << "Preprocessing for CBCT" << std::endl;
 
-  bool bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
+  const auto bPrepareMaskOnly = !(ui.checkBoxCropBkgroundCBCT->isChecked());
 
   UShortImageType::PointType originBefore =
       m_cbctregistration->m_pParent->m_spRefCTImg->GetOrigin();
@@ -2522,14 +2523,14 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   std::cout << "1.A: Writing temporary files is done" << std::endl;
 
   QFileInfo finfoSkinFile1 = QFileInfo(m_cbctregistration->m_strPathCTSkin);
-  QString strPathAlternateSkin =
+  const auto strPathAlternateSkin =
       m_cbctregistration->m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
   QFileInfo finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
 
   QString strPathOriginalCTSkinMask;
 
-  double skinExp = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-  int bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); // 0
+  const auto skinExp = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
+  const auto bkGroundValUshort = ui.lineEditBkFillCBCT->text().toInt(); // 0
 
   if (finfoSkinFile1.exists()) {
     strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
@@ -2567,7 +2568,8 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
     reader->Update();
     m_cbctregistration->m_pParent->m_spRawReconImg = reader->GetOutput();
 
-    double tmpSkinMargin = ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
+    const auto tmpSkinMargin =
+        ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
     QString update_message =
         QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
     m_pParent->UpdateReconImage(m_cbctregistration->m_pParent->m_spRawReconImg,
@@ -2601,15 +2603,15 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
 }
 
 void DlgRegistration::SLT_IntensityNormCBCT() {
-  float fROI_Radius = ui.lineEditNormRoiRadius->text().toFloat();
+  const auto fROI_Radius = ui.lineEditNormRoiRadius->text().toFloat();
 
   std::cout << "Intensity is being analyzed...Please wait." << std::endl;
 
   float intensitySDFix = 0.0;
   float intensitySDMov = 0.0;
-  float meanIntensityFix = m_cbctregistration->m_pParent->GetMeanIntensity(
+  const auto meanIntensityFix = m_cbctregistration->m_pParent->GetMeanIntensity(
       m_spFixed, fROI_Radius, &intensitySDFix);
-  float meanIntensityMov = m_cbctregistration->m_pParent->GetMeanIntensity(
+  const auto meanIntensityMov = m_cbctregistration->m_pParent->GetMeanIntensity(
       m_spMoving, fROI_Radius, &intensitySDMov);
 
   std::cout << "Mean/SD for Fixed = " << meanIntensityFix << "/"

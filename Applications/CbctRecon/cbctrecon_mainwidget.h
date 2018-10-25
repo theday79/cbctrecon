@@ -6,7 +6,6 @@
 
 // Qt
 #include <QStandardItemModel>
-#include <QtWidgets/QMainWindow>
 #include <qstring.h>
 #include <qtimer.h>
 
@@ -26,7 +25,7 @@ public:
   //~CbctReconWidget() = default;
   void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
   void FileExportByGUI();
-  FDK_options getFDKoptions();
+  FDK_options getFDKoptions() const;
 
 private:
   std::tuple<bool, bool> probeUser(const QString &guessDir);

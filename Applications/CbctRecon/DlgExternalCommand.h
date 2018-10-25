@@ -26,6 +26,8 @@ public:
   ~DlgExternalCommand() override;
   DlgExternalCommand(const DlgExternalCommand &) = delete;
   void operator=(const DlgExternalCommand &) = delete;
+  DlgExternalCommand(DlgExternalCommand &&) = delete;
+  void operator=(DlgExternalCommand &&) = delete;
 
   int BuildRTKCommandFilter(); // pull predefined command names that you want.
                                // From some preset option file

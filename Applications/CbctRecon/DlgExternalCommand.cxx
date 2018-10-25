@@ -114,29 +114,31 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   }
 
   // QString str_mainTruncation;
-  double f_mainTrunc =
+  const auto f_mainTrunc =
       m_pParent->ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-  double f_mainHann = m_pParent->ui.lineEdit_Ramp_HannCut->text().toDouble();
-  double f_mainHannY = m_pParent->ui.lineEdit_Ramp_HannCutY->text().toDouble();
+  const auto f_mainHann =
+      m_pParent->ui.lineEdit_Ramp_HannCut->text().toDouble();
+  const auto f_mainHannY =
+      m_pParent->ui.lineEdit_Ramp_HannCutY->text().toDouble();
 
-  QString str_mainProjPath = m_pParent->ui.lineEdit_HisDirPath->text();
+  const auto str_mainProjPath = m_pParent->ui.lineEdit_HisDirPath->text();
 
-  QString str_mainProjRegExp = ".*.his";
+  const auto str_mainProjRegExp = ".*.his";
 
-  QString str_mainDimension =
+  const auto str_mainDimension =
       QString("%1,%2,%3")
           .arg(m_pParent->ui.lineEdit_outImgDim_AP->text())
           .arg(m_pParent->ui.lineEdit_outImgDim_SI->text())
           .arg(m_pParent->ui.lineEdit_outImgDim_LR->text());
 
-  QString str_mainSpacing =
+  const auto str_mainSpacing =
       QString("%1,%2,%3")
           .arg(m_pParent->ui.lineEdit_outImgSp_AP->text())
           .arg(m_pParent->ui.lineEdit_outImgSp_SI->text())
           .arg(m_pParent->ui.lineEdit_outImgSp_LR->text());
 
   QTime curTime = QTime::currentTime();
-  QString strTimeStamp = curTime.toString("hhmmss");
+  const auto strTimeStamp = curTime.toString("hhmmss");
   QDir tmpPlmDir = QDir(
       m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
 
@@ -175,15 +177,15 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
           lineEditSARTsubsetproj*/
 
   else if (crntCommand == "rtksart") {
-    QString strIteration =
+    const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
-    QString strLamda = ui.lineEditSARTlamda->text()
+    const auto strLamda = ui.lineEditSARTlamda->text()
                            .trimmed(); // Convergence factor : default 0.3
-    QString strPositivity = ui.lineEditSARTpositivity->text()
+    const auto strPositivity = ui.lineEditSARTpositivity->text()
                                 .trimmed(); // Enforces positivity
                                             // during the reconstruction
                                             // (default=off)",
-    QString strNprojpersubset =
+    const auto strNprojpersubset =
         ui.lineEditSARTsubsetproj->text().trimmed(); // Number of projections
                                                      // processed between each
                                                      // update of the
@@ -227,14 +229,14 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     //			lineEditTVbeta
     //		lineEditTVCGiter* /
 
-    QString strIteration =
+    const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
-    QString strTValpha = ui.lineEditTValpha->text()
+    const auto strTValpha = ui.lineEditTValpha->text()
                              .trimmed(); // Convergence factor : default 0.3
-    QString strTVbeta =
+    const auto strTVbeta =
         ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
                                              // reconstruction (default=off)",
-    QString strTVCGiter =
+    const auto strTVCGiter =
         ui.lineEditTVCGiter->text().trimmed(); // Enforces positivity during the
                                                // reconstruction (default=off)",
     QString strFwdMethod = "Joseph";
@@ -267,19 +269,19 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 		" --output " + strOutput;
     // clang-format on
   } else if (crntCommand == "rtkadmmwavelets") {
-    QString strIteration =
+    const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
-    QString strTValpha = ui.lineEditTValpha->text()
+    const auto strTValpha = ui.lineEditTValpha->text()
                              .trimmed(); // Convergence factor : default 0.3
-    QString strTVbeta =
+    const auto strTVbeta =
         ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
                                              // reconstruction (default=off)",
-    QString strTVCGiter =
+    const auto strTVCGiter =
         ui.lineEditTVCGiter->text().trimmed(); // Enforces positivity during the
                                                // reconstruction (default=off)",
 
-    QString strWVorder = ui.lineEditWVorder->text().trimmed();
-    QString strWVlevel = ui.lineEditWVlevel->text().trimmed();
+    const auto strWVorder = ui.lineEditWVorder->text().trimmed();
+    const auto strWVlevel = ui.lineEditWVlevel->text().trimmed();
     //"      --order=INT         The order of the Daubechies wavelets
     //(default=`3')", "      --levels=INT        The number of decomposition
     // levels in the wavelets \n                            transform
@@ -323,7 +325,8 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 }
 
 void DlgExternalCommand::SLT_RunRTKCommand() {
-  QString strFinalExternalCommand = ui.plainTextRTKCommandLine->toPlainText();
+  const auto strFinalExternalCommand =
+      ui.plainTextRTKCommandLine->toPlainText();
   if (QProcess::execute(strFinalExternalCommand) < 0) {
     qDebug() << "Failed to run";
   }

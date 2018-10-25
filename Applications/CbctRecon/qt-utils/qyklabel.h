@@ -27,6 +27,8 @@ public:
   ~qyklabel() override;
   qyklabel(const qyklabel &) = delete;
   void operator=(const qyklabel &) = delete;
+  qyklabel(qyklabel &&) = delete;
+  void operator=(qyklabel &&) = delete;
 
   bool isFocusIn() const { return m_bFocusIn; }
 
@@ -91,7 +93,6 @@ signals:
 public slots:
   void SetDrawPointToggle(bool bToggle);
 
-private:
 };
 
 #endif // QYKLABEL_H
