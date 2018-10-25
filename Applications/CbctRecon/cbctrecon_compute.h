@@ -54,9 +54,6 @@ CBCTRECON_API void
 ImageTransformUsingCouchCorrection(UShortImageType::Pointer &spUshortInput,
                                    UShortImageType::Pointer &spUshortOutput,
                                    VEC3D couch_trans, VEC3D couch_rot);
-CBCTRECON_API void
-ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
-                    UShortImageType::Pointer &spOutputImgUshort);
 
 CBCTRECON_API void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
                                       UShortImageType::Pointer &spOutputImgUS);

@@ -190,21 +190,11 @@ target_link_libraries(CbctRecon
 )
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
-  if(EXISTS ${GEN_UI_HEADER_DIR}/ui_cbctrecon.h
-     AND NOT is_multi_config)
-    tinyrefl_tool(
-      TARGET CbctReconLib
-      HEADERS cbctrecon.h
-      COMPILE_OPTIONS -fPIC
-      )
-  elseif(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/ui_cbctrecon.h
-     AND is_multi_config)
-    tinyrefl_tool(
-      TARGET CbctReconLib
-      HEADERS cbctrecon.h
-      COMPILE_OPTIONS -fPIC
-      )
-  endif()
+  tinyrefl_tool(
+    TARGET CbctReconLib
+    HEADERS cbctrecon.h
+    COMPILE_OPTIONS -fPIC
+    )
 endif()
 
 ############## INSTALL ##############

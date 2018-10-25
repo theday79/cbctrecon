@@ -1,4 +1,4 @@
-#include "cbctrecon_mainwidget.h"
+﻿#include "cbctrecon_mainwidget.h"
 
 // Std
 #include <iostream>
@@ -3494,11 +3494,11 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
     }
   }
 
-  for (int i = 0; i < cnt_wepl; i++) {
+  for (auto i = 0U; i < cnt_wepl; i++) {
     fout << vArrOutputWEPL.at(0).at(i).ptIndex << "\t"
          << vArrOutputWEPL.at(0).at(i).fGanAngle << "\t" << i;
 
-    for (int j = 0; j < iCntFiles; j++) {
+    for (auto j = 0; j < iCntFiles; j++) {
       fout << "\t" << vArrOutputWEPL.at(j).at(i).fWEPL;
     }
     fout << std::endl;
@@ -3513,11 +3513,11 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
 
 void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
 {
-  double scaMedian = ui.lineEdit_scaMedian->text().toDouble();
-  double scaGaussian = ui.lineEdit_scaGaussian->text().toDouble();
-  int postScatMedianSize = ui.lineEdit_scaPostMedian->text().toInt();
+  const double scaMedian = ui.lineEdit_scaMedian->text().toDouble();
+  const double scaGaussian = ui.lineEdit_scaGaussian->text().toDouble();
+  const int postScatMedianSize = ui.lineEdit_scaPostMedian->text().toInt();
 
-  auto fdk_options = getFDKoptions();
+  const auto fdk_options = getFDKoptions();
 
   m_cbctrecon->ScatterCorPerProjRef(scaMedian, scaGaussian, postScatMedianSize,
                                     ui.radioButton_UseCUDA->isChecked(),
