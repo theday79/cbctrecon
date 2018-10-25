@@ -398,6 +398,49 @@ void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
   spImgShort = spRescaleFilter->GetOutput();
 }
 
+
+void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
+                         UShortImageType::Pointer &spOutputImgUshort) {
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
+  ThresholdImageFilterType::Pointer thresholdFilterAbove =
+      ThresholdImageFilterType::New();
+  thresholdFilterAbove->SetInput(spInputImgShort);
+  thresholdFilterAbove->ThresholdAbove(3071);
+  thresholdFilterAbove->SetOutsideValue(3071);
+
+  ThresholdImageFilterType::Pointer thresholdFilterBelow =
+      ThresholdImageFilterType::New();
+  thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
+  thresholdFilterBelow->ThresholdBelow(-1024);
+  thresholdFilterBelow->SetOutsideValue(-1024);
+  thresholdFilterBelow->Update();
+
+  using ImageCalculatorFilterType =
+      itk::MinimumMaximumImageCalculator<ShortImageType>;
+  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
+      ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
+  imageCalculatorFilter->Compute();
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  // Min value is always 3024 --> outside the FOV
+  const auto outputMinVal =
+      static_cast<UShortImageType::PixelType>(minVal + 1024);
+  const auto outputMaxVal =
+      static_cast<UShortImageType::PixelType>(maxVal + 1024);
+
+  using RescaleFilterType =
+      itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
+  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+
+  spOutputImgUshort = spRescaleFilter->GetOutput();
+}
+
 QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
                                 QString &strPatientID, QString &strPatientName,
                                 QString &strPathTargetDir) {

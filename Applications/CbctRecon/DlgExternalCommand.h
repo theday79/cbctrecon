@@ -22,8 +22,10 @@ public slots:
 
 public:
   DlgExternalCommand();
-  DlgExternalCommand(QWidget *parent);
+  explicit DlgExternalCommand(QWidget *parent);
   ~DlgExternalCommand() override;
+  DlgExternalCommand(const DlgExternalCommand &) = delete;
+  void operator=(const DlgExternalCommand &) = delete;
 
   int BuildRTKCommandFilter(); // pull predefined command names that you want.
                                // From some preset option file

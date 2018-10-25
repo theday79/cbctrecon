@@ -53,13 +53,11 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
     return;
   }
 
-  int cnt = m_listRTKCommandFilter.length();
-
-  QString tmpStrPath;
+  const auto cnt = m_listRTKCommandFilter.length();
 
   for (int i = 0; i < cnt; i++) {
-    QString strCommandFilter = m_listRTKCommandFilter.at(i);
-    tmpStrPath = m_strDirRTKBin;
+    const auto strCommandFilter = m_listRTKCommandFilter.at(i);
+    auto tmpStrPath = m_strDirRTKBin;
     tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
 
     std::cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
@@ -85,8 +83,6 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     return;
   }
 
-  // QString strGeometry;
-  QString strOutput; // this should be member and unique //this is float format
   // QString strHardware;
   // QString strTruncation;
   // QString strHann;
@@ -151,8 +147,8 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     return;
   }
 
-  strOutput = tmpPlmDir.absolutePath() + "/" + "ExternalRtk_" + crntCommand +
-              "_" + strTimeStamp + ".mha";
+  const auto strOutput = tmpPlmDir.absolutePath() + "/" + "ExternalRtk_" +
+                         crntCommand + "_" + strTimeStamp + ".mha";
 
   if (crntCommand == "rtkfdk") {
     // clang-format off

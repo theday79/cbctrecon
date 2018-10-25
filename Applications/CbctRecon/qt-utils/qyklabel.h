@@ -23,10 +23,12 @@ public:
   bool m_bFocusIn;
 
 public:
-  qyklabel(QWidget *parent);
+  explicit qyklabel(QWidget *parent);
   ~qyklabel() override;
+  qyklabel(const qyklabel &) = delete;
+  void operator=(const qyklabel &) = delete;
 
-  bool isFocusIn() { return m_bFocusIn; }
+  bool isFocusIn() const { return m_bFocusIn; }
 
   // virtual function reimplementation
   void

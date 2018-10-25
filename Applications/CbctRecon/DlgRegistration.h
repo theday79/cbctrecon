@@ -47,7 +47,7 @@ private: // Just pointers to m_cbctregistration members, for convienience
 
 public:
   DlgRegistration();
-  DlgRegistration(CbctReconWidget *parent);
+  explicit DlgRegistration(CbctReconWidget *parent);
   // ~DlgRegistration() = default;
   void UpdateVOICombobox(ctType ct_type);
   void UpdateListOfComboBox(int idx);

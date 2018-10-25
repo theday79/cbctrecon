@@ -22,7 +22,7 @@ class CbctReconWidget : public QMainWindow {
   Q_OBJECT
 
 public:
-  CbctReconWidget(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
+  explicit CbctReconWidget(QWidget *parent = nullptr, Qt::WindowFlags flags = nullptr);
   //~CbctReconWidget() = default;
   void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
   void FileExportByGUI();

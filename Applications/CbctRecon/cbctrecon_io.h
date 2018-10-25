@@ -36,6 +36,10 @@ void saveImageAsMHA(typename ImageType::Pointer &image) {
 void CBCTRECON_API ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
                                        ShortImageType::Pointer &spImgShort);
 
+void CBCTRECON_API
+ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
+                    UShortImageType::Pointer &spOutputImgUshort);
+
 QString CBCTRECON_API SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
                                               QString &strPatientID,
                                               QString &strPatientName,

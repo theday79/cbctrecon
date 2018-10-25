@@ -121,32 +121,27 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   if (m_pYK16Image->m_iWidth < 1 || m_pYK16Image->m_iHeight < 1)
     return;
 
-  double VH_ratio = 0.0; // if horizontal is longer than vertical
+  // bool bHorLonger = false;
 
-  //bool bHorLonger = false;
+  auto physHor = static_cast<double>(m_pYK16Image->m_iWidth);
+  auto physVer = static_cast<double>(m_pYK16Image->m_iHeight);
 
-  double physHor = 0.0;
-  double physVer = 0.0;
+  // int labelNewFixedWidth = 0;
+  // int labelNewFixedHeight = 0;
 
-  //int labelNewFixedWidth = 0;
-  //int labelNewFixedHeight = 0;
-
-  if (m_pYK16Image->m_fSpacingX * m_pYK16Image->m_fSpacingY == 0) {
-    physHor = (double)m_pYK16Image->m_iWidth;
-    physVer = (double)m_pYK16Image->m_iHeight;
-  } else {
-    physHor = m_pYK16Image->m_iWidth * m_pYK16Image->m_fSpacingX;
-    physVer = m_pYK16Image->m_iHeight * m_pYK16Image->m_fSpacingY;
+  if (m_pYK16Image->m_fSpacingX * m_pYK16Image->m_fSpacingY != 0) {
+    physHor *= m_pYK16Image->m_fSpacingX;
+    physVer *= m_pYK16Image->m_fSpacingY;
   }
 
-  VH_ratio = physVer / physHor;
+  auto VH_ratio = physVer / physHor; // if horizontal is longer than vertical
 
   if (physHor > physVer) {
-    //bHorLonger = true;
+    // bHorLonger = true;
     int newFixedHeight = qRound(this->width() * VH_ratio);
     this->setFixedHeight(newFixedHeight);
   } else {
-    //bHorLonger = false;
+    // bHorLonger = false;
     int newFixedWidth = qRound(this->height() / VH_ratio);
     this->setFixedWidth(newFixedWidth);
   }
@@ -172,9 +167,8 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
 
   if (m_bDrawPoints) {
     painter.setPen(QPen(Qt::red, 2));
-    std::vector<QPoint>::iterator it;
-    for (it = m_vPt.begin(); it != m_vPt.end(); it++) {
-      painter.drawPoint((*it).x(), (*it).y());
+    for (auto &it : m_vPt) {
+      painter.drawPoint(it.x(), it.y());
     }
   }
 
@@ -210,18 +204,18 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
 
   if (m_pYK16Image->m_bDrawFOVCircle) {
     painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
-    QPoint crntCenterPt =
+    const auto crnt_center_pt =
         Data2View(m_pYK16Image->m_ptFOVCenter, this->width(), this->height(),
                   m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
-    int crntRadius = (int)(m_pYK16Image->m_iFOVRadius /
-                           (double)m_pYK16Image->m_iWidth * this->width());
-    painter.drawEllipse(crntCenterPt, crntRadius, crntRadius);
+    const auto crnt_radius = static_cast<int>(m_pYK16Image->m_iFOVRadius /
+                                       static_cast<double>(m_pYK16Image->m_iWidth) * this->width());
+    painter.drawEllipse(crnt_center_pt, crnt_radius, crnt_radius);
   }
 
   if (m_pYK16Image->m_bDrawTableLine) {
     painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
-    int crntTablePosY = (int)(m_pYK16Image->m_iTableTopPos /
-                              (double)m_pYK16Image->m_iHeight * this->height());
+    const auto crntTablePosY = static_cast<int>(m_pYK16Image->m_iTableTopPos /
+                                          static_cast<double>(m_pYK16Image->m_iHeight) * this->height());
     // int crntRadius = (int)(m_pYK16Image->m_iFOVRadius /
     // (double)m_pYK16Image->m_iWidth * this->width());
     painter.drawLine(0, crntTablePosY, this->width() - 1, crntTablePosY);
@@ -233,9 +227,9 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
     painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
     // QPoint crosshair;
 
-    //int dispCrossX = (int)(m_pYK16Image->m_ptCrosshair.x() /
+    // int dispCrossX = (int)(m_pYK16Image->m_ptCrosshair.x() /
     //                       (double)m_pYK16Image->m_iWidth * this->width());
-    //int dispCrossY = (int)(m_pYK16Image->m_ptCrosshair.y() /
+    // int dispCrossY = (int)(m_pYK16Image->m_ptCrosshair.y() /
     //                       (double)m_pYK16Image->m_iHeight * this->height());
 
     QPoint ptDispCrosshair = GetViewPtFromDataPt(
@@ -253,7 +247,7 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
 }
 
 void qyklabel::SetBaseImage(YK16GrayImage *pYKImage) {
-  if (pYKImage->m_pData != NULL && !pYKImage->m_QImage.isNull()) // YKTEMP
+  if (pYKImage->m_pData != nullptr && !pYKImage->m_QImage.isNull()) // YKTEMP
     m_pYK16Image = pYKImage;
 }
 
@@ -270,12 +264,10 @@ void qyklabel::ConvertAndCopyPoints(std::vector<QPoint> &vSrcPoint,
   int dspWidth = this->width();
   int dspHeight = this->height();
 
-  std::vector<QPoint>::iterator it;
-
-  for (it = vSrcPoint.begin(); it != vSrcPoint.end(); it++) {
-    QPoint tmpDspPt =
-        Data2View((*it), dspWidth, dspHeight, iDataWidth, iDataHeight);
-    m_vPt.push_back(tmpDspPt);
+  for (auto &it : vSrcPoint) {
+    auto tmp_dsp_pt =
+        Data2View(it, dspWidth, dspHeight, iDataWidth, iDataHeight);
+    m_vPt.push_back(tmp_dsp_pt);
   }
 }
 

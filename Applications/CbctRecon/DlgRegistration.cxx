@@ -364,7 +364,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     Wnd3_contour->clear();
 
     for (auto contour : m_cbctregistration->cur_voi->pslist) {
-      if (contour.coordinates.size() == 0) {
+      if (contour.coordinates.empty()) {
         continue;
       }
       auto first_point = contour.coordinates.at(0);
@@ -437,17 +437,17 @@ void DlgRegistration::whenFixedImgLoaded() {
 
   ui.sliderPosDisp1->setMinimum(0);
   ui.sliderPosDisp1->setMaximum(static_cast<int>(imgSize[2] - 1));
-  int curPosZ = static_cast<int>(imgSize[2] / 2);
+  auto curPosZ = static_cast<int>(imgSize[2] / 2);
   ui.sliderPosDisp1->setValue(curPosZ);
 
   ui.sliderPosDisp2->setMinimum(0);
   ui.sliderPosDisp2->setMaximum(static_cast<int>(imgSize[1] - 1));
-  int curPosY = static_cast<int>(imgSize[1] / 2);
+  auto curPosY = static_cast<int>(imgSize[1] / 2);
   ui.sliderPosDisp2->setValue(curPosY);
 
   ui.sliderPosDisp3->setMinimum(0);
   ui.sliderPosDisp3->setMaximum(static_cast<int>(imgSize[0] - 1));
-  int curPosX = static_cast<int>(imgSize[0] / 2);
+  auto curPosX = static_cast<int>(imgSize[0] / 2);
   ui.sliderPosDisp3->setValue(curPosX);
 
   QPoint x_split = QPoint(static_cast<int>(imgSize[0] / 2),
@@ -1169,9 +1169,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf
   E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
-  bool bPrepareMaskOnly; // prepare mask but not apply
-
-  bPrepareMaskOnly = !ui.checkBoxCropBkgroundCBCT->isChecked();
+  const auto bPrepareMaskOnly = !ui.checkBoxCropBkgroundCBCT->isChecked();
 
   std::cout << "1: writing temporary files" << std::endl;
 
@@ -1784,11 +1782,11 @@ void DlgRegistration::SLT_PreProcessCT() {
       return;
     }
 
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(this, "No reference structures found!",
-                                  "Do you wan't to attempt an auto correction "
-                                  "of air and excessive circumference?",
-                                  QMessageBox::Yes | QMessageBox::No);
+    const auto reply =
+        QMessageBox::question(this, "No reference structures found!",
+                              "Do you wan't to attempt an auto correction "
+                              "of air and excessive circumference?",
+                              QMessageBox::Yes | QMessageBox::No);
     if (reply == QMessageBox::Yes) {
       std::cout << "Attempting automatic air filling and skin cropping..."
                 << std::endl;
@@ -1991,11 +1989,10 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   std::cout << "6: DoRegistrationDeform: Reading output image" << std::endl;
 
   using readerType = itk::ImageFileReader<UShortImageType>;
-  QFileInfo tmpFileInfo;
 
   readerType::Pointer readerDefSt1 = readerType::New();
 
-  tmpFileInfo = QFileInfo(filePathOutputStage1);
+  auto tmpFileInfo = QFileInfo(filePathOutputStage1);
   if (tmpFileInfo.exists()) {
     readerDefSt1->SetFileName(filePathOutputStage1.toLocal8Bit().constData());
     readerDefSt1->Update();
