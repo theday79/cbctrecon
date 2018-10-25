@@ -590,7 +590,7 @@ void CbctReconWidget::SLT_CopyTableToClipBoard() const {
 
   for (auto j = 0; j < rowCnt; j++) {
     for (auto i = 0; i < columnCnt; i++) {
-      auto item = m_pTableModel->item(j, i);
+      const auto item = m_pTableModel->item(j, i);
       list << item->text();
     }
     list << "\n";
@@ -1050,8 +1050,8 @@ void CbctReconWidget::SLT_DrawGraph() const
   auto maxX = -1.0;
 
   for (auto i = 0; i < dataLen; i++) {
-    auto tableItem1 = m_pTableModel->item(i, 0);
-    auto tableItem2 = m_pTableModel->item(i, 1);
+    const auto tableItem1 = m_pTableModel->item(i, 0);
+    const auto tableItem2 = m_pTableModel->item(i, 1);
     auto tableVal1 = tableItem1->text().toDouble();
     auto tableVal2 = tableItem2->text().toDouble();
 
@@ -2494,7 +2494,7 @@ void CbctReconWidget::SLT_TimerEvent() {
 
   // Look into the shared mem
   TCHAR szName[] = TEXT("YKSharedMemory");
-  void *const handle = OpenFileMapping(FILE_MAP_READ, FALSE, szName);
+  const auto handle = OpenFileMapping(FILE_MAP_READ, FALSE, szName);
 
   if (handle == nullptr) {
     std::cout << "Cannot open Mapped file" << std::endl;
@@ -2526,7 +2526,7 @@ void CbctReconWidget::SLT_TimerEvent() {
     const auto idxB = i * 2;
     // 0: 1,0  1: 3,2 ...
     this->m_cbctrecon->m_arrYKImage.at(0).m_pData[i] =
-        (char_buf[idxA] << 8) | char_buf[idxB]; // little endian
+        char_buf[idxA] << 8 | char_buf[idxB]; // little endian
   }
 
   this->ui.spinBoxImgIdx->setValue(0);
@@ -3950,7 +3950,7 @@ void CbctReconWidget::SLT_LoadNKIImage() {
     return;
   }
 
-  auto v =
+  const auto v =
       nki_load(filePath.toLocal8Bit().constData()); // NKI is unsigned short!!!
   if (v == nullptr) {
     std::cerr << "file reading error" << std::endl;
