@@ -111,8 +111,8 @@ QImage *compose_image_with_overlay(QRect *rect, QImage *src, QImage *overlay) {
 void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   QPainter painter(this);
   painter.setPen(QPen(Qt::black, 2));
-  QRect TargetRt = this->rect();
-  painter.drawRect(TargetRt);
+  const auto target_rt = this->rect();
+  painter.drawRect(target_rt);
 
   if (m_pYK16Image == nullptr) {
     return;
@@ -123,26 +123,27 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
 
   // bool bHorLonger = false;
 
-  auto physHor = static_cast<double>(m_pYK16Image->m_iWidth);
-  auto physVer = static_cast<double>(m_pYK16Image->m_iHeight);
+  auto phys_hor = static_cast<double>(m_pYK16Image->m_iWidth);
+  auto phys_ver = static_cast<double>(m_pYK16Image->m_iHeight);
 
   // int labelNewFixedWidth = 0;
   // int labelNewFixedHeight = 0;
 
   if (m_pYK16Image->m_fSpacingX * m_pYK16Image->m_fSpacingY != 0) {
-    physHor *= m_pYK16Image->m_fSpacingX;
-    physVer *= m_pYK16Image->m_fSpacingY;
+    phys_hor *= m_pYK16Image->m_fSpacingX;
+    phys_ver *= m_pYK16Image->m_fSpacingY;
   }
 
-  auto VH_ratio = physVer / physHor; // if horizontal is longer than vertical
+  const auto VH_ratio =
+      phys_ver / phys_hor; // if horizontal is longer than vertical
 
-  if (physHor > physVer) {
+  if (phys_hor > phys_ver) {
     // bHorLonger = true;
-    int newFixedHeight = qRound(this->width() * VH_ratio);
+    const auto newFixedHeight = qRound(this->width() * VH_ratio);
     this->setFixedHeight(newFixedHeight);
   } else {
     // bHorLonger = false;
-    int newFixedWidth = qRound(this->height() / VH_ratio);
+    const auto newFixedWidth = qRound(this->height() / VH_ratio);
     this->setFixedWidth(newFixedWidth);
   }
 
@@ -152,17 +153,17 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   this->setFixedHeight(newFixedHeight);*/
   if (m_pRGBAImage != nullptr && m_pYK16Image != nullptr) {
     painter.setCompositionMode(QPainter::CompositionMode_Source);
-    painter.fillRect(TargetRt, Qt::transparent);
+    painter.fillRect(target_rt, Qt::transparent);
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-    painter.drawImage(TargetRt, m_pYK16Image->m_QImage.convertToFormat(
-                                    QImage::Format_ARGB32));
+    painter.drawImage(target_rt, m_pYK16Image->m_QImage.convertToFormat(
+                                     QImage::Format_ARGB32));
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-    painter.drawImage(TargetRt, m_pRGBAImage->m_QImage.convertToFormat(
-                                    QImage::Format_ARGB32));
+    painter.drawImage(target_rt, m_pRGBAImage->m_QImage.convertToFormat(
+                                     QImage::Format_ARGB32));
     if (m_pRGBAImage->m_QImage.allGray())
       std::cout << "RGBA was grayscale!?" << std::endl;
-  } else if (m_pYK16Image != NULL) {
-    painter.drawImage(TargetRt, m_pYK16Image->m_QImage); // it Works!YKTEMP
+  } else if (m_pYK16Image != nullptr) {
+    painter.drawImage(target_rt, m_pYK16Image->m_QImage); // it Works!YKTEMP
   }
 
   if (m_bDrawPoints) {
@@ -207,15 +208,17 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
     const auto crnt_center_pt =
         Data2View(m_pYK16Image->m_ptFOVCenter, this->width(), this->height(),
                   m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
-    const auto crnt_radius = static_cast<int>(m_pYK16Image->m_iFOVRadius /
-                                       static_cast<double>(m_pYK16Image->m_iWidth) * this->width());
+    const auto crnt_radius = static_cast<int>(
+        m_pYK16Image->m_iFOVRadius /
+        static_cast<double>(m_pYK16Image->m_iWidth) * this->width());
     painter.drawEllipse(crnt_center_pt, crnt_radius, crnt_radius);
   }
 
   if (m_pYK16Image->m_bDrawTableLine) {
     painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
-    const auto crntTablePosY = static_cast<int>(m_pYK16Image->m_iTableTopPos /
-                                          static_cast<double>(m_pYK16Image->m_iHeight) * this->height());
+    const auto crntTablePosY = static_cast<int>(
+        m_pYK16Image->m_iTableTopPos /
+        static_cast<double>(m_pYK16Image->m_iHeight) * this->height());
     // int crntRadius = (int)(m_pYK16Image->m_iFOVRadius /
     // (double)m_pYK16Image->m_iWidth * this->width());
     painter.drawLine(0, crntTablePosY, this->width() - 1, crntTablePosY);
@@ -258,11 +261,12 @@ void qyklabel::SetOverlayImage(AG17RGBAImage *pRGBAImage) {
 }
 
 void qyklabel::ConvertAndCopyPoints(std::vector<QPoint> &vSrcPoint,
-                                    int iDataWidth, int iDataHeight) {
+                                    const int iDataWidth,
+                                    const int iDataHeight) {
   m_vPt.clear();
 
-  int dspWidth = this->width();
-  int dspHeight = this->height();
+  const auto dspWidth = this->width();
+  const auto dspHeight = this->height();
 
   for (auto &it : vSrcPoint) {
     auto tmp_dsp_pt =
@@ -271,31 +275,33 @@ void qyklabel::ConvertAndCopyPoints(std::vector<QPoint> &vSrcPoint,
   }
 }
 
-QPoint qyklabel::View2Data(QPoint viewPt, int viewWidth, int viewHeight,
-                           int dataWidth, int dataHeight) {
-  double fZoomX = viewWidth / static_cast<double>(dataWidth);
-  double fZoomY = viewHeight / static_cast<double>(dataHeight);
+QPoint qyklabel::View2Data(QPoint view_pt, const int view_width,
+                           const int view_height, const int data_width,
+                           const int data_height) const {
+  const auto f_zoom_x = view_width / static_cast<double>(data_width);
+  const auto f_zoom_y = view_height / static_cast<double>(data_height);
 
-  QPoint dataPt;
-  dataPt.setX(qRound(viewPt.x() / fZoomX));
-  dataPt.setY(qRound(viewPt.y() / fZoomY));
+  QPoint data_pt;
+  data_pt.setX(qRound(view_pt.x() / f_zoom_x));
+  data_pt.setY(qRound(view_pt.y() / f_zoom_y));
 
-  return dataPt;
+  return data_pt;
 }
 
-QPoint qyklabel::Data2View(QPoint dataPt, int viewWidth, int viewHeight,
-                           int dataWidth, int dataHeight) {
-  double fZoomX = viewWidth / static_cast<double>(dataWidth);
-  double fZoomY = viewHeight / static_cast<double>(dataHeight);
+QPoint qyklabel::Data2View(QPoint data_pt, const int view_width,
+                           const int view_height, const int data_width,
+                           const int data_height) const {
+  const auto f_zoom_x = view_width / static_cast<double>(data_width);
+  const auto f_zoom_y = view_height / static_cast<double>(data_height);
 
-  QPoint viewPt;
-  viewPt.setX(qRound(dataPt.x() * fZoomX));
-  viewPt.setY(qRound(dataPt.y() * fZoomY));
+  QPoint view_pt;
+  view_pt.setX(qRound(data_pt.x() * f_zoom_x));
+  view_pt.setY(qRound(data_pt.y() * f_zoom_y));
 
-  return viewPt;
+  return view_pt;
 }
 
-void qyklabel::SetDrawPointToggle(bool bToggle) {
+void qyklabel::SetDrawPointToggle(const bool bToggle) {
   if (bToggle) {
     m_bDrawPoints = true;
   } else {
@@ -322,7 +328,7 @@ QPoint qyklabel::GetDataPtFromMousePos() {
         m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::GetDataPtFromViewPt(int viewPtX, int viewPtY) {
+QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }
@@ -339,7 +345,7 @@ QPoint qyklabel::GetDataPtFromViewPt(int viewPtX, int viewPtY) {
         m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::GetViewPtFromDataPt(int dataPtX, int dataPtY) {
+QPoint qyklabel::GetViewPtFromDataPt(const int dataPtX, const int dataPtY) {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }
@@ -356,22 +362,25 @@ QPoint qyklabel::GetViewPtFromDataPt(int dataPtX, int dataPtY) {
         m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::View2DataExt(QPoint viewPt, int viewWidth, int viewHeight,
-                              int dataWidth, int dataHeight,
-                              QPoint ptDataOffset, double fUserZoom) {
+QPoint qyklabel::View2DataExt(QPoint viewPt, const int viewWidth,
+                              const int viewHeight, const int dataWidth,
+                              const int dataHeight, QPoint ptDataOffset,
+                              const double fUserZoom) const {
   // double fZoomX = viewWidth / (double)dataWidth * fUserZoom; // < 1
   // double fZoomY = viewHeight / (double)dataHeight * fUserZoom;
 
   //  dataPt.setX(qRound(viewPt.x() * fZoomX  + ptDataOffset.x()));
   //  dataPt.setY(qRound(viewPt.y() * fZoomY + ptDataOffset.y()));
-  int newWidth = qRound(dataWidth / fUserZoom);
-  int newHeight = qRound(dataHeight / fUserZoom);
+  const int newWidth = qRound(dataWidth / fUserZoom);
+  const int newHeight = qRound(dataHeight / fUserZoom);
 
-  int dataCenterX = ptDataOffset.x() + qRound(dataWidth / 2.0);
-  int dataCenterY = ptDataOffset.y() + qRound(dataHeight / 2.0);
+  const int dataCenterX = ptDataOffset.x() + qRound(dataWidth / 2.0);
+  const int dataCenterY = ptDataOffset.y() + qRound(dataHeight / 2.0);
 
-  int dataLeftTopX = dataCenterX - qRound(newWidth / 2.0);  // data position
-  int dataLeftTopY = dataCenterY - qRound(newHeight / 2.0); // data position
+  const int dataLeftTopX =
+      dataCenterX - qRound(newWidth / 2.0); // data position
+  const int dataLeftTopY =
+      dataCenterY - qRound(newHeight / 2.0); // data position
 
   QPoint dataPt;
   dataPt.setX(qRound(viewPt.x() * newWidth / static_cast<double>(viewWidth) +
@@ -382,17 +391,20 @@ QPoint qyklabel::View2DataExt(QPoint viewPt, int viewWidth, int viewHeight,
   return dataPt;
 }
 
-QPoint qyklabel::Data2ViewExt(QPoint dataPt, int viewWidth, int viewHeight,
-                              int dataWidth, int dataHeight,
-                              QPoint ptDataOffset, double fUserZoom) {
-  int newWidth = qRound(dataWidth / fUserZoom);
-  int newHeight = qRound(dataHeight / fUserZoom);
+QPoint qyklabel::Data2ViewExt(QPoint dataPt, const int viewWidth,
+                              const int viewHeight, const int dataWidth,
+                              const int dataHeight, QPoint ptDataOffset,
+                              const double fUserZoom) const {
+  const int newWidth = qRound(dataWidth / fUserZoom);
+  const int newHeight = qRound(dataHeight / fUserZoom);
 
-  int dataCenterX = ptDataOffset.x() + qRound(dataWidth / 2.0);
-  int dataCenterY = ptDataOffset.y() + qRound(dataHeight / 2.0);
+  const int dataCenterX = ptDataOffset.x() + qRound(dataWidth / 2.0);
+  const int dataCenterY = ptDataOffset.y() + qRound(dataHeight / 2.0);
 
-  int dataLeftTopX = dataCenterX - qRound(newWidth / 2.0);  // data position
-  int dataLeftTopY = dataCenterY - qRound(newHeight / 2.0); // data position
+  const int dataLeftTopX =
+      dataCenterX - qRound(newWidth / 2.0); // data position
+  const int dataLeftTopY =
+      dataCenterY - qRound(newHeight / 2.0); // data position
 
   QPoint viewPt;
   viewPt.setX(qRound((dataPt.x() - dataLeftTopX) * viewWidth /

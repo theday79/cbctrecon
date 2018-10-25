@@ -24,7 +24,7 @@ DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent) {
 DlgExternalCommand::~DlgExternalCommand() = default;
 
 void DlgExternalCommand::SLT_SetRTKPath() {
-  QString dirPath = QFileDialog::getExistingDirectory(
+  auto dirPath = QFileDialog::getExistingDirectory(
       this, tr("Open RTK bin Directory"), "",
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
@@ -35,7 +35,7 @@ void DlgExternalCommand::SLT_SetRTKPath() {
 
 void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
   // If DIr is exist
-  QDir dirInfo = QDir(strDirPath);
+  auto dirInfo = QDir(strDirPath);
 
   if (!dirInfo.exists()) {
     std::cout << "ERROR! " << strDirPath.toLocal8Bit().constData()
@@ -55,7 +55,7 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
 
   const auto cnt = m_listRTKCommandFilter.length();
 
-  for (int i = 0; i < cnt; i++) {
+  for (auto i = 0; i < cnt; i++) {
     const auto strCommandFilter = m_listRTKCommandFilter.at(i);
     auto tmpStrPath = m_strDirRTKBin;
     tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
@@ -63,7 +63,7 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
     std::cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
     std::cout << tmpStrPath.toLocal8Bit().constData() << std::endl;
 
-    QFileInfo fInfo = QFileInfo(tmpStrPath);
+    auto fInfo = QFileInfo(tmpStrPath);
     if (fInfo.exists()) // add combo
     {
       ui.comboBoxRTKOption->addItem(strCommandFilter);
@@ -72,8 +72,8 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
 }
 
 void DlgExternalCommand::SLT_GenRTKCommand() {
-  QString crntPath = ui.plainTextRTKPath->toPlainText();
-  QString crntCommand = ui.comboBoxRTKOption->currentText();
+  auto crntPath = ui.plainTextRTKPath->toPlainText();
+  auto crntCommand = ui.comboBoxRTKOption->currentText();
 
   QString strFinalCommandText;
 
@@ -96,7 +96,7 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   // QString strOutDirection; //no clue about what it is
 
   // geometry
-  QString str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
+  auto str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
 
   if (str_mainGeometry.length() < 1) {
     std::cout << "Command will not be valid. set geometry file path in the "
@@ -137,9 +137,9 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
           .arg(m_pParent->ui.lineEdit_outImgSp_SI->text())
           .arg(m_pParent->ui.lineEdit_outImgSp_LR->text());
 
-  QTime curTime = QTime::currentTime();
+  auto curTime = QTime::currentTime();
   const auto strTimeStamp = curTime.toString("hhmmss");
-  QDir tmpPlmDir = QDir(
+  auto tmpPlmDir = QDir(
       m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
 
   if (!tmpPlmDir.exists()) {
@@ -366,11 +366,11 @@ int DlgExternalCommand::BuildRTKCommandFilter() // called when it is created
   // m_listRTKCommandFilter.push_back("rtktotalvariationdenoising");
   // m_listRTKCommandFilter.push_back("rtkwaveletsdenoising");
 
-  return (m_listRTKCommandFilter.length());
+  return m_listRTKCommandFilter.length();
 }
 
 void DlgExternalCommand::SLT_SetRTKPathManual() // apply button
 {
-  QString tmpPlainText = ui.plainTextRTKPath->toPlainText();
+  auto tmpPlainText = ui.plainTextRTKPath->toPlainText();
   SetRTKBinPath(tmpPlainText);
 }

@@ -22,7 +22,6 @@ public:
 
   bool m_bFocusIn;
 
-public:
   explicit qyklabel(QWidget *parent);
   ~qyklabel() override;
   qyklabel(const qyklabel &) = delete;
@@ -55,16 +54,16 @@ public:
   void ConvertAndCopyPoints(std::vector<QPoint> &vSrcPoint, int iDataWidth,
                             int iDataHeight);
 
-  QPoint View2Data(QPoint viewPt, int viewWidth, int viewHeight, int dataWidth,
-                   int dataHeight);
+  QPoint View2Data(QPoint view_pt, int view_width, int view_height,
+                   int data_width, int data_height) const;
   QPoint View2DataExt(QPoint viewPt, int viewWidth, int viewHeight,
                       int dataWidth, int dataHeight, QPoint ptDataOffset,
-                      double fUserZoom);
-  QPoint Data2View(QPoint dataPt, int viewWidth, int viewHeight, int dataWidth,
-                   int dataHeight);
+                      double fUserZoom) const;
+  QPoint Data2View(QPoint data_pt, int view_width, int view_height,
+                   int data_width, int data_height) const;
   QPoint Data2ViewExt(QPoint dataPt, int viewWidth, int viewHeight,
                       int dataWidth, int dataHeight, QPoint ptDataOffset,
-                      double fUserZoom);
+                      double fUserZoom) const;
 
   QPoint GetDataPtFromMousePos(); // Return data position of the mouse
                                   // position.m_pYK16 image is mandatory
@@ -92,7 +91,6 @@ signals:
 
 public slots:
   void SetDrawPointToggle(bool bToggle);
-
 };
 
 #endif // QYKLABEL_H

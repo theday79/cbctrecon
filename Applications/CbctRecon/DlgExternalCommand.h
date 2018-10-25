@@ -34,7 +34,6 @@ public:
 
   void SetRTKBinPath(QString &strDirPath);
 
-public:
   CbctReconWidget *m_pParent{}; // to pull 3D images
   QString m_strDirRTKBin;
 

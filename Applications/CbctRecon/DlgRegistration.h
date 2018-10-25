@@ -49,18 +49,18 @@ public:
   DlgRegistration();
   explicit DlgRegistration(CbctReconWidget *parent);
   // ~DlgRegistration() = default;
-  void UpdateVOICombobox(ctType ct_type);
-  void UpdateListOfComboBox(int idx);
+  void UpdateVOICombobox(ctType ct_type) const;
+  void UpdateListOfComboBox(int idx) const;
   void SelectComboExternal(int idx, enREGI_IMAGES iImage);
   void LoadImgFromComboBox(int idx, QString &strSelectedComboTxt);
   void initDlgRegistration(QString &strDCMUID);
 
 private:
-  void whenFixedImgLoaded(); // should be called by comboBox
+  void whenFixedImgLoaded() const; // should be called by comboBox
   void whenMovingImgLoaded();
-  void initOverlapWndSize();
-  void shiftSliceSlider();
-  void updateSliceLabel();
+  void initOverlapWndSize() const;
+  void shiftSliceSlider() const;
+  void updateSliceLabel() const;
   void UpdateSplit(int viewIdx, qyklabel *pOverlapWnd);
   void MousePressedRight(int wndIdx, qyklabel *pWnd);
 
@@ -70,14 +70,15 @@ private:
   void ImageManualMove(int direction, double resol);
   void ImageManualMoveOneShot(float shiftX, float shiftY,
                               float shiftZ); // DICOM coordinate
-  void AddImageToCombo(int comboIdx,
-                       enREGI_IMAGES option); // comboIdx 0: fixed, 1: moving
+  void
+  AddImageToCombo(int comboIdx,
+                  enREGI_IMAGES option) const; // comboIdx 0: fixed, 1: moving
   void LoadVOIFromComboBox(int idx, QString &strSelectedComboTxt);
 
 public slots:
-  void SLT_CrntPosGo();
+  void SLT_CrntPosGo() const;
   void SLT_DrawImageWhenSliceChange(); // upper level drawing: big calculation
-  void SLT_DrawImageInFixedSlice();    // lower level Drawing func.
+  void SLT_DrawImageInFixedSlice() const; // lower level Drawing func.
 
   void SLT_UpdateSplit1(); // lower level Drawing func. //Mouse Move even
   void SLT_UpdateSplit2(); // lower level Drawing func.//Mouse Move even
@@ -85,9 +86,9 @@ public slots:
 
   void SLT_CancelMouseAction();
 
-  void SLT_MouseWheelUpdate1();
-  void SLT_MouseWheelUpdate2();
-  void SLT_MouseWheelUpdate3();
+  void SLT_MouseWheelUpdate1() const;
+  void SLT_MouseWheelUpdate2() const;
+  void SLT_MouseWheelUpdate3() const;
 
   void SLT_MousePressedLeft1();
   void SLT_MousePressedLeft2();
@@ -106,8 +107,8 @@ public slots:
   void SLT_MouseReleasedRight3();
   void SLT_ChangeView(); // 3 toggle button
 
-  void SLT_RestoreImageSingle();
-  void SLT_RestoreImageAll();
+  void SLT_RestoreImageSingle() const;
+  void SLT_RestoreImageAll() const;
 
   void SLT_DoRegistrationRigid();
   void SLT_DoRegistrationDeform();
@@ -116,7 +117,7 @@ public slots:
   void SLT_ManualMoveByDCMPlanOpen();
   void SLT_gPMCrecalc();
   void SLT_WEPLcalc();
-  void SLT_BringFocusToEnableArrow(bool bChecked);
+  void SLT_BringFocusToEnableArrow(bool bChecked) const;
 
   void SLT_KeyMoving(bool bChecked);
 
@@ -141,7 +142,7 @@ public slots:
   void SLT_ConfirmManualRegistration();
   void SLT_IntensityNormCBCT();
   void SLT_DoLowerMaskIntensity(); // button
-  void SLT_Override();
+  void SLT_Override() const;
 
 public:
   Ui::DlgRegistrationClass ui{};
