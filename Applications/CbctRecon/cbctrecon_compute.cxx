@@ -44,7 +44,7 @@ double GetMaxAndMinValueOfProjectionImage(
   }
 
   using MinMaxCalcType = itk::MinimumMaximumImageCalculator<FloatImageType>;
-  MinMaxCalcType::Pointer MinMaxFilter = MinMaxCalcType::New();
+  auto MinMaxFilter = MinMaxCalcType::New();
   MinMaxFilter->SetImage(projImage);
   MinMaxFilter->Compute();
   fProjImgValueMin = MinMaxFilter->GetMinimum();
@@ -64,39 +64,39 @@ double
 CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
                                        UShortImageType::Pointer &spProjCT3D) {
   using StatFilterType = itk::StatisticsImageFilter<UShortImageType>;
-  double raw_mean = 0.0;
-  double ctMean = 0.0;
+  auto raw_mean = 0.0;
+  auto ctMean = 0.0;
 #pragma omp parallel sections
   {
 #pragma omp section
-      {StatFilterType::Pointer statFilter = StatFilterType::New();
-  statFilter->SetInput(spProjRaw3D);
-  statFilter->Update();
+    {
+      auto statFilter = StatFilterType::New();
+      statFilter->SetInput(spProjRaw3D);
+      statFilter->Update();
 
-  raw_mean = statFilter->GetMean();
-}
+      raw_mean = statFilter->GetMean();
+    }
 #pragma omp section
-{
-  StatFilterType::Pointer statFilter = StatFilterType::New();
-  statFilter->SetInput(spProjCT3D);
-  statFilter->Update();
+    {
+      auto statFilter = StatFilterType::New();
+      statFilter->SetInput(spProjCT3D);
+      statFilter->Update();
 
-  ctMean = statFilter->GetMean();
-}
-}
-;
-return ctMean / raw_mean;
+      ctMean = statFilter->GetMean();
+    }
+  }
+  return ctMean / raw_mean;
 }
 
 // spSrcImg3D: usually projImage in USHORT type
 void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
-                 FloatImage2DType::Pointer &spTargetImg2D, int idx,
-                 enPLANE iDirection) {
+                 FloatImage2DType::Pointer &spTargetImg2D, const int idx,
+                 const enPLANE iDirection) {
   if (spSrcImg3D == nullptr) {
     return;
   }
 
-  int idx_hor = 0, idxVer = 0, idxZ = 0;
+  auto idx_hor = 0, idxVer = 0, idxZ = 0;
 
   switch (iDirection) {
   case PLANE_AXIAL:
@@ -117,8 +117,8 @@ void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
   }
 
   // Create 2D target image based on geometry of 3D
-  UShortImageType::SizeType imgDim = spSrcImg3D->GetBufferedRegion().GetSize();
-  UShortImageType::SpacingType spacing = spSrcImg3D->GetSpacing();
+  auto imgDim = spSrcImg3D->GetBufferedRegion().GetSize();
+  auto spacing = spSrcImg3D->GetSpacing();
   // UShortImageType::PointType origin = spSrcImg3D->GetOrigin();
 
   // int width = imgDim[idxHor];
@@ -185,7 +185,7 @@ void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
   it_3D.GoToBegin();
   it_2D.GoToBegin();
 
-  for (int i = 0; i < z_size && !it_3D.IsAtEnd(); i++) {
+  for (auto i = 0; i < z_size && !it_3D.IsAtEnd(); i++) {
     /*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
     QString crntFileName = crntFileInfo.fileName();
     QString crntPath = strSavingFolder + "/" + crntFileName;*/
@@ -216,20 +216,19 @@ void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
   tmpYK.SaveDataAsRaw(str.toLocal8Bit().constData());*/
 }
 
-
 double GetRawIntensityScaleFactor(QString &strRef_mAs, QString &strCur_mAs) {
   // GetRawIntensity Scale Factor
-  double rawIntensityScaleF = 1.0;
+  auto rawIntensityScaleF = 1.0;
 
-  double fRef_mAs = 0.0;
-  double fCur_mAs = 0.0;
+  auto fRef_mAs = 0.0;
+  auto fCur_mAs = 0.0;
   // QString strRef_mAs = ui.lineEdit_RefmAs->text();
-  QStringList listmAsRef = strRef_mAs.split(",");
+  auto listmAsRef = strRef_mAs.split(",");
   if (listmAsRef.length() == 2) {
     fRef_mAs = listmAsRef.at(0).toDouble() * listmAsRef.at(1).toDouble();
   }
   // QString strCur_mAs = ui.lineEdit_CurmAs->text();
-  QStringList listmAsCur = strCur_mAs.split(",");
+  auto listmAsCur = strCur_mAs.split(",");
   if (listmAsCur.length() == 2) {
     fCur_mAs = listmAsCur.at(0).toDouble() * listmAsCur.at(1).toDouble();
   }
@@ -244,9 +243,8 @@ double GetRawIntensityScaleFactor(QString &strRef_mAs, QString &strCur_mAs) {
 }
 
 void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
-  FloatImageType::SizeType sizeOutput =
-      spSrcTarg->GetBufferedRegion().GetSize();
-  FloatImageType::SpacingType spacingOutput = spSrcTarg->GetSpacing();
+  auto sizeOutput = spSrcTarg->GetBufferedRegion().GetSize();
+  auto spacingOutput = spSrcTarg->GetSpacing();
 
   // Transformation is applied
   std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard "
@@ -278,11 +276,11 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   region_trans.SetIndex(start_trans);
 
   /* 2) Prepare Target image */
-  const FloatImageType::Pointer &targetImg = spSrcTarg;
+  const auto &targetImg = spSrcTarg;
 
   /* 3) Configure transform */
   using TransformType = itk::Euler3DTransform<double>;
-  TransformType::Pointer transform = TransformType::New();
+  auto transform = TransformType::New();
 
   TransformType::ParametersType param;
   param.SetSize(6);
@@ -308,7 +306,7 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
 
   using ResampleFilterType =
       itk::ResampleImageFilter<FloatImageType, FloatImageType>;
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+  auto resampler = ResampleFilterType::New();
   // FloatImageType::RegionType fixedImg_Region =
   // fixedImg->GetLargestPossibleRegion().GetSize();
 
@@ -325,7 +323,7 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
 
   using FilterType = itk::FlipImageFilter<FloatImageType>;
 
-  FilterType::Pointer flipFilter = FilterType::New();
+  auto flipFilter = FilterType::New();
   using FlipAxesArrayType = FilterType::FlipAxesArrayType;
 
   FlipAxesArrayType arrFlipAxes;
@@ -349,7 +347,7 @@ QString XML_GetSingleItemString(QXmlStreamReader &xml) {
   }
 
   /* Let's read the name... */
-  QString elementName = xml.name().toString();
+  auto elementName = xml.name().toString();
   /* ...go to the next. */
   xml.readNext();
   /*
@@ -363,7 +361,7 @@ QString XML_GetSingleItemString(QXmlStreamReader &xml) {
   return strResult;
 }
 
-void AddConstHU(UShortImageType::Pointer &spImg, int HUval) {
+void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 
   using iteratorType = itk::ImageRegionIteratorWithIndex<UShortImageType>;
   iteratorType it(spImg, spImg->GetRequestedRegion());
@@ -393,8 +391,8 @@ void AddConstHU(UShortImageType::Pointer &spImg, int HUval) {
 // by 10.0
 void ImageTransformUsingCouchCorrection(
     UShortImageType::Pointer &spUshortInput,
-    UShortImageType::Pointer &spUshortOutput, VEC3D couch_trans,
-    VEC3D couch_rot) {
+    UShortImageType::Pointer &spUshortOutput, const VEC3D couch_trans,
+    const VEC3D couch_rot) {
   // couch_trans, couch_rot--> as it is from the text file. only x 10.0 was
   // applied
   if (spUshortInput == nullptr) {
@@ -402,25 +400,25 @@ void ImageTransformUsingCouchCorrection(
   }
 
   using FilterType = itk::ResampleImageFilter<UShortImageType, UShortImageType>;
-  FilterType::Pointer filter = FilterType::New();
+  auto filter = FilterType::New();
 
   using TransformType = itk::AffineTransform<double, 3>;
-  TransformType::Pointer transform = TransformType::New();
+  auto transform = TransformType::New();
   filter->SetTransform(transform);
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImageType, double>;
 
-  InterpolatorType::Pointer interpolator = InterpolatorType::New();
+  const auto interpolator = InterpolatorType::New();
   filter->SetInterpolator(interpolator);
 
   filter->SetDefaultPixelValue(0);
 
   //  const double spacing[3] = { 1.0, 1.0, 1.0 };
-  const UShortImageType::SpacingType spacing = spUshortInput->GetSpacing();
+  const auto spacing = spUshortInput->GetSpacing();
 
   filter->SetOutputSpacing(spacing);
 
-  const UShortImageType::PointType origin = spUshortInput->GetOrigin();
+  const auto origin = spUshortInput->GetOrigin();
 
   filter->SetOutputOrigin(origin);
 
@@ -428,8 +426,7 @@ void ImageTransformUsingCouchCorrection(
   direction.SetIdentity();
   filter->SetOutputDirection(direction);
 
-  const UShortImageType::SizeType size =
-      spUshortInput->GetLargestPossibleRegion().GetSize();
+  const auto size = spUshortInput->GetLargestPossibleRegion().GetSize();
   filter->SetSize(size);
   filter->SetInput(spUshortInput);
 
@@ -461,7 +458,6 @@ void ImageTransformUsingCouchCorrection(
   // std::cout << "affine transform is successfully done" << std::endl;
 }
 
-
 void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
                         UShortImageType::Pointer &spOutputImgUS) {
   if (spInputImgUS == nullptr) {
@@ -469,9 +465,8 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
     return;
   }
   // 1) Transform
-  UShortImageType::SizeType size_original =
-      spInputImgUS->GetLargestPossibleRegion().GetSize();
-  UShortImageType::SpacingType spacing_original = spInputImgUS->GetSpacing();
+  auto size_original = spInputImgUS->GetLargestPossibleRegion().GetSize();
+  auto spacing_original = spInputImgUS->GetSpacing();
 
   // Same image type from original image -3D & float
   UShortImageType::IndexType start_trans{};
@@ -499,7 +494,7 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
   region_trans.SetIndex(start_trans);
 
   using FilterType = itk::FlipImageFilter<UShortImageType>;
-  FilterType::Pointer flipFilter = FilterType::New();
+  auto flipFilter = FilterType::New();
   using FlipAxesArrayType = FilterType::FlipAxesArrayType;
 
   FlipAxesArrayType arrFlipAxes;
@@ -511,7 +506,7 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
   flipFilter->SetInput(spInputImgUS); // plan CT, USHORT image
 
   using TransformType = itk::Euler3DTransform<double>;
-  TransformType::Pointer transform = TransformType::New();
+  auto transform = TransformType::New();
 
   TransformType::ParametersType param;
   param.SetSize(6);
@@ -535,7 +530,7 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
 
   using ResampleFilterType =
       itk::ResampleImageFilter<UShortImageType, UShortImageType>;
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+  auto resampler = ResampleFilterType::New();
 
   resampler->SetInput(flipFilter->GetOutput());
   resampler->SetSize(size_trans);
@@ -554,25 +549,24 @@ void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
   using CastFilterType =
       itk::CastImageFilter<UShortImageType,
                            FloatImageType>; // Maybe not inplace filter
-  CastFilterType::Pointer castFilter = CastFilterType::New();
+  auto castFilter = CastFilterType::New();
   castFilter->SetInput(spImgUshort);
 
   // Default value
-  const double calibF_A = 1.0;
-  const double calibF_B = 0.0;
+  const auto calibF_A = 1.0;
+  const auto calibF_B = 0.0;
 
   using MultiplyImageFilterType =
       itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
-  MultiplyImageFilterType::Pointer multiplyImageFilter =
-      MultiplyImageFilterType::New();
+  auto multiplyImageFilter = MultiplyImageFilterType::New();
   multiplyImageFilter->SetInput(castFilter->GetOutput());
   multiplyImageFilter->SetConstant(calibF_A / 65535.0);
 
   using AddImageFilterType =
       itk::AddImageFilter<FloatImageType, FloatImageType, FloatImageType>;
-  AddImageFilterType::Pointer addImageFilter = AddImageFilterType::New();
+  auto addImageFilter = AddImageFilterType::New();
   addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
-  const double addingVal = calibF_B / 65535.0;
+  const auto addingVal = calibF_B / 65535.0;
   addImageFilter->SetConstant2(addingVal);
   addImageFilter->Update(); // will generate map of real_mu (att.coeff)
 

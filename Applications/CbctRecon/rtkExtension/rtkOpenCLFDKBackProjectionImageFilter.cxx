@@ -28,10 +28,11 @@ OpenCLFDKBackProjectionImageFilter ::OpenCLFDKBackProjectionImageFilter() =
 
 void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
   // OpenCL init (platform, device, context and command queue)
-  std::vector<cl_platform_id> platforms = GetListOfOpenCLPlatforms();
-  std::vector<cl_device_id> devices = GetListOfOpenCLDevices(platforms[0]);
-  cl_context_properties properties[] = {CL_CONTEXT_PLATFORM,
-                                        (cl_context_properties)platforms[0], 0};
+  auto platforms = GetListOfOpenCLPlatforms();
+  auto devices = GetListOfOpenCLDevices(platforms[0]);
+  cl_context_properties properties[] = {
+      CL_CONTEXT_PLATFORM,
+      reinterpret_cast<cl_context_properties>(platforms[0]), 0};
 
   cl_int error;
   m_Context = clCreateContext(properties, devices.size(), &devices[0], nullptr,
@@ -53,9 +54,8 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
     itkExceptionMacro(<< "Could not allocate OpenCL matrix buffer, error code: "
                       << error);
 
-  size_t volBytes =
-      this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
-      sizeof(float);
+  auto volBytes = this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
+                  sizeof(float);
   m_DeviceVolume = clCreateBuffer(
       m_Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, volBytes,
       (void *)this->GetInput()->GetBufferPointer(), &error);
@@ -118,9 +118,8 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
 }
 
 void OpenCLFDKBackProjectionImageFilter ::CleanUpDevice() {
-  size_t volBytes =
-      this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
-      sizeof(float);
+  auto volBytes = this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
+                  sizeof(float);
 
   OPENCL_CHECK_ERROR(clReleaseKernel(m_Kernel));
   OPENCL_CHECK_ERROR(clReleaseProgram(m_Program));
@@ -138,7 +137,7 @@ void OpenCLFDKBackProjectionImageFilter ::CleanUpDevice() {
 void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
   this->AllocateOutputs();
 
-  const unsigned int Dimension = ImageType::ImageDimension;
+  const auto Dimension = ImageType::ImageDimension;
   const unsigned int nProj =
       this->GetInput(1)->GetLargestPossibleRegion().GetSize(Dimension - 1);
   const unsigned int iFirstProj =
@@ -146,15 +145,19 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
 
   // Ramp factor is the correction for ramp filter which did not account for the
   // divergence of the beam
-  //const GeometryPointer geometry =
+  // const GeometryPointer geometry =
   //    dynamic_cast<GeometryType *>(this->GetGeometry().GetPointer());
 
   // Rotation center (assumed to be at 0 yet)
   ImageType::PointType rotCenterPoint;
   rotCenterPoint.Fill(0.0);
   itk::ContinuousIndex<double, Dimension> rotCenterIndex;
-  this->GetInput(0)->TransformPhysicalPointToContinuousIndex(rotCenterPoint,
-                                                             rotCenterIndex);
+  if (!this->GetInput(0)->TransformPhysicalPointToContinuousIndex(rotCenterPoint,
+                                                             rotCenterIndex))
+  {
+    std::cerr << "Center was outside of cube!??" << std::endl;
+    return;
+  }
 
   // Include non-zero index in matrix
   itk::Matrix<double, 4, 4> matrixIdxVol;
@@ -164,27 +167,26 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
     rotCenterIndex[i] -= this->GetOutput()->GetRequestedRegion().GetIndex()[i];
   }
   // Go over each projection
-  for (unsigned int iProj = iFirstProj; iProj < (iFirstProj + nProj); iProj++) {
+  for (auto iProj = iFirstProj; iProj < iFirstProj + nProj; iProj++) {
     // Extract the current slice
-    ProjectionImagePointer projection =
-        this->GetProjection<ProjectionImageType>(iProj);
+    auto projection = this->GetProjection<ProjectionImageType>(iProj);
 
     // Index to index matrix normalized to have a correct backprojection weight
     // (1 at the isocenter)
-    ProjectionMatrixType matrix = GetIndexToIndexProjectionMatrix(iProj);
+    auto matrix = GetIndexToIndexProjectionMatrix(iProj);
 
     // We correct the matrix for non zero indexes
     itk::Matrix<double, 3, 3> matrixIdxProj;
     matrixIdxProj.SetIdentity();
     for (unsigned int i = 0; i < 2; i++) { // SR: 0.5 for 2D texture
       matrixIdxProj[i][2] =
-          -1 * (projection->GetBufferedRegion().GetIndex()[i]) + 0.5;
+          -1 * projection->GetBufferedRegion().GetIndex()[i] + 0.5;
     }
 
     matrix = matrixIdxProj.GetVnlMatrix() * matrix.GetVnlMatrix() *
              matrixIdxVol.GetVnlMatrix();
 
-    double perspFactor = matrix[Dimension - 1][Dimension];
+    auto perspFactor = matrix[Dimension - 1][Dimension];
     for (unsigned int j = 0; j < Dimension; j++) {
       perspFactor += matrix[Dimension - 1][j] * rotCenterIndex[j];
     }
@@ -192,7 +194,7 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
     matrix /= perspFactor;
 
     float fMatrix[12];
-    for (int j = 0; j < 3;
+    for (auto j = 0; j < 3;
          j++) { // Manual unroll 3*(one less +, 4 less %, 4 / is now * )
       fMatrix[j * 4] = matrix[j][0];
       fMatrix[j * 4 + 1] = matrix[j][1];
@@ -215,7 +217,7 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
     // Execute kernel
     cl_event events[2];
     size_t local_work_size = 128;
-    size_t global_work_size =
+    auto global_work_size =
         this->GetOutput()->GetRequestedRegion().GetNumberOfPixels();
     OPENCL_CHECK_ERROR(clEnqueueNDRangeKernel(
         m_CommandQueue, m_Kernel, 1, nullptr, &global_work_size,

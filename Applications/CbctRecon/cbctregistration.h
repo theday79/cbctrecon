@@ -1,22 +1,20 @@
 #ifndef CBCTREGISTRATION_H
 #define CBCTREGISTRATION_H
 
-// #include <qstring.h>
-
 #include <itkImage.h>
 
 #include "itk_mask.h"
 
-// #include "AG17RGBAImage.h"
-#include "WEPL.h"
-// #include "YK16GrayImage.h"
-#include "cbctrecon.h"
 #include "cbctrecon_config.h"
+
+#include "AG17RGBAImage.h"
+#include "StructureSet.h"
+#include "YK16GrayImage.h"
+#include "cbctrecon_types.h"
 #include "qyklabel.h"
 
 class QString;
-class AG17RGBAImage;
-class YK16GrayImage;
+class CbctRecon;
 class Dmap_parms;
 class Pcmd_threshold;
 class Mask_parms;
@@ -48,8 +46,12 @@ enum enRegisterOption {
 class CBCTRECON_API CbctRegistration {
 
 public:
-  CbctRegistration(CbctRecon *parent);
+  explicit CbctRegistration(CbctRecon *parent);
   ~CbctRegistration();
+  CbctRegistration(const CbctRegistration &) = delete;
+  void operator=(const CbctRegistration &) = delete;
+  CbctRegistration(CbctRegistration &&) = delete;
+  void operator=(CbctRegistration &&) = delete;
 
   void GenPlastiRegisterCommandFile(
       const QString &strPathCommandFile, const QString &strPathFixedImg,
@@ -133,7 +135,7 @@ public:
                               UShortImageType::Pointer &spCBCTcor,
                               int diffThreshold,
                               int noTouchThreshold /*= 1100*/,
-                              double innerMargin, double outerMargin);
+                              double innerMargin, double outerMargin) const;
 
   void GenShellMask(QString &strPathInputMask, QString &strPathOutputMask,
                     double fInnerMargin, double fOuterMargin) const;
@@ -146,7 +148,7 @@ public:
   // Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double
   // pos, YK16GrayImage& Output2D);
 
-public:
+  // still public:
   CbctRecon *m_pParent{};            // to pull 3D images
   YK16GrayImage m_YKImgFixed[3];     // CBCT in this study
   YK16GrayImage m_YKImgMoving[3];    // CBCT in this study

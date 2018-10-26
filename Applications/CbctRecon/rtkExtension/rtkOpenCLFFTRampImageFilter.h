@@ -70,6 +70,8 @@ protected:
 public:
   OpenCLFFTRampImageFilter(const Self &) = delete; // purposely not implemented
   void operator=(const Self &) = delete;           // purposely not implemented
+  OpenCLFFTRampImageFilter(Self &&) = delete; // purposely not implemented
+  void operator=(Self &&) = delete;           // purposely not implemented
 };                                                 // end of class
 
 } // end namespace rtk

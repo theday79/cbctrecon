@@ -1,12 +1,16 @@
 #ifndef CBCTRECON_IO_H
 #define CBCTRECON_IO_H
 /*All IO functions used with cbctrecon*/
-#include "cbctrecon.h"
+#include "cbctrecon_types.h"
 #include "cbctrecon_config.h"
+
+class QXmlStreamReader;
 
 CBCTRECON_API QString MakeElektaXML(const QString &filePath_ImageDBF,
                                     const QString &filePath_FrameDBF,
                                     const QString &DICOM_UID);
+
+CBCTRECON_API FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml);
 
 CBCTRECON_API bool
 LoadShortImageToUshort(QString &strPath,

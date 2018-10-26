@@ -25,21 +25,19 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
 
   std::vector<cl_platform_id> platformList(numberOfPlatforms);
   OPENCL_CHECK_ERROR(
-      clGetPlatformIDs(numberOfPlatforms, &(platformList[0]), nullptr));
+      clGetPlatformIDs(numberOfPlatforms, &platformList[0], nullptr));
 
   return platformList;
 }
 
-std::vector<cl_device_id>
-GetListOfOpenCLDevices(cl_platform_id platform) {
+std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
   cl_uint numberOfDevices;
   OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
                                     &numberOfDevices));
 
   std::vector<cl_device_id> deviceList(numberOfDevices);
   OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU,
-                                    numberOfDevices, &(deviceList[0]),
-                                    nullptr));
+                                    numberOfDevices, &deviceList[0], nullptr));
 
   cl_bool bImageSupport = 0u;
   // If found, check if supports image.
@@ -54,7 +52,7 @@ GetListOfOpenCLDevices(cl_platform_id platform) {
                                       &numberOfDevices));
     deviceList.resize(numberOfDevices);
     OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU,
-                                      numberOfDevices, &(deviceList[0]),
+                                      numberOfDevices, &deviceList[0],
                                       nullptr));
   }
   /*
@@ -95,8 +93,8 @@ void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
                              << fileName);
   }
 
-  program = clCreateProgramWithSource(context, 1, (const char **)(&oclSource),
-                                      &size, &error);
+  program = clCreateProgramWithSource(
+      context, 1, const_cast<const char **>(&oclSource), &size, &error);
   if (error != CL_SUCCESS)
     itkGenericExceptionMacro(
         << "Could not create OpenCL sampler object, error code: " << error);

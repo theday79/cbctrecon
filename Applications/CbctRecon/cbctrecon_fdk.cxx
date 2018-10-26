@@ -1,30 +1,26 @@
 /* Do reconstruction algorithms */
-#include "cbctrecon.h"
 
 // std
+#include <array>
 #include <cmath>   // for asin, cos
-#include <complex> // for operator*
 #include <cstdlib>
 #include <iostream> // for operator<<, endl, basic_ostream, cout
 #include <string>   // for operator<<
 
+// Local
+#include "cbctrecon_types.h"
+
 // PLM
 #if USE_OPENCL_PLM
-#include <autotune_opencl.h>
-#include <fdk.h>
+#undef TIMEOUT
+#undef CUDA_FOUND
 #include <fdk_opencl.h>
 #include <opencl_util.h>
 #include <plm_image.h>
-// #include <plmreconstruct_config.h>
 #include <proj_image.h>
 #include <proj_image_filter.h>
 #include <proj_matrix.h>
-#endif // USE_OPENCL_PLM
 
-// Local
-#include "cbctrecon_compute.h"
-
-#if USE_OPENCL_PLM
 FloatImageType::Pointer PlastimatchOpenCLFDK(
     const FloatImageType::Pointer &spCurImg,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &m_spCustomGeometry,
@@ -56,7 +52,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   opencl_kernel_create(&ocl_dev, "fdk_kernel_nn");
 
   /* Retrieve 2D image to get dimensions */
-  const itk::Size<3U> proj_dim = spCurImg->GetLargestPossibleRegion().GetSize();
+  const auto proj_dim = spCurImg->GetLargestPossibleRegion().GetSize();
   // proj = proj_dir->load_image(0);
 
   // Generate image sources for cone beam CT reconstruction
@@ -71,43 +67,46 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   std::cout << "Buffer proj: " << proj_dim[1] * proj_dim[0] * sizeof(float)
             << std::endl;
   /* Set up device memory */
-  Opencl_buf *ocl_buf_vol =
-      opencl_buf_create(&ocl_dev, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-                        static_cast<size_t>(vol->pix_size * vol->npix), vol->img);
+  auto ocl_buf_vol = opencl_buf_create(
+      &ocl_dev, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+      static_cast<size_t>(vol->pix_size * vol->npix), vol->img);
 
-  Opencl_buf *ocl_buf_img =
+  auto ocl_buf_img =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         proj_dim[1] * proj_dim[0] * sizeof(float), // is 0
                         nullptr);
 
-  Opencl_buf *ocl_buf_matrix =
+  auto ocl_buf_matrix =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         12 * sizeof(float), nullptr);
 
   /* Copy volume dim (convert from size_t to int) */
-  auto ocl_vol_dim = cl_int4{{static_cast<cl_int>(vol->dim[0]), static_cast<cl_int>(vol->dim[1]), static_cast<cl_int>(vol->dim[2])}};
+  auto ocl_vol_dim = cl_int4{{static_cast<cl_int>(vol->dim[0]),
+                              static_cast<cl_int>(vol->dim[1]),
+                              static_cast<cl_int>(vol->dim[2])}};
 
-  Opencl_buf *ocl_buf_vol_origin =
+  auto ocl_buf_vol_origin =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                         3 * sizeof(float), &vol->origin[0]);
 
-  Opencl_buf *ocl_buf_vol_spacing =
+  auto ocl_buf_vol_spacing =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                         3 * sizeof(float), &vol->spacing[0]);
 
   /* Copy projection image dim (convert from size_t to int) */
-  auto ocl_proj_dim = cl_int2{{static_cast<cl_int>(proj_dim[0]), static_cast<cl_int>(proj_dim[1])}};
+  auto ocl_proj_dim = cl_int2{
+      {static_cast<cl_int>(proj_dim[0]), static_cast<cl_int>(proj_dim[1])}};
 
-  Opencl_buf *ocl_buf_nrm =
+  auto ocl_buf_nrm =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         3 * sizeof(float), nullptr);
 
-  Opencl_buf *ocl_buf_ic =
+  auto ocl_buf_ic =
       opencl_buf_create(&ocl_dev, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                         2 * sizeof(float), nullptr);
 
   /* Calculate the scale */
-  const float scale =
+  const auto scale =
       static_cast<float>(sqrt(3.0) / static_cast<double>(1 + proj_dim[2])) *
       10.0f;
 
@@ -115,7 +114,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
   auto itShiftY = m_spCustomGeometry->GetProjectionOffsetsY().begin();
   std::cout << "Proj. # " << std::endl;
   /* Project each image into the volume one at a time */
-  for (int image_num = 0; image_num < static_cast<int>(proj_dim[2]);
+  for (auto image_num = 0; image_num < static_cast<int>(proj_dim[2]);
        image_num++) {
     /* Translate image and properties to PLM */
     auto *proj = new Proj_image;
@@ -136,9 +135,9 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
     proj->pmat->sad =
         m_spCustomGeometry->GetSourceToIsocenterDistances()[image_num];
 
-    const double sid =
+    const auto sid =
         m_spCustomGeometry->GetSourceToDetectorDistances()[image_num];
-    const double angle = m_spCustomGeometry->GetGantryAngles()[image_num];
+    const auto angle = m_spCustomGeometry->GetGantryAngles()[image_num];
     const double tgt[] = {0.0, 0.0, 0.0};
     const double cam[] = {tgt[0] + proj->pmat->sad * cos(angle),
                           tgt[1] - proj->pmat->sad * sin(angle), tgt[2]};

@@ -18,7 +18,7 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
   cl_device_id device;
 
   /* Setup OpenCL environment. */
-  cl_int err = clGetPlatformIDs(1, &platform, nullptr);
+  auto err = clGetPlatformIDs(1, &platform, nullptr);
 
   err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, nullptr);
 
@@ -44,11 +44,11 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
 
 std::tuple<cl_context, cl_command_queue, cl_device_id>
 get_constext_queue(const size_t required_mem_alloc_size) {
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
   auto plat_dev = getPlatformAndDeviceID(required_mem_alloc_size);
 
   cl_context_properties props[3] = {
-      CL_CONTEXT_PLATFORM, (cl_context_properties)std::get<0>(plat_dev), 0};
+      CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(std::get<0>(plat_dev)), 0};
 
   const auto ctx = clCreateContext(&props[0], 1, &std::get<1>(plat_dev),
                                    nullptr, nullptr, &err);
@@ -115,21 +115,21 @@ void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
                     const float *hostVolume, // input
                     float *hostPaddedVolume, // output
                     const std::vector<float> &mirrorWeights) {
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
   cl_program m_Program;
 
-  const size_t pv_buffer_size =
+  const auto pv_buffer_size =
       paddingSize.x * paddingSize.y * paddingSize.z * sizeof(float);
   const auto ctx_queue_dev = get_constext_queue(pv_buffer_size);
   const auto ctx = std::get<0>(ctx_queue_dev);
   const auto queue = std::get<1>(ctx_queue_dev);
   const auto device = std::get<2>(ctx_queue_dev);
   /* Prepare OpenCL memory objects and place data inside them. */
-  const size_t w_buffer_size = mirrorWeights.size() * sizeof(float);
-  const auto w_buf_sizeof =
-          static_cast<cl_uint>(mirrorWeights
-                    .size()); // just because intellisense couldn't understand it below...
-  cl_mem weights_d =
+  const auto w_buffer_size = mirrorWeights.size() * sizeof(float);
+  const auto w_buf_sizeof = static_cast<cl_uint>(
+      mirrorWeights
+          .size()); // just because intellisense couldn't understand it below...
+  auto weights_d =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                      w_buffer_size, (void *)&mirrorWeights[0], &err);
   // err = clEnqueueWriteBuffer(queue, weights_d, CL_TRUE, 0, w_buffer_size,
@@ -139,7 +139,7 @@ void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
               << err << std::endl;
   }
 
-  cl_mem devicePaddedVolume =
+  auto devicePaddedVolume =
       clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
                      pv_buffer_size, (void *)&hostPaddedVolume[0], &err);
 
@@ -149,8 +149,8 @@ void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
         << err << std::endl;
   }
 
-  const size_t v_buffer_size = sizeof(hostVolume);
-  cl_mem deviceVolume =
+  const auto v_buffer_size = sizeof(hostVolume);
+  auto deviceVolume =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, v_buffer_size,
                      (void *)&hostVolume[0], &err);
   // err = clEnqueueWriteBuffer(queue, deviceVolume, CL_TRUE, 0, v_buffer_size,
@@ -164,13 +164,13 @@ void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "padding_kernel", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "padding_kernel", &err);
   if (err != CL_SUCCESS) {
     std::cout << "PAD::Could not create OpenCL kernel, error code: " << err
               << std::endl;
   }
 
-  size_t local_work_size = get_local_work_size_small(device);
+  auto local_work_size = get_local_work_size_small(device);
 
   const size_t global_work_size = paddingSize.x * paddingSize.y * paddingSize.z;
 
@@ -654,13 +654,13 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(
     cl_float *buffer, const cl_float *sub_buffer,
     itk::Image<float, 3U>::SizeType inputSize,
     itk::Image<float, 2U>::SizeType subSize) {
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput =
+  const auto memorySizeInput =
       inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
-  const size_t memorySizeSub = subSize[0] * subSize[1] * sizeof(cl_float);
+  const auto memorySizeSub = subSize[0] * subSize[1] * sizeof(cl_float);
 
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
   const auto ctx = std::get<0>(ctx_queue_dev);
@@ -668,10 +668,10 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(
   const auto device = std::get<2>(ctx_queue_dev);
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
-  cl_mem deviceSubBuffer =
+  auto deviceSubBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub,
                      (void *)&sub_buffer[0], &err);
   /*
@@ -687,7 +687,7 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "subtract_kernel2D", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "subtract_kernel2D", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "SUB::Could not create OpenCL kernel, error code: " << err
@@ -696,9 +696,9 @@ void OpenCL_subtract3Dfrom2DbySlice_InPlace(
 
   cl_event events[2];
 
-  size_t local_work_size = get_local_work_size_large(device);
+  auto local_work_size = get_local_work_size_large(device);
 
-  const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
+  const auto global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 
   const cl_uint4 inputDim = {{static_cast<cl_uint>(inputSize[0]),
                               static_cast<cl_uint>(inputSize[1]),
@@ -762,20 +762,16 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Num3D,
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
-  unsigned short *buffer = Num3D->GetBufferPointer();
-  itk::Image<unsigned short, 3U>::SizeType inputSize =
-      Num3D->GetLargestPossibleRegion().GetSize();
-  unsigned short *sub_buffer = Denum3D->GetBufferPointer();
-  itk::Image<unsigned short, 3U>::SizeType subSize =
-      Denum3D->GetLargestPossibleRegion().GetSize();
+  auto buffer = Num3D->GetBufferPointer();
+  auto inputSize = Num3D->GetLargestPossibleRegion().GetSize();
+  auto sub_buffer = Denum3D->GetBufferPointer();
+  auto subSize = Denum3D->GetLargestPossibleRegion().GetSize();
 
-  itk::Image<float, 3U>::Pointer outImage = itk::Image<float, 3U>::New();
-  const itk::Image<float, 3U>::SizeType projCT_size =
-      Num3D->GetLargestPossibleRegion().GetSize();
-  const itk::Image<float, 3U>::IndexType projCT_idxStart =
-      Num3D->GetLargestPossibleRegion().GetIndex();
-  const itk::Image<float, 3U>::SpacingType projCT_spacing = Num3D->GetSpacing();
-  const itk::Image<float, 3U>::PointType projCT_origin = Num3D->GetOrigin();
+  auto outImage = itk::Image<float, 3U>::New();
+  const auto projCT_size = Num3D->GetLargestPossibleRegion().GetSize();
+  const auto projCT_idxStart = Num3D->GetLargestPossibleRegion().GetIndex();
+  const auto projCT_spacing = Num3D->GetSpacing();
+  const auto projCT_origin = Num3D->GetOrigin();
 
   itk::Image<float, 3U>::RegionType projCT_region;
   projCT_region.SetSize(projCT_size);
@@ -787,15 +783,15 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 
   outImage->Allocate();
 
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput =
+  const auto memorySizeInput =
       inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_ushort);
-  const size_t memorySizeOutput =
+  const auto memorySizeOutput =
       inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
-  const size_t memorySizeSub =
+  const auto memorySizeSub =
       subSize[0] * subSize[1] * subSize[2] * sizeof(cl_ushort);
 
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
@@ -808,13 +804,13 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
   // subSize[0] * subSize[1] * subSize[2] << std::endl;
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
-  cl_mem deviceSubBuffer =
+  auto deviceSubBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, memorySizeSub,
                      (void *)&sub_buffer[0], &err);
-  cl_mem deviceOutBuffer = clCreateBuffer(
+  auto deviceOutBuffer = clCreateBuffer(
       ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, memorySizeOutput,
       (void *)&outImage->GetBufferPointer()[0], &err);
   /*
@@ -833,8 +829,7 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel =
-      clCreateKernel(m_Program, "divide_kernel3D_Ushort", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "divide_kernel3D_Ushort", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "SUB3D::Could not create OpenCL kernel, error code: " << err
@@ -842,8 +837,8 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
   }
 
   cl_event events[2];
-  size_t local_work_size = get_local_work_size_small(device);
-  const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
+  auto local_work_size = get_local_work_size_small(device);
+  const auto global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 
   set_kernel_mem_arg<0>(m_Kernel, deviceBuffer);
   set_kernel_mem_arg<1>(m_Kernel, deviceSubBuffer);
@@ -907,11 +902,11 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
                              itk::Image<float, 3U>::SizeType inputSize,
                              const cl_float constant) {
 
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput =
+  const auto memorySizeInput =
       inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
 
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
@@ -926,7 +921,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   // std::endl;
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
 
@@ -943,7 +938,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "add_const_kernel", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "add_const_kernel", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "ADD::Could not create OpenCL kernel, error code: " << err
@@ -952,9 +947,9 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
 
   std::cout << "Kernel created." << std::endl;
   cl_event events[2];
-  size_t local_work_size = get_local_work_size_large(device);
+  auto local_work_size = get_local_work_size_large(device);
 
-  const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
+  const auto global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 
   set_kernel_mem_arg<0>(m_Kernel, deviceBuffer);
   set_kernel_arg<1>(m_Kernel, constant);
@@ -1012,11 +1007,11 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
                                       const cl_float add_constant,
                                       const cl_float mul_constant) {
 
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput =
+  const auto memorySizeInput =
       inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
 
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
@@ -1025,7 +1020,7 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
   const auto device = std::get<2>(ctx_queue_dev);
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
 
@@ -1042,7 +1037,7 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "add_mul_const_kernel", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "add_mul_const_kernel", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "ADDMUL::Could not create OpenCL kernel, error code: " << err
@@ -1052,9 +1047,9 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
   std::cout << "Kernel created." << std::endl;
   cl_event events[2];
 
-  size_t local_work_size = get_local_work_size_large(device);
+  auto local_work_size = get_local_work_size_large(device);
 
-  const size_t global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
+  const auto global_work_size = inputSize[0] * inputSize[1] * inputSize[2];
 
   set_kernel_mem_arg<0>(m_Kernel, deviceBuffer);
   set_kernel_arg<1>(m_Kernel, add_constant);
@@ -1112,11 +1107,11 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
                                 itk::Image<float, 2U>::SizeType inputSize,
                                 const cl_float constant) {
 
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput = inputSize[0] * inputSize[1] * sizeof(cl_float);
+  const auto memorySizeInput = inputSize[0] * inputSize[1] * sizeof(cl_float);
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
   const auto ctx = std::get<0>(ctx_queue_dev);
   const auto queue = std::get<1>(ctx_queue_dev);
@@ -1129,7 +1124,7 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
   // std::endl;
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
 
@@ -1145,7 +1140,7 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "add_const_kernel", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "add_const_kernel", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "ADD::Could not create OpenCL kernel, error code: " << err
@@ -1154,9 +1149,9 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
 
   cl_event events[2];
 
-  size_t local_work_size = get_local_work_size_large(device);
+  auto local_work_size = get_local_work_size_large(device);
 
-  const size_t global_work_size = inputSize[0] * inputSize[1];
+  const auto global_work_size = inputSize[0] * inputSize[1];
 
   set_kernel_mem_arg<0>(m_Kernel, deviceBuffer);
   set_kernel_arg<1>(m_Kernel, constant);
@@ -1211,11 +1206,11 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
 
 cl_float2 OpenCL_min_max(const cl_float *buffer,
                          itk::Image<float, 3U>::SizeType inputSize) {
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput =
+  const auto memorySizeInput =
       inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
   const auto ctx = std::get<0>(ctx_queue_dev);
@@ -1226,7 +1221,7 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
   // inputSize[2] << std::endl;
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
   // err = clEnqueueWriteBuffer(queue, deviceBuffer, CL_TRUE, 0,
@@ -1242,7 +1237,7 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "min_max_kernel", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "min_max_kernel", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "MMM::Could not create OpenCL kernel, error code: " << err
@@ -1252,7 +1247,7 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
   // std::cout << "Kernel created." << std::endl;
   cl_event events[2];
 
-  size_t local_work_size = get_local_work_size_small(device);
+  auto local_work_size = get_local_work_size_small(device);
 
   cl_uint divider = 128;
   while (true) {
@@ -1271,12 +1266,12 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
 
   const size_t global_work_size = outputDim.x * outputDim.y * outputDim.z;
 
-  const size_t memorySizeSub =
+  const auto memorySizeSub =
       outputDim.x * outputDim.y * outputDim.z * sizeof(cl_float2);
   // std::cout << "MMM::output xy size: " << outputDim.x * outputDim.y *
   // outputDim.z << std::endl;
   auto *sub_buffer = new cl_float2[outputDim.x * outputDim.y * outputDim.z];
-  cl_mem deviceSubBuffer =
+  auto deviceSubBuffer =
       clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
                      memorySizeSub, (void *)&sub_buffer[0], &err);
   // err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0,
@@ -1341,18 +1336,18 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
 cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
                             itk::Image<float, 2U>::SizeType inputSize) {
 
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput = inputSize[0] * inputSize[1] * sizeof(cl_float);
+  const auto memorySizeInput = inputSize[0] * inputSize[1] * sizeof(cl_float);
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
   const auto ctx = std::get<0>(ctx_queue_dev);
   const auto queue = std::get<1>(ctx_queue_dev);
   const auto device = std::get<2>(ctx_queue_dev);
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
   if (err != CL_SUCCESS) {
@@ -1372,7 +1367,7 @@ cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "min_max_kernel", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "min_max_kernel", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "MM2D::Could not create OpenCL kernel, error code: " << err
@@ -1382,7 +1377,7 @@ cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
   // std::cout << "Kernel created." << std::endl;
   cl_event events[2];
 
-  size_t local_work_size = get_local_work_size_small(device);
+  auto local_work_size = get_local_work_size_small(device);
 
   cl_uint divider = 128;
   while (true) {
@@ -1400,11 +1395,11 @@ cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
 
   const size_t global_work_size = outputDim.x * outputDim.y;
 
-  const size_t memorySizeSub = outputDim.x * outputDim.y * sizeof(cl_float2);
+  const auto memorySizeSub = outputDim.x * outputDim.y * sizeof(cl_float2);
   // std::cout << "MMM::output xy size: " << outputDim.x * outputDim.y *
   // outputDim.z << std::endl;
   auto *sub_buffer = new cl_float2[outputDim.x * outputDim.y];
-  cl_mem deviceSubBuffer =
+  auto deviceSubBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
                      memorySizeSub, (void *)&sub_buffer[0], &err);
   // err = clEnqueueWriteBuffer(queue, deviceSubBuffer, CL_TRUE, 0,
@@ -1482,11 +1477,11 @@ cl_float2 OpenCL_min_max_recurse(const cl_float2 *buffer,
     return out;
   }
 
-  cl_int err = CL_SUCCESS;
+  auto err = CL_SUCCESS;
 
   cl_program m_Program;
 
-  const size_t memorySizeInput = inputSize * sizeof(cl_float2);
+  const auto memorySizeInput = inputSize * sizeof(cl_float2);
 
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
   const auto ctx = std::get<0>(ctx_queue_dev);
@@ -1496,7 +1491,7 @@ cl_float2 OpenCL_min_max_recurse(const cl_float2 *buffer,
   // std::cout << "MMR::Input xy size: " << inputSize << std::endl;
 
   /* Prepare OpenCL memory objects and place data inside them. */
-  cl_mem deviceBuffer =
+  auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
                      memorySizeInput, (void *)&buffer[0], &err);
   if (err != CL_SUCCESS) {
@@ -1523,28 +1518,28 @@ cl_float2 OpenCL_min_max_recurse(const cl_float2 *buffer,
     }
   }
 
-  const cl_uint outputDim = inputSize / divider;
-  size_t local_work_size = get_local_work_size_large(device);
+  const auto outputDim = inputSize / divider;
+  auto local_work_size = get_local_work_size_large(device);
 
   while (local_work_size > 32) {
-    if (((outputDim + (outputDim % local_work_size)) / local_work_size) % 2 !=
+    if ((outputDim + outputDim % local_work_size) / local_work_size % 2 !=
         0) { // global must be evenly divisable with local work group
       local_work_size /= 2;
     } else {
       break;
     }
   }
-  const size_t global_work_size =
-      ((outputDim + (outputDim % local_work_size)) / local_work_size) *
-      local_work_size; // seems redundant, but isn't
+  const auto global_work_size = (outputDim + outputDim % local_work_size) /
+                                local_work_size *
+                                local_work_size; // seems redundant, but isn't
   // std::cout << "global/local = " << (float)global_work_size /
   // (float)local_work_size << std::endl;
-  const size_t memorySizeSub =
+  const auto memorySizeSub =
       global_work_size *
       sizeof(cl_float2); // to avoid access violation in kernel
   // std::cout << "MMM::output xy size: " << outputDim << std::endl;
   auto *sub_buffer = new cl_float2[global_work_size];
-  cl_mem deviceSubBuffer =
+  auto deviceSubBuffer =
       clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
                      memorySizeSub, (void *)&sub_buffer[0], &err);
   if (err != CL_SUCCESS) {
@@ -1565,7 +1560,7 @@ cl_float2 OpenCL_min_max_recurse(const cl_float2 *buffer,
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, ctx, m_Program);
 
-  cl_kernel m_Kernel = clCreateKernel(m_Program, "min_max_kernel2", &err);
+  auto m_Kernel = clCreateKernel(m_Program, "min_max_kernel2", &err);
 
   if (err != CL_SUCCESS) {
     std::cout << "MMR::Could not create OpenCL kernel, error code: " << err

@@ -13,9 +13,12 @@
 #include <itkMacro.h>         // for CastImageFilter::New, ImageFileWriter::New
 #include <vnl_vector_fixed.h> // for vnl_vector_fixed
 
+#include "plm_math.h" // for M_PI, NLMAX, NLMIN
+
+#include "StructureSet.h"
 #include "WEPL.h"
-#include "cbctrecon.h" // for CbctRecon
-#include "plm_math.h"  // for M_PI, NLMAX, NLMIN
+#include "cbctrecon_io.h"
+#include "cbctrecon_types.h"
 
 double lin_interpolate(std::array<int, 3> point_id,
                        std::array<double, 3> point_id_pos, const int idx_2,
@@ -59,10 +62,9 @@ double lin_interpolate(std::array<int, 3> point_id,
       std::pow(point_id.at(1) + idy_2 - point_id_pos.at(1), 2) +
       std::pow(point_id.at(2) + idz_2 - point_id_pos.at(2), 2));
 
-  auto sum_weights = 1.0 /
-      std::accumulate(weights.begin(), weights.end(), 0.0);
+  auto sum_weights = 1.0 / std::accumulate(weights.begin(), weights.end(), 0.0);
 
-  auto divide_by_weight = [&sum_weights](double &val) -> void {
+  const auto divide_by_weight = [&sum_weights](double &val) -> void {
     val *= sum_weights;
   };
 
@@ -72,9 +74,9 @@ double lin_interpolate(std::array<int, 3> point_id,
   for (auto i = 0; i < 8; i++) {
     // convert point_id to cube_ids
     FloatImageType::IndexType cube_id{};
-    cube_id[0] = point_id.at(0) + (idx_2 * (i % 2));       // x= 0,1,0,1,0,1,0,1
-    cube_id[1] = point_id.at(1) + (idy_2 * ((i / 2) % 2)); // y= 0,0,1,1,0,0,1,1
-    cube_id[2] = point_id.at(2) + (idz_2 * (i / 4));       // z= 0,0,0,0,1,1,1,1
+    cube_id[0] = point_id.at(0) + idx_2 * (i % 2);     // x= 0,1,0,1,0,1,0,1
+    cube_id[1] = point_id.at(1) + idy_2 * (i / 2 % 2); // y= 0,0,1,1,0,0,1,1
+    cube_id[2] = point_id.at(2) + idz_2 * (i / 4);     // z= 0,0,0,0,1,1,1,1
 
     out_val += wepl_cube->GetPixel(cube_id) * weights.at(i);
   }
@@ -86,7 +88,7 @@ double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
                        const std::array<double, 3> vec_cubesize,
                        const std::array<size_t, 3> cubedim,
                        const FloatImageType::Pointer &wepl_cube) {
-  const double step_length = 0.1;
+  const auto step_length = 0.1;
   const std::array<double, 3> step = {{vec_basis.at(0) * step_length,
                                        vec_basis.at(1) * step_length,
                                        vec_basis.at(2) * step_length}};
@@ -100,7 +102,7 @@ double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
        static_cast<double>(cur_point_id.at(1)) * vec_cubesize.at(1),
        static_cast<double>(cur_point_id.at(2)) * vec_cubesize.at(2)}};
 
-  double out = 0.0;
+  auto out = 0.0;
 
   while (true) {
     // point_id = point / cube_size
@@ -123,27 +125,27 @@ double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
         {point.at(0) * inv_cubesize.at(0), point.at(1) * inv_cubesize.at(1),
          point.at(2) * inv_cubesize.at(2)}};
 
-    int idx_2 = -1;
-    if (point_id.at(0) < (point_id_pos.at(0))) {
+    auto idx_2 = -1;
+    if (point_id.at(0) < point_id_pos.at(0)) {
       idx_2 = 1;
     }
 
-    int idy_2 = -1;
-    if (point_id.at(1) < (point_id_pos.at(1))) {
+    const auto idy_2 = -1;
+    if (point_id.at(1) < point_id_pos.at(1)) {
       idx_2 = 1;
     }
 
-    int idz_2 = -1;
-    if (point_id.at(2) < (point_id_pos.at(2))) {
+    auto idz_2 = -1;
+    if (point_id.at(2) < point_id_pos.at(2)) {
       idz_2 = 1;
     }
 
-    if ((point_id.at(0) + idx_2) < 0.0 ||
-        (point_id.at(0) + idx_2) >= static_cast<int>(cubedim.at(0)) ||
-        (point_id.at(1) + idy_2) < 0.0 ||
-        (point_id.at(1) + idy_2) >= static_cast<int>(cubedim.at(1)) ||
-        (point_id.at(2) + idz_2) < 0.0 ||
-        (point_id.at(2) + idz_2) >= static_cast<int>(cubedim.at(2))) {
+    if (point_id.at(0) + idx_2 < 0.0 ||
+        point_id.at(0) + idx_2 >= static_cast<int>(cubedim.at(0)) ||
+        point_id.at(1) + idy_2 < 0.0 ||
+        point_id.at(1) + idy_2 >= static_cast<int>(cubedim.at(1)) ||
+        point_id.at(2) + idz_2 < 0.0 ||
+        point_id.at(2) + idz_2 >= static_cast<int>(cubedim.at(2))) {
       break;
     }
 
@@ -178,7 +180,7 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
 
   std::vector<double> cumWEPL; // cumulative WEPL
 
-  const double step_length = 0.1;
+  const auto step_length = 0.1;
   const std::array<double, 3> step = {{vec_basis.at(0) * step_length,
                                        vec_basis.at(1) * step_length,
                                        vec_basis.at(2) * step_length}};
@@ -192,7 +194,7 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
        static_cast<double>(cur_point_id.at(1)) * vec_cubesize.at(1),
        static_cast<double>(cur_point_id.at(2)) * vec_cubesize.at(2)}};
 
-  double out_wepl = 0.0;
+  auto out_wepl = 0.0;
   while (true) {
     // point_id = point / cube_size
     const std::array<int, 3> point_id = {
@@ -215,26 +217,26 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
          point.at(2) * inv_cubesize.at(2)}};
 
     auto idx_2 = -1;
-    if (point_id.at(0) < (point_id_pos.at(0))) {
+    if (point_id.at(0) < point_id_pos.at(0)) {
       idx_2 = 1;
     }
 
     auto idy_2 = -1;
-    if (point_id.at(1) < (point_id_pos.at(1))) {
-      idx_2 = 1;
+    if (point_id.at(1) < point_id_pos.at(1)) {
+      idy_2 = 1;
     }
 
     auto idz_2 = -1;
-    if (point_id.at(2) < (point_id_pos.at(2))) {
+    if (point_id.at(2) < point_id_pos.at(2)) {
       idz_2 = 1;
     }
 
-    if ((point_id.at(0) + idx_2) < 0.0 ||
-        (point_id.at(0) + idx_2) >= static_cast<int>(cubedim.at(0)) ||
-        (point_id.at(1) + idy_2) < 0.0 ||
-        (point_id.at(1) + idy_2) >= static_cast<int>(cubedim.at(1)) ||
-        (point_id.at(2) + idz_2) < 0.0 ||
-        (point_id.at(2) + idz_2) >= static_cast<int>(cubedim.at(2))) {
+    if (point_id.at(0) + idx_2 < 0.0 ||
+        point_id.at(0) + idx_2 >= static_cast<int>(cubedim.at(0)) ||
+        point_id.at(1) + idy_2 < 0.0 ||
+        point_id.at(1) + idy_2 >= static_cast<int>(cubedim.at(1)) ||
+        point_id.at(2) + idz_2 < 0.0 ||
+        point_id.at(2) + idz_2 >= static_cast<int>(cubedim.at(2))) {
       break;
     }
 
@@ -278,14 +280,15 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
 
   std::vector<WEPLVector> WEPL_contour;
 
-  for (auto point : rt_contour.coordinates) {
+  for (auto &point : rt_contour.coordinates) {
     FloatImageType::PointType p;
     p.SetElement(0, point.x);
     p.SetElement(1, point.y);
     p.SetElement(2, point.z);
     FloatImageType::IndexType cur_idx{};
     if (!wepl_cube->TransformPhysicalPointToIndex(p, cur_idx)) {
-      std::cerr << "Physical point out of bounds in WEPL calculation" << std::endl;
+      std::cerr << "Physical point out of bounds in WEPL calculation"
+                << std::endl;
       return WEPL_contour;
     }
     const std::array<size_t, 3> point_id = {{static_cast<size_t>(cur_idx[0]),
@@ -303,7 +306,7 @@ DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
                              const std::array<double, 3> vec_basis,
                              const FloatImageType::Pointer &wepl_cube) {
 
-  const double step_length = 0.1;
+  const auto step_length = 0.1;
   const DoubleVector step = {vec_basis.at(0) * step_length,
                              vec_basis.at(1) * step_length,
                              vec_basis.at(2) * step_length};
@@ -337,27 +340,24 @@ DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
                                                  point.y * inv_pixel_size.y,
                                                  point.z * inv_pixel_size.z}};
     auto idx_2 = -1;
-    if (point_id.at(0) < (point_id_pos.at(0))) {
+    if (point_id.at(0) < point_id_pos.at(0)) {
       idx_2 = 1;
     }
 
-    auto idy_2 = -1;
-    if (point_id.at(1) < (point_id_pos.at(1))) {
+    const auto idy_2 = -1;
+    if (point_id.at(1) < point_id_pos.at(1)) {
       idx_2 = 1;
     }
 
     auto idz_2 = -1;
-    if (point_id.at(2) < (point_id_pos.at(2))) {
+    if (point_id.at(2) < point_id_pos.at(2)) {
       idz_2 = 1;
     }
 
     // Check we are still in cube:
-    if ((point_id.at(0) + idx_2) < 0.0 ||
-        (point_id.at(0) + idx_2) >= cubedim.x ||
-        (point_id.at(1) + idy_2) < 0.0 ||
-        (point_id.at(1) + idy_2) >= cubedim.y ||
-        (point_id.at(2) + idz_2) < 0.0 ||
-        (point_id.at(2) + idz_2) >= cubedim.z) {
+    if (point_id.at(0) + idx_2 < 0.0 || point_id.at(0) + idx_2 >= cubedim.x ||
+        point_id.at(1) + idy_2 < 0.0 || point_id.at(1) + idy_2 >= cubedim.y ||
+        point_id.at(2) + idz_2 < 0.0 || point_id.at(2) + idz_2 >= cubedim.z) {
       std::cerr << "Image boundary was reached on WEPL calc!" << std::endl;
       break;
     }
@@ -412,9 +412,9 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
    */
   // Find p_0 and n of the three planes:
   // p_0 can be the corner where the three planes intersect:
-  const FloatImageType::IndexType itk_p0_idx = {{l.get(0) < 0.0 ? 0 : cubedim.x,
-                                           l.get(1) < 0.0 ? 0 : cubedim.y,
-                                           l.get(2) < 0.0 ? 0 : cubedim.z}};
+  const FloatImageType::IndexType itk_p0_idx = {
+      {l.get(0) < 0.0 ? 0 : cubedim.x, l.get(1) < 0.0 ? 0 : cubedim.y,
+       l.get(2) < 0.0 ? 0 : cubedim.z}};
 
   FloatImageType::PointType itk_p0;
   wepl_cube->TransformIndexToPhysicalPoint(itk_p0_idx, itk_p0);
@@ -428,8 +428,8 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
 
   // d = (p_0 - l_0) dot n / ( l dot n)
   const VectorType d(dot_product(p_0 - l, n.at(0)) / dot_product(l, n.at(0)),
-               dot_product(p_0 - l, n.at(1)) / dot_product(l, n.at(1)),
-               dot_product(p_0 - l, n.at(2)) / dot_product(l, n.at(2)));
+                     dot_product(p_0 - l, n.at(1)) / dot_product(l, n.at(1)),
+                     dot_product(p_0 - l, n.at(2)) / dot_product(l, n.at(2)));
 
   auto p = std::array<VectorType, 3U>{
       {d.get(0) * l + l_0, d.get(1) * l + l_0, d.get(2) * l + l_0}};
@@ -444,11 +444,12 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
   // index of min:
   const auto min_dist_plane = std::distance(std::begin(p_dist), it_min_dist);
   // Point of intersection:
-  DoubleVector intersect = {p.at(min_dist_plane).get(0),
+  const DoubleVector intersect = {p.at(min_dist_plane).get(0),
                             p.at(min_dist_plane).get(1),
                             p.at(min_dist_plane).get(2)};
 
-  const auto out_point = point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);
+  const auto out_point =
+      point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);
 
   return FloatVector{static_cast<float>(out_point.x),
                      static_cast<float>(out_point.y),
@@ -485,7 +486,7 @@ constexpr auto lookup = std::array<std::pair<float, double>, 16>{
 
 // Linear interpolator (as first class function)
 float hu_to_dEdx(float val) {
-  auto lookup_cond = [&val](const std::pair<float, double> cur_pair) {
+  const auto lookup_cond = [&val](const std::pair<float, double> cur_pair) {
     return val < cur_pair.first;
   };
   // Find first index in lookup that satisfies "val < lookup[i].first" :
@@ -495,16 +496,16 @@ float hu_to_dEdx(float val) {
   const auto lookup_upper = *lookup_upper_ptr;
 
   // Get the previous index:
-  const auto lookup_lower = lookup.at((lookup_upper_ptr - lookup.begin()) - 1);
+  const auto lookup_lower = lookup.at(lookup_upper_ptr - lookup.begin() - 1);
 
   // Do linear interpolation between upper and lower data point:
   const auto a = (lookup_upper.second - lookup_lower.second) /
-                   static_cast<double>(lookup_upper.first - lookup_lower.first);
+                 static_cast<double>(lookup_upper.first - lookup_lower.first);
   const auto b =
       lookup_upper.second - a * static_cast<double>(lookup_upper.first);
 
   return a * val + b;
-};
+}
 
 FloatImageType::Pointer
 ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
@@ -512,7 +513,7 @@ ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   ConvertUshort2Short(spImgUshort, hu_image_tmp);
 
   using CastFilterType = itk::CastImageFilter<ShortImageType, FloatImageType>;
-  CastFilterType::Pointer cast_filter = CastFilterType::New();
+  auto cast_filter = CastFilterType::New();
   cast_filter->SetInput(hu_image_tmp);
   cast_filter->Update();
 
@@ -528,7 +529,7 @@ ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   }
 
   using WriterType = itk::ImageFileWriter<FloatImageType>;
-  WriterType::Pointer writer = WriterType::New();
+  auto writer = WriterType::New();
   writer->SetInput(wepl_image);
   writer->SetFileName("wepl_image.mha");
   writer->Update();

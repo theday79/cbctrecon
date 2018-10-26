@@ -78,6 +78,9 @@ public:
   OpenCLFDKBackProjectionImageFilter(const Self &) =
       delete;                            // purposely not implemented
   void operator=(const Self &) = delete; // purposely not implemented
+  OpenCLFDKBackProjectionImageFilter(Self &&) =
+      delete;                       // purposely not implemented
+  void operator=(Self &&) = delete; // purposely not implemented
 
 private:
   cl_context m_Context{};

@@ -2,27 +2,14 @@
 #define PLMWRAPPER_H
 
 #include <array>
-#include <functional>
 #include <memory>
-#include <vector>
 
-#undef TIMEOUT
-#include <direction_cosines.h>
-#include <rtss.h>
-#include <rtss_contour.h>
-#include <rtss_roi.h>
+#include "plm_image.h"
+#include "rtss.h"
+#include "rtss_contour.h"
+#include "rtss_roi.h"
 
-using ItkVectorType = itk::Vector<float, 3U>;
-using VectorFieldType = itk::Image<ItkVectorType, 3U>;
-using PointType = itk::Point<double, 3U>;
-// Sorry, I can't control myself, I just love std::function
-using TransformType = std::function<PointType(PointType)>;
-
-struct FloatVector {
-  float x;
-  float y;
-  float z;
-};
+#include "cbctrecon_types.h"
 
 class Plm_image_friend : public Plm_image {
 public:
@@ -32,16 +19,18 @@ public:
 class Rtss_contour_modern : public Rtss_contour {
 public:
   Rtss_contour_modern() = default;
-  Rtss_contour_modern(Rtss_contour *old_contour);
-  Rtss_contour_modern(Rtss_contour_modern *old_contour);
+  ~Rtss_contour_modern() = default;
+  Rtss_contour_modern(const Rtss_contour *old_contour);
+  Rtss_contour_modern(const Rtss_contour_modern &old_contour);
   std::vector<FloatVector> coordinates;
 };
 
 class Rtss_roi_modern : public Rtss_roi {
 public:
   Rtss_roi_modern() = default;
-  Rtss_roi_modern(Rtss_roi *old_roi);
-  Rtss_roi_modern(Rtss_roi_modern *old_roi);
+  ~Rtss_roi_modern() = default;
+  Rtss_roi_modern(const Rtss_roi *old_roi);
+  Rtss_roi_modern(const Rtss_roi_modern &old_roi);
 
   std::vector<Rtss_contour_modern> pslist;
 };
@@ -49,10 +38,11 @@ public:
 class Rtss_modern : public Rtss {
 public:
   Rtss_modern() = default;
+  ~Rtss_modern() = default;
   // Unique pointer, to make sure it's killed by its destructor after copy
   Rtss_modern(std::unique_ptr<Rtss> old_rtss);
-  Rtss_modern(Rtss *old_rtss);
-  Rtss_modern(Rtss_modern *old_rtss);
+  Rtss_modern(const Rtss *old_rtss);
+  Rtss_modern(const Rtss_modern &old_rtss);
 
   std::unique_ptr<Rtss_roi_modern> get_roi_by_name(std::string &name);
   /* Output geometry */

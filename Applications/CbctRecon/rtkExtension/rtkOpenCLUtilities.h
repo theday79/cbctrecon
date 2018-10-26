@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "itkMacro.h"
+#include "itkMacro.h" // itkGenericExceptionMacro
 
 /** \brief Macro to check errors when running an OpenCL command.
  *

@@ -6,6 +6,9 @@
 #include <string>   // for string
 #include <vector>   // for vector
 
+// Qt
+#include <qxmlstream.h>
+
 // ITK
 #include "gdcmUIDGenerator.h"
 #include "itkGDCMImageIO.h"
@@ -25,6 +28,8 @@
 #include "rtkThreeDCircularProjectionGeometryXMLFileWriter.h" // for ThreeDCircularProje...
 
 // PLM
+#undef TIMEOUT
+#undef CUDA_FOUND
 #include "dcmtk_rt_study.h"
 #include "plm_image.h"
 #include <rt_study_metadata.h>
@@ -38,19 +43,18 @@ QString MakeElektaXML(const QString &filePath_ImageDBF,
                       const QString &DICOM_UID) {
   std::cout << "Elekta geometry XML file is being generated." << std::endl;
   // Define FRAME.DBF path
-  rtk::ElektaSynergyGeometryReader::Pointer reader =
-      rtk::ElektaSynergyGeometryReader::New();
+  auto reader = rtk::ElektaSynergyGeometryReader::New();
   // string strDicomUID = DICOM_UID.toLocal8Bit().constData();
   // //DICOM_UID.toStdString()  string strDicomUID = DICOM_UID.toStdString();
   // string strDbfImg = filePath_ImageDBF.toStdString();
   // string strDbfFrame = filePath_FrameDBF.toStdString();
 
-  QFileInfo info = QFileInfo(filePath_ImageDBF);
-  const QString dirPath = info.absolutePath();
+  auto info = QFileInfo(filePath_ImageDBF);
+  const auto dirPath = info.absolutePath();
 
-  const QString fileName = "ElektaGeom_" + DICOM_UID + ".xml";
+  const auto fileName = "ElektaGeom_" + DICOM_UID + ".xml";
 
-  QString str_output = dirPath + "/" + fileName;
+  auto str_output = dirPath + "/" + fileName;
 
   reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
   reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
@@ -59,8 +63,7 @@ QString MakeElektaXML(const QString &filePath_ImageDBF,
   TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->UpdateOutputData());
 
   // Write
-  rtk::ThreeDCircularProjectionGeometryXMLFileWriter::Pointer xmlWriter =
-      rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
+  auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
   xmlWriter->SetFilename(str_output.toLocal8Bit().constData());
   xmlWriter->SetObject(reader->GetGeometry());
   TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile())
@@ -70,9 +73,96 @@ QString MakeElektaXML(const QString &filePath_ImageDBF,
   return str_output;
 }
 
+FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
+
+  auto tmpResult =
+      FLEXDATA{/*fGanAngle =*/0.0, /*fPanelOffsetX =*/0.0,
+               /*fPanelOffsetY =*/0.0, /*bKV_On =*/true, /*bMV_On =*/false};
+
+  /* Let's check that we're really getting a person. */
+  if (xml.tokenType() != QXmlStreamReader::StartElement &&
+      xml.name() == "Frame") {
+    return tmpResult;
+  }
+  /* Let's get the attributes for person */
+  // QXmlStreamAttributes attributes = xml.attributes();
+  /* Let's check that person has id attribute. */
+  // if (attributes.hasAttribute("id")) {
+  //	/* We'll add it to the map. */
+  //	person["id"] = attributes.value("id").toString();
+  //}
+  /* Next element... */
+  xml.readNext();
+  /*
+   * We're going to loop over the things because the order might change.
+   * We'll continue the loop until we hit an EndElement named person.
+   */
+  while (!(xml.tokenType() == QXmlStreamReader::EndElement &&
+           xml.name() == "Frame")) {
+    auto tmpXmlName = xml.name();
+    auto strTmpXMLName = QString(tmpXmlName.toLocal8Bit().constData());
+    // int tmpType = (int)(xml.tokenType());
+
+    QString tmpStr;
+    if (xml.tokenType() == QXmlStreamReader::StartElement) {
+      /* We've found first name. */
+      if (xml.name() == "Seq") {
+        tmpStr = XML_GetSingleItemString(xml);
+      }
+      /* We've found surname. */
+      else if (xml.name() == "DeltaMS") {
+        tmpStr = XML_GetSingleItemString(xml);
+      }
+      /* We've found email. */
+      else if (xml.name() == "HasPixelFactor") {
+        tmpStr = XML_GetSingleItemString(xml);
+      }
+      /* We've found website. */
+      else if (xml.name() == "PixelFactor") {
+        tmpStr = XML_GetSingleItemString(xml);
+      } else if (xml.name() == "GantryAngle") {
+        tmpStr = XML_GetSingleItemString(xml);
+        tmpResult.fGanAngle = tmpStr.toDouble();
+      } else if (xml.name() == "Exposed") {
+        tmpStr = XML_GetSingleItemString(xml);
+        if (tmpStr == "True") {
+          tmpResult.bKV_On = true;
+        } else {
+          tmpResult.bKV_On = false;
+        }
+      }
+      /*else if (xml.name() == "Exposed") {
+          tmpStr = XML_GetSingleItemString(xml);
+          if (tmpStr == "True")
+              tmpResult.bKV_On = true;
+          else
+              tmpResult.bKV_On = false;
+      }*/
+      else if (xml.name() == "MVOn") {
+        tmpStr = XML_GetSingleItemString(xml);
+        if (tmpStr == "True") {
+          tmpResult.bMV_On = true;
+        } else {
+          tmpResult.bMV_On = false;
+        }
+      } else if (xml.name() == "UCentre") {
+        tmpStr = XML_GetSingleItemString(xml);
+        tmpResult.fPanelOffsetX = tmpStr.toDouble();
+      } else if (xml.name() == "VCentre") {
+        tmpStr = XML_GetSingleItemString(xml);
+        tmpResult.fPanelOffsetY = tmpStr.toDouble();
+      } else if (xml.name() == "Inactive") {
+        tmpStr = XML_GetSingleItemString(xml);
+      }
+    }
+    xml.readNext();
+  }
+  return tmpResult;
+}
+
 // Get the projection geometry
 void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
-  rtk::ThreeDCircularProjectionGeometryXMLFileReader::Pointer geometryReader =
+  auto geometryReader =
       rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
   geometryReader->SetFilename(filePath);
   TRY_AND_EXIT_ON_ITK_EXCEPTION(geometryReader->GenerateOutputInformation())
@@ -105,11 +195,11 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
 
   std::vector<double> vTempConvAngles;
 
-  const auto itBegin = (m_spFullGeometry->GetGantryAngles()).begin();
-  const auto itEnd = (m_spFullGeometry->GetGantryAngles()).end();
+  const auto itBegin = m_spFullGeometry->GetGantryAngles().begin();
+  const auto itEnd = m_spFullGeometry->GetGantryAngles().end();
 
   for (auto it = itBegin; it != itEnd; ++it) {
-    double tmpAngle = (*it);
+    auto tmpAngle = *it;
 
     if (tmpAngle > 180.0) {
       tmpAngle = tmpAngle - 360.0;
@@ -144,7 +234,7 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
 bool LoadShortImageToUshort(QString &strPath,
                             UShortImageType::Pointer &pUshortImage) {
   using ReaderType = itk::ImageFileReader<ShortImageType>;
-  ReaderType::Pointer reader = ReaderType::New();
+  auto reader = ReaderType::New();
 
   // QString fileName = QFileDialog::getOpenFileName(this, "Open Image","",
   // "Plan CT file (*.mha)",0,0);
@@ -159,8 +249,7 @@ bool LoadShortImageToUshort(QString &strPath,
   // Figure out whether this is NKI
   using ImageCalculatorFilterType =
       itk::MinimumMaximumImageCalculator<ShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(reader->GetOutput());
   imageCalculatorFilter->Compute();
 
@@ -170,7 +259,7 @@ bool LoadShortImageToUshort(QString &strPath,
   std::cout << "Original Min and Max Values are	" << minVal0 << "	"
             << maxVal0 << std::endl;
 
-  bool bNKI = false;
+  auto bNKI = false;
   if (minVal0 > -600) // impossible for normal Short image. IN NKI, always -512.
                       // don't know why
   {
@@ -179,8 +268,7 @@ bool LoadShortImageToUshort(QString &strPath,
 
   // Thresholding
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilter =
-      ThresholdImageFilterType::New();
+  auto thresholdFilter = ThresholdImageFilterType::New();
 
   if (!bNKI) {
     thresholdFilter->SetInput(reader->GetOutput());
@@ -214,7 +302,7 @@ bool LoadShortImageToUshort(QString &strPath,
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  auto spRescaleFilter = RescaleFilterType::New();
   spRescaleFilter->SetInput(thresholdFilter->GetOutput());
   spRescaleFilter->SetOutputMinimum(outputMinVal);
   spRescaleFilter->SetOutputMaximum(outputMaxVal);
@@ -232,21 +320,19 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   }
 
   using DuplicatorType = itk::ImageDuplicator<UShortImageType>;
-  DuplicatorType::Pointer duplicator = DuplicatorType::New();
+  auto duplicator = DuplicatorType::New();
   duplicator->SetInputImage(spUsImage);
   duplicator->Update();
   const UShortImageType::Pointer clonedReconImage = duplicator->GetOutput();
   ShortImageType::Pointer clonedReconImageSHORT;
 
   using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterAbove = ThresholdImageFilterType::New();
   thresholdFilterAbove->SetInput(clonedReconImage);
   thresholdFilterAbove->ThresholdAbove(4095);
   thresholdFilterAbove->SetOutsideValue(4095);
 
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterBelow = ThresholdImageFilterType::New();
   thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
   thresholdFilterBelow->ThresholdBelow(0);
   thresholdFilterBelow->SetOutsideValue(0);
@@ -254,8 +340,7 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
 
   using ImageCalculatorFilterType =
       itk::MinimumMaximumImageCalculator<UShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
   imageCalculatorFilter->Compute();
   const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
@@ -267,7 +352,7 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  auto spRescaleFilter = RescaleFilterType::New();
   spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
   spRescaleFilter->SetOutputMinimum(outputMinVal);
   spRescaleFilter->SetOutputMaximum(outputMaxVal);
@@ -287,7 +372,7 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   addImageFilter->Update();
   */
   using WriterType = itk::ImageFileWriter<ShortImageType>;
-  WriterType::Pointer writer = WriterType::New();
+  auto writer = WriterType::New();
   writer->SetFileName(outputFilePath.toLocal8Bit().constData());
   // writer->SetUseCompression(true);
   writer->SetUseCompression(false); // for plastimatch
@@ -319,18 +404,16 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     m_structures->set_planCT_ss(planCT_ss.get());
   }
 
-  const ShortImageType::Pointer spShortImg = plmImg.itk_short();
+  const auto spShortImg = plmImg.itk_short();
 
   // Figure out whether this is NKI
   using ImageCalculatorFilterType =
       itk::MinimumMaximumImageCalculator<ShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
 
   // Thresholding
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilter =
-      ThresholdImageFilterType::New();
+  auto thresholdFilter = ThresholdImageFilterType::New();
 
   thresholdFilter->SetInput(spShortImg);
   thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
@@ -351,7 +434,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  auto spRescaleFilter = RescaleFilterType::New();
   spRescaleFilter->SetInput(thresholdFilter->GetOutput());
   spRescaleFilter->SetOutputMinimum(outputMinVal);
   spRescaleFilter->SetOutputMaximum(outputMaxVal);
@@ -367,8 +450,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
 void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
                          ShortImageType::Pointer &spImgShort) {
   using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilter =
-      ThresholdImageFilterType::New();
+  auto thresholdFilter = ThresholdImageFilterType::New();
   thresholdFilter->SetInput(spImgUshort);
   thresholdFilter->ThresholdOutside(0, 4096); //--> 0 ~ 4095
   thresholdFilter->SetOutsideValue(0);
@@ -376,8 +458,7 @@ void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
 
   using ImageCalculatorFilterType =
       itk::MinimumMaximumImageCalculator<UShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
   imageCalculatorFilter->Compute();
   const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
@@ -389,7 +470,7 @@ void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<UShortImageType, ShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  auto spRescaleFilter = RescaleFilterType::New();
   spRescaleFilter->SetInput(thresholdFilter->GetOutput());
   spRescaleFilter->SetOutputMinimum(outputMinVal);
   spRescaleFilter->SetOutputMaximum(outputMaxVal);
@@ -398,18 +479,15 @@ void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
   spImgShort = spRescaleFilter->GetOutput();
 }
 
-
 void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
                          UShortImageType::Pointer &spOutputImgUshort) {
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterAbove = ThresholdImageFilterType::New();
   thresholdFilterAbove->SetInput(spInputImgShort);
   thresholdFilterAbove->ThresholdAbove(3071);
   thresholdFilterAbove->SetOutsideValue(3071);
 
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterBelow = ThresholdImageFilterType::New();
   thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
   thresholdFilterBelow->ThresholdBelow(-1024);
   thresholdFilterBelow->SetOutsideValue(-1024);
@@ -417,8 +495,7 @@ void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
 
   using ImageCalculatorFilterType =
       itk::MinimumMaximumImageCalculator<ShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(thresholdFilterBelow->GetOutput());
   imageCalculatorFilter->Compute();
   const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
@@ -432,7 +509,7 @@ void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
 
   using RescaleFilterType =
       itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
-  RescaleFilterType::Pointer spRescaleFilter = RescaleFilterType::New();
+  auto spRescaleFilter = RescaleFilterType::New();
   spRescaleFilter->SetInput(thresholdFilterBelow->GetOutput());
   spRescaleFilter->SetOutputMinimum(outputMinVal);
   spRescaleFilter->SetOutputMaximum(outputMaxVal);
@@ -455,7 +532,7 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
 
   QString endFix = "_DCM";
 
-  QString newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
+  auto newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
   // QString newDirPath =
   //  strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
 
@@ -487,7 +564,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
-  QString newDirPath =
+  auto newDirPath =
       strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
 
   QDir dirNew(newDirPath);
@@ -511,12 +588,12 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   using ImageIOType = itk::GDCMImageIO;
   using NamesGeneratorType = itk::NumericSeriesFileNames;
 
-  UShortImageType::RegionType region = spShortImg->GetLargestPossibleRegion();
-  UShortImageType::IndexType start = region.GetIndex();
-  UShortImageType::SizeType size = region.GetSize();
+  auto region = spShortImg->GetLargestPossibleRegion();
+  auto start = region.GetIndex();
+  auto size = region.GetSize();
 
-  ImageIOType::Pointer gdcmIO = ImageIOType::New();
-  itk::MetaDataDictionary &dict = gdcmIO->GetMetaDataDictionary();
+  auto gdcmIO = ImageIOType::New();
+  auto &dict = gdcmIO->GetMetaDataDictionary();
   std::string value = "CT";
   itk::EncapsulateMetaData<std::string>(dict, "0008|0060", value); // Modality
   value = "DERIVED\\SECONDARY\\AXIAL"; // This is virtually always correct when
@@ -525,7 +602,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   value = "SI";
   itk::EncapsulateMetaData<std::string>(dict, "0008|0064",
                                         value); // Conversion Type
-  const double value_double = spShortImg->GetSpacing()[2];
+  const auto value_double = spShortImg->GetSpacing()[2];
   std::ostringstream strs;
   strs << value_double;
   value = strs.str();
@@ -540,7 +617,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   std::cout << studyUID << std::endl;
   itk::EncapsulateMetaData<std::string>(dict, "0020|000d", studyUID);
 
-  NamesGeneratorType::Pointer namesGenerator = NamesGeneratorType::New();
+  auto namesGenerator = NamesGeneratorType::New();
   namesGenerator->SetStartIndex(static_cast<itk::SizeValueType>(start[2]));
   namesGenerator->SetEndIndex(static_cast<itk::SizeValueType>(start[2]) +
                               size[2] - 1);
@@ -550,7 +627,7 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
 
   using SeriesWriterType =
       itk::ImageSeriesWriter<ShortImageType, OutputImageType>;
-  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+  auto seriesWriter = SeriesWriterType::New();
   seriesWriter->SetInput(spShortImg);
   seriesWriter->SetImageIO(gdcmIO);
   seriesWriter->SetFileNames(namesGenerator->GetFileNames());
@@ -569,31 +646,31 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
 
 QString get_output_options(const UShortImageType::Pointer &m_spFixed) {
 
-  const QString str_fixed_origin =
+  const auto str_fixed_origin =
       QString("%1,%2,%3") // done per image because CT might be different from
                           // reconstructed CBCT
           .arg(m_spFixed->GetOrigin()[0])
           .arg(m_spFixed->GetOrigin()[1])
           .arg(m_spFixed->GetOrigin()[2]);
-  const QString str_fixed_dimension =
+  const auto str_fixed_dimension =
       QString("%1,%2,%3")
           .arg(m_spFixed->GetBufferedRegion().GetSize()[0])
           .arg(m_spFixed->GetBufferedRegion().GetSize()[1])
           .arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
-  const QString str_fixed_spacing = QString("%1,%2,%3")
-                                        .arg(m_spFixed->GetSpacing()[0])
-                                        .arg(m_spFixed->GetSpacing()[1])
-                                        .arg(m_spFixed->GetSpacing()[2]);
-  const QString str_fixed_direction = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
-                                          .arg(m_spFixed->GetDirection()[0][0])
-                                          .arg(m_spFixed->GetDirection()[0][1])
-                                          .arg(m_spFixed->GetDirection()[0][2])
-                                          .arg(m_spFixed->GetDirection()[1][0])
-                                          .arg(m_spFixed->GetDirection()[1][1])
-                                          .arg(m_spFixed->GetDirection()[1][2])
-                                          .arg(m_spFixed->GetDirection()[2][0])
-                                          .arg(m_spFixed->GetDirection()[2][1])
-                                          .arg(m_spFixed->GetDirection()[2][2]);
+  const auto str_fixed_spacing = QString("%1,%2,%3")
+                                     .arg(m_spFixed->GetSpacing()[0])
+                                     .arg(m_spFixed->GetSpacing()[1])
+                                     .arg(m_spFixed->GetSpacing()[2]);
+  const auto str_fixed_direction = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
+                                       .arg(m_spFixed->GetDirection()[0][0])
+                                       .arg(m_spFixed->GetDirection()[0][1])
+                                       .arg(m_spFixed->GetDirection()[0][2])
+                                       .arg(m_spFixed->GetDirection()[1][0])
+                                       .arg(m_spFixed->GetDirection()[1][1])
+                                       .arg(m_spFixed->GetDirection()[1][2])
+                                       .arg(m_spFixed->GetDirection()[2][0])
+                                       .arg(m_spFixed->GetDirection()[2][1])
+                                       .arg(m_spFixed->GetDirection()[2][2]);
 
   return QString(" --origin %1 --spacing %2 --dimension %3 --direction %4")
       .arg(str_fixed_origin)
@@ -626,12 +703,12 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
   float couch_Yaw = 0.0;
   float couch_Roll = 0.0;
 
-  bool bFound = false;
+  auto bFound = false;
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    QString tmpStr = QString(&str[0]);
-    QStringList strListParam = tmpStr.split("=");
+    auto tmpStr = QString(&str[0]);
+    auto strListParam = tmpStr.split("=");
 
     QString tagName, strVal;
 
@@ -667,8 +744,8 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
   pTrans->x = couch_Lat_cm * 10.0; // sign should be checked
   // pTrans->y = couch_Vert_cm*10.0; //sign should be checked // IEC-->DICOM is
   // already accounted for..but sign!
-  pTrans->y = couch_Vert_cm * (-10.0); // consistent with Tracking software
-  pTrans->z = couch_Long_cm * 10.0;    // sign should be checked
+  pTrans->y = couch_Vert_cm * -10.0; // consistent with Tracking software
+  pTrans->z = couch_Long_cm * 10.0;  // sign should be checked
 
   pRot->x = couch_Pitch;
   pRot->y = couch_Yaw;
@@ -679,7 +756,7 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
 
 bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
                          float &ms) {
-  QFileInfo info = QFileInfo(strPathINI);
+  auto info = QFileInfo(strPathINI);
 
   kVp = 0.0;
   mA = 0.0;
@@ -704,8 +781,8 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    QString tmpStr = QString(&str[0]);
-    QStringList strListParam = tmpStr.split("=");
+    auto tmpStr = QString(&str[0]);
+    auto strListParam = tmpStr.split("=");
 
     QString tagName;
     QString strVal;
@@ -744,13 +821,12 @@ bool LoadShortImageDirOrFile(QString &strPathDir,
 
   Plm_image plmImg;
   plmImg.load_native(strPathDir.toLocal8Bit().constData());
-  const ShortImageType::Pointer spShortImg = plmImg.itk_short();
+  const auto spShortImg = plmImg.itk_short();
 
   // Figure out whether this is NKI
   using ImageCalculatorFilterType =
       itk::MinimumMaximumImageCalculator<ShortImageType>;
-  ImageCalculatorFilterType::Pointer imageCalculatorFilter =
-      ImageCalculatorFilterType::New();
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
   imageCalculatorFilter->SetImage(spShortImg);
   imageCalculatorFilter->Compute();
 
@@ -760,14 +836,12 @@ bool LoadShortImageDirOrFile(QString &strPathDir,
   // Thresholding
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
 
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterAbove = ThresholdImageFilterType::New();
   thresholdFilterAbove->SetInput(spShortImg);
   thresholdFilterAbove->ThresholdAbove(3072);
   thresholdFilterAbove->SetOutsideValue(3072);
 
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterBelow = ThresholdImageFilterType::New();
   thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
   thresholdFilterBelow->ThresholdBelow(-1024);
   thresholdFilterBelow->SetOutsideValue(-1024);

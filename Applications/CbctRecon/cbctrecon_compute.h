@@ -30,9 +30,6 @@ CBCTRECON_API void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
                                FloatImage2DType::Pointer &spTargetImg2D,
                                int idx, enPLANE iDirection);
 
-CBCTRECON_API void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
-                                       ShortImageType::Pointer &spImgShort);
-
 CBCTRECON_API double
 CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
                                        UShortImageType::Pointer &spProjCT3D);
@@ -64,7 +61,7 @@ ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
 
 template <typename RefImageType, typename TargetImageType>
 void AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
-              typename TargetImageType::Pointer &spTarImg3D) {
+                   typename TargetImageType::Pointer &spTarImg3D) {
   const auto sizeSrc = spRefImg3D->GetBufferedRegion().GetSize();
   const auto startSrc = spRefImg3D->GetBufferedRegion().GetIndex();
 
@@ -86,8 +83,9 @@ void AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
 }
 
 template <typename T>
-T GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY, const unsigned int reqZ,
-                    typename itk::Image<T, 3>::Pointer &sp3DImage) {
+T GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY,
+                      const unsigned int reqZ,
+                      typename itk::Image<T, 3>::Pointer &sp3DImage) {
   if (sp3DImage == nullptr) {
     return 0;
   }
@@ -101,7 +99,8 @@ T GetValueFrom3DImage(const unsigned int reqX, const unsigned int reqY, const un
 }
 
 template <typename ImageType>
-double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
+double
+GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
              const typename ImageType::Pointer &ProjStack) {
 
   using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, ImageType>;
@@ -109,7 +108,7 @@ double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geomet
   FOVfilter->SetGeometry(geometry);
   FOVfilter->SetProjectionsStack(ProjStack.GetPointer());
   double x, z;
-  double r_inf = -1.0;
+  auto r_inf = -1.0;
   bool hasOverlap = FOVfilter->ComputeFOVRadius(
       FOVfilterType::FOVRadiusType::RADIUSINF, x, z, r_inf);
   // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems to
@@ -118,7 +117,7 @@ double GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geomet
   if (hasOverlap) {
     std::cout << "FOV (inf) radius was found: r=" << r_inf << std::endl;
   }
-  double r_sup = -1.0;
+  auto r_sup = -1.0;
   hasOverlap = FOVfilter->ComputeFOVRadius(
       FOVfilterType::FOVRadiusType::RADIUSSUP, x, z, r_sup);
   if (hasOverlap) {
@@ -135,7 +134,7 @@ bool GetOutputResolutionFromFOV(
     const QString &outputFilePath) {
 
   QFileInfo outFileInfo(outputFilePath);
-  QDir outFileDir = outFileInfo.absoluteDir();
+  auto outFileDir = outFileInfo.absoluteDir();
 
   if (outputFilePath.length() < 2 || !outFileDir.exists()) {
     const double radius = GetFOVRadius<ImageType>(geometry, ProjStack);

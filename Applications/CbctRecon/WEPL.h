@@ -3,27 +3,11 @@
 #include <array>
 #include <vector>
 
-#include "PlmWrapper.h" // for FloatVector, Rtss_contour_modern
-#include "cbctrecon.h"  // for FloatImageType, UShortImageType
+#include "cbctrecon_types.h" // for FloatImageType, UShortImageType
+
+class Rtss_contour_modern;
 
 template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
-
-struct WEPLVector {
-  double WEPL;
-  FloatVector point;
-};
-
-struct DoubleVector {
-  double x;
-  double y;
-  double z;
-};
-
-struct IntVector {
-  int x;
-  int y;
-  int z;
-};
 
 double WEPL_from_point(std::array<size_t, 3> cur_point_id,
                        std::array<double, 3> vec_basis,
@@ -43,7 +27,7 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
                            std::array<double, 3> vec_basis,
                            const FloatImageType::Pointer &wepl_cube);
 
-DoubleVector point_from_WEPL(DoubleVector start_point, const double fWEPL,
+DoubleVector point_from_WEPL(DoubleVector start_point, double fWEPL,
                              std::array<double, 3> vec_basis,
                              const FloatImageType::Pointer &wepl_cube);
 

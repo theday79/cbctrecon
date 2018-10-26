@@ -4,18 +4,15 @@
 
 // configs
 #include <itkConfigure.h>
-#include <plm_config.h>
 
 // ITK
 #include <gdcmUIDGenerator.h>
 #include <itkBinaryThresholdImageFilter.h>
-// #include <itkCastImageFilter.h>
 #include <itkGDCMImageIO.h>
 #include <itkImageSeriesWriter.h>
 #include <itkMinimumMaximumImageFilter.h>
 #include <itkMultiplyImageFilter.h>
 #include <itkSubtractImageFilter.h>
-// #include <itkThresholdImageFilter.h>
 
 // PLM
 #undef TIMEOUT // used in an enum in dlib, and may be defined as 7 in lp of RTK
@@ -37,19 +34,22 @@
 #include <synthetic_vf.h>
 #include <warp_parms.h>
 
-#include "cbctrecon_io.h"
 #include "StructureSet.h"
+#include "cbctrecon.h"
+#include "cbctrecon_io.h"
 
 CbctRegistration::CbctRegistration(CbctRecon *parent) {
 
   m_pParent = parent;
 
   m_pDcmStudyPlan = nullptr;
+  WEPL_voi = nullptr;
+  cur_voi = nullptr;
 }
 
 CbctRegistration::~CbctRegistration() {
 
-  for (int i = 0; i < 3; i++) {
+  for (auto i = 0; i < 3; i++) {
     m_YKImgFixed[i].ReleaseBuffer();
     m_YKImgMoving[i].ReleaseBuffer();
     m_YKDisp[i].ReleaseBuffer();
@@ -67,10 +67,11 @@ CbctRegistration::~CbctRegistration() {
 void CbctRegistration::GenPlastiRegisterCommandFile(
     const QString &strPathCommandFile, const QString &strPathFixedImg,
     const QString &strPathMovingImg, const QString &strPathOutImg,
-    const QString &strPathXformOut, enRegisterOption regiOption,
+    const QString &strPathXformOut, const enRegisterOption regiOption,
     const QString &strStageOption1, const QString &strStageOption2,
     const QString &strStageOption3, const QString &strPathFixedMask,
-    bool optim_mse, bool use_cuda, QString &GradOptionStr) const {
+    const bool optim_mse, const bool use_cuda,
+    QString & /*GradOptionStr*/) const {
   // optionStr = ui.lineEditGradOption->text();
   std::ofstream fout;
   fout.open(strPathCommandFile.toLocal8Bit().constData());
@@ -278,7 +279,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
   // Sleep(1000); //Just in case.. it seems it helped to avoid random crash!
 }
 
-void CbctRegistration::autoPreprocessCT(int iAirThresholdShort,
+void CbctRegistration::autoPreprocessCT(const int iAirThresholdShort,
                                         UShortImageType::Pointer &spFixed,
                                         UShortImageType::Pointer &spMoving) {
 
@@ -287,7 +288,7 @@ void CbctRegistration::autoPreprocessCT(int iAirThresholdShort,
   std::cout << "Thresh: " << air_thresh << std::endl;
   using threshFilterType =
       itk::BinaryThresholdImageFilter<UShortImageType, ShortImageType>;
-  threshFilterType::Pointer threshFilter_CT = threshFilterType::New();
+  auto threshFilter_CT = threshFilterType::New();
   threshFilter_CT->SetInput(spMoving);
 
   threshFilter_CT->SetOutsideValue(0);
@@ -295,7 +296,7 @@ void CbctRegistration::autoPreprocessCT(int iAirThresholdShort,
   threshFilter_CT->SetLowerThreshold(air_thresh); // -600 HU
   // threshFilter_CT->Update();
 
-  threshFilterType::Pointer threshFilter_CBCT = threshFilterType::New();
+  auto threshFilter_CBCT = threshFilterType::New();
   threshFilter_CBCT->SetInput(spFixed);
 
   threshFilter_CBCT->SetOutsideValue(0);
@@ -305,7 +306,7 @@ void CbctRegistration::autoPreprocessCT(int iAirThresholdShort,
 
   using subFilterType =
       itk::SubtractImageFilter<ShortImageType, ShortImageType, ShortImageType>;
-  subFilterType::Pointer subFilter = subFilterType::New();
+  auto subFilter = subFilterType::New();
   subFilter->SetInput1(threshFilter_CT->GetOutput());
   subFilter->SetInput2(threshFilter_CBCT->GetOutput());
   std::cout << "Making fill-crop mask..." << std::endl;
@@ -342,10 +343,10 @@ void CbctRegistration::autoPreprocessCT(int iAirThresholdShort,
 }
 
 bool CbctRegistration::PreprocessCT(
-    int iAirThresholdShort, QString strRSName, bool fill_bubble,
-    int iBubbleFillingVal,
-    int iAirFillValShort) // CT preparation + CBCT preparation only,
-                          // then show the registration DLG
+    const int iAirThresholdShort, QString strRSName, const bool fill_bubble,
+    const int iBubbleFillingVal,
+    const int iAirFillValShort) // CT preparation + CBCT preparation only,
+                                // then show the registration DLG
 {
   // All files will be saved in m_strPathPlastimatch
 
@@ -353,7 +354,7 @@ bool CbctRegistration::PreprocessCT(
   // string strCTDir = m_pParent->m_strPathPlanCTDir.toStdString();
   // string strPathMaskBubbleCT =
   // m_strPathPlastimatch.append("/msk_bubbles_CT.mha").toStdString();
-  QString strPathMskBubbleCT = m_strPathPlastimatch + "/msk_bubbles_CT.mha";
+  auto strPathMskBubbleCT = m_strPathPlastimatch + "/msk_bubbles_CT.mha";
 
   // char* strTest = (char*)(strCTDir.c_str());
   // const char* strTest2 = (strCTDir.c_str());
@@ -403,8 +404,8 @@ bool CbctRegistration::PreprocessCT(
   std::cout << m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData()
             << std::endl;
 
-  QString ssimg_path_all = m_strPathPlastimatch + "/ssimg_all.mha";
-  QString sslist_path_all = m_strPathPlastimatch + "/sslist_all.txt";
+  auto ssimg_path_all = m_strPathPlastimatch + "/ssimg_all.mha";
+  auto sslist_path_all = m_strPathPlastimatch + "/sslist_all.txt";
   parms.output_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
   parms.output_ss_list_fn = sslist_path_all.toLocal8Bit().constData();
 
@@ -444,13 +445,13 @@ bool CbctRegistration::PreprocessCT(
     fin.getline(str, MAX_LINE_LENGTH);
     QString strLine(str);
 
-    QStringList strList = strLine.split('|');
+    auto strList = strLine.split('|');
     // third one is the organ name
     if (strList.length() != 3) {
       std::cout << "abnormal file expression." << std::endl;
       break;
     }
-    QString organName = strList.at(2);
+    auto organName = strList.at(2);
 
     organName = organName.trimmed();
     // YKTEMP20150922
@@ -494,7 +495,7 @@ bool CbctRegistration::PreprocessCT(
   // convert --input-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all.mha
   // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
   // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha
-  QString strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
+  auto strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
   parms2.input_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
   parms2.input_ss_list_fn = sslist_path_skin.toLocal8Bit().constData();
   parms2.output_labelmap_fn =
@@ -561,7 +562,7 @@ bool CbctRegistration::PreprocessCT(
   // E:\PlastimatchData\DicomEg\OLD\CT_final.mha
 
   // Mask_parms parms_msk3;
-  QString strPathSkinRemovedCT = m_strPathPlastimatch + "/skin_removed_CT.mha";
+  auto strPathSkinRemovedCT = m_strPathPlastimatch + "/skin_removed_CT.mha";
 
   // parms_msk3.mask_operation = MASK_OPERATION_MASK;
 
@@ -613,7 +614,7 @@ void CbctRegistration::LoadRTPlan(QString &strDCMPath) {
   m_pDcmStudyPlan = new Dcmtk_rt_study();
 
   // std::cout << "Before plm_file_format_deduce" << std::endl;
-  const Plm_file_format file_type_dcm_plan =
+  const auto file_type_dcm_plan =
       plm_file_format_deduce(strDCMPath.toLocal8Bit().constData());
   // std::cout << "After plm_file_format_deduce" << std::endl;
 
@@ -623,14 +624,14 @@ void CbctRegistration::LoadRTPlan(QString &strDCMPath) {
     m_pDcmStudyPlan->load(strDCMPath.toLocal8Bit().constData());
   } else {
     std::cout << "Found file is not RTPLAN. Skipping dcm plan." << std::endl;
-    return;
   }
 
   // Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
 }
 
 void CbctRegistration::CalculateWEPLtoVOI(std::string &voi_name,
-                                          int gantry_angle, int couch_angle,
+                                          const int gantry_angle,
+                                          const int couch_angle,
                                           UShortImageType::Pointer &spMoving) {
   if (voi_name.length() < 1) {
     std::cout << "No VOI name given" << std::endl;
@@ -671,15 +672,15 @@ void CbctRegistration::CalculateWEPLtoVOI(std::string &voi_name,
     // Put WEPL in contour
     std::transform(std::begin(WEPL_points), std::end(WEPL_points),
                    std::begin(WEPL_contour.coordinates),
-                   [](WEPLVector val) { return val.point; });
+                   [](const WEPLVector &val) { return val.point; });
     WEPL_voi->pslist.push_back(WEPL_contour);
   }
 }
 
 float *CbctRegistration::ManualMoveByDCM() const {
 
-  if ((m_pParent->m_spRefCTImg == nullptr) ||
-      (m_pParent->m_spManualRigidCT == nullptr)) {
+  if (m_pParent->m_spRefCTImg == nullptr ||
+      m_pParent->m_spManualRigidCT == nullptr) {
     return nullptr;
   }
 
@@ -688,13 +689,13 @@ float *CbctRegistration::ManualMoveByDCM() const {
     return nullptr;
   }
 
-  Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
+  auto rtplan = m_pDcmStudyPlan->get_rtplan();
 
   if (!rtplan) {
     std::cout << "Error! no dcm plan is loaded" << std::endl;
     return nullptr;
   }
-  const size_t iCntBeam = rtplan->beamlist.size(); //->num_beams;
+  const auto iCntBeam = rtplan->beamlist.size(); //->num_beams;
 
   if (iCntBeam < 1) {
     std::cout << "Error! no beam is found" << std::endl;
@@ -704,12 +705,12 @@ float *CbctRegistration::ManualMoveByDCM() const {
   float *final_iso_pos = nullptr;
 
   for (size_t i = 0; i < iCntBeam; i++) {
-    Rtplan_beam *curBeam = rtplan->beamlist[i];
+    auto curBeam = rtplan->beamlist[i];
 
-    const size_t iCntCP = curBeam->cplist.size(); // num_cp;
+    const auto iCntCP = curBeam->cplist.size(); // num_cp;
 
     for (size_t j = 0; j < iCntCP; j++) {
-      float *cur_iso_pos = curBeam->cplist[j]->get_isocenter();
+      const auto cur_iso_pos = curBeam->cplist[j]->get_isocenter();
       //                ID                id                               ID
       std::cout << "Beam Gantry: " << curBeam->gantry_angle
                 << ", Control point rate: " << curBeam->cplist[j]->meterset_rate
@@ -740,7 +741,7 @@ void CbctRegistration::plm_dmap_main(QString &img_in_fn,
   // dmap.set_inside_is_positive (parms->inside_positive);
   // dmap.set_use_squared_distance (parms->squared_distance);
   dmap.run();
-  const FloatImageType::Pointer dmap_image = dmap.get_output_image();
+  const auto dmap_image = dmap.get_output_image();
   itk_image_save(dmap_image, img_out_fn.toLocal8Bit().constData());
 }
 
@@ -755,9 +756,9 @@ void CbctRegistration::plm_threshold_main(QString &strRange, QString &img_in_fn,
   }
 
   // threshold_main (&parms_thre);
-  const Plm_image::Pointer plm_image = plm_image_load(
-      img_in_fn.toLocal8Bit().constData(), PLM_IMG_TYPE_ITK_FLOAT);
-  const FloatImageType::Pointer img_in = plm_image->m_itk_float;
+  const auto plm_image = plm_image_load(img_in_fn.toLocal8Bit().constData(),
+                                        PLM_IMG_TYPE_ITK_FLOAT);
+  const auto img_in = plm_image->m_itk_float;
   UCharImageType::Pointer img_out;
 
   if (strRange != "") {
@@ -786,19 +787,18 @@ void CbctRegistration::plm_threshold_main(QString &strRange, QString &img_in_fn,
 }
 
 // void CbctRegistration::plm_mask_main(Mask_parms* parms)
-void CbctRegistration::plm_mask_main(Mask_operation mask_option,
+void CbctRegistration::plm_mask_main(const Mask_operation mask_option,
                                      QString &input_fn, QString &mask_fn,
                                      QString &output_fn,
-                                     float mask_value) const {
-  Plm_image::Pointer img =
-      plm_image_load_native(input_fn.toLocal8Bit().constData());
+                                     const float mask_value) const {
+  auto img = plm_image_load_native(input_fn.toLocal8Bit().constData());
   if (!img) {
     printf("Error: could not open '%s' for read\n",
            input_fn.toLocal8Bit().constData());
     return;
   }
 
-  const UCharImageType::Pointer mask =
+  const auto mask =
       itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), nullptr);
 
   switch (img->m_type) {
@@ -828,23 +828,23 @@ void CbctRegistration::plm_mask_main(Mask_operation mask_option,
     break;
   }
 
-  bool output_dicom = false; // default: comes from Mask_param header
-  Plm_image_type output_type =
-      PLM_IMG_TYPE_UNDEFINED; // default: comes from Mask_param header
+  const auto output_dicom = false; // default: comes from Mask_param header
+  // const auto output_type =
+  //    PLM_IMG_TYPE_UNDEFINED; // default: comes from Mask_param header
 
-  if (output_dicom) {
-    img->save_short_dicom(output_fn.toLocal8Bit().constData(), nullptr);
-  } else {
-    if (output_type != 0) {
-      img->convert(output_type);
-    }
+  if (!output_dicom) {
+    // if (output_type != 0) {
+    //  img->convert(output_type);
+    //}
     img->save_image(output_fn.toLocal8Bit().constData());
+    //} else {
+    //  img->save_short_dicom(output_fn.toLocal8Bit().constData(), nullptr);
   }
 }
 
 void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
                                                   QString &strPath_msk_exp_cont,
-                                                  double fExpVal) const {
+                                                  const double fExpVal) const {
 #if defined(commentout)
   Dmap_parms parms_dmap; // orignally, Dmap_parms is defined in pcmd_dmap.cxx,
                          // supposed to be in any .h
@@ -854,7 +854,7 @@ void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
   plm_dmap_main(&parms_dmap);
 #endif
 
-  QString strPath_mskSkinCT_dmap = strPath_msk + "_dmap.mha";
+  auto strPath_mskSkinCT_dmap = strPath_msk + "_dmap.mha";
   plm_dmap_main(strPath_msk, strPath_mskSkinCT_dmap);
 
   // Thresholding
@@ -864,10 +864,10 @@ void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
    parms_thre.img_in_fn = strPath_mskSkinCT_dmap.toLocal8Bit().constData();
    parms_thre.img_out_fn = strPath_mskSkinCT_mod.toLocal8Bit().constData();   */
 
-  const QString &strPath_mskSkinCT_mod = strPath_msk_exp_cont;
-  QString range_string = QString(string_format("-inf,%f", fExpVal).c_str());
-  QString img_in_fn = strPath_mskSkinCT_dmap;
-  QString img_out_fn = strPath_mskSkinCT_mod;
+  const auto &strPath_mskSkinCT_mod = strPath_msk_exp_cont;
+  auto range_string = QString(string_format("-inf,%f", fExpVal).c_str());
+  auto img_in_fn = strPath_mskSkinCT_dmap;
+  auto img_out_fn = strPath_mskSkinCT_mod;
 
   // plm_threshold_main(&parms_thre);
   plm_threshold_main(range_string, img_in_fn, img_out_fn);
@@ -877,8 +877,8 @@ void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
 // deformable regi
 void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
     QString &strPathRawCBCT, QString &strPath_mskSkinCT,
-    QString &strPathOutputCBCT, double *manualTrans3d, bool bPrepareMaskOnly,
-    double skinExp, int bkGroundValUshort) {
+    QString &strPathOutputCBCT, double *manualTrans3d,
+    const bool bPrepareMaskOnly, double skinExp, const int bkGroundValUshort) {
   // Calc. Origin difference
 
   // 1) Move CT mask according to the manual shift
@@ -889,7 +889,7 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   }
 
   // QString strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
-  QString strPath_outputXF_manualTrans =
+  auto strPath_outputXF_manualTrans =
       m_strPathPlastimatch + "/xf_manual_trans.mha";
 
   // USHORT_ImageType::PointType rawOrigin =
@@ -919,7 +919,7 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
   // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha  QString
   // strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
-  QString strPath_mskSkinCT_manRegi =
+  auto strPath_mskSkinCT_manRegi =
       m_strPathPlastimatch + "/msk_skin_CT_manRegi.mha";
 
   Warp_parms parms;
@@ -950,7 +950,7 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --radial-mag "0.1 0.1
   // 0.1" --xf-radial --output E:\PlastimatchData\DicomEg\NEW\xf_exp_CB.mha
 
-  QString strPath_mskSkinCT_manRegi_exp =
+  auto strPath_mskSkinCT_manRegi_exp =
       m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
 
   if (skinExp < 0.0 || skinExp > 100.0) {
@@ -974,9 +974,9 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // "/skin_removed_CBCT_tmp.mha";
 
   const auto mask_option = MASK_OPERATION_MASK;
-  QString input_fn = strPathRawCBCT;
-  QString mask_fn = strPath_mskSkinCT_manRegi_exp;
-  QString output_fn = strPathOutputCBCT;
+  auto input_fn = strPathRawCBCT;
+  auto mask_fn = strPath_mskSkinCT_manRegi_exp;
+  auto output_fn = strPathOutputCBCT;
   // parms_msk.mask_value = 0.0; //unsigned short
   const float mask_value = bkGroundValUshort; // unsigned short
 
@@ -1004,8 +1004,8 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
 void CbctRegistration::ProcessCBCT_beforeDeformRegi(
     QString &strPathRawCBCT, QString &strPath_mskSkinCT_manRegi,
     QString &strPathOutputCBCT, QString &strPathXFAutoRigid,
-    bool bBubbleFilling, bool bPrepareMaskOnly, double skinExp,
-    int bubbleThresh, int bubbleFill) {
+    const bool bBubbleFilling, const bool bPrepareMaskOnly, double skinExp,
+    const int bubbleThresh, const int bubbleFill) {
   if (m_pParent->m_spAutoRigidCT == nullptr) {
     return;
   }
@@ -1013,7 +1013,7 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   Warp_parms parms;
   Rt_study rtds;
 
-  QString strPath_mskSkinCT_autoRegi =
+  auto strPath_mskSkinCT_autoRegi =
       m_strPathPlastimatch + "/msk_skin_CT_autoRegi.mha";
 
   parms.input_fn = strPath_mskSkinCT_manRegi.toLocal8Bit().constData();
@@ -1031,7 +1031,7 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   rt_study_warp(&rtds, file_type, &parms);
   printf("Skin mask based on auto regi is ready!\n");
 
-  QString strPath_mskSkinCT_autoRegi_exp =
+  auto strPath_mskSkinCT_autoRegi_exp =
       m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
 
   if (skinExp < 0.0 || skinExp > 100.0) {
@@ -1052,10 +1052,10 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   // QString strPath_CBCT_skinRemovedTemp = m_strPathPlastimatch +
   // "/skin_removed_CBCT_tmp.mha";
 
-  Mask_operation mask_option = MASK_OPERATION_MASK;
-  QString input_fn = strPathRawCBCT;
-  QString mask_fn = strPath_mskSkinCT_autoRegi_exp;
-  QString output_fn = strPathOutputCBCT;
+  auto mask_option = MASK_OPERATION_MASK;
+  auto input_fn = strPathRawCBCT;
+  auto mask_fn = strPath_mskSkinCT_autoRegi_exp;
+  auto output_fn = strPathOutputCBCT;
   float mask_value = 0.0; // unsigned short
 
   if (!bPrepareMaskOnly) {
@@ -1092,8 +1092,8 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
      --mask E:\PlastimatchData\DicomEg\OLD\msk_lungs_autoRegi_exp.mha --output
      E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha*/
 
-  QString strPathMskBubbleCBCT = m_strPathPlastimatch + "/msk_bubbles_CBCT.mha";
-  const QString strPathMskBubbleCBCT_final =
+  auto strPathMskBubbleCBCT = m_strPathPlastimatch + "/msk_bubbles_CBCT.mha";
+  const auto strPathMskBubbleCBCT_final =
       m_strPathPlastimatch + "/msk_bubbles_CBCT_final.mha";
 
   // int iAirThresholdUShort = 500; //depends on the CBCT image
@@ -1111,7 +1111,7 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   /* Save output file */
   sb.img_out->save_image(strPathMskBubbleCBCT.toLocal8Bit().constData());
 
-  QString strPath_mskSkinCT_autoRegi_cont =
+  auto strPath_mskSkinCT_autoRegi_cont =
       m_strPathPlastimatch + "/msk_skin_CT_autoRegi_cont.mha";
   plm_expansion_contract_msk(strPath_mskSkinCT_autoRegi,
                              strPath_mskSkinCT_autoRegi_cont,
@@ -1137,7 +1137,7 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   // E:\PlastimatchData\DicomEg\NEW\rawCBCT_final.mha
 
   // Mask_parms parms_fill;
-  QString strPathBubbleRemovedCBCT =
+  auto strPathBubbleRemovedCBCT =
       m_strPathPlastimatch + "/bubble_filled_CBCT.mha"; // tmp
   // QString strPathBubbleRemovedCBCT = strPathOutputCBCT;  //OVERWRITTING
 
@@ -1174,7 +1174,7 @@ void CbctRegistration::CallingPLMCommand(std::string &command_filepath) {
     return;
   }
 
-  Shared_parms *params = reg.get_registration_parms()->get_shared_parms();
+  auto params = reg.get_registration_parms()->get_shared_parms();
   std::string strFixed;
   std::string strMoving;
 
@@ -1223,18 +1223,17 @@ CbctRegistration::CallingPLMCommandXForm(std::string &command_filepath) {
   // reg.get_registration_parms()->log_fn = "gradient_log.txt";
   reg.load_global_inputs();
 
-  const Xform::Pointer xform =
-      reg.do_registration_pure(); // changed from
-                                  // do_registration()
-                                  // without return value
+  const auto xform = reg.do_registration_pure(); // changed from
+                                                 // do_registration()
+                                                 // without return value
   std::cout << "4: Registration is done" << std::endl;
   return xform->get_trn()->GetOffset();
 }
 
 bool CbctRegistration::CallingGPMCcommand(
-    enDevice device, int n_sims, int n_plans, QString &comma_sep_planfilepath,
-    UShortImageType::Pointer &spFixed, UShortImageType::Pointer &spMoving,
-    UShortImageType::Pointer &spFixedDose,
+    const enDevice device, const int n_sims, const int n_plans,
+    QString &comma_sep_planfilepath, UShortImageType::Pointer &spFixed,
+    UShortImageType::Pointer &spMoving, UShortImageType::Pointer &spFixedDose,
     UShortImageType::Pointer &spMovingDose) {
 
   auto gPMC_device = QString("cpu");
@@ -1254,9 +1253,9 @@ bool CbctRegistration::CallingGPMCcommand(
           .arg(n_plans)
           .arg(n_sims);
 
-  QString tmp_str = QString("tmp_");
-  QString fix_str = QString("Fixed");
-  QString mov_str = QString("Moving");
+  auto tmp_str = QString("tmp_");
+  auto fix_str = QString("Fixed");
+  auto mov_str = QString("Moving");
   QString moving_dcm_dir = "";
   // Export fixed and moving as DCM
   const auto fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(
@@ -1266,7 +1265,7 @@ bool CbctRegistration::CallingGPMCcommand(
                                                      m_strPathPlastimatch);
   }
 
-  QString gPMC_command_str =
+  auto gPMC_command_str =
       QString("gPMC.exe") + // casting this seems to cast the whole string
       " --dir \"" + fixed_dcm_dir + "\" --output \"" + fixed_dcm_dir +
       "/dose_fixed.mha\"" + get_output_options(spFixed) +
@@ -1296,23 +1295,22 @@ bool CbctRegistration::CallingGPMCcommand(
       itk::MultiplyImageFilter<FloatImageType, FloatImageType>;
   using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
 
-  QString fixedDosePath = fixed_dcm_dir + "/dose_fixed.mha";
-  QFileInfo finfofixedDosePath = QFileInfo(fixedDosePath);
+  auto fixedDosePath = fixed_dcm_dir + "/dose_fixed.mha";
+  auto finfofixedDosePath = QFileInfo(fixedDosePath);
 
   if (finfofixedDosePath.exists()) {
-    ImageReaderType::Pointer FixedDoseReader = ImageReaderType::New();
+    auto FixedDoseReader = ImageReaderType::New();
     FixedDoseReader->SetFileName(fixedDosePath.toStdString());
 
-    MinMaxFindType::Pointer MinMaxFilter = MinMaxFindType::New();
+    auto MinMaxFilter = MinMaxFindType::New();
     MinMaxFilter->SetInput(FixedDoseReader->GetOutput());
     MinMaxFilter->Update();
     // Multiply: Scale to USHORT
-    MultiplyImageFilterType::Pointer multiplyImageFilter =
-        MultiplyImageFilterType::New();
+    auto multiplyImageFilter = MultiplyImageFilterType::New();
     multiplyImageFilter->SetInput(FixedDoseReader->GetOutput());
     multiplyImageFilter->SetConstant(65535.0f / MinMaxFilter->GetMaximum());
 
-    CastFilterType::Pointer castFilter = CastFilterType::New();
+    auto castFilter = CastFilterType::New();
     castFilter->SetInput(multiplyImageFilter->GetOutput());
 
     castFilter->Update();
@@ -1324,9 +1322,8 @@ bool CbctRegistration::CallingGPMCcommand(
       std::cout << "Dose loaded for fixed Image" << std::endl;
     }
 
-    UShortImageType::SizeType imgDim =
-        spFixedDose->GetBufferedRegion().GetSize();
-    UShortImageType::SpacingType spacing = spFixedDose->GetSpacing();
+    auto imgDim = spFixedDose->GetBufferedRegion().GetSize();
+    auto spacing = spFixedDose->GetSpacing();
 
     std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
               << "	" << imgDim[2] << std::endl;
@@ -1335,23 +1332,22 @@ bool CbctRegistration::CallingGPMCcommand(
   }
 
   if (moving_dcm_dir != "") {
-    QString movingDosePath = moving_dcm_dir + "/dose_moving.mha";
-    QFileInfo finfomovingDosePath = QFileInfo(movingDosePath);
+    auto movingDosePath = moving_dcm_dir + "/dose_moving.mha";
+    auto finfomovingDosePath = QFileInfo(movingDosePath);
 
     if (finfomovingDosePath.exists()) {
-      ImageReaderType::Pointer MovingDoseReader = ImageReaderType::New();
+      auto MovingDoseReader = ImageReaderType::New();
       MovingDoseReader->SetFileName(movingDosePath.toStdString());
 
-      MinMaxFindType::Pointer MinMaxFilter = MinMaxFindType::New();
+      auto MinMaxFilter = MinMaxFindType::New();
       MinMaxFilter->SetInput(MovingDoseReader->GetOutput());
       MinMaxFilter->Update();
       // Multiply: Scale to USHORT
-      MultiplyImageFilterType::Pointer multiplyImageFilter =
-          MultiplyImageFilterType::New();
+      auto multiplyImageFilter = MultiplyImageFilterType::New();
       multiplyImageFilter->SetInput(MovingDoseReader->GetOutput());
       multiplyImageFilter->SetConstant(65535.0f / MinMaxFilter->GetMaximum());
 
-      CastFilterType::Pointer castFilter = CastFilterType::New();
+      auto castFilter = CastFilterType::New();
       castFilter->SetInput(multiplyImageFilter->GetOutput());
 
       castFilter->Update();
@@ -1364,7 +1360,7 @@ bool CbctRegistration::CallingGPMCcommand(
     }
   }
   // Display dose as colorwash on top of fixed and moving in all three plots
-  if ((spFixedDose == nullptr) && (spMovingDose == nullptr)) {
+  if (spFixedDose == nullptr && spMovingDose == nullptr) {
     dose_loaded = false;
   } else {
     dose_loaded = true;
@@ -1374,30 +1370,31 @@ bool CbctRegistration::CallingGPMCcommand(
 
 void CbctRegistration::plm_synth_trans_xf(QString &strPath_fixed,
                                           QString &strPath_out_xf,
-                                          double transX, double transY,
-                                          double transZ) const {
+                                          const double transX,
+                                          const double transY,
+                                          const double transZ) const {
   Synthetic_vf_parms sv_parms;
   sv_parms.pattern = Synthetic_vf_parms::PATTERN_TRANSLATION;
   sv_parms.translation[0] = static_cast<float>(transX);
   sv_parms.translation[1] = static_cast<float>(transY);
   sv_parms.translation[2] = static_cast<float>(transZ);
 
-  const FloatImageType::Pointer fixed =
+  const auto fixed =
       itk_image_load_float(strPath_fixed.toLocal8Bit().constData(), nullptr);
   sv_parms.pih.set_from_itk_image(fixed);
 
   // Synthetic_vf_parms *sv_parms = &parms->sv_parms;
 
-  const DeformationFieldType::Pointer vf = synthetic_vf(&sv_parms);
+  const auto vf = synthetic_vf(&sv_parms);
   itk_image_save(vf, strPath_out_xf.toLocal8Bit().constData());
 }
 
 void CbctRegistration::SetPlmOutputDir(QString &endFix) {
-  QDir crntDir = QDir::current(); // folder where current exe file exists.
-  QString crntPathStr = crntDir.absolutePath();
-  const QString dirName = crntPathStr.append("/").append("plm_").append(endFix);
+  auto crntDir = QDir::current(); // folder where current exe file exists.
+  auto crntPathStr = crntDir.absolutePath();
+  const auto dirName = crntPathStr.append("/").append("plm_").append(endFix);
 
-  QDir tmpDir = QDir(dirName);
+  auto tmpDir = QDir(dirName);
   if (!tmpDir.exists()) {
     if (!tmpDir.mkpath(dirName)) {
       std::cerr << "Could not create tmp dir for plm_ !!" << std::endl;
@@ -1417,11 +1414,11 @@ void CbctRegistration::PostSkinRemovingCBCT(
   // body
 
   QString strPath_mskSkinCT_final;
-  const QString strPath_mskSkinCT_autoRegi_exp =
+  const auto strPath_mskSkinCT_autoRegi_exp =
       m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
   QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
 
-  const QString strPath_mskSkinCT_manualRegi_exp =
+  const auto strPath_mskSkinCT_manualRegi_exp =
       m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
   QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
 
@@ -1454,13 +1451,13 @@ void CbctRegistration::PostSkinRemovingCBCT(
     return;
   }
   // 1) Export current CBCT file
-  QString filePathCBCT =
+  auto filePathCBCT =
       m_strPathPlastimatch + "/" + "CorrCBCT.mha"; // usually corrected one
-  QString filePathCBCT_noSkin = m_strPathPlastimatch + "/" +
-                                "CorrCBCT_final.mha"; // usually corrected one
+  auto filePathCBCT_noSkin = m_strPathPlastimatch + "/" +
+                             "CorrCBCT_final.mha"; // usually corrected one
 
   using writerType = itk::ImageFileWriter<UShortImageType>;
-  writerType::Pointer writer = writerType::New();
+  auto writer = writerType::New();
   writer->SetFileName(filePathCBCT.toLocal8Bit().constData());
   writer->SetUseCompression(true);
   writer->SetInput(spCBCT);
@@ -1492,7 +1489,7 @@ void CbctRegistration::PostSkinRemovingCBCT(
   // this is not expanded one!
 
   using readerType = itk::ImageFileReader<UShortImageType>;
-  readerType::Pointer readerCBCT = readerType::New();
+  auto readerCBCT = readerType::New();
   QFileInfo tmpFileInfo(filePathCBCT_noSkin);
 
   if (tmpFileInfo.exists()) {
@@ -1503,24 +1500,23 @@ void CbctRegistration::PostSkinRemovingCBCT(
   } else {
     std::cout << "Error! No skin-removed file is available for reading"
               << std::endl;
-    return;
   }
 }
 
 void CbctRegistration::ThermoMaskRemovingCBCT(
     UShortImageType::Pointer &spCBCTraw, UShortImageType::Pointer &spCBCTcor,
-    int diffThreshold, int noTouchThreshold, double innerMargin,
-    double outerMargin) {
-  if ((spCBCTraw == nullptr) || (spCBCTcor == nullptr)) {
+    const int diffThreshold, const int noTouchThreshold,
+    const double innerMargin, const double outerMargin) const {
+  if (spCBCTraw == nullptr || spCBCTcor == nullptr) {
     std::cout << "You need both raw and corr CBCT images" << std::endl;
     return;
   }
 
   QString strPathInputMask;
 
-  const QString strPath_mskSkinCT_manRegi =
+  const auto strPath_mskSkinCT_manRegi =
       m_strPathPlastimatch + "/msk_skin_CT_manRegi.mha";
-  const QString strPath_mskSkinCT_autoRegi =
+  const auto strPath_mskSkinCT_autoRegi =
       m_strPathPlastimatch + "/msk_skin_CT_autoRegi.mha";
 
   QFileInfo maskInfoMan(strPath_mskSkinCT_manRegi);
@@ -1547,7 +1543,7 @@ void CbctRegistration::ThermoMaskRemovingCBCT(
   }
 
   using readerType = itk::ImageFileReader<UShortImageType>;
-  readerType::Pointer reader = readerType::New();
+  auto reader = readerType::New();
   reader->SetFileName(strPathOutputMask.toLocal8Bit().constData());
   reader->Update();
 
@@ -1560,9 +1556,9 @@ void CbctRegistration::ThermoMaskRemovingCBCT(
   itk::ImageRegionIterator<UShortImageType> itMask(
       spShellMask, spShellMask->GetBufferedRegion());
 
-  UShortImageType::SizeType size1 = spCBCTraw->GetBufferedRegion().GetSize();
+  auto size1 = spCBCTraw->GetBufferedRegion().GetSize();
   // UShortImageType::SizeType size2 = spCBCTcor->GetBufferedRegion().GetSize();
-  UShortImageType::SizeType size3 = spShellMask->GetBufferedRegion().GetSize();
+  auto size3 = spShellMask->GetBufferedRegion().GetSize();
 
   if (size1[0] != size3[0] || size1[1] != size3[1] || size1[2] != size3[2]) {
     std::cout << "Error! size is different."
@@ -1585,17 +1581,17 @@ void CbctRegistration::ThermoMaskRemovingCBCT(
 }
 
 void CbctRegistration::GenShellMask(
-    QString &strPathInputMask, QString &strPathOutputMask, double fInnerMargin,
-    double fOuterMargin) const { // writes mask to disk
+    QString &strPathInputMask, QString &strPathOutputMask,
+    const double fInnerMargin,
+    const double fOuterMargin) const { // writes mask to disk
   QFileInfo fInfoInput(strPathInputMask);
 
   if (!fInfoInput.exists()) {
     return;
   }
 
-  QString strPathTmpExp = fInfoInput.absolutePath() + "/" + "/msk_temp_exp.mha";
-  QString strPathTmpCont =
-      fInfoInput.absolutePath() + "/" + "/msk_temp_cont.mha";
+  auto strPathTmpExp = fInfoInput.absolutePath() + "/" + "/msk_temp_exp.mha";
+  auto strPathTmpCont = fInfoInput.absolutePath() + "/" + "/msk_temp_cont.mha";
   plm_expansion_contract_msk(strPathInputMask, strPathTmpExp,
                              fOuterMargin); // 8 mm expansion for a mask image
   plm_expansion_contract_msk(strPathInputMask, strPathTmpCont,
@@ -1603,9 +1599,9 @@ void CbctRegistration::GenShellMask(
 
   // Mask_operation mask_option = MASK_OPERATION_MASK;
   const auto mask_option = MASK_OPERATION_FILL;
-  QString input_fn = strPathTmpExp;
-  QString mask_fn = strPathTmpCont;
-  QString output_fn = strPathOutputMask;
+  auto input_fn = strPathTmpExp;
+  auto mask_fn = strPathTmpCont;
+  auto output_fn = strPathOutputMask;
   const float mask_value = 0.0; // unsigned short
 
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
@@ -1616,7 +1612,7 @@ void CbctRegistration::GenShellMask(
 
 void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
                                        QString &strPathRS,
-                                       double cropMargin) const {
+                                       const double cropMargin) const {
   if (cropMargin != 0.0) {
     std::cout << "margin has not been implemented yet. regarded as 0.0 in this "
                  "version"
@@ -1631,12 +1627,12 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   Rt_study rtds;
 
   // Export cur image first
-  QString filePathCurImg = m_strPathPlastimatch + "/" +
-                           "SkinCropRS_curImg.mha"; // usually corrected one
+  auto filePathCurImg = m_strPathPlastimatch + "/" +
+                        "SkinCropRS_curImg.mha"; // usually corrected one
 
   using writerType = itk::ImageFileWriter<UShortImageType>;
 
-  writerType::Pointer writer = writerType::New();
+  auto writer = writerType::New();
   writer->SetFileName(filePathCurImg.toLocal8Bit().constData());
   writer->SetUseCompression(true);
   writer->SetInput(spImgUshort);
@@ -1646,8 +1642,8 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   parms.input_fn = strPathRS.toLocal8Bit().constData();
   parms.fixed_img_fn = filePathCurImg.toLocal8Bit().constData();
 
-  QString ssimg_path_all = m_strPathPlastimatch + "/ssimg_all_cstm.mha";
-  QString sslist_path_all = m_strPathPlastimatch + "/sslist_all_cstm.txt";
+  auto ssimg_path_all = m_strPathPlastimatch + "/ssimg_all_cstm.mha";
+  auto sslist_path_all = m_strPathPlastimatch + "/sslist_all_cstm.txt";
   parms.output_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
   parms.output_ss_list_fn = sslist_path_all.toLocal8Bit().constData();
 
@@ -1683,13 +1679,13 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
     fin.getline(str, MAX_LINE_LENGTH);
     QString strLine(str);
 
-    QStringList strList = strLine.split('|');
+    auto strList = strLine.split('|');
     // third one is the organ name
     if (strList.length() != 3) {
       std::cout << "abnormal file expression." << std::endl;
       break;
     }
-    QString organName = strList.at(2);
+    auto organName = strList.at(2);
 
     organName = organName.trimmed();
     if (organName == "Skin" || organName == "skin" || organName == "SKIN") {
@@ -1732,7 +1728,7 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   // convert --input-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all.mha
   // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
   // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha
-  QString strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT_cstm.mha";
+  auto strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT_cstm.mha";
   parms2.input_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
   parms2.input_ss_list_fn = sslist_path_skin.toLocal8Bit().constData();
   parms2.output_labelmap_fn =
@@ -1748,7 +1744,7 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   // m_strPathCTSkin = strPath_mskSkinCT;
 
   // Mask_parms parms_msk3;
-  QString strPathSkinRemovedCT =
+  auto strPathSkinRemovedCT =
       m_strPathPlastimatch + "/skin_removed_CT_cstm.mha";
   const auto mask_option = MASK_OPERATION_MASK;
   QFileInfo tmpInfo(filePathCurImg);
@@ -1760,16 +1756,16 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
     return;
   }
 
-  QString mask_fn = strPath_mskSkinCT;
-  QString output_fn = strPathSkinRemovedCT;
+  auto mask_fn = strPath_mskSkinCT;
+  auto output_fn = strPathSkinRemovedCT;
   const auto mask_value = 0.0f;
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
   // strPathSkinRemovedCT .mha file is ready. this is SHORT image
 
   using readerType = itk::ImageFileReader<UShortImageType>;
-  readerType::Pointer reader = readerType::New();
+  auto reader = readerType::New();
 
-  QFileInfo tmpFileInfo = QFileInfo(strPathSkinRemovedCT); // cropped image
+  auto tmpFileInfo = QFileInfo(strPathSkinRemovedCT); // cropped image
   if (tmpFileInfo.exists()) {
     reader->SetFileName(strPathSkinRemovedCT.toLocal8Bit().constData());
     reader->Update();
@@ -1780,7 +1776,6 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   } else {
     std::cout << "No strPathSkinRemovedCT is available. Exit the function"
               << std::endl;
-    return;
   }
 }
 
@@ -1876,7 +1871,7 @@ VEC3D CbctRegistration::GetIsocenterDCM_FromRTPlan(QString &strFilePath) const {
     const auto iCntCP = cur_beam->cplist.size(); // num_cp;
 
     for (size_t j = 0; j < iCntCP; j++) {
-      float *cur_iso_pos = cur_beam->cplist[j]->get_isocenter();
+      const auto cur_iso_pos = cur_beam->cplist[j]->get_isocenter();
       //                ID                id                               ID
       std::cout << "Beam Gantry: " << cur_beam->gantry_angle
                 << ", Control point rate: "

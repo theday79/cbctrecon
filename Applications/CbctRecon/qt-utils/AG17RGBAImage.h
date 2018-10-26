@@ -1,20 +1,22 @@
 #ifndef AG17RGBAIMAGE_H
 #define AG17RGBAIMAGE_H
 
-// Qt (gets these from YK16 )
-// #include <QImage>
-// #include <QVector>
-// #include <QString>
+// Qt
+#include <QImage>
 
 // Local
-#include "YK16GrayImage.h" // for enumerators and types without overloading
 #include "cbctrecon_config.h"
+#include "cbctrecon_types.h"
 
 class CBCTRECON_API AG17RGBAImage {
 public:
   AG17RGBAImage();
   AG17RGBAImage(int width, int height);
   ~AG17RGBAImage();
+  AG17RGBAImage(const AG17RGBAImage &) = delete;
+  void operator=(const AG17RGBAImage &) = delete;
+  AG17RGBAImage(AG17RGBAImage &&) = delete;
+  void operator=(AG17RGBAImage &&) = delete;
 
   int m_iWidth;
   int m_iHeight;
@@ -50,8 +52,8 @@ public:
   double CalcAveragePixelDiff(AG17RGBAImage &other);
 
   static void CopyYKImage2ItkImage(AG17RGBAImage *pYKImage,
-                                   UnsignedShortImageType::Pointer &spTarImage);
-  static void CopyItkImage2YKImage(UnsignedShortImageType::Pointer &spSrcImage,
+                                   UShortImage2DType::Pointer &spTarImage);
+  static void CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
                                    AG17RGBAImage *pYKImage);
 
   QString m_strFilePath;
@@ -79,10 +81,10 @@ public:
 
   void MultiplyConstant(double multiplyFactor);
 
-  void SetSpacing(double spacingX, double spacingY) {
+  void SetSpacing(const double spacingX, const double spacingY) {
     m_fSpacingX = spacingX;
     m_fSpacingY = spacingY;
-  };
+  }
 
   QPoint m_ptProfileProbe; // Mouse Clicked Position --> Data
   bool m_bDrawProfileX;
@@ -103,7 +105,7 @@ public:
   // in qlabel in FillPixMap function
   int m_iOffsetX; // for Pan function.. this is data based offset
   int m_iOffsetY;
-  void SetOffset(int offsetX, int offsetY) {
+  void SetOffset(const int offsetX, const int offsetY) {
     m_iOffsetX = offsetX;
     m_iOffsetY = offsetY;
   }
@@ -117,7 +119,7 @@ public:
   int m_enSplitOption{};
   // This cetner is moved while Left Dragging //All split and crosshair are data
   // point based!
-  void SetSplitOption(enSplitOption option) { m_enSplitOption = option; }
+  void SetSplitOption(const enSplitOption option) { m_enSplitOption = option; }
   void SetSplitCenter(QPoint &ptSplitCenter); // From mouse event, data point
   // void SetSplitCenter(int centerX, int centerY)
   // {m_ptSplitCenter.setX(centerX); m_ptSplitCenter.setY(centerY);}//From mouse
@@ -142,11 +144,11 @@ public:
   double m_fResampleFactor{}; // if it is not the 1.0, the data is already
                               // resampled.
 
-  UnsignedShortImageType::Pointer CloneItkImage() const;
+  UShortImage2DType::Pointer CloneItkImage() const;
   void ResampleImage(double fResampleFactor);
 
-  void UpdateFromItkImage(UnsignedShortImageType::Pointer &spRefItkImg);
-  void UpdateFromItkImageFloat(FloatImageType2D::Pointer &spRefItkImg);
+  void UpdateFromItkImage(UShortImage2DType::Pointer &spRefItkImg);
+  void UpdateFromItkImageFloat(FloatImage2DType::Pointer &spRefItkImg);
 
   void InvertImage();
 };

@@ -74,7 +74,7 @@ protected:
   OpenCLFFTConvolutionImageFilter();
   ~OpenCLFFTConvolutionImageFilter() = default;
 
-  virtual void GPUGenerateData() override;
+  void GPUGenerateData() override;
 
   /** Pad the inputRegion region of the input image and returns a pointer to the
    * new padded image. Padding includes a correction for truncation [Ohnesorge,
@@ -85,8 +85,12 @@ protected:
   PadInputImageRegion(const RegionType &inputRegion) override;
 
 public:
-  OpenCLFFTConvolutionImageFilter(const Self &) = delete; // purposely not implemented
-  void operator=(const Self &) = delete;                  // purposely not implemented
+  OpenCLFFTConvolutionImageFilter(const Self &) =
+      delete;                            // purposely not implemented
+  void operator=(const Self &) = delete; // purposely not implemented
+  OpenCLFFTConvolutionImageFilter(Self &&) =
+      delete;                       // purposely not implemented
+  void operator=(Self &&) = delete; // purposely not implemented
 private:
   OpenCLFFTOutputImagePointer m_KernelFFTOpenCL;
 }; // end of class

@@ -60,7 +60,7 @@ public:
 #if USE_CLFFT
   using RampFilterType = rtk::OpenCLFFTRampImageFilter;
 #endif
-  using BackProjectionFilterType = rtk::OpenCLFDKBackProjectionImageFilter;
+  using BackProjectionFilterType = OpenCLFDKBackProjectionImageFilter;
 
   /** Standard New method. */
   itkNewMacro(Self);
@@ -87,6 +87,8 @@ public:
   // purposely not implemented
   OpenCLFDKConeBeamReconstructionFilter(const Self &) = delete;
   void operator=(const Self &) = delete;
+  OpenCLFDKConeBeamReconstructionFilter(Self &&) = delete;
+  void operator=(Self &&) = delete;
 }; // end of class
 
 } // end namespace rtk

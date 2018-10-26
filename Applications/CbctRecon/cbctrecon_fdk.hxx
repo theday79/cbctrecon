@@ -2,8 +2,6 @@
 #define CBCTRECON_FDK_HXX
 
 // Qt
-#include <QDir>
-#include <QFileInfo>
 #include <QString> // for QString
 
 // ITK
@@ -43,13 +41,12 @@
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
 
-
 template <typename ImageType>
 typename ImageType::Pointer RTKOpenCLFDK(
     const typename ImageType::Pointer &spCurImg,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &m_spCustomGeometry,
     typename ImageType::SpacingType spacing,
-    typename ImageType::SizeType sizeOutput, FDK_options fdk_options) {
+    typename ImageType::SizeType sizeOutput, const FDK_options fdk_options) {
 
   try {
     spCurImg->Update();
@@ -79,7 +76,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
 
   // FDK reconstruction filtering
   using FDKOPENCLType = rtk::OpenCLFDKConeBeamReconstructionFilter;
-  FDKOPENCLType::Pointer feldkampOCL = FDKOPENCLType::New();
+  auto feldkampOCL = FDKOPENCLType::New();
 
   feldkampOCL->SetInput(0, constantImageSource->GetOutput());
   feldkampOCL->SetInput(1, castFilter->GetOutput());
@@ -102,8 +99,8 @@ typename ImageType::Pointer RTKOpenCLFDK(
 }
 
 template <enDeviceType Tdev>
-void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
-                                    FDK_options fdk_options) {
+void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
+                                    const FDK_options fdk_options) {
   if (Tdev == CUDA_DEVT) {
 #if USE_CUDA
     using CUDAFloatImageType = itk::CudaImage<float, 3U>;
@@ -124,7 +121,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
 
 template <enDeviceType Tdev, typename ImageType, typename DDFType,
           typename PSSFType, typename FDKType>
-void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
+void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
                                     FDK_options fdk_options) {
 
   using castToImageType = itk::CastImageFilter<FloatImageType, ImageType>;
@@ -369,7 +366,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   const itk::Vector<double, 3U> offset(0.0);
 
   using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
-  TransformType::Pointer transform = TransformType::New();
+  auto transform = TransformType::New();
   transform->SetMatrix(CoordChangeMatrix);
   transform->SetOffset(offset);
 
@@ -434,7 +431,7 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
         itk::MedianImageFilter<UShortImageType,
                                UShortImageType>; // TODO(AGA): CUDA THIS!!
 
-    MedianFilterType::Pointer medFilter = MedianFilterType::New();
+    auto medFilter = MedianFilterType::New();
     // this is radius. 1 --> median window 3
     std::cout << "Post median(3D) filtering is in the pipeline..Size(radius X "
                  "Y Z) is = "
@@ -453,14 +450,12 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   }
 
   using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
-  ThresholdImageFilterType::Pointer thresholdFilterAbove =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterAbove = ThresholdImageFilterType::New();
   thresholdFilterAbove->SetInput(tmpReconImg);
   thresholdFilterAbove->ThresholdAbove(4095);
   thresholdFilterAbove->SetOutsideValue(4095);
 
-  ThresholdImageFilterType::Pointer thresholdFilterBelow =
-      ThresholdImageFilterType::New();
+  auto thresholdFilterBelow = ThresholdImageFilterType::New();
   thresholdFilterBelow->SetInput(thresholdFilterAbove->GetOutput());
   thresholdFilterBelow->ThresholdBelow(0);
   thresholdFilterBelow->SetOutsideValue(0);
@@ -486,14 +481,14 @@ void CbctRecon::DoReconstructionFDK(enREGI_IMAGES target,
   }
 
   QFileInfo outFileInfo(fdk_options.outputFilePath);
-  QDir outFileDir = outFileInfo.absoluteDir();
+  auto outFileDir = outFileInfo.absoluteDir();
 
   if (fdk_options.outputFilePath.length() < 2 || !outFileDir.exists()) {
     std::cout << "No available output path. Should be exported later"
               << std::endl;
   } else {
     using WriterType = itk::ImageFileWriter<UShortImageType>;
-    WriterType::Pointer writer = WriterType::New();
+    auto writer = WriterType::New();
     writer->SetFileName(fdk_options.outputFilePath.toLocal8Bit().constData());
     writer->SetUseCompression(true); // not exist in original code (rtkfdk)
     writer->SetInput(m_spCrntReconImg);

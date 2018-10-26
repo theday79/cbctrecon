@@ -93,6 +93,8 @@ protected:
 public:
   OpenCLImageToImageFilter(const Self &) = delete; // purposely not implemented
   void operator=(const Self &) = delete;           // purposely not implemented
+  OpenCLImageToImageFilter(Self &&) = delete;      // purposely not implemented
+  void operator=(Self &&) = delete;                // purposely not implemented
 private:
   bool m_GPUEnabled;
 };
