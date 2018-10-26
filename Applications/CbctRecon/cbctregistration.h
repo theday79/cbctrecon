@@ -3,6 +3,8 @@
 
 #include <itkImage.h>
 
+#undef TIMEOUT
+#undef CUDA_FOUND
 #include "itk_mask.h"
 
 #include "cbctrecon_config.h"

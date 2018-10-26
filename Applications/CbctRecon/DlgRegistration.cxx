@@ -7,6 +7,7 @@
 #include <QString>
 #include <qcombobox.h>
 
+#include "PlmWrapper.h"
 #include "StructureSet.h"
 #include "cbctrecon.h"
 #include "cbctrecon_compute.h"

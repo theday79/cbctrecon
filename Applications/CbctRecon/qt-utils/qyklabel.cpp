@@ -1,5 +1,6 @@
 #include "qyklabel.h"
 #include "AG17RGBAImage.h"
+#include "YK16GrayImage.h"
 #include <QPainter>
 
 qyklabel::qyklabel(QWidget *parent) : QLabel(parent) {

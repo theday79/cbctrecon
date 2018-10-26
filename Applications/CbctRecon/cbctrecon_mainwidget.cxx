@@ -25,6 +25,8 @@
 #include "itkTimeProbe.h"
 
 // PLM
+#undef TIMEOUT
+#undef CUDA_FOUND
 #include "itk_mask.h"
 #include "mha_io.h"
 #include "nki_io.h"
@@ -3578,7 +3580,7 @@ void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
   const auto postScatMedianSize =
       this->ui.lineEdit_scaPostMedian->text().toInt();
 
-  const auto fdk_options = getFDKoptions();
+  auto fdk_options = getFDKoptions();
 
   this->m_cbctrecon->ScatterCorPerProjRef(
       scaMedian, scaGaussian, postScatMedianSize,
@@ -4037,8 +4039,11 @@ void CbctReconWidget::SLT_ExportHis() {
   for (auto i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
     auto tmpInfo = QFileInfo(this->m_cbctrecon->m_arrYKImage[i].m_strFilePath);
     auto newPath = dir + "/" + tmpInfo.fileName();
-    this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(
-        newPath.toLocal8Bit().constData(), false);
+    if (!this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(
+            newPath.toLocal8Bit().constData(), false)) {
+      std::cerr << "Could not read image #" << i << ": "
+                << newPath.toStdString() << std::endl;
+    }
   }
 
   std::cout << "File export was done successfully" << std::endl;

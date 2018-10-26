@@ -83,6 +83,7 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 
 // Plastimatch
 #undef TIMEOUT
+#undef CUDA_FOUND
 #include <beam_calc.h> // used to be rt_beam in earlier plm
 #include <dcmtk_rt_study.h>
 #include <itk_image_type.h>
@@ -101,7 +102,6 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
 #include "cbctregistration.h"
-
 
 CbctRecon::CbctRecon() {
 

@@ -9,6 +9,7 @@
 #include "rtss_contour.h"
 #include "rtss_roi.h"
 
+#include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
 class Plm_image_friend : public Plm_image {
@@ -16,7 +17,7 @@ public:
   VectorFieldType::Pointer friend_convert_to_itk(Volume *vol);
 };
 
-class Rtss_contour_modern : public Rtss_contour {
+class CBCTRECON_API Rtss_contour_modern : public Rtss_contour {
 public:
   Rtss_contour_modern() = default;
   ~Rtss_contour_modern() = default;
@@ -25,7 +26,7 @@ public:
   std::vector<FloatVector> coordinates;
 };
 
-class Rtss_roi_modern : public Rtss_roi {
+class CBCTRECON_API Rtss_roi_modern : public Rtss_roi {
 public:
   Rtss_roi_modern() = default;
   ~Rtss_roi_modern() = default;
@@ -35,7 +36,7 @@ public:
   std::vector<Rtss_contour_modern> pslist;
 };
 
-class Rtss_modern : public Rtss {
+class CBCTRECON_API Rtss_modern : public Rtss {
 public:
   Rtss_modern() = default;
   ~Rtss_modern() = default;
