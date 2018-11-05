@@ -516,17 +516,19 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
 }
 
-template <typename ImageType> auto forward_projector() {
-  return rtk::JosephForwardProjectionImageFilter<ImageType, ImageType>::New();
+template <typename ImageType>
+struct forward_projector {
+  using type = rtk::JosephForwardProjectionImageFilter<ImageType, ImageType>;
   // forwardProjection =
   // rtk::RayCastInterpolatorForwardProjectionImageFilter<FloatImageType,
   // FloatImageType>::New();
-}
+};
 #if USE_CUDA
-template <> inline auto forward_projector<CUDAFloatImageType>() {
-  return rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType,
-                                               CUDAFloatImageType>::New();
-}
+template <>
+struct forward_projector<CUDAFloatImageType> {
+  using type = rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType,
+                                               CUDAFloatImageType>;
+};
 #endif
 
 template <typename DevFloatImageType>
@@ -706,7 +708,7 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     std::cout << "Canvas for projection image is ready to write" << std::endl;
 
     // 4) Prepare CT image to be projected
-    auto ForwardProjection = forward_projector<DevFloatImageType>;
+    auto ForwardProjection = forward_projector<DevFloatImageType>::type::New();
 
     itk::TimeProbe projProbe;
     std::cout << "Forward projection is now ongoing" << std::endl;
@@ -871,7 +873,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
   //    fwdMethod << std::endl;
 
   // Create forward projection image filter
-  auto forward_projection = forward_projector<DevFloatImageType>();
+  auto forward_projection = forward_projector<DevFloatImageType>::type::New();
 
   auto spGeometry = GeometryType::New();
 
