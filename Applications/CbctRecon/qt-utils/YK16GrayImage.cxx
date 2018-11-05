@@ -10,6 +10,17 @@
 
 #include "YK16GrayImage.h"
 
+#ifndef _WIN32
+int fopen_s(FILE** fp, const char* filename, const char* mode)
+{
+  *fp = fopen(filename, mode);
+  if (*fp == nullptr) {
+    return 0;
+  }
+  return 1;
+}
+#endif
+
 YK16GrayImage::YK16GrayImage() {
   m_iWidth = 0;
   m_iHeight = 0;

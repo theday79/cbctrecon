@@ -123,14 +123,11 @@ public:
   void FindAllRelevantPaths(const QString &pathProjHisDir);
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
-  void CPU_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                             GeometryType::Pointer &spGeometry,
-                             UShortImageType::Pointer &spProjCT3D) const;
-#ifdef USE_CUDA
-  void CUDA_ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                              GeometryType::Pointer &spGeometry,
-                              UShortImageType::Pointer &spProjCT3D) const;
-#endif
+  template <typename DevFloatImageType>
+  void ForwardProjection(UShortImageType::Pointer &spVolImg3D,
+                         GeometryType::Pointer &spGeometry,
+                         UShortImageType::Pointer &spProjCT3D) const;
+
   // to be implemented: Save projection3D to *.his files
   void GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
                              UShortImageType::Pointer &spProjCT3D,
@@ -266,11 +263,12 @@ public:
                                  std::vector<WEPLData> &vOutputWEPL,
                                  double fAngleStart, double fAngleEnd) const;
 
+  template <typename DevImageType>
   void SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
                                float fMVGanAngle, float panelOffsetX,
                                float panelOffsetY,
                                UShortImageType::Pointer &spProjImg3D,
-                               int iSliceIdx, bool use_cuda) const;
+                               int iSliceIdx) const;
 
   bool ReadDicomDir(QString &dirPath);
 

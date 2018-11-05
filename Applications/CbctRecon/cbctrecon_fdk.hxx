@@ -9,21 +9,23 @@
 #include "itkAddImageFilter.h"
 #include "itkFlipImageFilter.h"
 #include "itkImageDuplicator.h"
+#include "itkImageSliceIteratorWithIndex.h"
 #include "itkMatrixOffsetTransformBase.h"
 #include "itkMedianImageFilter.h"
 #include "itkMultiplyImageFilter.h"
 #include "itkResampleImageFilter.h"
 #include "itkStreamingImageFilter.h"
 #include "itkThresholdImageFilter.h"
+#include "itkTimeProbe.h"
 
 // RTK
-#include "rtkBackProjectionImageFilter.h" // for BackProje...
 #include "rtkConstantImageSource.h"
 #include "rtkDisplacedDetectorImageFilter.h"
 #include "rtkFDKConeBeamReconstructionFilter.h" // for FDKConeBeamReconstr...
 #include "rtkFFTProjectionsConvolutionImageFilter.h" // for FFTProjec...
 #include "rtkFFTRampImageFilter.h"                   // for FFTRampImageFilter
 #include "rtkFieldOfViewImageFilter.h"
+#include "rtkJosephForwardProjectionImageFilter.h"
 #include "rtkMacro.h" // for TRY_AND_EXIT_ON_ITK_EXCEPTION
 #include "rtkParkerShortScanImageFilter.h"
 #include "rtkThreeDCircularProjectionGeometry.h" // for ThreeDCircularProje...
@@ -33,6 +35,7 @@
 #endif
 
 #if USE_CUDA
+#include "rtkCudaForwardProjectionImageFilter.h"
 #include <rtkCudaDisplacedDetectorImageFilter.h>
 #include <rtkCudaFDKConeBeamReconstructionFilter.h>
 #include <rtkCudaParkerShortScanImageFilter.h>
@@ -429,7 +432,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
       (indexRadius[0] != 0 || indexRadius[1] != 0 || indexRadius[2] != 0)) {
     using MedianFilterType =
         itk::MedianImageFilter<UShortImageType,
-                               UShortImageType>; // TODO(AGA): CUDA THIS!!
+                               UShortImageType>; // TODO(AGA): OpenCL THIS!!
 
     auto medFilter = MedianFilterType::New();
     // this is radius. 1 --> median window 3
@@ -512,5 +515,484 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
   std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
 }
+
+template <typename ImageType> auto forward_projector() {
+  return rtk::JosephForwardProjectionImageFilter<ImageType, ImageType>::New();
+  // forwardProjection =
+  // rtk::RayCastInterpolatorForwardProjectionImageFilter<FloatImageType,
+  // FloatImageType>::New();
+}
+#if USE_CUDA
+template <> inline auto forward_projector<CUDAFloatImageType>() {
+  return rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType,
+                                               CUDAFloatImageType>::New();
+}
+#endif
+
+template <typename DevFloatImageType>
+void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
+                                  GeometryType::Pointer &spGeometry,
+                                  UShortImageType::Pointer &spProjCT3D) const {
+
+  // m_spProjCTImg --> spProjCT3D
+
+  FloatImageType::Pointer spResultProjImageFloat;
+  // Euler Transformation for RTK's weird orientation
+
+  // int iNumOfProjections = 0;
+
+  {
+    // 0) CT image Transformation
+    auto size_original = spVolImg3D->GetLargestPossibleRegion().GetSize();
+    auto spacing_original = spVolImg3D->GetSpacing();
+
+    // Same image type from original image -3D & float
+    UShortImageType::IndexType start_trans{};
+    start_trans[0] = 0;
+    start_trans[1] = 0;
+    start_trans[2] = 0;
+
+    UShortImageType::SizeType size_trans{};
+    size_trans[0] = size_original[1]; // X //512
+    size_trans[1] = size_original[2]; // Y  //512
+    size_trans[2] = size_original[0]; // Z //300
+
+    std::cout << " size_trans" << size_trans << std::endl;
+
+    UShortImageType::SpacingType spacing_trans;
+    spacing_trans[0] = spacing_original[1];
+    spacing_trans[1] = spacing_original[2];
+    spacing_trans[2] = spacing_original[0];
+
+    std::cout << " spacing_trans" << spacing_trans << std::endl;
+
+    UShortImageType::PointType Origin_trans;
+    Origin_trans[0] = -0.5 * size_trans[0] * spacing_trans[0];
+    Origin_trans[1] = -0.5 * size_trans[1] * spacing_trans[1];
+    Origin_trans[2] = -0.5 * size_trans[2] * spacing_trans[2];
+
+    UShortImageType::RegionType region_trans;
+    region_trans.SetSize(size_trans);
+    region_trans.SetIndex(start_trans);
+
+    using FilterType = itk::FlipImageFilter<UShortImageType>;
+    auto flipFilter = FilterType::New();
+    using FlipAxesArrayType = FilterType::FlipAxesArrayType;
+
+    FlipAxesArrayType arrFlipAxes;
+    arrFlipAxes[0] = true;
+    arrFlipAxes[1] = false;
+    arrFlipAxes[2] = false;
+
+    flipFilter->SetFlipAxes(arrFlipAxes);
+    flipFilter->SetInput(spVolImg3D); // plan CT, USHORT image
+
+    //                            | 0  0 -1 |
+    // Rz(pi/2)*Rx(-pi/2)*Ry(0) = | 1  0  0 |
+    //                            | 0 -1  0 |
+    itk::Matrix<double, 3, 3> CoordChangeMatrix;
+    // 1st row
+    CoordChangeMatrix[0][0] = 0.0;
+    CoordChangeMatrix[0][1] = 0.0;
+    CoordChangeMatrix[0][2] = -1.0;
+    // 2nd row
+    CoordChangeMatrix[1][0] = 1.0;
+    CoordChangeMatrix[1][1] = 0.0;
+    CoordChangeMatrix[1][2] = 0.0;
+    // 3rd row
+    CoordChangeMatrix[2][0] = 0.0;
+    CoordChangeMatrix[2][1] = -1.0;
+    CoordChangeMatrix[2][2] = 0.0;
+
+    const itk::Vector<double, 3U> offset(0.0);
+
+    using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
+    auto transform = TransformType::New();
+    transform->SetMatrix(CoordChangeMatrix);
+    transform->SetOffset(offset);
+
+    std::cout << "Transform matrix:"
+              << "\n"
+              << transform->GetMatrix() << std::endl;
+
+    using ResampleFilterType =
+        itk::ResampleImageFilter<UShortImageType, UShortImageType>;
+    auto resampler = ResampleFilterType::New();
+
+    resampler->SetInput(flipFilter->GetOutput());
+    resampler->SetSize(size_trans);
+    resampler->SetOutputOrigin(Origin_trans);   // Lt Top Inf of Large Canvas
+    resampler->SetOutputSpacing(spacing_trans); // 1 1 1
+    resampler->SetOutputDirection(
+        flipFilter->GetOutput()->GetDirection()); // image normal?
+    resampler->SetTransform(transform);
+
+    using CastFilterType =
+        itk::CastImageFilter<UShortImageType,
+                             FloatImageType>; // Maybe not inplace filter
+    auto castFilter = CastFilterType::New();
+    castFilter->SetInput(resampler->GetOutput());
+
+    // Default value
+    const auto calibF_A = 1.0;
+    const auto calibF_B = 0.0;
+
+    std::cout << "Temporary forcing CT# applied for tissue" << std::endl;
+
+    std::cout << "CBCT calibration Factor(Recommended: 1, 0): A = " << calibF_A
+              << "  B= " << calibF_B << std::endl;
+    using MultiplyImageFilterType =
+        itk::MultiplyImageFilter<FloatImageType, FloatImageType,
+                                 FloatImageType>;
+    auto multiplyImageFilter = MultiplyImageFilterType::New();
+    multiplyImageFilter->SetInput(castFilter->GetOutput());
+    multiplyImageFilter->SetConstant(calibF_A / 65535.0);
+
+    using AddImageFilterType =
+        itk::AddImageFilter<FloatImageType, FloatImageType, DevFloatImageType>;
+    auto addImageFilter = AddImageFilterType::New();
+    addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
+    const auto addingVal = calibF_B / 65535.0;
+    addImageFilter->SetConstant2(addingVal);
+    addImageFilter->Update(); // will generate map of real_mu (att.coeff)
+
+    const auto spCTImg_mu = addImageFilter->GetOutput();
+
+    // 2) Prepare empty projection images //Should be corresonponding to raw
+    // projection images
+
+    // Create a stack of empty projection images
+    using ConstantImageSourceType =
+        rtk::ConstantImageSource<DevFloatImageType>; // Output: FLoat image =
+                                                     // may be mu_t =
+                                                     // log(I_0/I)
+    auto constantImageSource = ConstantImageSourceType::New();
+
+    typename ConstantImageSourceType::SizeType size{};
+    typename ConstantImageSourceType::SpacingType spacing;
+    typename ConstantImageSourceType::PointType origin;
+
+    std::cout << "Setting-up vacant projection image data" << std::endl;
+
+    // a) size
+    // std::cout << "chk1" << std::endl;
+    size[0] = m_spProjImg3DFloat->GetBufferedRegion()
+                  .GetSize()[0]; // qRound((double)DEFAULT_W*m_fResampleF);
+    size[1] = m_spProjImg3DFloat->GetBufferedRegion()
+                  .GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
+    size[2] = spGeometry->GetGantryAngles().size();
+    // iNumOfProjections = size[2];
+
+    // b) spacing
+    spacing[0] = m_fProjSpacingX / m_fResampleF; // typical HIS file
+    spacing[1] = m_fProjSpacingY / m_fResampleF;
+    spacing[2] = 1.0;
+
+    // c) Origin: can center be the image center? or should be related to the CT
+    // image???
+    origin[0] = spacing[0] * (size[0] - 1) * -0.5;
+    origin[1] = spacing[1] * (size[1] - 1) * -0.5;
+    origin[2] = 0.0;
+
+    constantImageSource->SetOrigin(origin);
+    constantImageSource->SetSpacing(spacing);
+
+    FloatImageType::DirectionType imageDirection;
+    imageDirection.SetIdentity(); // no effect
+    constantImageSource->SetDirection(imageDirection);
+    constantImageSource->SetSize(size);
+    constantImageSource->SetConstant(1.0);
+    constantImageSource->UpdateOutputInformation();
+    std::cout << "Canvas for projection image is ready to write" << std::endl;
+
+    // 4) Prepare CT image to be projected
+    auto ForwardProjection = forward_projector<DevFloatImageType>;
+
+    itk::TimeProbe projProbe;
+    std::cout << "Forward projection is now ongoing" << std::endl;
+
+    ForwardProjection->SetInput(
+        constantImageSource
+            ->GetOutput()); // Canvas. projection image will be saved here.
+    ForwardProjection->SetInput(1, spCTImg_mu); // reference plan CT image
+    ForwardProjection->SetGeometry(spGeometry);
+    projProbe.Start();
+    TRY_AND_EXIT_ON_ITK_EXCEPTION(ForwardProjection->Update());
+    projProbe.Stop();
+    spResultProjImageFloat = ForwardProjection->GetOutput();
+    std::cout << "Forward projection done in:	" << projProbe.GetMean() << ' '
+              << projProbe.GetUnit() << '.' << std::endl;
+  } // release all the memory
+
+  // From Float to USHORT and line integral to intensity
+
+  spProjCT3D = UShortImageType::New(); // later
+  const auto projCT_size = spResultProjImageFloat->GetLargestPossibleRegion()
+                               .GetSize(); // 1024 1024 350
+  const auto projCT_idxStart =
+      spResultProjImageFloat->GetLargestPossibleRegion().GetIndex(); // 0 0 0
+  const auto projCT_spacing =
+      spResultProjImageFloat->GetSpacing(); // 0.4 0.4 1.0
+  const auto projCT_origin =
+      spResultProjImageFloat->GetOrigin(); //-204.6 -204.6 -174.5
+
+  // Copy informations from spResultProjImageFloat
+  FloatImageType::RegionType projCT_region;
+  projCT_region.SetSize(projCT_size);
+  projCT_region.SetIndex(projCT_idxStart);
+
+  spProjCT3D->SetRegions(projCT_region);
+  spProjCT3D->SetSpacing(projCT_spacing);
+  spProjCT3D->SetOrigin(projCT_origin);
+
+  spProjCT3D->Allocate();
+  spProjCT3D->FillBuffer(0);
+
+  // Calculation process
+  itk::ImageRegionConstIterator<FloatImageType> itSrc(
+      spResultProjImageFloat, spResultProjImageFloat->GetRequestedRegion());
+  itk::ImageRegionIterator<UShortImageType> itTarg(
+      spProjCT3D, spProjCT3D->GetRequestedRegion()); // writing
+
+  itSrc.GoToBegin();
+  itTarg.GoToBegin();
+
+  // Convert line integral to intensity value (I0/I = exp(mu_t)) --> I =
+  // I0/exp(mu_t)
+  while (!itSrc.IsAtEnd() && !itTarg.IsAtEnd()) {
+    const auto fProjVal = itSrc.Get();               // mu_t //63.5 --> 6.35
+    const auto tmpConvVal = 65535.0 / exp(fProjVal); // physically true
+
+    if (tmpConvVal <= 0.0) {
+      itTarg.Set(0);
+    } else if (tmpConvVal > 65535.0) {
+      itTarg.Set(65535);
+    } else {
+      itTarg.Set(static_cast<unsigned short>(tmpConvVal));
+    }
+
+    ++itSrc;
+    ++itTarg;
+  }
+
+  // spProjCT3D: USHORT IMAGE of intensity. Not inverted (physical intensity)
+}
+
+template <typename OutImageType>
+typename OutImageType::Pointer
+create_empty_projections(UShortImageType::Pointer &spProjImg3D) {
+
+  // Create a stack of empty projection images
+  using ConstantImageSourceType =
+      rtk::ConstantImageSource<OutImageType>; // Output: FLoat image = may be
+                                              // mu_t = log(I_0/I)
+
+  typename ConstantImageSourceType::Pointer constantImageSource =
+      ConstantImageSourceType::New();
+
+  typename ConstantImageSourceType::SizeType size{};
+  typename ConstantImageSourceType::SpacingType spacing;
+  typename ConstantImageSourceType::PointType origin;
+
+  // std::cout << "Setting-up vacant projection image data" << std::endl;
+
+  // a) size
+  // std::cout << "chk1" << std::endl;
+  size[0] = spProjImg3D->GetBufferedRegion().GetSize()[0];
+  size[1] = spProjImg3D->GetBufferedRegion().GetSize()[1];
+  size[2] = 1;
+
+  // b) spacing
+  spacing[0] = spProjImg3D->GetSpacing()[0];
+  spacing[1] = spProjImg3D->GetSpacing()[1];
+  spacing[2] = 1.0;
+
+  // c) Origin: can center be the image center? or should be related to the CT
+  // image???
+  /*origin[0] = spacing[0] * (size[0] - 1) * -0.5;
+  origin[1] = spacing[1] * (size[1] - 1) * -0.5;
+  origin[2] = 0.0;*/
+
+  origin[0] = spProjImg3D->GetOrigin()[0];
+  origin[1] = spProjImg3D->GetOrigin()[1];
+  origin[2] = 0.0;
+
+  constantImageSource->SetOrigin(origin);
+  constantImageSource->SetSpacing(spacing);
+
+  typename OutImageType::DirectionType imageDirection;
+  imageDirection.SetIdentity(); // no effect
+  constantImageSource->SetDirection(imageDirection);
+  constantImageSource->SetSize(size);
+  constantImageSource->SetConstant(1.0);
+  constantImageSource->UpdateOutputInformation();
+
+  return constantImageSource->GetOutput();
+}
+
+template <typename ImageType> auto fwd_method() {
+  return std::string("CPU Joseph Fwd projection");
+}
+#if USE_CUDA
+template <> inline auto fwd_method<CUDAFloatImageType>() {
+  return std::string("CUDA Fwd projection");
+}
+#endif
+// refer to YKPRoc later
+// void YKPROC::ForwardProjection(FloatImageType::Pointer& spVolImgFloat, float
+// fMVGanAngle, float panelOffsetX, float panelOffsetY, ,
+// UShortImageType::Pointer& spProj3D)  iSliceIdx == Proj index 0 - 364
+template <typename DevFloatImageType>
+void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
+                                        const float fMVGanAngle,
+                                        const float panelOffsetX,
+                                        const float panelOffsetY,
+                                        UShortImageType::Pointer &spProjImg3D,
+                                        const int iSliceIdx) const {
+  if (spVolImgFloat == nullptr) {
+    return;
+  }
+  if (spProjImg3D == nullptr) {
+    return;
+  }
+
+  // 2) Prepare empty projection images //Should be corresonponding to raw
+  // projection images
+  const int totalProjSize = spProjImg3D->GetBufferedRegion().GetSize()[2];
+  if (iSliceIdx >= totalProjSize) {
+    std::cout << "Error! totalProjSize= " << totalProjSize
+              << " iSliceIdx= " << iSliceIdx << std::endl;
+  }
+
+  // std::cout << "Canvas for projection image is ready to write" << std::endl;
+
+  // 4) Prepare CT image to be projected
+  //    std::cout << "projection algorithm (0:Joseph, 1: CUDA, 2:RayCast ): " <<
+  //    fwdMethod << std::endl;
+
+  // Create forward projection image filter
+  auto forward_projection = forward_projector<DevFloatImageType>();
+
+  auto spGeometry = GeometryType::New();
+
+  // 9 parameters are required
+  const auto curSAD = 1000.0; // SourceToIsocenterDistances
+  const auto curSDD = 1536.0;
+  const double curGantryAngle = fMVGanAngle; // MV
+
+  const double curProjOffsetX = panelOffsetX;
+  const double curProjOffsetY = panelOffsetY;
+
+  const auto curOutOfPlaneAngles = 0.0;
+  const auto curInPlaneAngles = 0.0;
+
+  const auto curSrcOffsetX = 0.0;
+  const auto curSrcOffsetY = 0.0;
+
+  spGeometry->AddProjection(
+      curSAD, curSDD, curGantryAngle, curProjOffsetX, curProjOffsetY, // Flexmap
+      curOutOfPlaneAngles, curInPlaneAngles, // In elekta, these are 0
+      curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
+
+  itk::TimeProbe projProbe;
+  const auto proj_husk =
+      create_empty_projections<DevFloatImageType>(spProjImg3D);
+  forward_projection->SetInput(
+      proj_husk); // Canvas. projection image will be saved here.
+  using Caster = itk::CastImageFilter<FloatImageType, DevFloatImageType>;
+  auto caster = Caster::New();
+  caster->SetInput(spVolImgFloat);
+  caster->Update();
+  forward_projection->SetInput(1,
+                               caster->GetOutput()); // reference plan CT image
+  forward_projection->SetGeometry(spGeometry);
+
+  projProbe.Start();
+  TRY_AND_EXIT_ON_ITK_EXCEPTION(forward_projection->Update())
+  projProbe.Stop();
+
+  const FloatImageType::Pointer resultFwdImg = forward_projection->GetOutput();
+
+  std::cout << "Forward projection done by " << fwd_method<DevFloatImageType>()
+            << " in: " << projProbe.GetMean() << ' ' << projProbe.GetUnit()
+            << '.' << std::endl;
+
+  // normalization or shift
+
+  // typedef itk::MinimumMaximumImageCalculator<FloatImageType>
+  // MinMaxCalculatorType;  MinMaxCalculatorType::Pointer spCalculator =
+  // MinMaxCalculatorType::New();  spCalculator->SetImage(resultFwdImg);
+  // spCalculator->Compute();
+
+  // float minValAtt = spCalculator->GetMinimum();
+  // float maxValAtt = spCalculator->GetMaximum();
+
+  // float maxValProj = (65535.0 / exp(minValAtt));
+  // float minValProj = (65535.0 / exp(maxValAtt)); //physically true
+
+  // float valOffset = maxValProj - 65535.0; //not possible! always <=65535
+  // if (valOffset < 0)
+  //    valOffset = 0.0;
+
+  // std::cout << "MaxValProj=" << maxValProj << " MInval=" << minValProj << "
+  // ValOffset = " << valOffset << std::endl;
+
+  itk::ImageRegionConstIterator<FloatImageType> itSrc(
+      resultFwdImg, resultFwdImg->GetRequestedRegion()); // 2D
+
+  // Convert line integral to intensity value (I0/I = exp(mu_t)) --> I =
+  // I0/exp(mu_t)
+
+  /*if (resultFwdImg->GetBufferedRegion().GetSize()[0] != pYKImage2D->m_iWidth)
+      return;*/
+
+  itSrc.GoToBegin();
+
+  itk::ImageSliceIteratorWithIndex<UShortImageType> it_FwdProj3D(
+      spProjImg3D, spProjImg3D->GetRequestedRegion());
+
+  it_FwdProj3D.SetFirstDirection(0);
+  it_FwdProj3D.SetSecondDirection(1);
+  it_FwdProj3D.GoToBegin();
+
+  auto curSliceIdx = 0;
+
+  while (!it_FwdProj3D.IsAtEnd()) {
+    if (curSliceIdx == iSliceIdx) {
+      // Search matching slice using slice iterator for m_spProjCTImg
+      while (!it_FwdProj3D.IsAtEndOfSlice() && !itSrc.IsAtEnd()) {
+        while (!it_FwdProj3D.IsAtEndOfLine() && !itSrc.IsAtEnd()) {
+          const auto fProjVal = itSrc.Get();
+          // mu_t, the lower means the higher attn.
+          // mu_t //63.5 --> 6.35
+          const auto tmpConvVal = 65535.0 / exp(fProjVal); // intensity value
+
+          unsigned short val = 0;
+          if (tmpConvVal <= 0.0) {
+            val = 0;
+          } else if (tmpConvVal > 65535.0) {
+            val = 65535;
+          } else {
+            val = static_cast<unsigned short>(tmpConvVal);
+          }
+
+          // unsigned short tmpVal = (unsigned short)(it_FwdProj3D.Get());
+          // tmpVal = 65535 - tmpVal; //inverse is done here
+
+          it_FwdProj3D.Set(val);
+
+          ++it_FwdProj3D;
+          ++itSrc;
+        }
+        it_FwdProj3D.NextLine();
+      }
+      it_FwdProj3D.NextSlice();
+    }
+    it_FwdProj3D.NextSlice();
+    curSliceIdx++;
+  }
+  // Save this file
+
+} // release all the memory
 
 #endif

@@ -78,6 +78,7 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
 #endif
 
   this->m_cbctrecon = std::make_unique<CbctRecon>();
+  m_pTableModel = nullptr;
   m_dlgRegistration = std::make_unique<DlgRegistration>(this);
   m_cbctregistration = m_dlgRegistration->m_cbctregistration.get();
 
@@ -878,6 +879,9 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   calc_thread.join();
   std::cout << "Reader re-attached to main thread" << std::endl;
 
+  this->m_cbctrecon->m_spProjImg3DFloat =
+      reader->GetOutput(); // 1024 1024, line integ image
+
   if (bowtie_reader != nullptr) {
     ApplyBowtie(reader, bowtie_reader);
   }
@@ -1152,7 +1156,6 @@ void CbctReconWidget::SLT_UpdateTable() {
   }
 
   // std::cout << "check 4" << std::endl;
-  m_pTableModel.reset();
   m_pTableModel = std::make_unique<QStandardItemModel>(
       rowSize, columnSize, this); // 2 Rows and 3 Columns
 
@@ -1165,8 +1168,8 @@ void CbctReconWidget::SLT_UpdateTable() {
   auto pos_item = std::make_unique<QStandardItem>(QString("Position(mm)"));
   auto val_item = std::make_unique<QStandardItem>(QString("Value"));
 
-  m_pTableModel->setHorizontalHeaderItem(0, pos_item.get());
-  m_pTableModel->setHorizontalHeaderItem(1, val_item.get());
+  m_pTableModel->setHorizontalHeaderItem(0, pos_item.release());
+  m_pTableModel->setHorizontalHeaderItem(1, val_item.release());
   //}
 
   // std::cout << "check 5" << std::endl;
@@ -1215,12 +1218,12 @@ void CbctReconWidget::SLT_UpdateTable() {
     const auto tmpVal1 = vPos[i];
     auto xpos_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal1));
-    m_pTableModel->setItem(i, 0, xpos_item.get());
+    m_pTableModel->setItem(i, 0, xpos_item.release());
 
     const auto tmpVal2 = vProfile[i] / fMultiPlyFactor + fMinValue;
     auto profval_item =
         std::make_unique<QStandardItem>(QString("%1").arg(tmpVal2));
-    m_pTableModel->setItem(i, 1, profval_item.get());
+    m_pTableModel->setItem(i, 1, profval_item.release());
   }
 
   this->ui.tableViewReconImgProfile->setModel(
@@ -1763,18 +1766,18 @@ void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     return;
   }
 
-#ifndef USE_CUDA
-  this->m_cbctrecon->CPU_ForwardProjection(spVolImg3D, spGeometry,
-                                           spProjCT3D); // final moving image
-#else
+#if USE_CUDA
   if (use_cuda) {
-    this->m_cbctrecon->CUDA_ForwardProjection(spVolImg3D, spGeometry,
-                                              spProjCT3D); // final moving image
-  } else {
-    this->m_cbctrecon->CPU_ForwardProjection(spVolImg3D, spGeometry,
-                                             spProjCT3D); // final moving image
+    this->m_cbctrecon->ForwardProjection<CUDAFloatImageType>(
+        spVolImg3D, spGeometry,
+        spProjCT3D); // final moving image
+  } else
+#endif
+  {
+    this->m_cbctrecon->ForwardProjection<FloatImageType>(
+        spVolImg3D, spGeometry,
+        spProjCT3D); // final moving image
   }
-#endif // !USE_CUDA
   if (bSave) {
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
@@ -4233,6 +4236,7 @@ void CbctReconWidget::LoadRawHisImages() {
     return;
   }
   m_pTableModel.reset();
+  m_pTableModel = nullptr;
   this->m_cbctrecon->ReleaseMemory();
 
   this->m_cbctrecon->m_arrYKImage.resize(this->m_cbctrecon->m_iImgCnt);
