@@ -25,7 +25,6 @@ public:
                            Qt::WindowFlags flags = nullptr);
   //~CbctReconWidget() = default;
   void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
-  void FileExportByGUI() const;
   FDK_options getFDKoptions() const;
 
 private:
@@ -38,13 +37,8 @@ private:
                                         bool bFullResolRecon,
                                         bool bExportImages,
                                         bool bCBCT_IntensityShift);
-  void ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                         GeometryType::Pointer &spGeometry,
-                         UShortImageType::Pointer &spProjCT3D, bool bSave,
-                         bool use_cuda);
 
   template <enREGI_IMAGES imagetype> void LoadMHAfileAs();
-  void LoadRawHisImages();
   bool SaveCurrentSetting(QString &strPathConfigFile) const;
   bool LoadCurrentSetting(QString &strPathConfigFile) const;
   void init_DlgRegistration(QString &str_dcm_uid) const;

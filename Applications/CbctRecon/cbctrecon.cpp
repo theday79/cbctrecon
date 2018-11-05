@@ -3267,12 +3267,12 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer &spSrcImg,
       itk::NearestNeighborInterpolateImageFunction<FloatImageType, float>;
   const auto interpolator = InterpolatorType::New();
   resample->SetInterpolator(interpolator);
-  if (m_projFormat == HIS_FORMAT &&
+  if ((m_projFormat == HIS_FORMAT &&
           DEFAULT_ELEKTA_PROJ_HEIGHT ==
-              spSrcImg->GetBufferedRegion().GetSize()[1] ||
-      m_projFormat != HIS_FORMAT &&
+              spSrcImg->GetBufferedRegion().GetSize()[1]) ||
+      (m_projFormat != HIS_FORMAT &&
           DEFAULT_VARIAN_PROJ_HEIGHT ==
-              spSrcImg->GetBufferedRegion().GetSize()[1]) {
+              spSrcImg->GetBufferedRegion().GetSize()[1]) ) {
     resample->SetDefaultPixelValue(50);
   } else {
     resample->SetDefaultPixelValue(0);
@@ -4791,8 +4791,8 @@ void CbctRecon::AppendInPhaseIndex(const int iPhase,
       endPhase2 = 0;
     }
 
-    if (iCurPhase >= startPhase1 && iCurPhase <= endPhase1 ||
-        iCurPhase >= startPhase2 && iCurPhase <= endPhase2) {
+    if ((iCurPhase >= startPhase1 && iCurPhase <= endPhase1) ||
+        (iCurPhase >= startPhase2 && iCurPhase <= endPhase2) ) {
       vOutputIndex.push_back(i);
     }
   }

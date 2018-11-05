@@ -299,6 +299,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     streamerBP->SetNumberOfStreamDivisions(4); // YK: 1 in example code from
                                                // "rtkfdk" //AG: stated in test:
                                                // 4 for ITK MAJOR >= 4
+    streamerBP->Update();
     targetImg = streamerBP->GetOutput();
   }
   std::cout << "Euler 3D Transformation: from RTK-procuded volume to standard "
@@ -516,18 +517,108 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   std::cout << "FINISHED!: FDK CBCT reconstruction" << std::endl;
 }
 
-template <typename ImageType>
-struct forward_projector {
+// output spProjCT3D => intensity value, not line integral
+template<typename CTImageType, typename ProjImageType>
+void CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
+                                         GeometryType::Pointer &spGeometry,
+                                         typename ProjImageType::Pointer &spProjCT3D,
+                                         const bool bSave,
+                                         const bool use_cuda) {
+  if (spVolImg3D == nullptr) {
+    std::cout << "ERROR! No 3D-CT file. Load 3D CT file first" << std::endl;
+    return;
+  }
+
+  if (this->m_iCntSelectedProj < 1 && bSave) {
+    std::cout << "Error! No projection image is loaded" << std::endl;
+    return;
+  }
+
+  if (spGeometry->GetGantryAngles().empty()) {
+    std::cout << "No geometry!" << std::endl;
+    return;
+  }
+
+#if USE_CUDA
+  if (use_cuda) {
+    this->ForwardProjection<CUDAFloatImageType>(
+        spVolImg3D, spGeometry,
+        spProjCT3D); // final moving image
+  } else
+#endif
+  {
+    this->ForwardProjection<FloatImageType>(spVolImg3D, spGeometry,
+                                            spProjCT3D); // final moving image
+  }
+  if (bSave) {
+    // Saving part: save as his file in sub-folder of raw image
+    std::cout << "Files are being saved" << std::endl;
+    std::cout << " Patient DIR Path: "
+              << this->m_strPathPatientDir.toLocal8Bit().constData()
+              << std::endl;
+
+    auto manuallySelectedDir = false; // <- just to make sure I don't break
+                                      // usecases of the older version.
+    if (this->m_strPathPatientDir.isEmpty()) {
+      std::cout << "File save error!: No patient DIR name" << std::endl;
+
+      if (this->m_strPathPatientDir.length() <= 1) {
+        return;
+      }
+      manuallySelectedDir = true;
+    }
+
+    // Get current folder
+    const auto subdir_images("IMAGES");
+    const auto strCrntDir =
+        this->m_strPathPatientDir + "/" + subdir_images; // current Proj folder
+
+    // Make a sub directory
+    QDir crntDir(strCrntDir);
+
+    if (!crntDir.exists()) {
+      if (manuallySelectedDir) {
+        QDir current_dir(this->m_strPathPatientDir);
+        const auto success = current_dir.mkdir(subdir_images);
+        if (!success) {
+          std::cerr << "Could not create subfolder IMAGES in given directory"
+                    << std::endl;
+          return;
+        }
+      } else {
+        std::cout << "File save error: The specified folder does not exist."
+                  << std::endl;
+        return;
+      }
+    }
+
+    const auto fwdDirName = "fwd_" + this->m_strDCMUID;
+
+    const auto tmpResult =
+        crntDir.mkdir(fwdDirName); // what if the directory exists?
+
+    if (!tmpResult) {
+      std::cout << "FwdProj directory seems to exist already. Files will be "
+                   "overwritten."
+                << std::endl;
+    }
+
+    auto strSavingFolder = strCrntDir + "/" + fwdDirName;
+    this->SaveProjImageAsHIS(spProjCT3D, this->m_arrYKBufProj, strSavingFolder,
+                             this->m_fResampleF);
+  }
+}
+
+template <typename ImageType> struct forward_projector {
   using type = rtk::JosephForwardProjectionImageFilter<ImageType, ImageType>;
   // forwardProjection =
   // rtk::RayCastInterpolatorForwardProjectionImageFilter<FloatImageType,
   // FloatImageType>::New();
 };
 #if USE_CUDA
-template <>
-struct forward_projector<CUDAFloatImageType> {
+template <> struct forward_projector<CUDAFloatImageType> {
   using type = rtk::CudaForwardProjectionImageFilter<CUDAFloatImageType,
-                                               CUDAFloatImageType>;
+                                                     CUDAFloatImageType>;
 };
 #endif
 

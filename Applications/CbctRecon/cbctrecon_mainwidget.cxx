@@ -121,8 +121,6 @@ void CbctReconWidget::init_DlgRegistration(QString &str_dcm_uid) const
       str_dcm_uid); // NULLing all temporary spImage
 }
 
-void CbctReconWidget::SLT_LoadRawImages() { LoadRawHisImages(); }
-
 void CbctReconWidget::SLT_DrawRawImages() const {
   const auto crntIdx = this->ui.spinBoxImgIdx->value();
 
@@ -1746,103 +1744,6 @@ void CbctReconWidget::SLT_ViewHistogram() // default showing function
   */
 }
 
-// output spProjCT3D => intensity value, not line integral
-void CbctReconWidget::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                                        GeometryType::Pointer &spGeometry,
-                                        UShortImageType::Pointer &spProjCT3D,
-                                        const bool bSave, const bool use_cuda) {
-  if (spVolImg3D == nullptr) {
-    std::cout << "ERROR! No 3D-CT file. Load 3D CT file first" << std::endl;
-    return;
-  }
-
-  if (this->m_cbctrecon->m_iCntSelectedProj < 1 && bSave) {
-    std::cout << "Error! No projection image is loaded" << std::endl;
-    return;
-  }
-
-  if (spGeometry->GetGantryAngles().empty()) {
-    std::cout << "No geometry!" << std::endl;
-    return;
-  }
-
-#if USE_CUDA
-  if (use_cuda) {
-    this->m_cbctrecon->ForwardProjection<CUDAFloatImageType>(
-        spVolImg3D, spGeometry,
-        spProjCT3D); // final moving image
-  } else
-#endif
-  {
-    this->m_cbctrecon->ForwardProjection<FloatImageType>(
-        spVolImg3D, spGeometry,
-        spProjCT3D); // final moving image
-  }
-  if (bSave) {
-    // Saving part: save as his file in sub-folder of raw image
-    std::cout << "Files are being saved" << std::endl;
-    std::cout
-        << " Patient DIR Path: "
-        << this->m_cbctrecon->m_strPathPatientDir.toLocal8Bit().constData()
-        << std::endl;
-
-    auto manuallySelectedDir = false; // <- just to make sure I don't break
-                                      // usecases of the older version.
-    if (this->m_cbctrecon->m_strPathPatientDir.isEmpty()) {
-      std::cout << "File save error!: No patient DIR name" << std::endl;
-
-      this->m_cbctrecon->m_strPathPatientDir =
-          QFileDialog::getExistingDirectory(
-              this, tr("Open Directory"), ".",
-              QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-      if (this->m_cbctrecon->m_strPathPatientDir.length() <= 1) {
-        return;
-      }
-      manuallySelectedDir = true;
-    }
-
-    // Get current folder
-    const auto subdir_images("IMAGES");
-    const auto strCrntDir = this->m_cbctrecon->m_strPathPatientDir + "/" +
-                            subdir_images; // current Proj folder
-
-    // Make a sub directory
-    QDir crntDir(strCrntDir);
-
-    if (!crntDir.exists()) {
-      if (manuallySelectedDir) {
-        QDir current_dir(this->m_cbctrecon->m_strPathPatientDir);
-        const auto success = current_dir.mkdir(subdir_images);
-        if (!success) {
-          std::cerr << "Could not create subfolder IMAGES in given directory"
-                    << std::endl;
-          return;
-        }
-      } else {
-        std::cout << "File save error: The specified folder does not exist."
-                  << std::endl;
-        return;
-      }
-    }
-
-    const auto fwdDirName = "fwd_" + this->m_cbctrecon->m_strDCMUID;
-
-    const auto tmpResult =
-        crntDir.mkdir(fwdDirName); // what if the directory exists?
-
-    if (!tmpResult) {
-      std::cout << "FwdProj directory seems to exist already. Files will be "
-                   "overwritten."
-                << std::endl;
-    }
-
-    auto strSavingFolder = strCrntDir + "/" + fwdDirName;
-    this->m_cbctrecon->SaveProjImageAsHIS(
-        spProjCT3D, this->m_cbctrecon->m_arrYKBufProj, strSavingFolder,
-        this->m_cbctrecon->m_fResampleF);
-  }
-}
-
 void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   const auto bExportProj_Fwd = this->ui.checkBox_ExportFwd->isChecked();
@@ -1851,8 +1752,13 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
+  if (bExportProj_Fwd) {
+    this->m_cbctrecon->m_strPathPatientDir = QFileDialog::getExistingDirectory(
+        this, tr("Open Directory"), ".",
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  }
   if (m_dlgRegistration->m_spMoving != nullptr) {
-    ForwardProjection(
+    this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
         m_dlgRegistration->m_spMoving, this->m_cbctrecon->m_spCustomGeometry,
         this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
         this->ui.radioButton_UseCUDA->isChecked()); // final moving image
@@ -1860,7 +1766,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
     std::cout << "No Moving image in Registration is found. Ref CT image will "
                  "be used instead"
               << std::endl;
-    ForwardProjection(
+    this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
         this->m_cbctrecon->m_spRefCTImg, this->m_cbctrecon->m_spCustomGeometry,
         this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
         this->ui.radioButton_UseCUDA->isChecked()); // final moving image
@@ -2577,37 +2483,6 @@ void CbctReconWidget::SLTM_LoadRTKoutput() {
   UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, strCrntFileName);
 }
 
-// Only can be used for m_spRawRecon // NOT USED AT ALL?
-void CbctReconWidget::FileExportByGUI() const
-// USHORT
-{
-  auto outputFilePath = this->ui.lineEdit_OutputFilePath->text();
-  QFileInfo outFileInfo(outputFilePath);
-  auto outFileDir = outFileInfo.absoluteDir();
-
-  // bool b = outFileDir.exists();
-  // QString tmpPath = outFileDir.absolutePath();
-
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
-    std::cout << "No available output path. Should be exported later"
-              << std::endl;
-  } else {
-    using WriterType = itk::ImageFileWriter<UShortImageType>;
-    auto writer = WriterType::New();
-    writer->SetFileName(outputFilePath.toLocal8Bit().constData());
-    writer->SetUseCompression(true); // not exist in original code (rtkfdk)
-    writer->SetInput(this->m_cbctrecon->m_spRawReconImg);
-
-    std::cout << "Writing the image to: "
-              << outputFilePath.toLocal8Bit().constData() << std::endl;
-
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
-
-    std::cout << std::endl;
-    std::cout << "The output image was successfully saved" << std::endl;
-  }
-}
-
 void CbctReconWidget::SLT_OutPathEdited() const {
   if (!this->ui.lineEdit_OutputFilePath->text().isEmpty()) {
     this->ui.lineEdit_outImgDim_LR->setEnabled(true);
@@ -2748,9 +2623,10 @@ void CbctReconWidget::SLTM_ForwardProjection() {
           curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
     }
 
-    ForwardProjection(this->m_cbctrecon->m_spRawReconImg, crntGeometry,
-                      this->m_cbctrecon->m_spProjImgRaw3D, false,
-                      this->ui.radioButton_UseCUDA->isChecked());
+    this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
+        this->m_cbctrecon->m_spRawReconImg, crntGeometry,
+        this->m_cbctrecon->m_spProjImgRaw3D, false,
+        this->ui.radioButton_UseCUDA->isChecked());
     // Save proj3D;
 
     // QString outputPath = "D:/ProjTemplate.mha";
@@ -2841,9 +2717,15 @@ void CbctReconWidget::SLTM_ForwardProjection() {
         curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
   }
 
-  ForwardProjection(this->m_cbctrecon->m_spRawReconImg, crntGeometry,
-                    this->m_cbctrecon->m_spProjImgRaw3D, true,
-                    this->ui.radioButton_UseCUDA->isChecked());
+  // if (bExportProj_Fwd) {
+  this->m_cbctrecon->m_strPathPatientDir = QFileDialog::getExistingDirectory(
+      this, tr("Open Directory"), ".",
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  //}
+  this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
+      this->m_cbctrecon->m_spRawReconImg, crntGeometry,
+      this->m_cbctrecon->m_spProjImgRaw3D, true,
+      this->ui.radioButton_UseCUDA->isChecked());
 
   // Export geometry txt
   /* QString strPath = QFileDialog::getSaveFileName(this, "Save geometry file
@@ -4218,7 +4100,7 @@ void CbctReconWidget::SLT_ExportReconUSHORT() {
 }
 
 // Function for independent projection his images
-void CbctReconWidget::LoadRawHisImages() {
+void CbctReconWidget::SLT_LoadRawImages() {
 
   auto files =
       QFileDialog::getOpenFileNames(this, "Select one or more files to open",

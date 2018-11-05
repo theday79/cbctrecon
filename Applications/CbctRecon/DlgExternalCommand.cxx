@@ -7,6 +7,7 @@
 #include "DlgRegistration.h"
 #include "cbctrecon_mainwidget.h"
 #include "cbctregistration.h"
+#include "cbctrecon_io.h"
 
 DlgExternalCommand::DlgExternalCommand() {
   /* Sets up the GUI */
@@ -349,8 +350,24 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
     m_pParent->m_cbctrecon->MedianFilterByGUI(
         indexRadius); // applied to raw image
   }
+  
+  auto outputFilePath = this->m_pParent->ui.lineEdit_OutputFilePath->text();
+  QFileInfo outFileInfo(outputFilePath);
+  auto outFileDir = outFileInfo.absoluteDir();
 
-  m_pParent->FileExportByGUI(); // applied to raw image
+  // bool b = outFileDir.exists();
+  // QString tmpPath = outFileDir.absolutePath();
+
+  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
+    std::cout << "No available output path. Should be exported later"
+              << std::endl;
+  } else {
+    saveImageAsMHA<UShortImageType>(this->m_pParent->m_cbctrecon->m_spRawReconImg,
+                                    outputFilePath.toStdString());
+
+    std::cout << "Wrote the image to: "
+              << outputFilePath.toStdString() << std::endl;
+  }
 }
 
 int DlgExternalCommand::BuildRTKCommandFilter() // called when it is created

@@ -18,16 +18,16 @@ class QXmlStreamReader;
 
 class StructureSet;
 
-
 class CBCTRECON_API CbctRecon {
 
 public:
   CbctRecon();
   ~CbctRecon();
-  CbctRecon(const CbctRecon &) = delete;
-  void operator=(const CbctRecon &) = delete;
-  CbctRecon(CbctRecon &&) = delete;
-  void operator=(CbctRecon &&) = delete;
+  //CbctRecon(const CbctRecon &) = delete;
+  //void operator=(const CbctRecon &) = delete;
+  //CbctRecon(CbctRecon &&) = delete;
+  //void operator=(CbctRecon &&) = delete;
+
   // void DoRecon();
   void ReleaseMemory();
 
@@ -121,6 +121,12 @@ public:
   // removed, bubble will be filled
 
   void FindAllRelevantPaths(const QString &pathProjHisDir);
+
+  template<typename CTImageType, typename ProjImageType>
+  void ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
+                                GeometryType::Pointer &spGeometry,
+                                typename ProjImageType::Pointer &spProjCT3D,
+                                bool bSave, bool use_cuda);
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
   template <typename DevFloatImageType>

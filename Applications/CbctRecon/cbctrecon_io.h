@@ -1,8 +1,8 @@
 #ifndef CBCTRECON_IO_H
 #define CBCTRECON_IO_H
 /*All IO functions used with cbctrecon*/
-#include "cbctrecon_types.h"
 #include "cbctrecon_config.h"
+#include "cbctrecon_types.h"
 
 class QXmlStreamReader;
 
@@ -27,13 +27,14 @@ bool CBCTRECON_API SaveDoseGrayImage(const char *filePath, int width,
                                      double originTop_mm,
                                      unsigned short *pData);
 
-template <
-    typename ImageType>
-void saveImageAsMHA(typename ImageType::Pointer &image) {
+template <typename ImageType>
+void saveImageAsMHA(typename ImageType::Pointer &image,
+                    std::string filename = "Projections.mha") {
   using ImageWriterType = itk::ImageFileWriter<ImageType>;
   typename ImageWriterType::Pointer writer = ImageWriterType::New();
   writer->SetInput(image);
-  writer->SetFileName("Projections.mha");
+  writer->SetFileName(filename);
+  writer->SetUseCompression(true); // not exist in original code (rtkfdk)
   writer->Update();
 }
 
