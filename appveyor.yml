@@ -168,12 +168,13 @@ build_script:
   - echo Building tests
   - cmake --build . --config %BUILD_TYPE% --target CbctRecon_test
   # Install executables and libraries to bin before running test:
+  - echo Building ALL
+  - cmake --build . --config %BUILD_TYPE% --target ALL_BUILD
+  - echo Installing
   - cmake --build . --config %BUILD_TYPE% --target INSTALL
   - echo Running CbctRecon_test
   - ctest -V -C %BUILD_TYPE%
-  - echo Creating .msi (Building ALL)
-  - cmake --build . --config %BUILD_TYPE%
-  - echo Packaging
+  - echo Creating .msi
   - cpack -C %BUILD_TYPE%
   - move CbctRecon-*.msi %APPVEYOR_BUILD_FOLDER%
 
