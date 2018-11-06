@@ -66,7 +66,6 @@ function(add_cbctrecon_test)
   ExternalData_Add_test(CbctData
     NAME ${ARGS_TARGET}
     COMMAND ${VG_COMM} $<TARGET_FILE:${ARGS_TARGET}> ${ARGS_DATA_ARGS}
-	WORKING_DIRECTORY bin # Requires install to be build
     )
 
 endfunction()
