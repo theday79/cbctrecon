@@ -167,6 +167,8 @@ build_script:
   - appveyor-retry cmake --build . --config %BUILD_TYPE% --target CbctData
   - echo Building tests
   - cmake --build . --config %BUILD_TYPE% --target CbctRecon_test
+  # Install executables and libraries to bin before running test:
+  - cmake --build . --config %BUILD_TYPE% --target INSTALL
   - echo Running CbctRecon_test
   - ctest -V -C %BUILD_TYPE%
   - echo Creating .msi (Building ALL)

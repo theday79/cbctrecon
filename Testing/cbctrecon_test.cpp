@@ -17,16 +17,12 @@
 #include "cbctregistration.h"
 
 CbctReconTest::CbctReconTest() {
-  m_cbctrecon = std::make_unique<CbctRecon>();
   m_cbctregistration = std::make_unique<CbctRegistration>(m_cbctrecon.get());
   m_pTableModel = nullptr;
 }
 
-void CbctReconTest::test_LoadRawImages() {} // independent 2d projection files
-                                            // //not used in clinical case
-void CbctReconTest::test_Load3DImage() {}   // indenepndent 3D mha file.
-                                          // UshortFormat. Do reconstruction is
-                                          // an antoher way to make m_spReconImg
+void CbctReconTest::test_LoadRawImages() {}
+void CbctReconTest::test_Load3DImage() {}
 void CbctReconTest::test_Load3DImageShort() {}
 void CbctReconTest::test_LoadPlanCT_mha() {}
 void CbctReconTest::test_LoadPlanCT_USHORT() {}
@@ -34,40 +30,37 @@ void CbctReconTest::test_LoadCBCTcorrMHA() {}
 void CbctReconTest::test_LoadCTrigidMHA() {}
 void CbctReconTest::test_LoadCTdeformMHA() {}
 void CbctReconTest::test_LoadNKIImage() {}
-void CbctReconTest::test_LoadSelectedProjFiles() {} // based on presetting
-                                                    // values on GUI, including
-                                                    // geometry files
+void CbctReconTest::test_LoadSelectedProjFiles() {}
 void CbctReconTest::test_ReloadProjections() {}
 void CbctReconTest::test_ExportHis() {}
+void CbctReconTest::test_LoadImageFloat3D() {}
+void CbctReconTest::test_LoadDICOMdir() const {
+  auto dirPath = QString(this->m_cbctrecon->m_strPathDirDefault);
 
-void CbctReconTest::test_LoadImageFloat3D() {} // Dose file
-void CbctReconTest::test_LoadDICOMdir() {}
+  if (dirPath.length() <= 1) {
+    return;
+  }
+
+  if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
+    auto update_text = QString("DICOM reference image");
+    this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
+                                              REGISTER_MANUAL_RIGID);
+  }
+}
 void CbctReconTest::test_LoadRTKoutput() {}
-
-void CbctReconTest::test_DrawRawImages() const {} // external *.his images
-void CbctReconTest::test_DrawProjImages() {} // draw images from HIS FILE READER
-                                             // or filtered image before going
-                                             // into recon.
+void CbctReconTest::test_DrawRawImages() const {}
+void CbctReconTest::test_DrawProjImages() {}
 void CbctReconTest::test_DrawReconImage() {}
-
-// tools
 void CbctReconTest::test_FileNameHex2Dec() {}
 void CbctReconTest::test_MakeElektaXML() {}
-
-// Gain/ Offset correction
 void CbctReconTest::test_OpenOffsetFile() {}
 void CbctReconTest::test_OpenGainFile() {}
 void CbctReconTest::test_OpenBadpixelFile() {}
 void CbctReconTest::test_ApplyCalibration() const {}
-
-// Gain/ Offset correction
 void CbctReconTest::test_SetHisDir() {}
 void CbctReconTest::test_OpenElektaGeomFile() {}
 void CbctReconTest::test_SetOutputPath() {}
 void CbctReconTest::test_DoReconstruction() {}
-// Profile table
-// void CbctReconTest::test_GetProjectionProfile(){}
-// void CbctReconTest::test_GetReconImgProfile(){}
 void CbctReconTest::test_CopyTableToClipBoard() const {}
 void CbctReconTest::test_DataProbeProj() const {}
 void CbctReconTest::test_DataProbeRecon() const {}
@@ -78,7 +71,7 @@ void CbctReconTest::test_CalculateROI_Recon() {}
 void CbctReconTest::test_CalculateROI_Proj() {}
 void CbctReconTest::test_GoForcedProbePos() {}
 void CbctReconTest::test_PostApplyFOVDispParam() {}
-void CbctReconTest::test_DoPostProcessing() {} // cropping Circle
+void CbctReconTest::test_DoPostProcessing() {}
 void CbctReconTest::test_PostProcCropInv() {}
 void CbctReconTest::test_ExportReconUSHORT() {}
 void CbctReconTest::test_ExportReconSHORT_HU() {}
@@ -109,7 +102,6 @@ void CbctReconTest::test_MedianFilterDoNow() {}
 void CbctReconTest::test_ExportProjGeometryTXT() {}
 void CbctReconTest::test_ForwardProjection() {}
 void CbctReconTest::test_FineResolScatterCorrectrionMacro() {}
-
 void CbctReconTest::test_FullScatterCorrectionMacroAP() {}
 void CbctReconTest::test_BatchScatterCorrectionMacroAP() {}
 void CbctReconTest::test_OpenPhaseData() {}
@@ -123,26 +115,33 @@ void CbctReconTest::test_OutPathEdited() const {}
 void CbctReconTest::test_SaveCurrentSetting() const {}
 void CbctReconTest::test_CropSupInf() {}
 
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
 
   if (argc < 2) {
-    std::cerr << "Usage:\n" << argv[0] << " ./dicom/directory" << std::endl;
+    std::cerr << "Usage:\n" << argv[0] << " ./dicom/directory\n";
     return -1;
   }
-  std::cout << "Running cbctrecon_test!" << std::endl;
-  auto cbctrecon = std::make_unique<CbctRecon>();
+
+  std::cout << "Running cbctrecon_test!\n";
+  auto cbctrecon_test = std::make_unique<CbctReconTest>();
+
   auto dcm_dir = QDir(argv[1]);
   auto dcm_path = dcm_dir.absolutePath();
   if (!dcm_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << dcm_path.toStdString()
-              << std::endl;
+    std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
     return -2;
   }
   if (dcm_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << dcm_path.toStdString() << std::endl;
+    std::cerr << "Directory was empty: " << dcm_path.toStdString() << "\n";
     return -3;
   }
 
+  cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
+  cbctrecon_test->test_LoadDICOMdir();
+  if (cbctrecon_test->m_cbctrecon->m_spManualRigidCT.IsNull()) {
+    std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
+    return -4;
+  }
   /*try { // This will have to wait, unfortunately
     cbctrecon->ReadDicomDir(dcm_path);
   }

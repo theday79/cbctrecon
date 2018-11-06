@@ -49,7 +49,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
     const typename ImageType::Pointer &spCurImg,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &m_spCustomGeometry,
     typename ImageType::SpacingType spacing,
-    typename ImageType::SizeType sizeOutput, const FDK_options fdk_options) {
+    typename ImageType::SizeType sizeOutput, FDK_options const &fdk_options) {
 
   try {
     spCurImg->Update();
@@ -518,12 +518,12 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 }
 
 // output spProjCT3D => intensity value, not line integral
-template<typename CTImageType, typename ProjImageType>
-void CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
-                                         GeometryType::Pointer &spGeometry,
-                                         typename ProjImageType::Pointer &spProjCT3D,
-                                         const bool bSave,
-                                         const bool use_cuda) {
+template <typename CTImageType, typename ProjImageType>
+void CbctRecon::ForwardProjection_master(
+    typename CTImageType::Pointer &spVolImg3D,
+    GeometryType::Pointer &spGeometry,
+    typename ProjImageType::Pointer &spProjCT3D, const bool bSave,
+    const bool use_cuda) {
   if (spVolImg3D == nullptr) {
     std::cout << "ERROR! No 3D-CT file. Load 3D CT file first" << std::endl;
     return;

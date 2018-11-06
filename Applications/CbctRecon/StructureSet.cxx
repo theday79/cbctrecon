@@ -13,13 +13,13 @@ StructureSet::StructureSet() = default;
 StructureSet::~StructureSet() = default;
 
 void StructureSet::set_planCT_ss(std::unique_ptr<Rtss> struct_set) {
-  m_plan_ss = std::make_unique<Rtss_modern>(std::move(struct_set));
+  m_plan_ss = std::make_unique<Rtss_modern>(struct_set.release());
 }
 void StructureSet::set_rigidCT_ss(std::unique_ptr<Rtss> struct_set) {
-  m_rigid_ss = std::make_unique<Rtss_modern>(std::move(struct_set));
+  m_rigid_ss = std::make_unique<Rtss_modern>(struct_set.release());
 }
 void StructureSet::set_deformCT_ss(std::unique_ptr<Rtss> struct_set) {
-  m_deform_ss = std::make_unique<Rtss_modern>(std::move(struct_set));
+  m_deform_ss = std::make_unique<Rtss_modern>(struct_set.release());
 }
 
 void StructureSet::set_planCT_ss(Rtss *struct_set) {
@@ -252,8 +252,7 @@ bool StructureSet::ApplyDeformTransformToRigid(QFile deform_transform_file) {
   default:
     std::cerr << "\a"
               << "You are passing the wrong type of transform file to the "
-                 "deform transform"
-              << std::endl;
+                 "deform transform\n";
     return false;
   }
 
@@ -268,7 +267,6 @@ bool StructureSet::ApplyDeformTransformToRigid(QFile deform_transform_file) {
 
   std::cerr
       << "\a"
-      << "Transform function were not created and no vector field were applied"
-      << std::endl;
+      << "Transform function were not created and no vector field were applied\n";
   return false;
 }

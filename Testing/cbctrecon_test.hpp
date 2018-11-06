@@ -24,7 +24,6 @@ public:
   FDK_options getFDKoptions() const;
 
 private:
-  std::tuple<bool, bool> probeUser(const QString &guessDir);
   FilterReaderType::Pointer
   ReadBowtieFileWhileProbing(const QString &proj_path,
                              std::tuple<bool, bool> &answers);
@@ -37,16 +36,16 @@ private:
   template <enREGI_IMAGES imagetype> void LoadMHAfileAs();
 
 public:
-  std::unique_ptr<CbctRecon> m_cbctrecon;
+  std::unique_ptr<CbctRecon> m_cbctrecon = std::make_unique<CbctRecon>();
   std::unique_ptr<CbctRegistration> m_cbctregistration; // just for convienience
   std::unique_ptr<QStandardItemModel> m_pTableModel;
 
-// still public:
+  // still public:
   void test_LoadRawImages(); // independent 2d projection files //not used in
-                            // clinical case
+                             // clinical case
   void test_Load3DImage();   // indenepndent 3D mha file. UshortFormat. Do
-                            // reconstruction is an antoher way to make
-                            // m_spReconImg
+                             // reconstruction is an antoher way to make
+                             // m_spReconImg
   void test_Load3DImageShort();
   void test_LoadPlanCT_mha();
   void test_LoadPlanCT_USHORT();
@@ -55,17 +54,17 @@ public:
   void test_LoadCTdeformMHA();
   void test_LoadNKIImage();
   void test_LoadSelectedProjFiles(); // based on presetting values on GUI,
-                                    // including geometry files
+                                     // including geometry files
   void test_ReloadProjections();
   void test_ExportHis();
 
   void test_LoadImageFloat3D(); // Dose file
-  void test_LoadDICOMdir();
+  void test_LoadDICOMdir() const;
   void test_LoadRTKoutput();
 
   void test_DrawRawImages() const; // external *.his images
   void test_DrawProjImages(); // draw images from HIS FILE READER or filtered
-                             // image before going into recon.
+                              // image before going into recon.
   void test_DrawReconImage();
 
   // tools
@@ -141,7 +140,6 @@ public:
   void test_OutPathEdited() const;
   void test_SaveCurrentSetting() const;
   void test_CropSupInf();
-
 };
 
 #endif // CBCTRECON_TEST_HPP
