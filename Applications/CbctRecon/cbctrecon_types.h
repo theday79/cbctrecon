@@ -26,7 +26,7 @@ using FloatImage2DType = itk::Image<FloatPixelType, 2U>;
 using UShortImageType = itk::Image<USHORT_PixelType, 3U>;
 using UShortImage2DType = itk::Image<USHORT_PixelType, 2U>;
 using ShortImageType = itk::Image<SHORT_PixelType, 3U>;
-#if USE_CUDA
+#ifdef USE_CUDA
 using CUDAFloatImageType = itk::CudaImage<FloatPixelType, 3U>;
 #endif // USE_CUDA
 
