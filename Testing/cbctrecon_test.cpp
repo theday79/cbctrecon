@@ -42,7 +42,6 @@ void CbctReconTest::test_LoadDICOMdir() const {
   }
 
   if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
-    auto update_text = QString("DICOM reference image");
     this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
                                               REGISTER_MANUAL_RIGID);
   }
