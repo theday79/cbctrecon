@@ -385,30 +385,65 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
 }
 
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
-  Dcmtk_rt_study drs(dirPath.toLocal8Bit().constData());
-  drs.load_directory(); // parse_directory();
-
-  Plm_image plmImg;
-  auto tmp_img = drs.get_image();
-
-  if (tmp_img == nullptr){
-      std::cerr << "Plastimach couldn't read image data!\n";
-      return false;
+  auto filenamelist = std::vector<std::string>();
+  auto dir = QDir(dirPath);
+  for (auto&& filename : dir.entryList(QStringList() << "*.dcm" << "*.DCM", QDir::Files)){
+    auto modality = get_dcm_modality(filename);
+    switch (modality) {
+    case RTIMAGE:
+    case RTDOSE:
+      filenamelist.push_back(filename.toStdString());
+      break;
+    case RTSTRUCT:
+      m_structures->set_planCT_ss(load_rtstruct(filename));
+      break;
+    case RTPLAN:
+      break; // Maybe some pre-loading for gPMC could be useful?
+    case RTRECORD:
+      break; // I haven't ever seen one IRL
+    case RTUNKNOWN:
+      std::cerr << "File: " << filename.toStdString() << " was not of a recognizeable modality type!\n";
+      break;
+    }
   }
-  if (!tmp_img->have_image()) {
-    return false;
-  }
-  std::cout << "PLM_imagetype: " << tmp_img->m_type << std::endl;
-  plmImg.set(tmp_img);
-  // plmImg.load_native(dirPath.toLocal8Bit().constData());
 
-  auto planCT_ss = drs.get_rtss(); // dies at end of scope...
-  if (!planCT_ss) {
-    // ... so I copy to my own modern-C++ implementation
-    m_structures->set_planCT_ss(planCT_ss.get());
+  ShortImageType::Pointer spShortImg;
+
+  if (filenamelist.size() != 0){
+    using dcm_reader_type = itk::ImageSeriesReader<ShortImageType>;
+    auto dcm_reader = dcm_reader_type::New();
+    dcm_reader->SetFileNames(filenamelist);
+    dcm_reader->Update();
+    spShortImg = dcm_reader->GetOutput();
+  }
+  else{
+    Dcmtk_rt_study drs(dirPath.toLocal8Bit().constData());
+    drs.load_directory(); // parse_directory();
+
+    Plm_image plmImg;
+    auto tmp_img = drs.get_image();
+
+    if (tmp_img == nullptr){
+        std::cerr << "Plastimach couldn't read image data!\n";
+        return false;
+    }
+    if (!tmp_img->have_image()) {
+        return false;
+    }
+    std::cout << "PLM_imagetype: " << tmp_img->m_type << std::endl;
+    plmImg.set(tmp_img);
+    // plmImg.load_native(dirPath.toLocal8Bit().constData());
+
+    auto planCT_ss = drs.get_rtss(); // dies at end of scope...
+    if (!planCT_ss) {
+        // ... so I copy to my own modern-C++ implementation
+        m_structures->set_planCT_ss(planCT_ss.get());
+    }
+
+    spShortImg = plmImg.itk_short();
   }
 
-  const auto spShortImg = plmImg.itk_short();
+
 
   // Figure out whether this is NKI
   using ImageCalculatorFilterType =
