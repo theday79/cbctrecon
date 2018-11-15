@@ -10,6 +10,10 @@
 #include <qxmlstream.h>
 
 // ITK
+#ifdef OF
+#undef OF
+#endif // OF
+
 #include "gdcmReader.h"
 #include "gdcmAttribute.h"
 #include "gdcmUIDGenerator.h"
@@ -387,7 +391,7 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   std::cout << "Writing was successfully done" << std::endl;
 }
 
-DCM_MODALITY get_dcm_modality(QString& filename){
+DCM_MODALITY get_dcm_modality(const QString& filename){
   gdcm::Reader reader;
   reader.SetFileName(filename.toLocal8Bit().constData());
   if (!reader.Read())
@@ -400,26 +404,28 @@ DCM_MODALITY get_dcm_modality(QString& filename){
   gdcm::Attribute<0x0008, 0x0060> at_modality;
   at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
   const auto modality = at_modality.GetValue();
-  if (modality == "RTIMAGE"){
-      return RTIMAGE;
+  if (modality.compare("RTIMAGE") == 0 ||
+      modality.compare("CT") == 0){
+    return RTIMAGE;
   }
-  if (modality == "RTDOSE"){
-      return RTDOSE;
+  if (modality.compare("RTDOSE") == 0){
+    return RTDOSE;
   }
-  if (modality == "RTSTRUCT"){
-      return RTSTRUCT;
+  if (modality.compare("RTSTRUCT") == 0){
+    return RTSTRUCT;
   }
-  if (modality == "RTPLAN"){
-      return RTPLAN;
+  if (modality.compare("RTPLAN") == 0){
+    return RTPLAN;
   }
-  if (modality == "RTRECORD"){
-      return RTRECORD;
+  if (modality.compare("RTRECORD") == 0){
+    return RTRECORD;
   }
   else {
-      return RTUNKNOWN;
+    std::cerr << "Modality was: " << modality << "\n";
+    return RTUNKNOWN;
   }
 }
-std::unique_ptr<Rtss_modern> load_rtstruct(QString& filename){
+std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
 
   auto reader = gdcm::Reader();
   reader.SetFileName(filename.toLocal8Bit().constData());
@@ -453,7 +459,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(QString& filename){
     auto at_roi_name = gdcm_attribute_from<0x3006, 0x0026>(it_roi);
     rt_roi->name = at_roi_name.GetValue();
 
-    rt_struct->slist.push_back(rt_roi.release());
+    rt_struct->slist.emplace_back(std::move(rt_roi));
     rt_struct->num_structures++;
 
   }
@@ -477,6 +483,8 @@ std::unique_ptr<Rtss_modern> load_rtstruct(QString& filename){
 
     const auto& contour_seq_tag = it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
     auto contour_seq = contour_seq_tag.GetValueAsSQ();
+    auto j = 0U;
+    rt_struct->slist.at(i).pslist.resize(contour_seq->GetLength());
     for (auto it_contour = contour_seq->Begin(); it_contour != contour_seq->End(); ++it_contour){
       auto rt_contour = std::make_unique<Rtss_contour_modern>();
 
@@ -484,7 +492,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(QString& filename){
       rt_contour->num_vertices = static_cast<unsigned long>(at_contour_number_of_points.GetValue());
 
       auto at_contour_points = gdcm_attribute_from<0x3006, 0x0050>(it_contour);
-      const auto points = at_contour_number_of_points.GetValues();
+      const auto points = at_contour_points.GetValues();
 
       rt_contour->coordinates.resize(rt_contour->num_vertices);
 
@@ -499,7 +507,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(QString& filename){
       });
 
 
-      rt_struct->slist.at(i).pslist.push_back(rt_contour.release());
+      rt_struct->slist.at(i).pslist.at(j++) = std::move(rt_contour);
     }
 
     i++;
@@ -514,21 +522,22 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   auto filenamelist = std::vector<std::string>();
   auto dir = QDir(dirPath);
   for (auto&& filename : dir.entryList(QStringList() << "*.dcm" << "*.DCM", QDir::Files)){
-    auto modality = get_dcm_modality(filename);
+    const auto fullfilename = dir.absolutePath() + "/" + filename;
+    auto modality = get_dcm_modality(fullfilename);
     switch (modality) {
     case RTIMAGE:
     case RTDOSE:
-      filenamelist.push_back(filename.toStdString());
+      filenamelist.push_back(fullfilename.toStdString());
       break;
     case RTSTRUCT:
-      m_structures->set_planCT_ss(load_rtstruct(filename));
+      m_structures->set_planCT_ss(load_rtstruct(fullfilename));
       break;
     case RTPLAN:
       break; // Maybe some pre-loading for gPMC could be useful?
     case RTRECORD:
       break; // I haven't ever seen one IRL
     case RTUNKNOWN:
-      std::cerr << "File: " << filename.toStdString() << " was not of a recognizeable modality type!\n";
+      std::cerr << "File: " << fullfilename.toStdString() << " was not of a recognizeable modality type!\n";
       break;
     }
   }

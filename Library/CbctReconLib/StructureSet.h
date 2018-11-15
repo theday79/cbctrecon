@@ -19,6 +19,7 @@ public:
   void operator=(StructureSet &&) = delete;
 
   void set_planCT_ss(std::unique_ptr<Rtss> struct_set);
+  void set_planCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
   void set_rigidCT_ss(std::unique_ptr<Rtss> struct_set);
   void set_deformCT_ss(std::unique_ptr<Rtss> struct_set);
   void set_planCT_ss(Rtss *struct_set);

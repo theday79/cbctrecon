@@ -17,13 +17,13 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   ImageType::DirectionType dc;
 
   /* Copy header & allocate data for itk */
-  for (auto d1 = 0; d1 < 3; d1++) {
-    st[d1] = 0;
-    sz[d1] = vol->dim[d1];
-    sp[d1] = vol->spacing[d1];
-    og[d1] = vol->origin[d1];
-    for (auto d2 = 0; d2 < 3; d2++) {
-      dc[d1][d2] = vol->direction_cosines[d1 * 3 + d2];
+  for (auto d1 = 0U; d1 < 3U; d1++) {
+    st[d1] = 0U;
+    sz[d1] = static_cast<ImageType::SizeValueType>(vol->dim[d1]);
+    sp[d1] = static_cast<ImageType::SpacingValueType>(vol->spacing[d1]);
+    og[d1] = static_cast<ImageType::PointValueType>(vol->origin[d1]);
+    for (auto d2 = 0U; d2 < 3U; d2++) {
+      dc[d1][d2] = static_cast<ImageType::DirectionType::ValueType>(vol->direction_cosines[d1 * 3 + d2]);
     }
   }
   rg.SetSize(sz);
@@ -77,10 +77,17 @@ Rtss_contour_modern::Rtss_contour_modern(
             coordinates.begin());
 }
 
+Rtss_contour_modern& Rtss_contour_modern::operator=(
+    std::unique_ptr<Rtss_contour_modern> &&old_contour) {
+  this->num_vertices = std::move(old_contour->num_vertices);
+  this->coordinates = std::move(old_contour->coordinates);
+  return *this;
+}
+
 Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi *old_roi) {
   name = old_roi->name;
   color = old_roi->color;
-  id = old_roi->id;   /* Used for import/export (must be >= 1) */
+  id = static_cast<size_t>(old_roi->id);   /* Used for import/export (must be >= 1) */
   bit = old_roi->bit; /* Used for ss-img (-1 for no bit) */
   num_contours = old_roi->num_contours;
   pslist.resize(num_contours);
@@ -149,6 +156,25 @@ Rtss_modern::Rtss_modern(const Rtss *old_rtss) {
   std::copy(&old_rtss->slist[0], &old_rtss->slist[num_structures - 1],
             slist.begin());
 }
+
+// Move assignment constructor
+Rtss_modern& Rtss_modern::operator=(std::unique_ptr<Rtss_modern> &&old_rtss) {
+  this->m_dim = std::move(old_rtss->m_dim);
+  this->m_spacing = std::move(old_rtss->m_spacing);
+  this->m_offset = std::move(old_rtss->m_offset);
+  this->rast_dim = std::move(old_rtss->rast_dim);
+  this->rast_spacing = std::move(old_rtss->rast_spacing);
+  this->rast_offset = std::move(old_rtss->rast_offset);
+  this->have_geometry = std::move(old_rtss->have_geometry);
+
+  this->rast_dc = std::move(old_rtss->rast_dc);
+
+  this->num_structures = std::move(old_rtss->num_structures);
+  this->slist = std::move(old_rtss->slist);
+  return *this;
+}
+
+
 
 // Copy constructor
 Rtss_modern::Rtss_modern(const Rtss_modern &old_rtss) {

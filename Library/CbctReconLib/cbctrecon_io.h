@@ -1,6 +1,9 @@
 #ifndef CBCTRECON_IO_H
 #define CBCTRECON_IO_H
 /*All IO functions used with cbctrecon*/
+#ifdef OF
+#undef OF
+#endif //OF
 #include "gdcmAttribute.h"
 
 #include "cbctrecon_config.h"

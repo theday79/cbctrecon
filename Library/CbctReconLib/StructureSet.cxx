@@ -15,6 +15,9 @@ StructureSet::~StructureSet() = default;
 void StructureSet::set_planCT_ss(std::unique_ptr<Rtss> struct_set) {
   m_plan_ss = std::make_unique<Rtss_modern>(struct_set.release());
 }
+void StructureSet::set_planCT_ss(std::unique_ptr<Rtss_modern> &&struct_set) {
+  m_plan_ss = std::move(struct_set);
+}
 void StructureSet::set_rigidCT_ss(std::unique_ptr<Rtss> struct_set) {
   m_rigid_ss = std::make_unique<Rtss_modern>(struct_set.release());
 }

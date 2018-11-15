@@ -13,7 +13,6 @@
 #include "StructureSet.h"
 #include "YK16GrayImage.h"
 #include "cbctrecon_types.h"
-#include "qyklabel.h"
 
 class QString;
 class CbctRecon;
