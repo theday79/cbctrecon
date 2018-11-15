@@ -107,6 +107,25 @@ Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi_modern &old_roi) {
   std::copy(old_roi.pslist.begin(), old_roi.pslist.end(), pslist.begin());
 }
 
+Rtss_roi_modern& Rtss_roi_modern::operator=(std::unique_ptr<Rtss_roi_modern> &&old_roi) {
+  this->name = std::move(old_roi->name);
+  this->num_contours = std::move(old_roi->num_contours);
+  this->color = std::move(old_roi->color);
+  this->id = std::move(old_roi->id);
+  this->bit = std::move(old_roi->bit);
+  this->pslist = std::move(old_roi->pslist);
+  return *this;
+}
+
+Rtss_roi_modern::Rtss_roi_modern(std::unique_ptr<Rtss_roi_modern> &&old_roi) {
+  this->name = std::move(old_roi->name);
+  this->num_contours = std::move(old_roi->num_contours);
+  this->color = std::move(old_roi->color);
+  this->id = std::move(old_roi->id);
+  this->bit = std::move(old_roi->bit);
+  this->pslist = std::move(old_roi->pslist);
+}
+
 Rtss_modern::Rtss_modern(std::unique_ptr<Rtss> old_rtss) {
   m_dim = {{old_rtss->m_dim[0], old_rtss->m_dim[1], old_rtss->m_dim[2]}};
   m_spacing = {

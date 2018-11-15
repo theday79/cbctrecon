@@ -41,6 +41,8 @@ public:
   ~Rtss_roi_modern() = default;
   Rtss_roi_modern(const Rtss_roi *old_roi);
   Rtss_roi_modern(const Rtss_roi_modern &old_roi);
+  Rtss_roi_modern(std::unique_ptr<Rtss_roi_modern> &&old_roi);
+  Rtss_roi_modern& operator=(std::unique_ptr<Rtss_roi_modern>&& old_roi);
 
   std::vector<Rtss_contour_modern> pslist;
   std::string name = "";

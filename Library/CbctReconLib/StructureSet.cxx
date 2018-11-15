@@ -52,7 +52,8 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
 std::unique_ptr<Rtss_modern>
 StructureSet::transform_by_vector(const ctType struct_set,
                                   const FloatVector vec) const {
-  auto out_ss = std::make_unique<Rtss_modern>(get_ss(struct_set));
+  const auto ss = get_ss(struct_set);
+  auto out_ss = std::make_unique<Rtss_modern>(*ss);
 
   for (auto &roi : out_ss->slist) {
     for (auto &contour : roi.pslist) {
@@ -69,7 +70,8 @@ StructureSet::transform_by_vector(const ctType struct_set,
 std::unique_ptr<Rtss_modern> StructureSet::transform_by_vectorField(
     const ctType struct_set, const VectorFieldType::Pointer &vf) const {
 
-  auto out_ss = std::make_unique<Rtss_modern>(get_ss(struct_set));
+  const auto ss = get_ss(struct_set);
+  auto out_ss = std::make_unique<Rtss_modern>(*ss);
 
   for (auto &roi : out_ss->slist) {
     for (auto &contour : roi.pslist) {
@@ -98,7 +100,8 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_vectorField(
 std::unique_ptr<Rtss_modern> StructureSet::transform_by_Lambda(
     const ctType struct_set, const TransformType &transform_function) const {
 
-  auto out_ss = std::make_unique<Rtss_modern>(get_ss(struct_set));
+  const auto ss = get_ss(struct_set);
+  auto out_ss = std::make_unique<Rtss_modern>(*ss);
 
   for (auto &roi : out_ss->slist) {
     for (auto &contour : roi.pslist) {
