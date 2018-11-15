@@ -420,11 +420,10 @@ DCM_MODALITY get_dcm_modality(const QString& filename){
   if (modality.compare("RTRECORD") == 0){
     return RTRECORD;
   }
-  else {
-    std::cerr << "Modality was: " << modality << "\n";
-    return RTUNKNOWN;
-  }
+  std::cerr << "Modality was: " << modality << "\n";
+  return RTUNKNOWN;
 }
+
 std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
 
   auto reader = gdcm::Reader();

@@ -92,7 +92,13 @@ IF(USE_CLFFT)
   add_definitions(-DUSE_CLFFT=TRUE)
 ENDIF(USE_CLFFT)
 
-FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED)
+if(WIN32)
+    find_path(QT_HINT
+        NAMES Qt5.cmake
+        HINTS "C:/Qt/"
+        PATH_SUFFIXES lib/cmake/Qt5)
+endif()
+FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED HINTS QT_HINT)
 
 
 #-----------------------------------------------------------------------------

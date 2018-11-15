@@ -42,7 +42,10 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   IteratorType it(itk_img, rg);
   int i;
   for (it.GoToBegin(), i = 0; !it.IsAtEnd(); ++it, ++i) {
-    float vec[] = {img[i].x, img[i].y, img[i].z};
+    auto vec = itk::Vector<float, 3>();
+    vec.SetElement(0, img[i].x);
+    vec.SetElement(1, img[i].y);
+    vec.SetElement(2, img[i].z);
     it.Set(vec);
   }
 
@@ -79,7 +82,7 @@ Rtss_contour_modern::Rtss_contour_modern(
 
 Rtss_contour_modern& Rtss_contour_modern::operator=(
     std::unique_ptr<Rtss_contour_modern> &&old_contour) {
-  this->num_vertices = std::move(old_contour->num_vertices);
+  this->num_vertices = old_contour->num_vertices;
   this->coordinates = std::move(old_contour->coordinates);
   return *this;
 }
@@ -109,20 +112,20 @@ Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi_modern &old_roi) {
 
 Rtss_roi_modern& Rtss_roi_modern::operator=(std::unique_ptr<Rtss_roi_modern> &&old_roi) {
   this->name = std::move(old_roi->name);
-  this->num_contours = std::move(old_roi->num_contours);
+  this->num_contours = old_roi->num_contours;
   this->color = std::move(old_roi->color);
-  this->id = std::move(old_roi->id);
-  this->bit = std::move(old_roi->bit);
+  this->id = old_roi->id;
+  this->bit = old_roi->bit;
   this->pslist = std::move(old_roi->pslist);
   return *this;
 }
 
 Rtss_roi_modern::Rtss_roi_modern(std::unique_ptr<Rtss_roi_modern> &&old_roi) {
   this->name = std::move(old_roi->name);
-  this->num_contours = std::move(old_roi->num_contours);
+  this->num_contours = old_roi->num_contours;
   this->color = std::move(old_roi->color);
-  this->id = std::move(old_roi->id);
-  this->bit = std::move(old_roi->bit);
+  this->id = old_roi->id;
+  this->bit = old_roi->bit;
   this->pslist = std::move(old_roi->pslist);
 }
 
@@ -178,17 +181,17 @@ Rtss_modern::Rtss_modern(const Rtss *old_rtss) {
 
 // Move assignment constructor
 Rtss_modern& Rtss_modern::operator=(std::unique_ptr<Rtss_modern> &&old_rtss) {
-  this->m_dim = std::move(old_rtss->m_dim);
-  this->m_spacing = std::move(old_rtss->m_spacing);
-  this->m_offset = std::move(old_rtss->m_offset);
-  this->rast_dim = std::move(old_rtss->rast_dim);
-  this->rast_spacing = std::move(old_rtss->rast_spacing);
-  this->rast_offset = std::move(old_rtss->rast_offset);
-  this->have_geometry = std::move(old_rtss->have_geometry);
+  this->m_dim = old_rtss->m_dim;
+  this->m_spacing = old_rtss->m_spacing;
+  this->m_offset = old_rtss->m_offset;
+  this->rast_dim = old_rtss->rast_dim;
+  this->rast_spacing = old_rtss->rast_spacing;
+  this->rast_offset = old_rtss->rast_offset;
+  this->have_geometry = old_rtss->have_geometry;
 
   this->rast_dc = std::move(old_rtss->rast_dc);
 
-  this->num_structures = std::move(old_rtss->num_structures);
+  this->num_structures = old_rtss->num_structures;
   this->slist = std::move(old_rtss->slist);
   return *this;
 }

@@ -347,7 +347,7 @@ QString XML_GetSingleItemString(QXmlStreamReader &xml) {
   }
 
   /* Let's read the name... */
-  auto elementName = xml.name().toString();
+  // auto elementName = xml.name().toString();
   /* ...go to the next. */
   xml.readNext();
   /*
