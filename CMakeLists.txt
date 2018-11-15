@@ -93,12 +93,12 @@ IF(USE_CLFFT)
 ENDIF(USE_CLFFT)
 
 if(WIN32)
-    find_path(QT_HINT
-        NAMES Qt5.cmake
-        HINTS "C:/Qt/"
-        PATH_SUFFIXES lib/cmake/Qt5)
+    set(CMAKE_PREFIX_PATH
+        ${CMAKE_PREFIX_PATH}
+        "C:\\Qt\\5.11.1\\msvc2015_64"
+        )
 endif()
-FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED HINTS QT_HINT)
+FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED)
 
 
 #-----------------------------------------------------------------------------
