@@ -34,6 +34,8 @@
 #include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
 #endif
 
+#include "cbctrecon_config.h"
+
 #if USE_CUDA
 #include "rtkCudaForwardProjectionImageFilter.h"
 #include <rtkCudaDisplacedDetectorImageFilter.h>

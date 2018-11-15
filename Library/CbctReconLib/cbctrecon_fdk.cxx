@@ -11,7 +11,7 @@
 #include "cbctrecon_types.h"
 
 // PLM
-#if USE_OPENCL_PLM
+#ifdef USE_OPENCL_PLM
 #undef TIMEOUT
 #undef CUDA_FOUND
 #include <fdk_opencl.h>

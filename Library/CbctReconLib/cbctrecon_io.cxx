@@ -10,6 +10,8 @@
 #include <qxmlstream.h>
 
 // ITK
+#include "gdcmReader.h"
+#include "gdcmAttribute.h"
 #include "gdcmUIDGenerator.h"
 #include "itkGDCMImageIO.h"
 #include "itkImageDuplicator.h"
@@ -37,6 +39,7 @@
 // local
 #include "StructureSet.h"
 #include "cbctrecon_io.h"
+#include "cbctrecon_types.h"
 
 QString MakeElektaXML(const QString &filePath_ImageDBF,
                       const QString &filePath_FrameDBF,
@@ -122,7 +125,7 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
         tmpStr = XML_GetSingleItemString(xml);
       } else if (xml.name() == "GantryAngle") {
         tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fGanAngle = tmpStr.toDouble();
+        tmpResult.fGanAngle = tmpStr.toFloat();
       } else if (xml.name() == "Exposed") {
         tmpStr = XML_GetSingleItemString(xml);
         if (tmpStr == "True") {
@@ -147,10 +150,10 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
         }
       } else if (xml.name() == "UCentre") {
         tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fPanelOffsetX = tmpStr.toDouble();
+        tmpResult.fPanelOffsetX = tmpStr.toFloat();
       } else if (xml.name() == "VCentre") {
         tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fPanelOffsetY = tmpStr.toDouble();
+        tmpResult.fPanelOffsetY = tmpStr.toFloat();
       } else if (xml.name() == "Inactive") {
         tmpStr = XML_GetSingleItemString(xml);
       }
@@ -171,7 +174,7 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   m_spFullGeometry = geometryReader->GetOutputObject();
 
   // fullGeometry->GetGantryAngles();
-  const int geoDataSize =
+  const auto geoDataSize =
       m_spFullGeometry->GetGantryAngles().size(); // This is MV gantry angle!!!
   std::cout << "Geometry data size(projection gantry angles): " << geoDataSize
             << std::endl;
@@ -209,8 +212,8 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   }
 
   // compare 2 points in the middle of the angle list
-  const auto iLowerIdx = static_cast<int>(geoDataSize * 1.0 / 3.0);
-  const auto iUpperIdx = static_cast<int>(geoDataSize * 2.0 / 3.0);
+  const auto iLowerIdx = static_cast<size_t>(geoDataSize * 1.0 / 3.0);
+  const auto iUpperIdx = static_cast<size_t>(geoDataSize * 2.0 / 3.0);
 
   if (vTempConvAngles.at(iLowerIdx) <
       vTempConvAngles.at(iUpperIdx)) // ascending
@@ -383,6 +386,129 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   writer->Update();
   std::cout << "Writing was successfully done" << std::endl;
 }
+
+DCM_MODALITY get_dcm_modality(QString& filename){
+  gdcm::Reader reader;
+  reader.SetFileName(filename.toLocal8Bit().constData());
+  if (!reader.Read())
+  {
+    std::cerr << "Reading dicom: " << filename.toStdString() << " failed!\n";
+    return RTUNKNOWN;
+  }
+  gdcm::File &file = reader.GetFile();
+  gdcm::DataSet &ds = file.GetDataSet();
+  gdcm::Attribute<0x0008, 0x0060> at_modality;
+  at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
+  const auto modality = at_modality.GetValue();
+  if (modality == "RTIMAGE"){
+      return RTIMAGE;
+  }
+  if (modality == "RTDOSE"){
+      return RTDOSE;
+  }
+  if (modality == "RTSTRUCT"){
+      return RTSTRUCT;
+  }
+  if (modality == "RTPLAN"){
+      return RTPLAN;
+  }
+  if (modality == "RTRECORD"){
+      return RTRECORD;
+  }
+  else {
+      return RTUNKNOWN;
+  }
+}
+std::unique_ptr<Rtss_modern> load_rtstruct(QString& filename){
+
+  auto reader = gdcm::Reader();
+  reader.SetFileName(filename.toLocal8Bit().constData());
+  if (!reader.Read())
+  {
+    std::cerr << "Reading dicom rtstruct: " << filename.toStdString() << " failed!\n";
+    return nullptr;
+  }
+
+  gdcm::File &file = reader.GetFile();
+  gdcm::DataSet &ds = file.GetDataSet();
+
+  gdcm::Attribute<0x0008, 0x0060> at_modality;
+  at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
+  const auto modality = at_modality.GetValue();
+  if (modality != "RTSTRUCT"){
+      std::cerr << "Modality was not RTSTRUCT, it was: " << modality << "\n";
+      return nullptr;
+  }
+
+  auto rt_struct = std::make_unique<Rtss_modern>();
+  rt_struct->num_structures = 0;
+
+  const gdcm::DataElement &roi_seq_tag = ds.GetDataElement(gdcm::Tag(0x3006, 0x0020));
+  auto roi_seq = roi_seq_tag.GetValueAsSQ();
+  for (auto it_roi = roi_seq->Begin(); it_roi != roi_seq->End(); ++it_roi){
+    auto rt_roi = std::make_unique<Rtss_roi_modern>();
+    auto at_roi_number = gdcm_attribute_from<0x3006, 0x0022>(it_roi);
+    rt_roi->id = at_roi_number.GetValue();
+
+    auto at_roi_name = gdcm_attribute_from<0x3006, 0x0026>(it_roi);
+    rt_roi->name = at_roi_name.GetValue();
+
+    rt_struct->slist.push_back(rt_roi.release());
+    rt_struct->num_structures++;
+
+  }
+
+  const gdcm::DataElement &roi_contour_seq_tag = ds.GetDataElement(gdcm::Tag(0x3006, 0x0039));
+  auto roi_contour_seq = roi_contour_seq_tag.GetValueAsSQ();
+  auto i = 0U;
+  for (auto it_roi_contour = roi_contour_seq->Begin(); it_roi_contour != roi_contour_seq->End(); ++it_roi_contour){
+    auto at_roi_contour_number = gdcm_attribute_from<0x3006, 0x0084>(it_roi_contour);
+    if (rt_struct->slist.at(i).id != at_roi_contour_number.GetValue()){
+      std::cerr << "ID mismatch: " << rt_struct->slist.at(i).id << " vs " << at_roi_contour_number.GetValue() << "\n"
+                << "There might be something wrong with " << rt_struct->slist.at(i).name << "\n"
+                << "Caution! As we continue anyway...\n";
+    }
+    auto at_roi_contour_colour = gdcm_attribute_from<0x3006, 0x002A>(it_roi_contour);
+    const auto color = at_roi_contour_colour.GetValues();
+    auto s_color = std::to_string(color[0]) + " "
+                 + std::to_string(color[1]) + " "
+                 + std::to_string(color[2]);
+    rt_struct->slist.at(i).color = s_color.c_str();
+
+    const auto& contour_seq_tag = it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
+    auto contour_seq = contour_seq_tag.GetValueAsSQ();
+    for (auto it_contour = contour_seq->Begin(); it_contour != contour_seq->End(); ++it_contour){
+      auto rt_contour = std::make_unique<Rtss_contour_modern>();
+
+      auto at_contour_number_of_points = gdcm_attribute_from<0x3006, 0x0046>(it_contour);
+      rt_contour->num_vertices = static_cast<unsigned long>(at_contour_number_of_points.GetValue());
+
+      auto at_contour_points = gdcm_attribute_from<0x3006, 0x0050>(it_contour);
+      const auto points = at_contour_number_of_points.GetValues();
+
+      rt_contour->coordinates.resize(rt_contour->num_vertices);
+
+      std::generate(std::begin(rt_contour->coordinates), std::end(rt_contour->coordinates),
+                    [&points, k = 0]() mutable {
+         auto vec = FloatVector{
+                 static_cast<float>(points[k + 0]),
+                 static_cast<float>(points[k + 1]),
+                 static_cast<float>(points[k + 2])};
+         k += 3;
+         return vec;
+      });
+
+
+      rt_struct->slist.at(i).pslist.push_back(rt_contour.release());
+    }
+
+    i++;
+  }
+
+
+  return rt_struct;
+}
+
 
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
   auto filenamelist = std::vector<std::string>();
@@ -780,15 +906,15 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
   }
 
   // Warning!! dicom convention!
-  pTrans->x = couch_Lat_cm * 10.0; // sign should be checked
+  pTrans->x = static_cast<double>(couch_Lat_cm) * 10.0; // sign should be checked
   // pTrans->y = couch_Vert_cm*10.0; //sign should be checked // IEC-->DICOM is
   // already accounted for..but sign!
-  pTrans->y = couch_Vert_cm * -10.0; // consistent with Tracking software
-  pTrans->z = couch_Long_cm * 10.0;  // sign should be checked
+  pTrans->y = static_cast<double>(couch_Vert_cm) * -10.0; // consistent with Tracking software
+  pTrans->z = static_cast<double>(couch_Long_cm) * 10.0;  // sign should be checked
 
-  pRot->x = couch_Pitch;
-  pRot->y = couch_Yaw;
-  pRot->z = couch_Roll;
+  pRot->x = static_cast<double>(couch_Pitch);
+  pRot->y = static_cast<double>(couch_Yaw);
+  pRot->z = static_cast<double>(couch_Roll);
   // x,y,z: dicom
   return true;
 }
@@ -797,9 +923,9 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
                          float &ms) {
   auto info = QFileInfo(strPathINI);
 
-  kVp = 0.0;
-  mA = 0.0;
-  ms = 0.0;
+  kVp = 0.0f;
+  mA = 0.0f;
+  ms = 0.0f;
 
   if (!info.exists()) {
     return false;
@@ -845,7 +971,7 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
   }
   fin.close();
 
-  return !(kVp == 0 || mA == 0 || ms == 0);
+  return !(kVp == 0.0f || mA == 0.0f || ms == 0.0f);
 }
 
 // Projection image Median filtering using CUDA

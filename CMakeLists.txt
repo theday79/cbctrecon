@@ -170,6 +170,7 @@ set(CBCTRECON_DEP_LIBS
   ${TBB_LIBRARIES}
   OpenCL::OpenCL
 )
+add_subdirectory(Library)
 add_subdirectory(Applications)
 
 if(CBCTRECON_BUILD_TESTS)

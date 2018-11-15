@@ -145,6 +145,15 @@ enum enDeviceType {
   OPENCL_DEVT,
 };
 
+enum DCM_MODALITY {
+    RTIMAGE,
+    RTDOSE,
+    RTSTRUCT,
+    RTPLAN,
+    RTRECORD,
+    RTUNKNOWN,
+};
+
 //
 struct FLEXDATA {
   float fGanAngle;     // MV beam gantry angle
