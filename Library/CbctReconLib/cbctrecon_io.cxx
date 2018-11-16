@@ -14,8 +14,8 @@
 #undef OF
 #endif // OF
 
-#include "gdcmReader.h"
 #include "gdcmAttribute.h"
+#include "gdcmReader.h"
 #include "gdcmUIDGenerator.h"
 #include "itkGDCMImageIO.h"
 #include "itkImageDuplicator.h"
@@ -391,11 +391,10 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   std::cout << "Writing was successfully done" << std::endl;
 }
 
-DCM_MODALITY get_dcm_modality(const QString& filename){
+DCM_MODALITY get_dcm_modality(const QString &filename) {
   gdcm::Reader reader;
   reader.SetFileName(filename.toLocal8Bit().constData());
-  if (!reader.Read())
-  {
+  if (!reader.Read()) {
     std::cerr << "Reading dicom: " << filename.toStdString() << " failed!\n";
     return RTUNKNOWN;
   }
@@ -404,33 +403,32 @@ DCM_MODALITY get_dcm_modality(const QString& filename){
   gdcm::Attribute<0x0008, 0x0060> at_modality;
   at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
   const auto modality = at_modality.GetValue();
-  if (modality.compare("RTIMAGE") == 0 ||
-      modality.compare("CT") == 0){
+  if (modality.compare("RTIMAGE") == 0 || modality.compare("CT") == 0) {
     return RTIMAGE;
   }
-  if (modality.compare("RTDOSE") == 0){
+  if (modality.compare("RTDOSE") == 0) {
     return RTDOSE;
   }
-  if (modality.compare("RTSTRUCT") == 0){
+  if (modality.compare("RTSTRUCT") == 0) {
     return RTSTRUCT;
   }
-  if (modality.compare("RTPLAN") == 0){
+  if (modality.compare("RTPLAN") == 0) {
     return RTPLAN;
   }
-  if (modality.compare("RTRECORD") == 0){
+  if (modality.compare("RTRECORD") == 0) {
     return RTRECORD;
   }
   std::cerr << "Modality was: " << modality << "\n";
   return RTUNKNOWN;
 }
 
-std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
+std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
 
   auto reader = gdcm::Reader();
   reader.SetFileName(filename.toLocal8Bit().constData());
-  if (!reader.Read())
-  {
-    std::cerr << "Reading dicom rtstruct: " << filename.toStdString() << " failed!\n";
+  if (!reader.Read()) {
+    std::cerr << "Reading dicom rtstruct: " << filename.toStdString()
+              << " failed!\n";
     return nullptr;
   }
 
@@ -440,17 +438,18 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
   gdcm::Attribute<0x0008, 0x0060> at_modality;
   at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
   const auto modality = at_modality.GetValue();
-  if (modality != "RTSTRUCT"){
-      std::cerr << "Modality was not RTSTRUCT, it was: " << modality << "\n";
-      return nullptr;
+  if (modality != "RTSTRUCT") {
+    std::cerr << "Modality was not RTSTRUCT, it was: " << modality << "\n";
+    return nullptr;
   }
 
   auto rt_struct = std::make_unique<Rtss_modern>();
   rt_struct->num_structures = 0;
 
-  const gdcm::DataElement &roi_seq_tag = ds.GetDataElement(gdcm::Tag(0x3006, 0x0020));
+  const gdcm::DataElement &roi_seq_tag =
+      ds.GetDataElement(gdcm::Tag(0x3006, 0x0020));
   auto roi_seq = roi_seq_tag.GetValueAsSQ();
-  for (auto it_roi = roi_seq->Begin(); it_roi != roi_seq->End(); ++it_roi){
+  for (auto it_roi = roi_seq->Begin(); it_roi != roi_seq->End(); ++it_roi) {
     auto rt_roi = std::make_unique<Rtss_roi_modern>();
     auto at_roi_number = gdcm_attribute_from<0x3006, 0x0022>(it_roi);
     rt_roi->id = static_cast<size_t>(at_roi_number.GetValue());
@@ -460,52 +459,60 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
 
     rt_struct->slist.emplace_back(std::move(rt_roi));
     rt_struct->num_structures++;
-
   }
 
-  const gdcm::DataElement &roi_contour_seq_tag = ds.GetDataElement(gdcm::Tag(0x3006, 0x0039));
+  const gdcm::DataElement &roi_contour_seq_tag =
+      ds.GetDataElement(gdcm::Tag(0x3006, 0x0039));
   auto roi_contour_seq = roi_contour_seq_tag.GetValueAsSQ();
   auto i = 0U;
-  for (auto it_roi_contour = roi_contour_seq->Begin(); it_roi_contour != roi_contour_seq->End(); ++it_roi_contour){
-    auto at_roi_contour_number = gdcm_attribute_from<0x3006, 0x0084>(it_roi_contour);
-    if (static_cast<int>(rt_struct->slist.at(i).id) != at_roi_contour_number.GetValue()){
-      std::cerr << "ID mismatch: " << rt_struct->slist.at(i).id << " vs " << at_roi_contour_number.GetValue() << "\n"
-                << "There might be something wrong with " << rt_struct->slist.at(i).name << "\n"
+  for (auto it_roi_contour = roi_contour_seq->Begin();
+       it_roi_contour != roi_contour_seq->End(); ++it_roi_contour) {
+    auto at_roi_contour_number =
+        gdcm_attribute_from<0x3006, 0x0084>(it_roi_contour);
+    if (static_cast<int>(rt_struct->slist.at(i).id) !=
+        at_roi_contour_number.GetValue()) {
+      std::cerr << "ID mismatch: " << rt_struct->slist.at(i).id << " vs "
+                << at_roi_contour_number.GetValue() << "\n"
+                << "There might be something wrong with "
+                << rt_struct->slist.at(i).name << "\n"
                 << "Caution! As we continue anyway...\n";
     }
-    auto at_roi_contour_colour = gdcm_attribute_from<0x3006, 0x002A>(it_roi_contour);
+    auto at_roi_contour_colour =
+        gdcm_attribute_from<0x3006, 0x002A>(it_roi_contour);
     const auto color = at_roi_contour_colour.GetValues();
-    auto s_color = std::to_string(color[0]) + " "
-                 + std::to_string(color[1]) + " "
-                 + std::to_string(color[2]);
+    auto s_color = std::to_string(color[0]) + " " + std::to_string(color[1]) +
+                   " " + std::to_string(color[2]);
     rt_struct->slist.at(i).color = s_color.c_str();
 
-    const auto& contour_seq_tag = it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
+    const auto &contour_seq_tag =
+        it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
     auto contour_seq = contour_seq_tag.GetValueAsSQ();
     auto j = 0U;
     rt_struct->slist.at(i).num_contours = contour_seq->GetLength();
     rt_struct->slist.at(i).pslist.resize(contour_seq->GetLength());
-    for (auto it_contour = contour_seq->Begin(); it_contour != contour_seq->End(); ++it_contour){
+    for (auto it_contour = contour_seq->Begin();
+         it_contour != contour_seq->End(); ++it_contour) {
       auto rt_contour = std::make_unique<Rtss_contour_modern>();
 
-      auto at_contour_number_of_points = gdcm_attribute_from<0x3006, 0x0046>(it_contour);
-      rt_contour->num_vertices = static_cast<unsigned long>(at_contour_number_of_points.GetValue());
+      auto at_contour_number_of_points =
+          gdcm_attribute_from<0x3006, 0x0046>(it_contour);
+      rt_contour->num_vertices =
+          static_cast<unsigned long>(at_contour_number_of_points.GetValue());
 
       auto at_contour_points = gdcm_attribute_from<0x3006, 0x0050>(it_contour);
       const auto points = at_contour_points.GetValues();
 
       rt_contour->coordinates.resize(rt_contour->num_vertices);
 
-      std::generate(std::begin(rt_contour->coordinates), std::end(rt_contour->coordinates),
+      std::generate(std::begin(rt_contour->coordinates),
+                    std::end(rt_contour->coordinates),
                     [&points, k = 0]() mutable {
-         auto vec = FloatVector{
-                 static_cast<float>(points[k + 0]),
-                 static_cast<float>(points[k + 1]),
-                 static_cast<float>(points[k + 2])};
-         k += 3;
-         return vec;
-      });
-
+                      auto vec = FloatVector{static_cast<float>(points[k + 0]),
+                                             static_cast<float>(points[k + 1]),
+                                             static_cast<float>(points[k + 2])};
+                      k += 3;
+                      return vec;
+                    });
 
       rt_struct->slist.at(i).pslist.at(j++) = std::move(rt_contour);
     }
@@ -513,15 +520,15 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
     i++;
   }
 
-
   return rt_struct;
 }
-
 
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
   auto filenamelist = std::vector<std::string>();
   auto dir = QDir(dirPath);
-  for (auto&& filename : dir.entryList(QStringList() << "*.dcm" << "*.DCM", QDir::Files)){
+  for (auto &&filename : dir.entryList(QStringList() << "*.dcm"
+                                                     << "*.DCM",
+                                       QDir::Files)) {
     const auto fullfilename = dir.absolutePath() + "/" + filename;
     auto modality = get_dcm_modality(fullfilename);
     switch (modality) {
@@ -537,33 +544,33 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     case RTRECORD:
       break; // I haven't ever seen one IRL
     case RTUNKNOWN:
-      std::cerr << "File: " << fullfilename.toStdString() << " was not of a recognizeable modality type!\n";
+      std::cerr << "File: " << fullfilename.toStdString()
+                << " was not of a recognizeable modality type!\n";
       break;
     }
   }
 
   ShortImageType::Pointer spShortImg;
 
-  if (filenamelist.size() != 0){
+  if (filenamelist.size() != 0) {
     using dcm_reader_type = itk::ImageSeriesReader<ShortImageType>;
     auto dcm_reader = dcm_reader_type::New();
     dcm_reader->SetFileNames(filenamelist);
     dcm_reader->Update();
     spShortImg = dcm_reader->GetOutput();
-  }
-  else{
+  } else {
     Dcmtk_rt_study drs(dirPath.toLocal8Bit().constData());
     drs.load_directory(); // parse_directory();
 
     Plm_image plmImg;
     auto tmp_img = drs.get_image();
 
-    if (!tmp_img){
-        std::cerr << "Plastimach couldn't read image data!\n";
-        return false;
+    if (!tmp_img) {
+      std::cerr << "Plastimach couldn't read image data!\n";
+      return false;
     }
     if (!tmp_img->have_image()) {
-        return false;
+      return false;
     }
     std::cout << "PLM_imagetype: " << tmp_img->m_type << std::endl;
     plmImg.set(tmp_img);
@@ -571,14 +578,12 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
 
     auto planCT_ss = drs.get_rtss(); // dies at end of scope...
     if (!planCT_ss) {
-        // ... so I copy to my own modern-C++ implementation
-        m_structures->set_planCT_ss(planCT_ss.get());
+      // ... so I copy to my own modern-C++ implementation
+      m_structures->set_planCT_ss(planCT_ss.get());
     }
 
     spShortImg = plmImg.itk_short();
   }
-
-
 
   // Figure out whether this is NKI
   using ImageCalculatorFilterType =
@@ -915,11 +920,14 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
   }
 
   // Warning!! dicom convention!
-  pTrans->x = static_cast<double>(couch_Lat_cm) * 10.0; // sign should be checked
+  pTrans->x =
+      static_cast<double>(couch_Lat_cm) * 10.0; // sign should be checked
   // pTrans->y = couch_Vert_cm*10.0; //sign should be checked // IEC-->DICOM is
   // already accounted for..but sign!
-  pTrans->y = static_cast<double>(couch_Vert_cm) * -10.0; // consistent with Tracking software
-  pTrans->z = static_cast<double>(couch_Long_cm) * 10.0;  // sign should be checked
+  pTrans->y = static_cast<double>(couch_Vert_cm) *
+              -10.0; // consistent with Tracking software
+  pTrans->z =
+      static_cast<double>(couch_Long_cm) * 10.0; // sign should be checked
 
   pRot->x = static_cast<double>(couch_Pitch);
   pRot->y = static_cast<double>(couch_Yaw);

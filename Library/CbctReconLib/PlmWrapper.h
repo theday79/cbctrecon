@@ -23,10 +23,11 @@ public:
   ~Rtss_contour_modern() = default;
   Rtss_contour_modern(const Rtss_contour *old_contour);
   Rtss_contour_modern(const Rtss_contour_modern &old_contour);
-  Rtss_contour_modern& operator=(const Rtss_contour_modern& contour) = default;
-  Rtss_contour_modern(Rtss_contour_modern&& contour) = default;
-  Rtss_contour_modern& operator=(Rtss_contour_modern&& contour) = default;
-  Rtss_contour_modern& operator=(std::unique_ptr<Rtss_contour_modern>&& contour);
+  Rtss_contour_modern &operator=(const Rtss_contour_modern &contour) = default;
+  Rtss_contour_modern(Rtss_contour_modern &&contour) = default;
+  Rtss_contour_modern &operator=(Rtss_contour_modern &&contour) = default;
+  Rtss_contour_modern &
+  operator=(std::unique_ptr<Rtss_contour_modern> &&contour);
 
   std::vector<FloatVector> coordinates;
   /* Plastimatch specific */
@@ -42,16 +43,15 @@ public:
   Rtss_roi_modern(const Rtss_roi *old_roi);
   Rtss_roi_modern(const Rtss_roi_modern &old_roi);
   Rtss_roi_modern(std::unique_ptr<Rtss_roi_modern> &&old_roi);
-  Rtss_roi_modern& operator=(std::unique_ptr<Rtss_roi_modern>&& old_roi);
+  Rtss_roi_modern &operator=(std::unique_ptr<Rtss_roi_modern> &&old_roi);
 
   std::vector<Rtss_contour_modern> pslist;
   std::string name = "";
   std::string color = "255 0 0";
   /* Plastimatch specific */
-  size_t id = 1;   /* Used for import/export (must be >= 1) */
-  int bit = -1; /* Used for ss-img (-1 for no bit) */
+  size_t id = 1; /* Used for import/export (must be >= 1) */
+  int bit = -1;  /* Used for ss-img (-1 for no bit) */
   size_t num_contours = 0;
-
 };
 
 class CBCTRECON_API Rtss_modern { // : public Rtss {
@@ -60,7 +60,7 @@ public:
   ~Rtss_modern() = default;
   // Unique pointer, to make sure it's killed by its destructor after copy
   Rtss_modern(std::unique_ptr<Rtss> old_rtss);
-  Rtss_modern& operator=(std::unique_ptr<Rtss_modern> &&old_rtss);
+  Rtss_modern &operator=(std::unique_ptr<Rtss_modern> &&old_rtss);
   Rtss_modern(const Rtss *old_rtss);
   Rtss_modern(const Rtss_modern &old_rtss);
 

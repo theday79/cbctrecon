@@ -9,6 +9,7 @@
 #include "cbctrecon.h"
 #endif
 
+#include <chrono>
 #include <memory>
 
 #include <QDir>
@@ -21,6 +22,8 @@ CbctReconTest::CbctReconTest() {
   m_pTableModel = nullptr;
 }
 
+/* All of the following corresponds to a SLT_ function in mainwidget
+ * all of which should have a test */
 void CbctReconTest::test_LoadRawImages() {}
 void CbctReconTest::test_Load3DImage() {}
 void CbctReconTest::test_Load3DImageShort() {}
@@ -142,41 +145,26 @@ int main(const int argc, char *argv[]) {
     return -4;
   }
   auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
-  for (auto &structure : ss->slist){
+  for (auto &structure : ss->slist) {
     std::cerr << structure.name << "\n";
   }
 
   const auto voi = std::string("CTV1");
-  cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spManualRigidCT);
-
-  /*try { // This will have to wait, unfortunately
-    cbctrecon->ReadDicomDir(dcm_path);
-  }
-  catch (std::exception& e) {
-    std::cerr << "Couldn't read DICOM: " << e.what() << std::endl;
-    return 1;
-  }
-
-  std::cout << "image was read" << std::endl;
-  */
-  /*cbctrecon->m_pDlgRegistration->UpdateVOICombobox(PLAN_CT);
-  cbctrecon->m_pDlgRegistration->UpdateListOfComboBox(1);
-  cbctrecon->m_pDlgRegistration->LoadImgFromComboBox(1, QString("REF_CT"));
-  cbctrecon->m_pDlgRegistration->ui.comboBox_VOI->setCurrentIndex(1);
-
-  std::cout << "DlgRegi. is ready for calculating WEPL for "
-    <<
-  cbctrecon->m_pDlgRegistration->ui.comboBox_VOI->currentText().toStdString()
-    << std::endl;
-  auto start_time = std::chrono::steady_clock::now(); //clock();
-  cbctrecon->m_pDlgRegistration->SLT_WEPLcalc();
+  auto start_time = std::chrono::steady_clock::now();
+  cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
+      voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spManualRigidCT);
   auto end_time = std::chrono::steady_clock::now();
-
   std::cout << "WEPL was calculated in: "
-    << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
-  start_time).count()
-    << " ms"
-    << std::endl;*/
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                     start_time)
+                   .count()
+            << " ms" << std::endl;
+
+  /* Some verification of the WEPL results should go here */
+
+  /* Load projections (Needs to be uploaded to girder first) */
+
+  /* Scatter correction algorithm "Batch" style */
 
   return 0;
 }

@@ -3,13 +3,12 @@
 /*All IO functions used with cbctrecon*/
 #ifdef OF
 #undef OF
-#endif //OF
+#endif // OF
 #include "gdcmAttribute.h"
 
+#include "StructureSet.h"
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
-#include "StructureSet.h"
-
 
 class QXmlStreamReader;
 
@@ -45,7 +44,7 @@ void saveImageAsMHA(typename ImageType::Pointer &image,
   writer->Update();
 }
 
-template<int group, int element, typename T>
+template <int group, int element, typename T>
 auto gdcm_attribute_from(T parent) {
   gdcm::Attribute<group, element> attribute;
   attribute.SetFromDataElement(parent->GetDataElement(attribute.GetTag()));

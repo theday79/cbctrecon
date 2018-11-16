@@ -23,7 +23,8 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
     sp[d1] = static_cast<ImageType::SpacingValueType>(vol->spacing[d1]);
     og[d1] = static_cast<ImageType::PointValueType>(vol->origin[d1]);
     for (auto d2 = 0U; d2 < 3U; d2++) {
-      dc[d1][d2] = static_cast<ImageType::DirectionType::ValueType>(vol->direction_cosines[d1 * 3 + d2]);
+      dc[d1][d2] = static_cast<ImageType::DirectionType::ValueType>(
+          vol->direction_cosines[d1 * 3 + d2]);
     }
   }
   rg.SetSize(sz);
@@ -80,8 +81,8 @@ Rtss_contour_modern::Rtss_contour_modern(
             coordinates.begin());
 }
 
-Rtss_contour_modern& Rtss_contour_modern::operator=(
-    std::unique_ptr<Rtss_contour_modern> &&old_contour) {
+Rtss_contour_modern &Rtss_contour_modern::
+operator=(std::unique_ptr<Rtss_contour_modern> &&old_contour) {
   this->num_vertices = old_contour->num_vertices;
   this->coordinates = std::move(old_contour->coordinates);
   return *this;
@@ -90,7 +91,8 @@ Rtss_contour_modern& Rtss_contour_modern::operator=(
 Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi *old_roi) {
   name = old_roi->name;
   color = old_roi->color;
-  id = static_cast<size_t>(old_roi->id);   /* Used for import/export (must be >= 1) */
+  id = static_cast<size_t>(
+      old_roi->id);   /* Used for import/export (must be >= 1) */
   bit = old_roi->bit; /* Used for ss-img (-1 for no bit) */
   num_contours = old_roi->num_contours;
   pslist.resize(num_contours);
@@ -110,7 +112,8 @@ Rtss_roi_modern::Rtss_roi_modern(const Rtss_roi_modern &old_roi) {
   std::copy(old_roi.pslist.begin(), old_roi.pslist.end(), pslist.begin());
 }
 
-Rtss_roi_modern& Rtss_roi_modern::operator=(std::unique_ptr<Rtss_roi_modern> &&old_roi) {
+Rtss_roi_modern &Rtss_roi_modern::
+operator=(std::unique_ptr<Rtss_roi_modern> &&old_roi) {
   this->name = std::move(old_roi->name);
   this->num_contours = old_roi->num_contours;
   this->color = std::move(old_roi->color);
@@ -180,7 +183,7 @@ Rtss_modern::Rtss_modern(const Rtss *old_rtss) {
 }
 
 // Move assignment constructor
-Rtss_modern& Rtss_modern::operator=(std::unique_ptr<Rtss_modern> &&old_rtss) {
+Rtss_modern &Rtss_modern::operator=(std::unique_ptr<Rtss_modern> &&old_rtss) {
   this->m_dim = old_rtss->m_dim;
   this->m_spacing = old_rtss->m_spacing;
   this->m_offset = old_rtss->m_offset;
@@ -195,8 +198,6 @@ Rtss_modern& Rtss_modern::operator=(std::unique_ptr<Rtss_modern> &&old_rtss) {
   this->slist = std::move(old_rtss->slist);
   return *this;
 }
-
-
 
 // Copy constructor
 Rtss_modern::Rtss_modern(const Rtss_modern &old_rtss) {

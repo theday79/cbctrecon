@@ -271,8 +271,8 @@ bool StructureSet::ApplyDeformTransformToRigid(QFile deform_transform_file) {
     return true;
   }
 
-  std::cerr
-      << "\a"
-      << "Transform function were not created and no vector field were applied\n";
+  std::cerr << "\a"
+            << "Transform function were not created and no vector field were "
+               "applied\n";
   return false;
 }
