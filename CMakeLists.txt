@@ -95,7 +95,7 @@ ENDIF(USE_CLFFT)
 if(WIN32)
     set(CMAKE_PREFIX_PATH
         ${CMAKE_PREFIX_PATH}
-        "C:\\Qt\\5.11.1\\msvc2015_64"
+        "C:\\Qt\\5.11.2\\msvc2015_64"
         )
 endif()
 FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED)
