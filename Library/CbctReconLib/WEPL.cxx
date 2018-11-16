@@ -496,7 +496,7 @@ float hu_to_dEdx(float val) {
   const auto lookup_upper = *lookup_upper_ptr;
 
   // Get the previous index:
-  const auto lookup_lower = lookup.at(lookup_upper_ptr - lookup.begin() - 1);
+  const auto lookup_lower = lookup.at(static_cast<size_t>(std::max(0, static_cast<int>(lookup_upper_ptr - lookup.begin() - 1))));
 
   // Do linear interpolation between upper and lower data point:
   const auto a = (lookup_upper.second - lookup_lower.second) /
@@ -504,7 +504,7 @@ float hu_to_dEdx(float val) {
   const auto b =
       lookup_upper.second - a * static_cast<double>(lookup_upper.first);
 
-  return a * val + b;
+  return static_cast<float>(a * static_cast<double>(val) + b);
 }
 
 FloatImageType::Pointer

@@ -141,7 +141,12 @@ int main(const int argc, char *argv[]) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
     return -4;
   }
-  const auto voi = std::string("CTV");
+  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+  for (auto &structure : ss->slist){
+    std::cerr << structure.name << "\n";
+  }
+
+  const auto voi = std::string("CTV1");
   cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spManualRigidCT);
 
   /*try { // This will have to wait, unfortunately

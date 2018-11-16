@@ -483,6 +483,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
     const auto& contour_seq_tag = it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
     auto contour_seq = contour_seq_tag.GetValueAsSQ();
     auto j = 0U;
+    rt_struct->slist.at(i).num_contours = contour_seq->GetLength();
     rt_struct->slist.at(i).pslist.resize(contour_seq->GetLength());
     for (auto it_contour = contour_seq->Begin(); it_contour != contour_seq->End(); ++it_contour){
       auto rt_contour = std::make_unique<Rtss_contour_modern>();
