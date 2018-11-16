@@ -71,7 +71,7 @@ public:
   static void autoPreprocessCT(int iAirThresholdShort,
                                UShortImageType::Pointer &spFixed,
                                UShortImageType::Pointer &spMoving);
-  void CalculateWEPLtoVOI(std::string &voi_name, int gantry_angle,
+  void CalculateWEPLtoVOI(const std::string &voi_name, int gantry_angle,
                           int couch_angle, UShortImageType::Pointer &spMoving);
   float *ManualMoveByDCM() const;
   void LoadRTPlan(QString &strDCMPath);

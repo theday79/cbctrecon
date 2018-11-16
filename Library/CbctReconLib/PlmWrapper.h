@@ -64,7 +64,7 @@ public:
   Rtss_modern(const Rtss *old_rtss);
   Rtss_modern(const Rtss_modern &old_rtss);
 
-  std::unique_ptr<Rtss_roi_modern> get_roi_by_name(std::string &name);
+  std::unique_ptr<Rtss_roi_modern> get_roi_by_name(const std::string &name);
   /* Output geometry */
   std::array<plm_long, 3> m_dim{};
   std::array<float, 3> m_spacing{};

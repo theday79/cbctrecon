@@ -629,7 +629,7 @@ void CbctRegistration::LoadRTPlan(QString &strDCMPath) {
   // Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
 }
 
-void CbctRegistration::CalculateWEPLtoVOI(std::string &voi_name,
+void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
                                           const int gantry_angle,
                                           const int couch_angle,
                                           UShortImageType::Pointer &spMoving) {

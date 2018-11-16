@@ -218,7 +218,7 @@ Rtss_modern::Rtss_modern(const Rtss_modern &old_rtss) {
 }
 
 std::unique_ptr<Rtss_roi_modern>
-Rtss_modern::get_roi_by_name(std::string &name) {
+Rtss_modern::get_roi_by_name(const std::string &name) {
   for (auto &roi : slist) {
     if (roi.name == name) {
       return std::make_unique<Rtss_roi_modern>(roi);
