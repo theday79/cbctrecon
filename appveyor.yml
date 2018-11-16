@@ -93,6 +93,9 @@ install:
   - ps: lib /machine:x64 /def:libfftw3f-3.def
   - ps: lib /machine:x64 /def:libfftw3l-3.def
   - ps: ls
+  - ps: cd C:/Qt/5.11.1/
+  - ps: ls
+
 
 cache:
   # Caching DCMTK source and build tree
