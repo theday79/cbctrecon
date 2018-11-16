@@ -67,13 +67,13 @@ QString MakeElektaXML(const QString &filePath_ImageDBF,
   reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
   reader->SetFrameDbfFileName(filePath_FrameDBF.toLocal8Bit().constData());
 
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->UpdateOutputData());
+  reader->UpdateOutputData();
 
   // Write
   auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
   xmlWriter->SetFilename(str_output.toLocal8Bit().constData());
   xmlWriter->SetObject(reader->GetGeometry());
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile())
+  xmlWriter->WriteFile();
 
   std::cout << "Reading succeed" << std::endl;
 
@@ -172,7 +172,7 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   auto geometryReader =
       rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
   geometryReader->SetFilename(filePath);
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(geometryReader->GenerateOutputInformation())
+  geometryReader->GenerateOutputInformation();
   std::cout << "Geometry reading succeed" << std::endl;
 
   m_spFullGeometry = geometryReader->GetOutputObject();
@@ -453,7 +453,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
   for (auto it_roi = roi_seq->Begin(); it_roi != roi_seq->End(); ++it_roi){
     auto rt_roi = std::make_unique<Rtss_roi_modern>();
     auto at_roi_number = gdcm_attribute_from<0x3006, 0x0022>(it_roi);
-    rt_roi->id = at_roi_number.GetValue();
+    rt_roi->id = static_cast<size_t>(at_roi_number.GetValue());
 
     auto at_roi_name = gdcm_attribute_from<0x3006, 0x0026>(it_roi);
     rt_roi->name = at_roi_name.GetValue();
@@ -468,7 +468,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString& filename){
   auto i = 0U;
   for (auto it_roi_contour = roi_contour_seq->Begin(); it_roi_contour != roi_contour_seq->End(); ++it_roi_contour){
     auto at_roi_contour_number = gdcm_attribute_from<0x3006, 0x0084>(it_roi_contour);
-    if (rt_struct->slist.at(i).id != at_roi_contour_number.GetValue()){
+    if (static_cast<int>(rt_struct->slist.at(i).id) != at_roi_contour_number.GetValue()){
       std::cerr << "ID mismatch: " << rt_struct->slist.at(i).id << " vs " << at_roi_contour_number.GetValue() << "\n"
                 << "There might be something wrong with " << rt_struct->slist.at(i).name << "\n"
                 << "Caution! As we continue anyway...\n";

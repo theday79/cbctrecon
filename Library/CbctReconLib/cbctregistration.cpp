@@ -43,8 +43,8 @@ CbctRegistration::CbctRegistration(CbctRecon *parent) {
   m_pParent = parent;
 
   m_pDcmStudyPlan = nullptr;
-  WEPL_voi = nullptr;
-  cur_voi = nullptr;
+  WEPL_voi = std::make_unique<Rtss_roi_modern>();
+  cur_voi = std::make_unique<Rtss_roi_modern>();
 }
 
 CbctRegistration::~CbctRegistration() {
@@ -637,9 +637,8 @@ void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
     std::cout << "No VOI name given" << std::endl;
     return;
   }
-  cur_voi.reset(m_pParent->m_structures->get_ss(PLAN_CT)
-                    ->get_roi_by_name(voi_name)
-                    .get());
+  cur_voi = m_pParent->m_structures->get_ss(PLAN_CT)
+                    ->get_roi_by_name(voi_name);
 
   // Get basis from angles
   const auto vec_basis = get_basis_from_angles(gantry_angle, couch_angle);
@@ -655,25 +654,24 @@ void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
   WEPL_voi->id = cur_voi->id;   /* Used for import/export (must be >= 1) */
   WEPL_voi->bit = cur_voi->bit; /* Used for ss-img (-1 for no bit) */
   WEPL_voi->num_contours = cur_voi->num_contours;
-  // WEPL_voi->pslist.resize(WEPL_voi->num_contours);
+  WEPL_voi->pslist.resize(WEPL_voi->num_contours);
 
+  auto i = 0U;
   // Calculate WEPL
   for (const auto &contour : cur_voi->pslist) {
-    auto WEPL_contour = Rtss_contour_modern(contour);
-    WEPL_contour.ct_slice_uid = contour.ct_slice_uid;
-    WEPL_contour.slice_no = contour.slice_no;
-    WEPL_contour.num_vertices = contour.num_vertices;
+    auto WEPL_contour = std::make_unique<Rtss_contour_modern>(contour);
+    WEPL_contour->ct_slice_uid = contour.ct_slice_uid;
+    WEPL_contour->slice_no = contour.slice_no;
+    WEPL_contour->num_vertices = contour.num_vertices;
     // Actually calculate WEPL
     auto WEPL_points =
         WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
-    if (WEPL_points.empty()) {
-      return;
-    }
+
     // Put WEPL in contour
     std::transform(std::begin(WEPL_points), std::end(WEPL_points),
-                   std::begin(WEPL_contour.coordinates),
+                   std::begin(WEPL_contour->coordinates),
                    [](const WEPLVector &val) { return val.point; });
-    WEPL_voi->pslist.push_back(WEPL_contour);
+    WEPL_voi->pslist.at(i++) = std::move(WEPL_contour);
   }
 }
 
