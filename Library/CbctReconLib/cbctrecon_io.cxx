@@ -558,7 +558,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     Plm_image plmImg;
     auto tmp_img = drs.get_image();
 
-    if (tmp_img == nullptr){
+    if (!tmp_img){
         std::cerr << "Plastimach couldn't read image data!\n";
         return false;
     }
