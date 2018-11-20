@@ -363,19 +363,25 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
       if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
           first_point.z < curPhysPos[0] + imgSpacing[2]) {
         for (auto point : contour.coordinates) {
-          Wnd1_contour->push_back(QPoint(point.x, point.y));
+          Wnd1_contour->push_back(
+              QPoint((point.x - imgOriginFixed[0]) / imgSpacing[0],
+                     (point.y - imgOriginFixed[1]) / imgSpacing[1]));
         }
       }
       for (auto point : contour.coordinates) {
         // Frontal
         if (point.y > curPhysPos[1] - imgSpacing[1] &&
             point.y < curPhysPos[1] + imgSpacing[1]) {
-          Wnd2_contour->push_back(QPoint(point.x, point.z));
+          Wnd2_contour->push_back(
+              QPoint((point.x - imgOriginFixed[0]) / imgSpacing[0],
+                     (point.z))); // - imgOriginFixed[2]) / imgSpacing[2]));
         }
         // Sagittal
         if (point.x > curPhysPos[2] - imgSpacing[0] &&
             point.x < curPhysPos[2] + imgSpacing[0]) {
-          Wnd3_contour->push_back(QPoint(point.y, point.z));
+          Wnd3_contour->push_back(
+              QPoint((point.y - imgOriginFixed[1]) / imgSpacing[1],
+                     (point.z))); // - imgOriginFixed[2]) / imgSpacing[2]));
         }
       }
     }
