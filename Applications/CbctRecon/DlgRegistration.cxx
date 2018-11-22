@@ -372,16 +372,16 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
         // Frontal
         if (point.y > curPhysPos[1] - imgSpacing[1] &&
             point.y < curPhysPos[1] + imgSpacing[1]) {
-          Wnd2_contour->push_back(
-              QPoint((point.x - imgOriginFixed[0]) / imgSpacing[0],
-                     (point.z))); // - imgOriginFixed[2]) / imgSpacing[2]));
+          Wnd2_contour->push_back(QPoint(
+              (point.x - imgOriginFixed[0]) / (2.0 * imgSpacing[0]),
+              imgSize[2] - (point.z - imgOriginFixed[2]) / imgSpacing[2]));
         }
         // Sagittal
         if (point.x > curPhysPos[2] - imgSpacing[0] &&
             point.x < curPhysPos[2] + imgSpacing[0]) {
-          Wnd3_contour->push_back(
-              QPoint((point.y - imgOriginFixed[1]) / imgSpacing[1],
-                     (point.z))); // - imgOriginFixed[2]) / imgSpacing[2]));
+          Wnd3_contour->push_back(QPoint(
+              (point.y - imgOriginFixed[1]) / (2.0 * imgSpacing[1]),
+              imgSize[2] - (point.z - imgOriginFixed[2]) / imgSpacing[2]));
         }
       }
     }
