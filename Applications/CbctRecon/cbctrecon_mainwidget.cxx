@@ -1758,21 +1758,25 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   }
   if (m_dlgRegistration->m_spMoving != nullptr) {
-    this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
-        m_dlgRegistration->m_spMoving, this->m_cbctrecon->m_spCustomGeometry,
-        this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
-        this->ui.radioButton_UseCUDA->isChecked()); // final moving image
+    this->m_cbctrecon
+        ->ForwardProjection_master<UShortImageType, UShortImageType>(
+            m_dlgRegistration->m_spMoving,
+            this->m_cbctrecon->m_spCustomGeometry,
+            this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
+            this->ui.radioButton_UseCUDA->isChecked()); // final moving image
   } else if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
-    std::cout << "No Moving image in Registration is found. Ref CT image will "
+    std::cerr << "No Moving image in Registration is found. Ref CT image will "
                  "be used instead"
-              << std::endl;
-    this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
-        this->m_cbctrecon->m_spRefCTImg, this->m_cbctrecon->m_spCustomGeometry,
-        this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
-        this->ui.radioButton_UseCUDA->isChecked()); // final moving image
+              << "\n";
+    this->m_cbctrecon
+        ->ForwardProjection_master<UShortImageType, UShortImageType>(
+            this->m_cbctrecon->m_spRefCTImg,
+            this->m_cbctrecon->m_spCustomGeometry,
+            this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
+            this->ui.radioButton_UseCUDA->isChecked()); // final moving image
   } else {
-    std::cout << "Error!: No ref image for forward projection is found."
-              << std::endl;
+    std::cerr << "Error!: No ref image for forward projection is found."
+              << "\n";
     return;
   }
 
@@ -1784,11 +1788,11 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
       << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[1]
       << ", "
       << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[2]
-      << std::endl;
+      << "\n";
   std::cout << "ProjImgCT origin = "
             << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[0] << ", "
             << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[1] << ", "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[2] << std::endl;
+            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[2] << "\n";
   std::cout << "ProjImgCT spacing = "
             << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[0] << ", "
             << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[1] << ", "
@@ -2623,10 +2627,11 @@ void CbctReconWidget::SLTM_ForwardProjection() {
           curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
     }
 
-    this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
-        this->m_cbctrecon->m_spRawReconImg, crntGeometry,
-        this->m_cbctrecon->m_spProjImgRaw3D, false,
-        this->ui.radioButton_UseCUDA->isChecked());
+    this->m_cbctrecon
+        ->ForwardProjection_master<UShortImageType, UShortImageType>(
+            this->m_cbctrecon->m_spRawReconImg, crntGeometry,
+            this->m_cbctrecon->m_spProjImgRaw3D, false,
+            this->ui.radioButton_UseCUDA->isChecked());
     // Save proj3D;
 
     // QString outputPath = "D:/ProjTemplate.mha";

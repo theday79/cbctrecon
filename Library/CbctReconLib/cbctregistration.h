@@ -40,9 +40,9 @@ enum enRegisterOption {
   PLAST_BSPLINE,
 };
 
-#define DEFAULT_LABEL_SIZE1 512
-#define DEFAULT_LABEL_SIZE2 256
-#define DEFAULT_LABEL_SIZE3 256
+// #define DEFAULT_LABEL_SIZE1 512
+// #define DEFAULT_LABEL_SIZE2 256
+// #define DEFAULT_LABEL_SIZE3 256
 
 class CBCTRECON_API CbctRegistration {
 
