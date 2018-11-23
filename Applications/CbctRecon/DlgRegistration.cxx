@@ -16,6 +16,11 @@
 
 #define FIXME_BACKGROUND_MAX (-1200)
 
+enum enCOLOR {
+  RED,
+  GREEN,
+};
+
 DlgRegistration::DlgRegistration() {
   /* Sets up the GUI */
   this->ui.setupUi(this);
@@ -35,13 +40,13 @@ DlgRegistration::DlgRegistration(CbctReconWidget *parent) : QDialog(parent) {
   m_cbctregistration =
       std::make_unique<CbctRegistration>(parent->m_cbctrecon.get());
 
-  m_YKImgFixed = m_cbctregistration->m_YKImgFixed;
-  m_YKImgMoving = m_cbctregistration->m_YKImgMoving;
-  m_YKDisp = m_cbctregistration->m_YKDisp;
+  m_YKImgFixed = &m_cbctregistration->m_YKImgFixed[0];
+  m_YKImgMoving = &m_cbctregistration->m_YKImgMoving[0];
+  m_YKDisp = &m_cbctregistration->m_YKDisp[0];
 
-  m_DoseImgFixed = m_cbctregistration->m_DoseImgFixed;
-  m_DoseImgMoving = m_cbctregistration->m_DoseImgMoving;
-  m_AGDisp_Overlay = m_cbctregistration->m_AGDisp_Overlay;
+  m_DoseImgFixed = &m_cbctregistration->m_DoseImgFixed[0];
+  m_DoseImgMoving = &m_cbctregistration->m_DoseImgMoving[0];
+  m_AGDisp_Overlay = &m_cbctregistration->m_AGDisp_Overlay[0];
 
   // m_spFixed = m_cbctregistration->m_spFixed;
   // m_spMoving = m_cbctregistration->m_spMoving;
@@ -165,6 +170,77 @@ void DlgRegistration::SLT_CrntPosGo() const {
   this->ui.sliderPosDisp3->setValue(iSliderPosIdxX);
 }
 
+template <enCOLOR color> auto get_qtpoint_vector(qyklabel *window) {
+  switch (color) {
+  case RED:
+    return &window->m_vPt;
+  case GREEN:
+    return &window->m_vPt_green;
+  }
+}
+
+template <typename ImageBase, enPLANE plane, enCOLOR color>
+auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
+                         std::array<double, 3> curPhysPos,
+                         typename ImageBase::SpacingType imgSpacing,
+                         typename ImageBase::PointType imgOriginFixed,
+                         typename ImageBase::SizeType imgSize) {
+  auto *Wnd_contour = get_qtpoint_vector<color>(window);
+  Wnd_contour->clear();
+
+  auto wnd_size = window->size();
+  auto wnd_height = wnd_size.rheight();
+  auto wnd_width = wnd_size.rwidth();
+  auto x_scale = 1.0 / static_cast<double>(wnd_width);
+  auto y_scale = 1.0 / static_cast<double>(wnd_height);
+  switch (plane) {
+  case PLANE_AXIAL:
+    x_scale *= imgSpacing[0] * imgSize[0];
+    y_scale *= imgSpacing[1] * imgSize[1];
+    break;
+  case PLANE_FRONTAL:
+    x_scale *= imgSpacing[0] * imgSize[0];
+    y_scale *= imgSpacing[2] * imgSize[2];
+    break;
+  case PLANE_SAGITTAL:
+    x_scale *= imgSpacing[1] * imgSize[1];
+    y_scale *= imgSpacing[2] * imgSize[2];
+  }
+
+  for (auto contour : voi->pslist) {
+    if (contour.coordinates.empty()) {
+      continue;
+    }
+    const auto first_point = contour.coordinates.at(0);
+    // Axial
+    if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
+        first_point.z < curPhysPos[0] + imgSpacing[2] && plane == PLANE_AXIAL) {
+      for (auto point : contour.coordinates) {
+        Wnd_contour->push_back(QPoint((point.x - imgOriginFixed[0]) / x_scale,
+                                      (point.y - imgOriginFixed[1]) / y_scale));
+      }
+    }
+    for (auto point : contour.coordinates) {
+      // Frontal
+      if (point.y > curPhysPos[1] - imgSpacing[1] &&
+          point.y < curPhysPos[1] + imgSpacing[1] && plane == PLANE_FRONTAL) {
+        Wnd_contour->push_back(
+            QPoint((point.x - imgOriginFixed[0]) / x_scale,
+                   wnd_height - (point.z - imgOriginFixed[2]) / y_scale));
+      }
+      // Sagittal
+      if (point.x > curPhysPos[2] - imgSpacing[0] &&
+          point.x < curPhysPos[2] + imgSpacing[0] && plane == PLANE_SAGITTAL) {
+        Wnd_contour->push_back(
+            QPoint((point.y - imgOriginFixed[1]) / x_scale,
+                   wnd_height - (point.z - imgOriginFixed[2]) / y_scale));
+      }
+    }
+  }
+
+  window->m_bDrawPoints = true;
+}
+
 void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   /*if (m_pParent == NULL)
       return;	*/
@@ -206,11 +282,11 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   auto imgOrigin = m_spFixed->GetOrigin();
   auto imgSpacing = m_spFixed->GetSpacing();
 
-  double curPhysPos[3];
-  curPhysPos[0] =
-      imgOrigin[2] + sliderPosIdxZ * imgSpacing[2]; // Z in default setting
-  curPhysPos[1] = imgOrigin[1] + sliderPosIdxY * imgSpacing[1]; // Y
-  curPhysPos[2] = imgOrigin[0] + sliderPosIdxX * imgSpacing[0]; // Z
+  auto curPhysPos = std::array<double, 3>{{
+      imgOrigin[2] + sliderPosIdxZ * imgSpacing[2], // Z in default setting
+      imgOrigin[1] + sliderPosIdxY * imgSpacing[1], // Y
+      imgOrigin[0] + sliderPosIdxX * imgSpacing[0]  // Z
+  }};
 
   // This caused the problem!!!
   /*m_pParent->Draw2DFrom3D(m_pParent->m_spReconImg, PLANE_AXIAL, curPhysPos1,
@@ -338,66 +414,60 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
                       imgOriginFixed[1], imgOriginFixed[2]);
   this->ui.lineEditOriginFixed->setText(strOriFixed);
 
+  auto imgOriginMoving = m_spFixed->GetOrigin();
+  auto imgSizeMoving = m_spFixed->GetRequestedRegion().GetSize();
+  auto imgSpacingMoving = m_spFixed->GetSpacing();
   if (m_spMoving != nullptr) {
-    auto imgOriginMoving = m_spMoving->GetOrigin();
+    imgOriginMoving = m_spMoving->GetOrigin();
+    imgSizeMoving = m_spMoving->GetRequestedRegion().GetSize();
+    imgSpacingMoving = m_spMoving->GetSpacing();
     QString strOriMoving;
     strOriMoving.sprintf("%3.4f, %3.4f, %3.4f", imgOriginMoving[0],
                          imgOriginMoving[1], imgOriginMoving[2]);
     this->ui.lineEditOriginMoving->setText(strOriMoving);
   }
 
-  if (m_cbctregistration->cur_voi != nullptr) {
-    auto *Wnd1_contour = &this->ui.labelOverlapWnd1->m_vPt;
-    auto *Wnd2_contour = &this->ui.labelOverlapWnd2->m_vPt;
-    auto *Wnd3_contour = &this->ui.labelOverlapWnd3->m_vPt;
-    Wnd1_contour->clear();
-    Wnd2_contour->clear();
-    Wnd3_contour->clear();
+  auto arr_wnd = std::array<qyklabel *, 3>{{this->ui.labelOverlapWnd1,
+                                            this->ui.labelOverlapWnd2,
+                                            this->ui.labelOverlapWnd3}};
 
-    for (auto contour : m_cbctregistration->cur_voi->pslist) {
-      if (contour.coordinates.empty()) {
-        continue;
-      }
-      const auto first_point = contour.coordinates.at(0);
-      // Axial
-      if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
-          first_point.z < curPhysPos[0] + imgSpacing[2]) {
-        for (auto point : contour.coordinates) {
-          Wnd1_contour->push_back(
-              QPoint((point.x - imgOriginFixed[0]) / imgSpacing[0],
-                     (point.y - imgOriginFixed[1]) / imgSpacing[1]));
-        }
-      }
-      for (auto point : contour.coordinates) {
-        // Frontal
-        if (point.y > curPhysPos[1] - imgSpacing[1] &&
-            point.y < curPhysPos[1] + imgSpacing[1]) {
-          Wnd2_contour->push_back(QPoint(
-              (point.x - imgOriginFixed[0]) / (2.0 * imgSpacing[0]),
-              imgSize[2] - (point.z - imgOriginFixed[2]) / imgSpacing[2]));
-        }
-        // Sagittal
-        if (point.x > curPhysPos[2] - imgSpacing[0] &&
-            point.x < curPhysPos[2] + imgSpacing[0]) {
-          Wnd3_contour->push_back(QPoint(
-              (point.y - imgOriginFixed[1]) / (2.0 * imgSpacing[1]),
-              imgSize[2] - (point.z - imgOriginFixed[2]) / imgSpacing[2]));
-        }
-      }
-    }
-    // Get contour for axial, sagittal and frontal
-    // create plotable Qt objects from the contours
-    // plot Qt objects on this->ui.labelOverlapWnd*
-    this->ui.labelOverlapWnd1->m_bDrawPoints = true;
-    this->ui.labelOverlapWnd2->m_bDrawPoints = true;
-    this->ui.labelOverlapWnd3->m_bDrawPoints = true;
+  if (m_cbctregistration->cur_voi != nullptr) {
+
+    set_points_by_slice<UShortImageType, PLANE_AXIAL, RED>(
+        arr_wnd.at(refIdx % 3), m_cbctregistration->cur_voi.get(), curPhysPos,
+        imgSpacingMoving, imgOriginMoving, imgSizeMoving);
+
+    set_points_by_slice<UShortImageType, PLANE_FRONTAL, RED>(
+        arr_wnd.at((refIdx + 1) % 3), m_cbctregistration->cur_voi.get(),
+        curPhysPos, imgSpacingMoving, imgOriginMoving, imgSizeMoving);
+
+    set_points_by_slice<UShortImageType, PLANE_SAGITTAL, RED>(
+        arr_wnd.at((refIdx + 2) % 3), m_cbctregistration->cur_voi.get(),
+        curPhysPos, imgSpacingMoving, imgOriginMoving, imgSizeMoving);
   }
+
+  if (m_cbctregistration->WEPL_voi != nullptr) {
+
+    set_points_by_slice<UShortImageType, PLANE_AXIAL, GREEN>(
+        arr_wnd.at(refIdx % 3), m_cbctregistration->WEPL_voi.get(), curPhysPos,
+        imgSpacing, imgOriginFixed, imgSize);
+
+    set_points_by_slice<UShortImageType, PLANE_FRONTAL, GREEN>(
+        arr_wnd.at((refIdx + 1) % 3), m_cbctregistration->WEPL_voi.get(),
+        curPhysPos, imgSpacing, imgOriginFixed, imgSize);
+
+    set_points_by_slice<UShortImageType, PLANE_SAGITTAL, GREEN>(
+        arr_wnd.at((refIdx + 2) % 3), m_cbctregistration->WEPL_voi.get(),
+        curPhysPos, imgSpacing, imgOriginFixed, imgSize);
+  }
+
   /*qDebug() << strOriFixed;
   qDebug() << strOriMoving;*/
   //
 
   SLT_DrawImageInFixedSlice();
 }
+
 // Display is not included here
 void DlgRegistration::whenFixedImgLoaded() const {
   if (m_spFixed == nullptr) {
@@ -885,14 +955,14 @@ void DlgRegistration::SLT_ChangeView() {
 }
 
 void DlgRegistration::initOverlapWndSize() const {
-  this->ui.labelOverlapWnd1->setFixedWidth(DEFAULT_LABEL_SIZE1);
+  /*this->ui.labelOverlapWnd1->setFixedWidth(DEFAULT_LABEL_SIZE1);
   this->ui.labelOverlapWnd1->setFixedHeight(DEFAULT_LABEL_SIZE1);
 
   this->ui.labelOverlapWnd2->setFixedWidth(DEFAULT_LABEL_SIZE2);
   this->ui.labelOverlapWnd2->setFixedHeight(DEFAULT_LABEL_SIZE2);
 
   this->ui.labelOverlapWnd3->setFixedWidth(DEFAULT_LABEL_SIZE2);
-  this->ui.labelOverlapWnd3->setFixedHeight(DEFAULT_LABEL_SIZE2);
+  this->ui.labelOverlapWnd3->setFixedHeight(DEFAULT_LABEL_SIZE2);*/
 }
 
 void DlgRegistration::shiftSliceSlider() const
@@ -1036,7 +1106,7 @@ void DlgRegistration::LoadImgFromComboBox(
   SLT_DrawImageWhenSliceChange();
 }
 
-void DlgRegistration::LoadVOIFromComboBox(int idx,
+void DlgRegistration::LoadVOIFromComboBox(int /*idx*/,
                                           QString &strSelectedComboTxt) {
 
   auto ct_type = PLAN_CT;
@@ -1745,7 +1815,7 @@ void DlgRegistration::UpdateVOICombobox(const ctType ct_type) const {
     std::cerr << "Structures not initialized yet" << std::endl;
     return;
   }
-  for (auto voi : struct_set->slist) {
+  for (const auto &voi : struct_set->slist) {
     this->ui.comboBox_VOI->addItem(QString(voi.name.c_str()));
   }
 }
@@ -2213,8 +2283,9 @@ void DlgRegistration::SLT_Override() const {
           QString("Moving")) == 0) {
     isFixed = true;
   }
-  if (isFixed && m_spFixed == nullptr || !isFixed && m_spMoving == nullptr) {
-    std::cout << "The image you try to override is not loaded!" << std::endl;
+  if ((isFixed && m_spFixed == nullptr) ||
+      (!isFixed && m_spMoving == nullptr)) {
+    std::cout << "The image you try to override is not loaded!\n";
     return;
   }
 

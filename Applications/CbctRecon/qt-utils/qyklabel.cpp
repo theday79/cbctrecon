@@ -162,7 +162,7 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
     painter.drawImage(target_rt, m_pRGBAImage->m_QImage.convertToFormat(
                                      QImage::Format_ARGB32));
     if (m_pRGBAImage->m_QImage.allGray())
-      std::cout << "RGBA was grayscale!?" << std::endl;
+      std::cerr << "RGBA was grayscale!?\n";
   } else if (m_pYK16Image != nullptr) {
     painter.drawImage(target_rt, m_pYK16Image->m_QImage); // it Works!YKTEMP
   }
@@ -170,6 +170,10 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   if (m_bDrawPoints) {
     painter.setPen(QPen(Qt::red, 2));
     for (auto &it : m_vPt) {
+      painter.drawPoint(it.x(), it.y());
+    }
+    painter.setPen(QPen(Qt::green, 2));
+    for (auto &it : m_vPt_green) {
       painter.drawPoint(it.x(), it.y());
     }
   }
