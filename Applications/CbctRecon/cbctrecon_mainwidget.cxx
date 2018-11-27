@@ -764,8 +764,8 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
 
   auto names = this->m_cbctrecon->GetProjFileNames(dirPath);
 
-  if (!this->m_cbctrecon->IsFileNameOrderCorrect(names) &&
-      this->m_cbctrecon->m_projFormat != XIM_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat == HIS_FORMAT &&
+      !this->m_cbctrecon->IsFileNameOrderCorrect(names)) {
     std::cout << "Check the file name order" << std::endl;
     QMessageBox::warning(this, "warning", "Error on File Name Sorting!");
     return;

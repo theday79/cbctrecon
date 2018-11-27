@@ -613,7 +613,7 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     auto reader = rtk::VarianObiGeometryReader::New();
     reader->SetXMLFileName(geomFileInfo.fileName().toLocal8Bit().constData());
     reader->SetProjectionsFileNames(names);
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->UpdateOutputData());
+    reader->UpdateOutputData();
     // Write
     auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
     xmlWriter->SetFilename("RTKgeometry.xml");
@@ -3268,11 +3268,11 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer &spSrcImg,
   const auto interpolator = InterpolatorType::New();
   resample->SetInterpolator(interpolator);
   if ((m_projFormat == HIS_FORMAT &&
-          DEFAULT_ELEKTA_PROJ_HEIGHT ==
-              spSrcImg->GetBufferedRegion().GetSize()[1]) ||
+       DEFAULT_ELEKTA_PROJ_HEIGHT ==
+           spSrcImg->GetBufferedRegion().GetSize()[1]) ||
       (m_projFormat != HIS_FORMAT &&
-          DEFAULT_VARIAN_PROJ_HEIGHT ==
-              spSrcImg->GetBufferedRegion().GetSize()[1]) ) {
+       DEFAULT_VARIAN_PROJ_HEIGHT ==
+           spSrcImg->GetBufferedRegion().GetSize()[1])) {
     resample->SetDefaultPixelValue(50);
   } else {
     resample->SetDefaultPixelValue(0);
@@ -4792,7 +4792,7 @@ void CbctRecon::AppendInPhaseIndex(const int iPhase,
     }
 
     if ((iCurPhase >= startPhase1 && iCurPhase <= endPhase1) ||
-        (iCurPhase >= startPhase2 && iCurPhase <= endPhase2) ) {
+        (iCurPhase >= startPhase2 && iCurPhase <= endPhase2)) {
       vOutputIndex.push_back(i);
     }
   }
