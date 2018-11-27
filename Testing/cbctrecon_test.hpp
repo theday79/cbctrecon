@@ -20,20 +20,17 @@ class CbctReconTest {
 public:
   CbctReconTest();
   //~CbctReconTest() = default;
-  void FileExportByGUI() const;
-  FDK_options getFDKoptions() const;
+
+  static FDK_options getFDKoptions() {
+    return FDK_options{}; // Uses default options
+  }
 
 private:
-  FilterReaderType::Pointer
-  ReadBowtieFileWhileProbing(const QString &proj_path,
-                             std::tuple<bool, bool> &answers);
   bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
                                         enREGI_IMAGES enFwdRefImg,
                                         bool bFullResolRecon,
                                         bool bExportImages,
                                         bool bCBCT_IntensityShift);
-
-  template <enREGI_IMAGES imagetype> void LoadMHAfileAs();
 
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon = std::make_unique<CbctRecon>();

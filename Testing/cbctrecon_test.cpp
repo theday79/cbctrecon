@@ -9,6 +9,7 @@
 #include "cbctrecon.h"
 #endif
 
+#include <iostream>
 #include <chrono>
 #include <memory>
 

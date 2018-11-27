@@ -63,10 +63,17 @@ function(add_cbctrecon_test)
     set(VG_COMM ${MEMORYCHECK_COMMAND} "--leak-check=full") 
   endif()
   
+  if(WIN32)
+    set(WORKDIR_ARG
+	  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+	  )
+  endif()
+
   ExternalData_Add_test(CbctData
     NAME ${ARGS_TARGET}
     COMMAND ${VG_COMM} $<TARGET_FILE:${ARGS_TARGET}> ${ARGS_DATA_ARGS}
-    )
+	${WORKDIR_ARG}
+	)
 
 endfunction()
 
