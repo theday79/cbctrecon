@@ -12,6 +12,7 @@ set(${test_target}_SRC
 
 set(${test_target}_DATA
   DATA{Input/Alderson/CT/,REGEX:.*}
+  DATA{Input/Alderson/CBCT/,RECURSE:,REGEX:.*}
   )
   
 add_cbctrecon_test(

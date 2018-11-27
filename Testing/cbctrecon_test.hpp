@@ -26,6 +26,10 @@ public:
   }
 
 private:
+  std::tuple<bool, bool> probeUser(const QString &guessDir);
+  FilterReaderType::Pointer
+  ReadBowtieFileWhileProbing(const QString &proj_path,
+                             std::tuple<bool, bool> &answers) const;
   bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
                                         enREGI_IMAGES enFwdRefImg,
                                         bool bFullResolRecon,
@@ -50,7 +54,7 @@ public:
   void test_LoadCTrigidMHA();
   void test_LoadCTdeformMHA();
   void test_LoadNKIImage();
-  void test_LoadSelectedProjFiles(); // based on presetting values on GUI,
+  void test_LoadSelectedProjFiles(const QString& proj_path, const QString& geom_file); // based on presetting values on GUI,
                                      // including geometry files
   void test_ReloadProjections();
   void test_ExportHis();
