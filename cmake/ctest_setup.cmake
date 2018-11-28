@@ -34,7 +34,7 @@ set(ExternalData_URL_TEMPLATES
 
 set(ExternalData_LINK_CONTENT MD5)
 set(ExternalData_NO_SYMLINKS 1)
-set(ExternalData_CUSTOM_SCRIPT_silent_download ${CMAKE_SOURCE_DIR}/cmake/ExternalData_Cusatom_Script.cmake)
+set(ExternalData_CUSTOM_SCRIPT_silent_download ${CMAKE_SOURCE_DIR}/cmake/ExternalData_Custom_Script.cmake)
 ##### EXTERNAL DATA END #####
 
 
