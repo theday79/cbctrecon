@@ -54,8 +54,7 @@ public:
   void test_LoadCTrigidMHA();
   void test_LoadCTdeformMHA();
   void test_LoadNKIImage();
-  void test_LoadSelectedProjFiles(const QString& proj_path, const QString& geom_file); // based on presetting values on GUI,
-                                     // including geometry files
+  bool test_LoadSelectedProjFiles(const QString &proj_path);
   void test_ReloadProjections();
   void test_ExportHis();
 
@@ -79,7 +78,7 @@ public:
   void test_ApplyCalibration() const;
 
   // Gain/ Offset correction
-  void test_SetHisDir();
+  void test_SetHisDir(QString &dirPath);
   void test_OpenElektaGeomFile();
   void test_SetOutputPath();
   void test_DoReconstruction();

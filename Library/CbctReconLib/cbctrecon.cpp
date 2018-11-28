@@ -577,9 +577,23 @@ CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
   regexpnames->SetRegularExpression(regexp);
   regexpnames->SetSubMatch(
       1); // SetSubMatch(0) led to sorting from last digit of the name
-  // regexpnames->SetSubMatch(0); //SetSubMatch(0) led to sorting from last
-  // digit of the name
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(names = regexpnames->GetFileNames());
+
+  names = regexpnames->GetFileNames();
+
+  rtk::RegisterIOFactories();
+  std::vector<size_t> idxtopop;
+  for (auto &fn : names) {
+    itk::ImageIOBase::Pointer imageio = itk::ImageIOFactory::CreateImageIO(
+        fn.c_str(), itk::ImageIOFactory::ReadMode);
+
+    if (imageio.IsNull()) {
+      idxtopop.push_back(&fn - &names[0]);
+    }
+  }
+  std::reverse(idxtopop.begin(), idxtopop.end());
+  for (auto &id : idxtopop) {
+    names.erase(names.begin() + id);
+  }
 
   return names;
 }
@@ -633,12 +647,12 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     reader->SetXMLFileName(
         geomFileInfo.absoluteFilePath().toLocal8Bit().constData());
     reader->SetProjectionsFileNames(names);
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(reader->UpdateOutputData());
+    reader->UpdateOutputData();
     // Write
     auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
     xmlWriter->SetFilename("RTKgeometry.xml");
     xmlWriter->SetObject(reader->GetGeometry());
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
+    xmlWriter->WriteFile();
     std::cout << "RTK standard Geometry XML File was created:"
               << "RTKgeometry.xml" << std::endl;
     LoadRTKGeometryFile("RTKgeometry.xml");
@@ -1665,10 +1679,6 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
   switch (enPlane) {
   case PLANE_AXIAL:
-    width = imgSize[0];
-    height = imgSize[1];
-    i_cnt_slice = imgSize[2];
-    i_req_slice = qRound((pos - imgOrigin[2]) / imgSpacing[2]);
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(1); // y?
 
@@ -1843,10 +1853,6 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
   switch (enPlane) {
   case PLANE_AXIAL:
-    width = imgSize[0];
-    height = imgSize[1];
-    iCntSlice = imgSize[2];
-    iReqSlice = qRound((pos - imgOrigin[2]) / imgSpacing[2]);
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(1); // y?
 
@@ -1981,10 +1987,6 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
 
   switch (direction) {
   case PLANE_AXIAL:
-    width = imgSize[0];
-    height = imgSize[1];
-    iCntSlice = imgSize[2];
-    iReqSlice = qRound((pos - imgOrigin[2]) / imgSpacing[2]);
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(1); // y?
     Output2D.SetSpacing(imgSpacing[0], imgSpacing[1]);

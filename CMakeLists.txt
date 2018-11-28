@@ -29,6 +29,12 @@ OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't 
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
+if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_BUILD_TESTS AND USE_CUDA)
+  set(TMP_COVERAGE ON)  # gcov requires gcc and tests to be build.
+  # CUDA is to only do this on private GitLab runners and to enable most routes
+endif()
+OPTION(CBCTRECON_COVERAGE "Get test coverage report for CbctReconLib" ${TMP_COVERAGE})
+
 
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
 if(NOT WIN32)
@@ -176,6 +182,12 @@ set(CBCTRECON_DEP_LIBS
   ${TBB_LIBRARIES}
   OpenCL::OpenCL
 )
+if(CBCTRECON_COVERAGE)
+  include(CodeCoverage)
+  APPEND_COVERAGE_COMPILER_FLAGS()
+  set(COVERAGE_LCOV_EXCLUDES 'Applications/*') # 'dir2/*')
+endif()
+
 add_subdirectory(Library)
 add_subdirectory(Applications)
 
@@ -185,6 +197,14 @@ if(CBCTRECON_BUILD_TESTS)
   add_subdirectory(Testing)
   include(ExternalData)
   ExternalData_Add_Target(CbctData)
+  if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
+    include(CodeCoverage)
+    setup_target_for_coverage_gcovr_xml(
+      NAME CbctReconLib_coverage
+      EXECUTABLE ctest -j ${PROCESSOR_COUNT}
+      DEPENDENCIES CbctRecon_test CbctReconLib
+      )
+  endif()
 endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)

@@ -9,16 +9,16 @@
 #include "cbctrecon.h"
 #endif
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <thread>
 
 #include <QDir>
 
+#include "cbctrecon_io.h"
 #include "cbctrecon_test.hpp"
 #include "cbctregistration.h"
-#include "cbctrecon_io.h"
 
 CbctReconTest::CbctReconTest() {
   m_cbctregistration = std::make_unique<CbctRegistration>(m_cbctrecon.get());
@@ -42,9 +42,8 @@ QString getBowtiePath(const QDir &calDir) {
          "/AIR-Full-Bowtie-100KV/Current/FilterBowtie.xim";
 }
 
-FilterReaderType::Pointer
-CbctReconTest::ReadBowtieFileWhileProbing(const QString &proj_path,
-                                          std::tuple<bool, bool> &answers) const {
+FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
+    const QString &proj_path, std::tuple<bool, bool> &answers) const {
 
   auto bowtiereader =
       FilterReaderType::New(); // we use is because we need the projections to
@@ -61,7 +60,8 @@ CbctReconTest::ReadBowtieFileWhileProbing(const QString &proj_path,
   case XIM_FORMAT:
     bowtiePath = getBowtiePath(calDir);
     if (bowtiePath.length() > 1) {
-      std::cerr << "loading bowtie-filter..." << "\n";
+      std::cerr << "loading bowtie-filter..."
+                << "\n";
       std::vector<std::string> filepath;
       filepath.push_back(bowtiePath.toStdString());
       bowtiereader->SetFileNames(filepath);
@@ -80,24 +80,30 @@ CbctReconTest::ReadBowtieFileWhileProbing(const QString &proj_path,
   return nullptr;
 }
 
-void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const QString& geom_file)
-{
+bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
   // this->ui.pushButton_DoRecon->setDisabled(true);
   // 1) Get all projection file names
   auto dirPath = proj_path; // this->ui.lineEdit_HisDirPath->text();
   //.toLocal8Bit().constData();
 
   if (!QFile::exists(dirPath)) {
-    std::cerr << "Projection file directory was not found. Retry." << "\n";
-    return;
+    std::cerr << "Projection file directory was not found. Retry."
+              << "\n";
+    return false;
   }
 
   auto names = this->m_cbctrecon->GetProjFileNames(dirPath);
+  if (names.empty()) {
+    std::cerr << "Regex didn't find any files in his, hns or xim format!"
+              << "\n";
+    return false;
+  }
 
-  if (!this->m_cbctrecon->IsFileNameOrderCorrect(names) &&
-      this->m_cbctrecon->m_projFormat != XIM_FORMAT) {
-    std::cerr << "Check the file name order" << "\n";
-    return;
+  if (this->m_cbctrecon->m_projFormat == HIS_FORMAT &&
+      !this->m_cbctrecon->IsFileNameOrderCorrect(names)) {
+    std::cerr << "Check the file name order"
+              << "\n";
+    return false;
   }
 
   std::cerr << "File name order was cross-checked and found to be OK!"
@@ -105,26 +111,30 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
 
   const auto fullCnt = names.size();
   if (fullCnt <= 0) {
-    std::cerr << "No projection file was found. Retry." << "\n";
-    return;
+    std::cerr << "No projection file was found. Retry."
+              << "\n";
+    return false;
   }
 
-  std::cerr << fullCnt << "  projection files were found." << "\n";
+  std::cerr << fullCnt << "  projection files were found."
+            << "\n";
 
   // 2) Elekta Geometry file
-  QFileInfo geomFileInfo(geom_file);
+  QFileInfo geomFileInfo(this->m_cbctrecon->m_strPathGeomXML);
 
   if (!this->m_cbctrecon->LoadGeometry(geomFileInfo, names)) {
     if (!this->m_cbctrecon->m_strError.isEmpty()) {
       std::cerr << this->m_cbctrecon->m_strError.toStdString() << "\n";
+      return false;
     }
   }
 
   const auto iFullGeoDataSize =
       this->m_cbctrecon->m_spFullGeometry->GetGantryAngles().size();
   if (iFullGeoDataSize < 1) {
-    std::cerr << "Not enough projection image (should be > 0)" << "\n";
-    return;
+    std::cerr << "Not enough projection image (should be > 0)"
+              << "\n";
+    return false;
   }
 
   if (iFullGeoDataSize != fullCnt) {
@@ -132,7 +142,7 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
       std::cerr << "Size of geometry data and file numbers are not same! Check "
                    "and retry"
                 << "\n";
-      return;
+      return false;
     }
 
     const auto reply = true; /*QMessageBox::question(
@@ -140,10 +150,11 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
         "Mismatch in number of files and Geometry information!\nHowever, Xim "
         "detected, so it may be safe to continue anyway?",
         QMessageBox::Yes | QMessageBox::No);*/
-        if (reply == true) { // QMessageBox::Yes) {
-      std::cerr << "continuing despite warning..." << "\n";
+    if (reply == true) {     // QMessageBox::Yes) {
+      std::cerr << "continuing despite warning..."
+                << "\n";
     } else {
-      return;
+      return false;
     }
   }
 
@@ -159,19 +170,20 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
             << ", Mean (deg): " << mean_gap << "\n";
 
   const auto gantryAngleInterval = 1.0;
-      // this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
+  // this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
 
-  if (false){ // this->ui.Radio_ManualProjAngleGap->isChecked()) {
+  if (false) { // this->ui.Radio_ManualProjAngleGap->isChecked()) {
 
     if (gantryAngleInterval < mean_gap) {
       std::cerr << "Angle gap size is too small. Terminating the app"
                 << "\n";
-      return;
+      return false;
     }
   }
 
   const auto exclude_ids = this->m_cbctrecon->GetExcludeProjFiles(
-      false /*this->ui.Radio_ManualProjAngleGap->isChecked()*/, gantryAngleInterval);
+      false /*this->ui.Radio_ManualProjAngleGap->isChecked()*/,
+      gantryAngleInterval);
 
   this->m_cbctrecon->LoadSelectedProj(exclude_ids, names);
 
@@ -181,7 +193,8 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
   reader->SetFileNames(this->m_cbctrecon->m_vSelectedFileNames);
   std::thread calc_thread([&reader]() { reader->Update(); });
 
-  std::cerr << "Reader detached from main thread" << "\n";
+  std::cerr << "Reader detached from main thread"
+            << "\n";
 
   // After reading the whole file,
   // HIS header should be saved
@@ -193,7 +206,8 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
   auto bowtie_reader = ReadBowtieFileWhileProbing(geopath, answers);
 
   calc_thread.join();
-  std::cerr << "Reader re-attached to main thread" << "\n";
+  std::cerr << "Reader re-attached to main thread"
+            << "\n";
 
   this->m_cbctrecon->m_spProjImg3DFloat =
       reader->GetOutput(); // 1024 1024, line integ image
@@ -202,13 +216,14 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
     ApplyBowtie(reader, bowtie_reader);
   }
   if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
-    std::cerr << "Fitted bowtie-filter correction ongoing..." << "\n";
+    std::cerr << "Fitted bowtie-filter correction ongoing..."
+              << "\n";
     test_DoBowtieCorrection();
   }
 
   saveImageAsMHA<FloatImageType>(this->m_cbctrecon->m_spProjImg3DFloat);
   auto res_factor = 0.5;
-   // this->ui.lineEdit_DownResolFactor->text().toDouble();
+  // this->ui.lineEdit_DownResolFactor->text().toDouble();
   if (!this->m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
     // reset factor if image was not resampled
     std::cerr << "Could not resample projection size!\n";
@@ -241,6 +256,7 @@ void CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path, const Q
   if (std::get<1>(answers)) { // CT DCM dir was found
     test_ViewRegistration();
   }
+  return true;
 }
 
 void CbctReconTest::test_ReloadProjections() {}
@@ -269,7 +285,51 @@ void CbctReconTest::test_OpenOffsetFile() {}
 void CbctReconTest::test_OpenGainFile() {}
 void CbctReconTest::test_OpenBadpixelFile() {}
 void CbctReconTest::test_ApplyCalibration() const {}
-void CbctReconTest::test_SetHisDir() {}
+
+void CbctReconTest::test_SetHisDir(QString &dirPath) {
+  if (dirPath.length() <= 1) {
+    return;
+  }
+
+  this->m_cbctrecon->SetProjDir(dirPath);
+  // this->init_DlgRegistration(this->m_cbctrecon->m_strDCMUID);
+
+  float kVp = 0.0;
+  float mA = 0.0;
+  float ms = 0.0;
+  GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
+
+  if (kVp * mA * ms != 0) {
+    // update GUI
+    std::cout << "Updating current mAs setting from INI file: "
+              << "kVp= " << kVp << ", mA= " << mA << ", ms= " << ms
+              << std::endl;
+  }
+
+  VEC3D couch_trans = {-999, -999,
+                       -999}; // mm. In the text file, these values are in cm.
+  VEC3D couch_rot = {-999, -999,
+                     -999}; // mm. In the text file, these values are in cm.
+
+  const auto res = GetCouchShiftFromINIXVI(
+      this->m_cbctrecon->m_strPathElektaINIXVI2, &couch_trans, &couch_rot);
+
+  if (res) {
+    const auto strTransX = QString::number(couch_trans.x, 'f', 1);
+    const auto strTransY = QString::number(couch_trans.y, 'f', 1);
+    const auto strTransZ = QString::number(couch_trans.z, 'f', 1);
+    const auto strTransAll = strTransX + "," + strTransY + "," + strTransZ;
+
+    const auto strRotX = QString::number(couch_rot.x, 'f', 1);
+    const auto strRotY = QString::number(couch_rot.y, 'f', 1);
+    const auto strRotZ = QString::number(couch_rot.z, 'f', 1);
+
+    const auto strRotAll = strRotX + "," + strRotY + "," + strRotZ;
+  }
+
+  this->m_cbctrecon->m_vSelectedFileNames.clear();
+}
+
 void CbctReconTest::test_OpenElektaGeomFile() {}
 void CbctReconTest::test_SetOutputPath() {}
 void CbctReconTest::test_DoReconstruction() {}
@@ -330,7 +390,8 @@ void CbctReconTest::test_CropSupInf() {}
 int main(const int argc, char *argv[]) {
 
   if (argc < 3) {
-    std::cerr << "Usage:\n" << argv[0] << " ./dicom/directory ./CB_proj/directory\n";
+    std::cerr << "Usage:\n"
+              << argv[0] << " ./dicom/directory ./CB_proj/directory\n";
     return -1;
   }
 
@@ -368,7 +429,8 @@ int main(const int argc, char *argv[]) {
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                      start_time)
                    .count()
-            << " ms" << "\n";
+            << " ms"
+            << "\n";
 
   /* Some verification of the WEPL results should go here */
 
@@ -383,16 +445,30 @@ int main(const int argc, char *argv[]) {
     std::cerr << "Directory was empty: " << cbct_path.toStdString() << "\n";
     return -3;
   }
-  const auto geom_file = cbct_path + "/Scan.xml";
+
+  // Set and guess some member variables from projection directory:
+  auto proj_dir = QDir(cbct_path + "/Acquisitions/746879825/");
+  if (!proj_dir.exists()) {
+    std::cerr << "Projection directory: "
+              << proj_dir.absolutePath().toStdString() << " doesn't exists!\n";
+    return -2;
+  }
+  auto proj_path = proj_dir.absolutePath();
+  cbctrecon_test->test_SetHisDir(proj_path);
+
   start_time = std::chrono::steady_clock::now();
-  cbctrecon_test->test_LoadSelectedProjFiles(cbct_path, geom_file);
+  if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path)) {
+    std::cerr << "Could not load or reconstruct CB projections!"
+              << "\n";
+    return -4;
+  }
   end_time = std::chrono::steady_clock::now();
   std::cerr << "Proj. was loaded and reconstructed in: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                      start_time)
                    .count()
-            << " ms" << "\n";
-
+            << " ms"
+            << "\n";
 
   /* Scatter correction algorithm "Batch" style */
 
