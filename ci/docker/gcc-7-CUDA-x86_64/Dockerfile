@@ -8,6 +8,7 @@ USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ocl-icd-libopencl1 \
+        ocl-icd-opencl-dev \
         clinfo
 
 RUN mkdir -p /etc/OpenCL/vendors \
@@ -22,7 +23,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
     && apt install -y --no-install-recommends \
-        make gcc g++ git cmake qt5-default \
+        make gcc g++ git cmake qt5-default libqt5opengl5-dev \
         libfftw3-dev libsqlite3-dev libtinfo-dev libhdf5-dev \
         valgrind python gcovr \
     && rm -rf /var/lib/apt/lists/*
