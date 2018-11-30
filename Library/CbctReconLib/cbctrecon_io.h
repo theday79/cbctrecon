@@ -40,7 +40,11 @@ void saveImageAsMHA(typename ImageType::Pointer &image,
   typename ImageWriterType::Pointer writer = ImageWriterType::New();
   writer->SetInput(image);
   writer->SetFileName(filename);
-  writer->SetUseCompression(true); // not exist in original code (rtkfdk)
+  // writer->SetUseCompression(true); // quite expensive in CPU time
+  // ITK's zlib and native-compiled zlib are almost equally fast:
+  // Being about 75 seconds slower than without compression (in test with
+  // alderson head scan)
+  // (maybe an option to change compression rate will appear some day)
   writer->Update();
 }
 

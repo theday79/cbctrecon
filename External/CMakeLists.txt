@@ -12,6 +12,9 @@ macro(external_proj NAME)
 endmacro()
 
 # REPOSITORIES
+set(ZLIB_GIT_REPOSITORY "${git_protocol}hub.com/madler/zlib.git")
+set(ZLIB_GIT_TAG master)
+
 set(DCMTK_GIT_REPOSITORY "${git_protocol}hub.com/DCMTK/DCMTK.git")
 set(DCMTK_GIT_TAG master)
 
@@ -25,6 +28,8 @@ set(${plm}_GIT_TAG master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
 set(TINYREFL_GIT_REPOSITORY "${git_protocol}lab.com/Manu343726/tinyrefl.git")
 set(TINYREFL_GIT_TAG master)
 
+# ZLIB
+external_proj(ZLIB)
 
 # DCMTK
 external_proj(DCMTK)

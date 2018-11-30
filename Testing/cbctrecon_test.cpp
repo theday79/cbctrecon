@@ -65,10 +65,7 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
       std::vector<std::string> filepath;
       filepath.push_back(bowtiePath.toStdString());
       bowtiereader->SetFileNames(filepath);
-      // std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
-      std::thread calc_thread_bowtie(
-          [&bowtiereader] { bowtiereader->Update(); });
-      calc_thread_bowtie.join();
+      bowtiereader->Update();
     }
     break;
   default:
@@ -220,8 +217,9 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
               << "\n";
     test_DoBowtieCorrection();
   }
-
-  saveImageAsMHA<FloatImageType>(this->m_cbctrecon->m_spProjImg3DFloat);
+  auto &proj_ref = this->m_cbctrecon->m_spProjImg3DFloat;
+  auto save_proj_thread =
+      std::thread([&proj_ref]() { saveImageAsMHA<FloatImageType>(proj_ref); });
   auto res_factor = 0.5;
   // this->ui.lineEdit_DownResolFactor->text().toDouble();
   if (!this->m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
@@ -256,6 +254,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
   if (std::get<1>(answers)) { // CT DCM dir was found
     test_ViewRegistration();
   }
+  save_proj_thread.join();
   return true;
 }
 
