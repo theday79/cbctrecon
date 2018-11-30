@@ -33,4 +33,6 @@ while(retry)
     message(STATUS "[download terminated: ${ExternalData_CUSTOM_ERROR}, retries left: ${retry}]")
   endif()
 endwhile()
-
+if(${ExternalData_CUSTOM_ERROR} MATCHES "No error")
+  unset(ExternalData_CUSTOM_ERROR)
+endif()
