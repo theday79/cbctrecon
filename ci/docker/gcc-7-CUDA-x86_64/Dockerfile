@@ -23,10 +23,19 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
     && apt install -y --no-install-recommends \
-        make gcc g++ git cmake qt5-default libqt5opengl5-dev \
+        make gcc g++ git wget qt5-default libqt5opengl5-dev \
         libfftw3-dev libsqlite3-dev libtinfo-dev libhdf5-dev \
         valgrind python gcovr \
     && rm -rf /var/lib/apt/lists/*
+
+# Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
+# Reference: https://github.com/clab/dynet/issues/1457
+RUN mkdir /opt/cmake && cd /opt/cmake \
+    && wget -nv https://cmake.org/files/v3.12/cmake-3.12.4-Linux-x86_64.sh \
+    && sh cmake-3.12.4-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
+    && rm cmake-3.12.4-Linux-x86_64.sh \
+    && cmake --version
 
 RUN groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
