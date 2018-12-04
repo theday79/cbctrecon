@@ -1356,8 +1356,8 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
       strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
       // This was OK.
       m_cbctregistration->ProcessCBCT_beforeAutoRigidRegi(
-          filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift,
-          bPrepareMaskOnly, skinExp, bkGroundValUshort);
+          filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc,
+          &fShift[0], bPrepareMaskOnly, skinExp, bkGroundValUshort);
 
       if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
         filePathFixed_proc = filePathFixed;
@@ -1366,8 +1366,8 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
       std::cout << "alternative skin file will be used" << std::endl;
       strPathOriginalCTSkinMask = strPathAlternateSkin;
       m_cbctregistration->ProcessCBCT_beforeAutoRigidRegi(
-          filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc, fShift,
-          bPrepareMaskOnly, skinExp, bkGroundValUshort);
+          filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc,
+          &fShift[0], bPrepareMaskOnly, skinExp, bkGroundValUshort);
 
       if (bPrepareMaskOnly) {
         filePathFixed_proc = filePathFixed;
@@ -2393,13 +2393,11 @@ void DlgRegistration::SLT_gPMCrecalc() {
         m_cbctregistration->m_pParent->m_strPathDirDefault,
         "DCMRT Plan (*.dcm)", nullptr, nullptr);
     for (auto i = 1; i < this->ui.spinBox_NdcmPlans->value(); i++) {
-      plan_filepath =
-          QString("%1,%2")
-              .arg(plan_filepath)
-              .arg(QFileDialog::getOpenFileName(
-                  this, "Open DCMRT Plan file",
-                  m_cbctregistration->m_pParent->m_strPathDirDefault,
-                  "DCMRT Plan (*.dcm)", nullptr, nullptr));
+      plan_filepath = QString("%1,%2").arg(
+          plan_filepath, QFileDialog::getOpenFileName(
+                             this, "Open DCMRT Plan file",
+                             m_cbctregistration->m_pParent->m_strPathDirDefault,
+                             "DCMRT Plan (*.dcm)", nullptr, nullptr));
     }
   }
 

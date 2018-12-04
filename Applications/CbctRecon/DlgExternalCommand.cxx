@@ -5,9 +5,9 @@
 // Local
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
+#include "cbctrecon_io.h"
 #include "cbctrecon_mainwidget.h"
 #include "cbctregistration.h"
-#include "cbctrecon_io.h"
 
 DlgExternalCommand::DlgExternalCommand() {
   /* Sets up the GUI */
@@ -128,15 +128,15 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 
   const auto str_mainDimension =
       QString("%1,%2,%3")
-          .arg(m_pParent->ui.lineEdit_outImgDim_AP->text())
-          .arg(m_pParent->ui.lineEdit_outImgDim_SI->text())
-          .arg(m_pParent->ui.lineEdit_outImgDim_LR->text());
+          .arg(m_pParent->ui.lineEdit_outImgDim_AP->text(),
+               m_pParent->ui.lineEdit_outImgDim_SI->text(),
+               m_pParent->ui.lineEdit_outImgDim_LR->text());
 
   const auto str_mainSpacing =
       QString("%1,%2,%3")
-          .arg(m_pParent->ui.lineEdit_outImgSp_AP->text())
-          .arg(m_pParent->ui.lineEdit_outImgSp_SI->text())
-          .arg(m_pParent->ui.lineEdit_outImgSp_LR->text());
+          .arg(m_pParent->ui.lineEdit_outImgSp_AP->text(),
+               m_pParent->ui.lineEdit_outImgSp_SI->text(),
+               m_pParent->ui.lineEdit_outImgSp_LR->text());
 
   auto curTime = QTime::currentTime();
   const auto strTimeStamp = curTime.toString("hhmmss");
@@ -181,11 +181,11 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
     const auto strLamda = ui.lineEditSARTlamda->text()
-                           .trimmed(); // Convergence factor : default 0.3
+                              .trimmed(); // Convergence factor : default 0.3
     const auto strPositivity = ui.lineEditSARTpositivity->text()
-                                .trimmed(); // Enforces positivity
-                                            // during the reconstruction
-                                            // (default=off)",
+                                   .trimmed(); // Enforces positivity
+                                               // during the reconstruction
+                                               // (default=off)",
     const auto strNprojpersubset =
         ui.lineEditSARTsubsetproj->text().trimmed(); // Number of projections
                                                      // processed between each
@@ -233,7 +233,7 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
     const auto strTValpha = ui.lineEditTValpha->text()
-                             .trimmed(); // Convergence factor : default 0.3
+                                .trimmed(); // Convergence factor : default 0.3
     const auto strTVbeta =
         ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
                                              // reconstruction (default=off)",
@@ -273,7 +273,7 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
     const auto strTValpha = ui.lineEditTValpha->text()
-                             .trimmed(); // Convergence factor : default 0.3
+                                .trimmed(); // Convergence factor : default 0.3
     const auto strTVbeta =
         ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
                                              // reconstruction (default=off)",
@@ -350,7 +350,7 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
     m_pParent->m_cbctrecon->MedianFilterByGUI(
         indexRadius); // applied to raw image
   }
-  
+
   auto outputFilePath = this->m_pParent->ui.lineEdit_OutputFilePath->text();
   QFileInfo outFileInfo(outputFilePath);
   auto outFileDir = outFileInfo.absoluteDir();
@@ -362,11 +362,12 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
     std::cout << "No available output path. Should be exported later"
               << std::endl;
   } else {
-    saveImageAsMHA<UShortImageType>(this->m_pParent->m_cbctrecon->m_spRawReconImg,
-                                    outputFilePath.toStdString());
+    saveImageAsMHA<UShortImageType>(
+        this->m_pParent->m_cbctrecon->m_spRawReconImg,
+        outputFilePath.toStdString());
 
-    std::cout << "Wrote the image to: "
-              << outputFilePath.toStdString() << std::endl;
+    std::cout << "Wrote the image to: " << outputFilePath.toStdString()
+              << std::endl;
   }
 }
 

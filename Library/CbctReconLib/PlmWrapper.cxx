@@ -145,7 +145,7 @@ Rtss_modern::Rtss_modern(std::unique_ptr<Rtss> old_rtss) {
   rast_offset = {{old_rtss->rast_offset[0], old_rtss->rast_offset[1],
                   old_rtss->rast_offset[2]}};
 
-  have_geometry = old_rtss->have_geometry;
+  have_geometry = (old_rtss->have_geometry != 0);
 
   auto unique_rast_dc =
       std::make_unique<Direction_cosines>(old_rtss->rast_dc.get_matrix());
@@ -170,7 +170,7 @@ Rtss_modern::Rtss_modern(const Rtss *old_rtss) {
   rast_offset = {{old_rtss->rast_offset[0], old_rtss->rast_offset[1],
                   old_rtss->rast_offset[2]}};
 
-  have_geometry = old_rtss->have_geometry;
+  have_geometry = (old_rtss->have_geometry != 0);
 
   auto unique_rast_dc =
       std::make_unique<Direction_cosines>(old_rtss->rast_dc.get_matrix());

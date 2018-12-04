@@ -244,12 +244,15 @@ bool CbctRecon::FillProjForDisplay(const int slice_number) {
 }
 
 int hex_to_int(const char ch) {
-  if (ch >= '0' && ch <= '9')
+  if (ch >= '0' && ch <= '9') {
     return ch - '0';
-  if (ch >= 'A' && ch <= 'F')
+}
+  if (ch >= 'A' && ch <= 'F') {
     return ch - 'A' + 10;
-  if (ch >= 'a' && ch <= 'f')
+}
+  if (ch >= 'a' && ch <= 'f') {
     return ch - 'a' + 10;
+}
   return -1;
 }
 
@@ -5033,11 +5036,11 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
         m_spCustomGeometry->GetProjectionOffsetsY().at(i);
 
 #if USE_CUDA
-    if (use_cuda)
+    if (use_cuda) {
       SingleForwardProjection<CUDAFloatImageType>(
           spAttFloat, curMVAngle, curPanelOffsetX, curPanelOffsetY,
           m_spProjImgCT3D, i);
-    else
+    } else
 #endif
     {
       SingleForwardProjection<FloatImageType>(spAttFloat, curMVAngle,

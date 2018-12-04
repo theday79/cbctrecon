@@ -2,7 +2,7 @@
 
 // std
 #include <array>
-#include <cmath>   // for asin, cos
+#include <cmath> // for asin, cos
 #include <cstdlib>
 #include <iostream> // for operator<<, endl, basic_ostream, cout
 #include <string>   // for operator<<
@@ -195,7 +195,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
     /* Compute workgroup size */
     /* (Max local_work_size for (Greg's?) ATI RV710 is 128) */
     const size_t local_work_size = 128;
-    const size_t global_work_size = static_cast<float>(vol->npix);
+    const auto global_work_size = static_cast<size_t>(vol->npix);
 
     /* Invoke kernel */
     opencl_kernel_enqueue(&ocl_dev, global_work_size, local_work_size);
@@ -205,8 +205,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
     delete proj->pmat;
     delete proj;
   }
-  std::cout << std::endl;
-  std::cout << "Reading results..." << std::endl;
+  std::cout << "\nReading results..." << std::endl;
   /* Read back results */
   opencl_buf_read(&ocl_dev, ocl_buf_vol, vol->pix_size * vol->npix, vol->img);
 

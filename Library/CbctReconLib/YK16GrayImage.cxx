@@ -11,8 +11,7 @@
 #include "YK16GrayImage.h"
 
 #ifndef _WIN32
-int fopen_s(FILE** fp, const char* filename, const char* mode)
-{
+int fopen_s(FILE **fp, const char *filename, const char *mode) {
   *fp = fopen(filename, mode);
   if (*fp == nullptr) {
     return 0;
@@ -149,11 +148,13 @@ bool YK16GrayImage::IsEmpty() const { return m_pData == nullptr; }
 
 bool YK16GrayImage::CreateImage(const int width, const int height,
                                 unsigned short usVal) {
-  if (width < 1 || height < 1)
+  if (width < 1 || height < 1) {
     return false;
+}
 
-  if (usVal < 0 || usVal > 65535)
+  if (usVal < 0 || usVal > 65535) {
     usVal = 0;
+}
 
   // if (m_pData != nullptr)
   // delete [] m_pData;
@@ -177,8 +178,9 @@ bool YK16GrayImage::CreateImage(const int width, const int height,
 
 bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
                                  const int height) {
-  if (width < 1 || height < 1)
+  if (width < 1 || height < 1) {
     return false;
+}
 
   // if (m_pData != nullptr)
   //	delete [] m_pData;
@@ -189,7 +191,8 @@ bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
   m_iWidth = width;
   m_iHeight = height;
 
-  const auto img_size = static_cast<size_t>(width * height);
+  const auto img_size =
+      static_cast<size_t>(width) * static_cast<size_t>(height);
   m_pData = new unsigned short[img_size];
 
   // aqprintf("ImageInfo in LoadRawImage, w: %d  h: %d   %d  %d \n",width,
@@ -201,8 +204,9 @@ bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
     return false;
   }
 
-  if (fd == nullptr)
+  if (fd == nullptr) {
     return false;
+}
 
   auto buf = std::valarray<unsigned short>(img_size);
   if (fread(&buf[0], 2, img_size, fd) != img_size) {
@@ -219,14 +223,18 @@ bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
 
 bool YK16GrayImage::CopyFromBuffer(const unsigned short *p_image_buf,
                                    const int width, const int height) const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return false;
-  if (p_image_buf == nullptr)
+}
+  if (p_image_buf == nullptr) {
     return false;
-  if (width != m_iWidth || height != m_iHeight)
+}
+  if (width != m_iWidth || height != m_iHeight) {
     return false;
+}
 
-  const auto imgSize = static_cast<size_t>(m_iWidth * m_iHeight);
+  const auto imgSize =
+      static_cast<size_t>(m_iWidth) * static_cast<size_t>(m_iHeight);
   std::copy_n(&p_image_buf[0], imgSize, &m_pData[0]);
 
   // CalcImageInfo();
@@ -283,8 +291,9 @@ void fill_array(std::valarray<quint32> &tmpData, unsigned short *m_pData,
 bool YK16GrayImage::FillPixMap(const int winMid,
                                const int winWidth) // 0-65535 �� window level
 {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return false;
+}
 
   if (m_pPixmap != nullptr) {
     delete m_pPixmap;
@@ -295,12 +304,15 @@ bool YK16GrayImage::FillPixMap(const int winMid,
 
   // 8 bit gray buffer preparing
 
-  const auto size = static_cast<size_t>(m_iWidth * m_iHeight);
+  const auto size =
+      static_cast<size_t>(m_iWidth) * static_cast<size_t>(m_iHeight);
 
   // uchar* tmpData = new uchar [size*3];//RGB
   auto tmpData = std::valarray<quint32>(size); // rgb represented as 0xffRRGGBB
-  const auto uppVal = static_cast<unsigned short>(winMid + winWidth / 2.0);
-  const auto lowVal = static_cast<unsigned short>(winMid - winWidth / 2.0);
+  const auto uppVal =
+      static_cast<unsigned short>(std::round(winMid + winWidth / 2.0));
+  const auto lowVal =
+      static_cast<unsigned short>(std::round(winMid - winWidth / 2.0));
   const auto d_win_width = static_cast<double>(winWidth);
   // It takes 0.4 s in Release mode
   fill_array(tmpData, m_pData, lowVal, uppVal, d_win_width, m_bShowInvert);
@@ -400,8 +412,9 @@ bool YK16GrayImage::FillPixMapMinMax(int winMin,
 bool YK16GrayImage::SaveDataAsRaw(const char *filePath) const
 // save 16 bit gray raw file
 {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return false;
+}
 
   const auto imgSize = m_iWidth * m_iHeight;
 
@@ -421,15 +434,17 @@ bool YK16GrayImage::SaveDataAsRaw(const char *filePath) const
 }
 
 bool YK16GrayImage::CalcImageInfo() {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return false;
+}
 
   int i;
 
   const auto npixels = m_iWidth * m_iWidth;
 
-  if (npixels <= 0)
+  if (npixels <= 0) {
     return false;
+}
 
   auto nTotal = 0;
   // minPixel = 4095;
@@ -440,17 +455,20 @@ bool YK16GrayImage::CalcImageInfo() {
   for (i = 0; i < npixels; i++) {
     const auto pixel = static_cast<double>(m_pData[i]);
     sumPixel += pixel;
-    if (m_pData[i] > maxPixel)
+    if (m_pData[i] > maxPixel) {
       maxPixel = m_pData[i];
-    if (m_pData[i] < minPixel)
+}
+    if (m_pData[i] < minPixel) {
       minPixel = m_pData[i];
+}
     nTotal++;
   }
 
   auto meanPixelval = 0.0;
 
-  if (nTotal > 0)
+  if (nTotal > 0) {
     meanPixelval = sumPixel / static_cast<double>(nTotal);
+}
 
   auto sqrSum = 0.0;
   for (i = 0; i < npixels; i++) {
@@ -467,8 +485,9 @@ bool YK16GrayImage::CalcImageInfo() {
 }
 
 double YK16GrayImage::CalcAveragePixelDiff(YK16GrayImage &other) const {
-  if (m_pData == nullptr || other.m_pData == nullptr)
+  if (m_pData == nullptr || other.m_pData == nullptr) {
     return 0.0;
+}
 
   const auto totalPixCnt = m_iWidth * m_iHeight;
   auto tmpSum = 0.0;
@@ -481,11 +500,13 @@ double YK16GrayImage::CalcAveragePixelDiff(YK16GrayImage &other) const {
 }
 
 void YK16GrayImage::Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB) {
-  if (pImgA == nullptr || pImgB == nullptr)
+  if (pImgA == nullptr || pImgB == nullptr) {
     return;
+}
 
-  if (pImgA->IsEmpty() || pImgB->IsEmpty())
+  if (pImgA->IsEmpty() || pImgB->IsEmpty()) {
     return;
+}
 
   YK16GrayImage tmpImg(pImgA->m_iWidth, pImgB->m_iHeight);
   tmpImg.CopyFromBuffer(pImgA->m_pData, pImgA->m_iWidth, pImgA->m_iHeight);
@@ -503,11 +524,13 @@ void YK16GrayImage::Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB) {
 
 bool YK16GrayImage::SaveDataAsHis(const char *filePath,
                                   const bool bInverse) const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return false;
+}
 
-  if (m_pElektaHisHeader == nullptr)
+  if (m_pElektaHisHeader == nullptr) {
     return false;
+}
 
   FILE *fd = nullptr;
   if (fopen_s(&fd, filePath, "wb") == 0) {
@@ -523,10 +546,11 @@ bool YK16GrayImage::SaveDataAsHis(const char *filePath,
   for (auto i = 0; i < imgSize; i++) {
     unsigned short tmpVal = 0;
 
-    if (bInverse)
+    if (bInverse) {
       tmpVal = 65535 - m_pData[i];
-    else
+    } else {
       tmpVal = m_pData[i];
+}
 
     fwrite(&tmpVal, 2, 1, fd);
   }
@@ -540,9 +564,10 @@ void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
   // open file
   std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
 
-  if (file.fail())
+  if (file.fail()) {
     std::cout << "Fail to open"
               << "	" << hisFilePath << std::endl;
+}
 
   // read header
 
@@ -576,8 +601,9 @@ void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
 
 void YK16GrayImage::CopyYKImage2ItkImage(
     YK16GrayImage *pYKImage, UShortImage2DType::Pointer &spTarImage) {
-  if (pYKImage == nullptr)
+  if (pYKImage == nullptr) {
     return;
+}
   // Raw File open
   // UShortImage2DType::SizeType tmpSize =
   auto region = spTarImage->GetRequestedRegion();
@@ -586,8 +612,9 @@ void YK16GrayImage::CopyYKImage2ItkImage(
   const int sizeX = tmpSize[0];
   const int sizeY = tmpSize[1];
 
-  if (sizeX < 1 || sizeY < 1)
+  if (sizeX < 1 || sizeY < 1) {
     return;
+}
 
   itk::ImageRegionIterator<UShortImage2DType> it(spTarImage, region);
 
@@ -605,16 +632,18 @@ void YK16GrayImage::CopyYKImage2ItkImage(
 std::unique_ptr<YK16GrayImage>
 YK16GrayImage::CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
                                     std::unique_ptr<YK16GrayImage> pYKImage) {
-  if (pYKImage == nullptr)
+  if (pYKImage == nullptr) {
     return pYKImage;
+}
   auto region = spSrcImage->GetRequestedRegion();
   auto tmpSize = region.GetSize();
 
   const int sizeX = tmpSize[0];
   const int sizeY = tmpSize[1];
 
-  if (sizeX < 1 || sizeY < 1)
+  if (sizeX < 1 || sizeY < 1) {
     return pYKImage;
+}
 
   itk::ImageRegionIterator<UShortImage2DType> it(spSrcImage, region);
 
@@ -629,16 +658,18 @@ YK16GrayImage::CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
 
 void YK16GrayImage::CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
                                          YK16GrayImage *pYKImage) {
-  if (pYKImage == nullptr)
+  if (pYKImage == nullptr) {
     return;
+}
   auto region = spSrcImage->GetRequestedRegion();
   auto tmpSize = region.GetSize();
 
   const int sizeX = tmpSize[0];
   const int sizeY = tmpSize[1];
 
-  if (sizeX < 1 || sizeY < 1)
+  if (sizeX < 1 || sizeY < 1) {
     return;
+}
 
   itk::ImageRegionIterator<UShortImage2DType> it(spSrcImage, region);
 
@@ -680,10 +711,12 @@ bool YK16GrayImage::CalcImageInfo_ROI() {
       const auto idx = m_iWidth * i + j;
       const auto pixel = static_cast<double>(m_pData[idx]);
       sumPixel += pixel;
-      if (m_pData[idx] > maxPixel)
+      if (m_pData[idx] > maxPixel) {
         maxPixel = m_pData[idx];
-      if (m_pData[idx] < minPixel)
+}
+      if (m_pData[idx] < minPixel) {
         minPixel = m_pData[idx];
+}
       nTotal++;
     }
   }
@@ -733,15 +766,17 @@ bool YK16GrayImage::setROI(const int left, const int top, const int right,
 }
 
 void YK16GrayImage::DrawROIOn(const bool bROI_Draw) {
-  if (bROI_Draw)
+  if (bROI_Draw) {
     m_bDrawROI = true;
-  else
+  } else {
     m_bDrawROI = false;
+}
 }
 
 bool YK16GrayImage::CloneImage(YK16GrayImage &other) {
-  if (other.m_pData == nullptr)
+  if (other.m_pData == nullptr) {
     return false;
+}
 
   // first, delete existing things
   ReleaseBuffer(); // Redundancy. CreateImage will call this too. also Create is
@@ -809,8 +844,9 @@ bool YK16GrayImage::CloneImage(YK16GrayImage &other) {
 }
 
 void YK16GrayImage::MultiplyConstant(const double multiplyFactor) const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
   for (auto i = 0; i < m_iHeight; i++) {
     for (auto j = 0; j < m_iWidth; j++) {
@@ -833,8 +869,9 @@ void YK16GrayImage::SetProfileProbePos(const int dataX, const int dataY) {
 
 unsigned short YK16GrayImage::GetProfileProbePixelVal() const {
   unsigned short resultVal = 0;
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return 0;
+}
 
   if (m_ptProfileProbe.y() >= 0 && m_ptProfileProbe.y() < m_iHeight &&
       m_ptProfileProbe.x() >= 0 && m_ptProfileProbe.x() < m_iWidth) {
@@ -847,11 +884,13 @@ unsigned short YK16GrayImage::GetProfileProbePixelVal() const {
 void YK16GrayImage::GetProfileData(const int dataX, const int dataY,
                                    QVector<double> &vTarget,
                                    const enProfileDirection direction) const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
-  if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth)
+  if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth) {
     return;
+}
 
   vTarget.clear();
 
@@ -871,14 +910,16 @@ void YK16GrayImage::GetProfileData(const int dataX, const int dataY,
 }
 void YK16GrayImage::GetProfileData(QVector<double> &vTarget,
                                    const enProfileDirection direction) const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
   const auto dataX = m_ptProfileProbe.x();
   const auto dataY = m_ptProfileProbe.y();
 
-  if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth)
+  if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth) {
     return;
+}
 
   vTarget.clear();
 
@@ -903,8 +944,9 @@ bool YK16GrayImage::ConstituteFromTwo(YK16GrayImage &YKImg1,
   if (YKImg1.IsEmpty() || YKImg2.IsEmpty() ||
       YKImg1.m_iWidth != YKImg2.m_iWidth ||
       YKImg1.m_iHeight != YKImg2.m_iHeight ||
-      YKImg1.m_iWidth * YKImg1.m_iHeight == 0)
+      YKImg1.m_iWidth * YKImg1.m_iHeight == 0) {
     return false;
+}
 
   const auto width = YKImg1.m_iWidth;
   const auto height = YKImg1.m_iHeight;
@@ -949,13 +991,16 @@ bool YK16GrayImage::ConstituteFromTwo(YK16GrayImage &YKImg1,
 }
 
 void YK16GrayImage::EditImage_Flip() const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
-  const auto imgSize = static_cast<size_t>(m_iWidth * m_iHeight);
+  const auto imgSize =
+      static_cast<size_t>(m_iWidth) * static_cast<size_t>(m_iHeight);
 
-  if (imgSize <= 0)
+  if (imgSize <= 0) {
     return;
+}
 
   //������ �ӽ� buffer ����
   auto pPrevImg = std::valarray<unsigned short>(imgSize);
@@ -979,13 +1024,15 @@ void YK16GrayImage::EditImage_Flip() const {
 }
 
 void YK16GrayImage::EditImage_Mirror() const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
   const auto imgSize = m_iWidth * m_iHeight;
 
-  if (imgSize <= 0)
+  if (imgSize <= 0) {
     return;
+}
 
   auto pPrevImg = std::valarray<unsigned short>(imgSize);
 
@@ -1027,8 +1074,9 @@ inline void fill_index(const size_t i, const size_t j, const size_t iWidth,
 
 bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,
                                    const int winWidth1, const int winWidth2) {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return false;
+}
 
   if (m_pPixmap != nullptr) {
     delete m_pPixmap;
@@ -1049,20 +1097,25 @@ bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,
   auto uppVal2 = static_cast<int>(winMid2 + winWidth2 / 2.0);
   auto lowVal2 = static_cast<int>(winMid2 - winWidth2 / 2.0);
 
-  if (uppVal1 > 65535)
+  if (uppVal1 > 65535) {
     uppVal1 = 65535;
-  if (uppVal2 > 65535)
+}
+  if (uppVal2 > 65535) {
     uppVal2 = 65535;
+}
 
-  if (lowVal1 <= 0)
+  if (lowVal1 <= 0) {
     lowVal1 = 0;
-  if (lowVal2 <= 0)
+}
+  if (lowVal2 <= 0) {
     lowVal2 = 0;
+}
 
   // It takes 0.4 s in Release mode
 
-  if (m_enSplitOption != PRI_LEFT_TOP)
+  if (m_enSplitOption != PRI_LEFT_TOP) {
     return false;
+}
 
   const auto splitX = m_ptSplitCenter.x();
   const auto splitY = m_ptSplitCenter.y();
@@ -1173,28 +1226,32 @@ bool YK16GrayImage::isPtInFirstImage(const int dataX, const int dataY) const {
 }
 
 void YK16GrayImage::SetSplitCenter(QPoint &ptSplitCenter) {
-  if (IsEmpty())
+  if (IsEmpty()) {
     return;
+}
 
   if (ptSplitCenter.x() < 0 || ptSplitCenter.x() >= m_iWidth ||
       ptSplitCenter.y() < 0 || ptSplitCenter.y() >= m_iHeight) {
     m_ptSplitCenter.setX(0);
     m_ptSplitCenter.setY(0);
-  } else
+  } else {
     m_ptSplitCenter = ptSplitCenter;
+}
 }
 
 void YK16GrayImage::SetZoom(const double fZoom) {
-  if (fZoom <= 1)
+  if (fZoom <= 1) {
     m_fZoom = 1.0;
-  else
+  } else {
     m_fZoom = fZoom;
+}
 }
 
 void YK16GrayImage::MedianFilter(const int iMedianSizeX,
                                  const int iMedianSizeY) {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
   auto spTmpItkImg = UShortImage2DType::New();
 
@@ -1228,8 +1285,8 @@ void YK16GrayImage::MedianFilter(const int iMedianSizeX,
 
   CopyYKImage2ItkImage(this, spTmpItkImg);
 
-  typedef itk::MedianImageFilter<UShortImage2DType, UShortImage2DType>
-      MedianFilterType;
+  using MedianFilterType =
+     itk::MedianImageFilter<UShortImage2DType, UShortImage2DType>;
   auto medianFilter = MedianFilterType::New();
   // medianFilter->SetInput(spTmpItkImg);
 
@@ -1306,11 +1363,13 @@ UShortImage2DType::Pointer YK16GrayImage::CloneItkImage() const {
 }
 
 void YK16GrayImage::ResampleImage(const double fResampleFactor) {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
-  if (fResampleFactor <= 0)
+  if (fResampleFactor <= 0) {
     return;
+}
 
   m_fResampleFactor = fResampleFactor;
 
@@ -1341,14 +1400,14 @@ void YK16GrayImage::ResampleImage(const double fResampleFactor) {
 
   //// Resample the image
   // typedef itk::IdentityTransform<float, 2> TransformType;
-  typedef itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType, float>
-      ResampleImageFilterType;
+  using ResampleImageFilterType =
+      itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType, float>;
   auto resample = ResampleImageFilterType::New();
 
-  typedef itk::AffineTransform<float, 2> TransformType;
+  using TransformType = itk::AffineTransform<float, 2>;
   auto transform = TransformType::New();
-  typedef itk::NearestNeighborInterpolateImageFunction<UShortImage2DType, float>
-      InterpolatorType;
+  using InterpolatorType =
+      itk::NearestNeighborInterpolateImageFunction<UShortImage2DType, float>;
   const auto interpolator = InterpolatorType::New();
   transform->SetIdentity();
 
@@ -1368,8 +1427,9 @@ void YK16GrayImage::ResampleImage(const double fResampleFactor) {
 
 void YK16GrayImage::UpdateFromItkImage(
     UShortImage2DType::Pointer &spRefItkImg) {
-  if (!spRefItkImg)
+  if (!spRefItkImg) {
     return;
+}
 
   if (m_pData != nullptr) {
     delete[] m_pData;
@@ -1400,8 +1460,9 @@ void YK16GrayImage::UpdateFromItkImage(
 
 void YK16GrayImage::UpdateFromItkImageFloat(
     FloatImage2DType::Pointer &spRefItkImg) {
-  if (!spRefItkImg)
+  if (!spRefItkImg) {
     return;
+}
 
   if (m_pData != nullptr) {
     delete[] m_pData;
@@ -1428,12 +1489,13 @@ void YK16GrayImage::UpdateFromItkImageFloat(
     const auto curVal = it.Get();
     unsigned short outVal;
 
-    if (curVal < 0.0)
+    if (curVal < 0.0) {
       outVal = 0;
-    else if (curVal > 65535.0)
+    } else if (curVal > 65535.0) {
       outVal = 65535;
-    else
+    } else {
       outVal = static_cast<unsigned short>(qRound(curVal));
+}
 
     m_pData[i] = outVal;
     i++;
@@ -1441,8 +1503,9 @@ void YK16GrayImage::UpdateFromItkImageFloat(
 }
 
 void YK16GrayImage::InvertImage() const {
-  if (m_pData == nullptr)
+  if (m_pData == nullptr) {
     return;
+}
 
   const auto imgSize = m_iWidth * m_iHeight;
   // Data inversion: Default for Elekta XVI system

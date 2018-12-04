@@ -401,21 +401,22 @@ DCM_MODALITY get_dcm_modality(const QString &filename) {
   gdcm::File &file = reader.GetFile();
   gdcm::DataSet &ds = file.GetDataSet();
   gdcm::Attribute<0x0008, 0x0060> at_modality;
-  at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
+  at_modality.SetFromDataElement(
+      ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::GetTag()));
   const auto modality = at_modality.GetValue();
-  if (modality.compare("RTIMAGE") == 0 || modality.compare("CT") == 0) {
+  if (modality == "RTIMAGE" || modality == "CT") {
     return RTIMAGE;
   }
-  if (modality.compare("RTDOSE") == 0) {
+  if (modality == "RTDOSE") {
     return RTDOSE;
   }
-  if (modality.compare("RTSTRUCT") == 0) {
+  if (modality == "RTSTRUCT") {
     return RTSTRUCT;
   }
-  if (modality.compare("RTPLAN") == 0) {
+  if (modality == "RTPLAN") {
     return RTPLAN;
   }
-  if (modality.compare("RTRECORD") == 0) {
+  if (modality == "RTRECORD") {
     return RTRECORD;
   }
   std::cerr << "Modality was: " << modality << "\n";
@@ -482,7 +483,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
     const auto color = at_roi_contour_colour.GetValues();
     auto s_color = std::to_string(color[0]) + " " + std::to_string(color[1]) +
                    " " + std::to_string(color[2]);
-    rt_struct->slist.at(i).color = s_color.c_str();
+    rt_struct->slist.at(i).color = s_color;
 
     const auto &contour_seq_tag =
         it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
@@ -552,7 +553,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
 
   ShortImageType::Pointer spShortImg;
 
-  if (filenamelist.size() != 0) {
+  if (!filenamelist.empty()) {
     using dcm_reader_type = itk::ImageSeriesReader<ShortImageType>;
     auto dcm_reader = dcm_reader_type::New();
     dcm_reader->SetFileNames(filenamelist);

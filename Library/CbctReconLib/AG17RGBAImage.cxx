@@ -268,7 +268,8 @@ bool AG17RGBAImage::FillPixMap(const int winMid,
 
   // 8 bit gray buffer preparing
 
-  const auto size = static_cast<size_t>(m_iWidth * m_iHeight);
+  const auto size =
+      static_cast<size_t>(m_iWidth) * static_cast<size_t>(m_iHeight);
 
   // uchar* tmpData = new uchar [size*3];//RGB
   std::valarray<quint32> tmpData(size); // rgb represented as 0xffRRGGBB
@@ -430,8 +431,8 @@ void AG17RGBAImage::CopyYKImage2ItkImage(
   // writer->SetFileName("C:\\ThisImageIs_spSrcImage.png");	//It works!
   // writer->Update();
 }
-void AG17RGBAImage::CopyItkImage2YKImage(
-    UShortImage2DType::Pointer &spSrcImage, AG17RGBAImage *pYKImage) {
+void AG17RGBAImage::CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
+                                         AG17RGBAImage *pYKImage) {
   if (pYKImage == nullptr) {
     return;
   }
@@ -761,7 +762,8 @@ void AG17RGBAImage::EditImage_Mirror() {
     return;
   }
 
-  const auto imgSize = static_cast<size_t>(m_iWidth * m_iHeight);
+  const auto imgSize =
+      static_cast<size_t>(m_iWidth) * static_cast<size_t>(m_iHeight);
 
   if (imgSize <= 0) {
     return;
@@ -918,10 +920,10 @@ bool AG17RGBAImage::isPtInFirstImage(const int dataX, const int dataY) const {
   }
 
   if (m_enSplitOption == PRI_LEFT_TOP && !IsEmpty()) {
-    return dataX >= 0 && dataX < m_ptSplitCenter.x() && dataY >= 0 &&
-               dataY < m_ptSplitCenter.y() ||
-           dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
-               dataY >= m_ptSplitCenter.y() && dataY < m_iHeight;
+    return (dataX >= 0 && dataX < m_ptSplitCenter.x() && dataY >= 0 &&
+            dataY < m_ptSplitCenter.y()) ||
+           (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
+            dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);
   }
   return false;
 }
@@ -1089,15 +1091,13 @@ void AG17RGBAImage::ResampleImage(const double fResampleFactor) {
   //// Resample the image
   // typedef itk::IdentityTransform<float, 2> TransformType;
   using ResampleImageFilterType =
-      itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType,
-                               float>;
+      itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType, float>;
   auto resample = ResampleImageFilterType::New();
 
   using TransformType = itk::AffineTransform<float, 2>;
   auto transform = TransformType::New();
   using InterpolatorType =
-      itk::NearestNeighborInterpolateImageFunction<UShortImage2DType,
-                                                   float>;
+      itk::NearestNeighborInterpolateImageFunction<UShortImage2DType, float>;
   const auto interpolator = InterpolatorType::New();
   transform->SetIdentity();
 
