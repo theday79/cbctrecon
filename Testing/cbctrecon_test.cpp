@@ -342,7 +342,7 @@ void CbctReconTest::test_DoReconstruction() {
   reconTimeProbe.Start();
 
 #ifdef USE_CUDA
-  const bool use_cuda = true;
+  const bool use_cuda = false; // true;
 #else
   const bool use_cuda = false;
 #endif

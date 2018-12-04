@@ -21,6 +21,8 @@ add_cbctrecon_test(
     DATA_ARGS "${${test_target}_DATA}"
   )
 
+set_tests_properties(${test_target} PROPERTIES TIMEOUT 6000)
+
 install(TARGETS ${test_target}
   RUNTIME DESTINATION bin
   )

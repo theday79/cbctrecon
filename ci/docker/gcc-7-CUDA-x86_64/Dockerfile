@@ -34,6 +34,7 @@ RUN mkdir /opt/cmake && cd /opt/cmake \
     && wget -nv https://cmake.org/files/v3.12/cmake-3.12.4-Linux-x86_64.sh \
     && sh cmake-3.12.4-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
+    && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
     && rm cmake-3.12.4-Linux-x86_64.sh \
     && cmake --version
 
