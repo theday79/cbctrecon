@@ -16,6 +16,9 @@
 
 #include <QDir>
 
+#ifdef CUDA_FOUND
+#undef CUDA_FOUND // Because both RTK and PLM defines this
+#endif            // CUDA_FOUND
 #include "cbctrecon_io.h"
 #include "cbctrecon_test.hpp"
 #include "cbctregistration.h"
@@ -331,7 +334,38 @@ void CbctReconTest::test_SetHisDir(QString &dirPath) {
 
 void CbctReconTest::test_OpenElektaGeomFile() {}
 void CbctReconTest::test_SetOutputPath() {}
-void CbctReconTest::test_DoReconstruction() {}
+
+void CbctReconTest::test_DoReconstruction() {
+  const auto fdk_options = getFDKoptions();
+
+  itk::TimeProbe reconTimeProbe;
+  reconTimeProbe.Start();
+
+#ifdef USE_CUDA
+  const bool use_cuda = true;
+#else
+  const bool use_cuda = false;
+#endif
+  const bool use_opencl = true; // prefer OpenCL to CPU
+
+  if (use_cuda) {
+    this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
+                                                      fdk_options);
+  } else if (use_opencl) {
+    this->m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
+                                                        fdk_options);
+  } else {
+    this->m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT,
+                                                     fdk_options);
+  }
+
+  reconTimeProbe.Stop();
+  std::cout << "It took " << reconTimeProbe.GetMean() << ' '
+            << reconTimeProbe.GetUnit() << std::endl;
+
+  test_DrawProjImages();
+}
+
 void CbctReconTest::test_CopyTableToClipBoard() const {}
 void CbctReconTest::test_DataProbeProj() const {}
 void CbctReconTest::test_DataProbeRecon() const {}
@@ -414,24 +448,6 @@ int main(const int argc, char *argv[]) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
     return -4;
   }
-  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
-  for (auto &structure : ss->slist) {
-    std::cerr << structure.name << "\n";
-  }
-
-  const auto voi = std::string("CTV1");
-  auto start_time = std::chrono::steady_clock::now();
-  cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
-      voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spManualRigidCT);
-  auto end_time = std::chrono::steady_clock::now();
-  std::cerr << "WEPL was calculated in: "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
-                                                                     start_time)
-                   .count()
-            << " ms"
-            << "\n";
-
-  /* Some verification of the WEPL results should go here */
 
   /* Load projections (Needs to be uploaded to girder first) */
   auto cbct_dir = QDir(argv[2]);
@@ -455,13 +471,17 @@ int main(const int argc, char *argv[]) {
   auto proj_path = proj_dir.absolutePath();
   cbctrecon_test->test_SetHisDir(proj_path);
 
-  start_time = std::chrono::steady_clock::now();
+  auto start_time = std::chrono::steady_clock::now();
   if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path)) {
     std::cerr << "Could not load or reconstruct CB projections!"
               << "\n";
     return -4;
   }
-  end_time = std::chrono::steady_clock::now();
+  if (!cbctrecon_test->m_cbctrecon->m_spRawReconImg) {
+    std::cerr << "Raw reconstruction was Null!\n";
+    return -5;
+  }
+  auto end_time = std::chrono::steady_clock::now();
   std::cerr << "Proj. was loaded and reconstructed in: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                      start_time)
@@ -470,6 +490,27 @@ int main(const int argc, char *argv[]) {
             << "\n";
 
   /* Scatter correction algorithm "Batch" style */
+
+  /* WEPL structure test: */
+  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+  for (auto &structure : ss->slist) {
+    std::cerr << structure.name << "\n";
+  }
+
+  const auto voi = std::string("CTV1");
+  start_time = std::chrono::steady_clock::now();
+  cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
+      voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spManualRigidCT,
+      cbctrecon_test->m_cbctrecon->m_spRawReconImg);
+  end_time = std::chrono::steady_clock::now();
+  std::cerr << "WEPL was calculated in: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                     start_time)
+                   .count()
+            << " ms"
+            << "\n";
+
+  /* Some verification of the WEPL results should go here */
 
   return 0;
 }

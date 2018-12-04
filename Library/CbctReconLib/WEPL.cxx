@@ -288,7 +288,7 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
     FloatImageType::IndexType cur_idx{};
     if (!wepl_cube->TransformPhysicalPointToIndex(p, cur_idx)) {
       std::cerr << "Physical point out of bounds in WEPL calculation"
-                << std::endl;
+                << "\n";
       return WEPL_contour;
     }
     const std::array<size_t, 3> point_id = {{static_cast<size_t>(cur_idx[0]),
@@ -423,7 +423,7 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
   std::array<VectorType, 3U> n = {{
       VectorType(sgn(vec_basis.at(0)), 0.0, 0.0),
       VectorType(0.0, sgn(vec_basis.at(1)), 0.0),
-      VectorType(0.0, 0.0, sgn(vec_basis.at(3))),
+      VectorType(0.0, 0.0, sgn(vec_basis.at(2))),
   }};
 
   // d = (p_0 - l_0) dot n / ( l dot n)
@@ -445,8 +445,8 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
   const auto min_dist_plane = std::distance(std::begin(p_dist), it_min_dist);
   // Point of intersection:
   const DoubleVector intersect = {p.at(min_dist_plane).get(0),
-                            p.at(min_dist_plane).get(1),
-                            p.at(min_dist_plane).get(2)};
+                                  p.at(min_dist_plane).get(1),
+                                  p.at(min_dist_plane).get(2)};
 
   const auto out_point =
       point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);
@@ -496,7 +496,8 @@ float hu_to_dEdx(float val) {
   const auto lookup_upper = *lookup_upper_ptr;
 
   // Get the previous index:
-  const auto lookup_lower = lookup.at(static_cast<size_t>(std::max(0, static_cast<int>(lookup_upper_ptr - lookup.begin() - 1))));
+  const auto lookup_lower = lookup.at(static_cast<size_t>(
+      std::max(0, static_cast<int>(lookup_upper_ptr - lookup.begin() - 1))));
 
   // Do linear interpolation between upper and lower data point:
   const auto a = (lookup_upper.second - lookup_lower.second) /

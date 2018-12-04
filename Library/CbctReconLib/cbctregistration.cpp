@@ -632,13 +632,13 @@ void CbctRegistration::LoadRTPlan(QString &strDCMPath) {
 void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
                                           const int gantry_angle,
                                           const int couch_angle,
-                                          UShortImageType::Pointer &spMoving) {
+                                          UShortImageType::Pointer &spMoving,
+                                          UShortImageType::Pointer &spFixed) {
   if (voi_name.length() < 1) {
     std::cout << "No VOI name given" << std::endl;
     return;
   }
-  cur_voi = m_pParent->m_structures->get_ss(PLAN_CT)
-                    ->get_roi_by_name(voi_name);
+  cur_voi = m_pParent->m_structures->get_ss(PLAN_CT)->get_roi_by_name(voi_name);
 
   // Get basis from angles
   const auto vec_basis = get_basis_from_angles(gantry_angle, couch_angle);
@@ -646,6 +646,7 @@ void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
   // Get Fixed and Moving
   // Tranlate fixed and moving to dEdx
   const auto wepl_cube = ConvertUshort2WeplFloat(spMoving);
+  const auto wepl_cube_fixed = ConvertUshort2WeplFloat(spFixed);
 
   // Initialize WEPL contour
   WEPL_voi = std::make_unique<Rtss_roi_modern>();
@@ -663,14 +664,18 @@ void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
     WEPL_contour->ct_slice_uid = contour.ct_slice_uid;
     WEPL_contour->slice_no = contour.slice_no;
     WEPL_contour->num_vertices = contour.num_vertices;
-    // Actually calculate WEPL
+    // Actually calculate WEPL on spMoving
     auto WEPL_points =
         WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
 
-    // Put WEPL in contour
+    // Inversely calc WEPL on spFixed
+    // And put WEPL point in contour
     std::transform(std::begin(WEPL_points), std::end(WEPL_points),
                    std::begin(WEPL_contour->coordinates),
-                   [](const WEPLVector &val) { return val.point; });
+                   [&vec_basis, &wepl_cube_fixed](const WEPLVector &val) {
+                     return NewPoint_from_WEPLVector(val, vec_basis,
+                                                     wepl_cube_fixed);
+                   });
     WEPL_voi->pslist.at(i++) = std::move(WEPL_contour);
   }
 }

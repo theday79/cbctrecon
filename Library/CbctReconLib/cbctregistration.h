@@ -72,7 +72,8 @@ public:
                                UShortImageType::Pointer &spFixed,
                                UShortImageType::Pointer &spMoving);
   void CalculateWEPLtoVOI(const std::string &voi_name, int gantry_angle,
-                          int couch_angle, UShortImageType::Pointer &spMoving);
+                          int couch_angle, UShortImageType::Pointer &spMoving,
+                          UShortImageType::Pointer &spFixed);
   float *ManualMoveByDCM() const;
   void LoadRTPlan(QString &strDCMPath);
 

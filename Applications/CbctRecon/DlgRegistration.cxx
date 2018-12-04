@@ -2446,7 +2446,7 @@ void DlgRegistration::SLT_WEPLcalc() {
   const auto gantry_angle = this->ui.spinBox_GantryAngle->value();
   const auto couch_angle = this->ui.spinBox_CouchAngle->value();
   m_cbctregistration->CalculateWEPLtoVOI(voi_name, gantry_angle, couch_angle,
-                                         m_spMoving);
+                                         m_spMoving, m_spFixed);
   // Draw WEPL
   SLT_DrawImageWhenSliceChange();
 }
