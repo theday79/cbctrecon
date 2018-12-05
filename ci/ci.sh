@@ -7,6 +7,9 @@ else
     MAKE_CONCURRENCY="-j2"
 fi;
 
+# Show available OpenCL driver & device:
+clinfo
+
 mkdir build && cd build
 
 echo Test building: $BUILD_TESTING
@@ -20,7 +23,11 @@ if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
     fi
 else
     if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
-        cmake .. -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DUSE_TINYREFL=ON -DCBCTRECON_BUILD_TESTS=ON -DITK_USE_SYSTEM_HDF5=ON
+        if [[ "$COVERAGE" = "YES" ]]; then
+            cmake .. -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DUSE_TINYREFL=ON -DCBCTRECON_BUILD_TESTS=ON -DITK_USE_SYSTEM_HDF5=ON
+        else
+            cmake .. -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DUSE_TINYREFL=ON -DCBCTRECON_BUILD_TESTS=ON -DITK_USE_SYSTEM_HDF5=ON -DCMAKE_BUILD_TYPE=Debug -DCBCTRECON_COVERAGE=ON
+        fi
     else
         cmake .. -DUSE_CUDA=OFF -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DUSE_TINYREFL=ON -DCBCTRECON_BUILD_TESTS=ON -DITK_USE_SYSTEM_HDF5=ON
     fi
@@ -28,7 +35,10 @@ fi
 
 cmake ..
 make $MAKE_CONCURRENCY CbctRecon
-cmake .. # Just to make sure tinyrefl data is generated
+cmake ..
 make $MAKE_CONCURRENCY CbctData
 make $MAKE_CONCURRENCY CbctRecon_test
 ctest -V
+if [[ "$COVERAGE" = "YES" ]]; then
+    make $MAKE_CONCURRENCY CbctReconLib_coverage
+fi

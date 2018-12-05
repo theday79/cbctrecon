@@ -126,6 +126,14 @@ install( TARGETS CbctReconLib
   PUBLIC_HEADER DESTINATION include
   )
 
+get_target_property(RUNTIME_DIR CbctReconLib RUNTIME_OUTPUT_DIRECTORY)
+if (${RUNTIME_DIR} STREQUAL RUNTIME_DIR-NOTFOUND)
+  set(RUNTIME_DIR ${CMAKE_BINARY_DIR}/bin)
+endif()
+add_custom_command(TARGET CbctReconLib
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl" "${RUNTIME_DIR}"
+  )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
 
 ##-----------------------------------------------------------------------------
