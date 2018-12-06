@@ -21,6 +21,9 @@ set(DCMTK_GIT_TAG master)
 set(ITK_GIT_REPOSITORY "${git_protocol}hub.com/InsightSoftwareConsortium/ITK.git")
 set(ITK_GIT_TAG release-4.13) #"d92873e33e8a54e933e445b92151191f02feab42") #"v4.13.0"
 
+# set(DLIB_GIT_REPOSITORY "${git_protocol}hub.com/davisking/dlib.git")
+# set(DLIB_GIT_TAG master)
+
 set(plm Plastimatch)
 set(${plm}_GIT_REPOSITORY "${git_protocol}lab.com/plastimatch/plastimatch.git")
 set(${plm}_GIT_TAG master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
@@ -45,6 +48,9 @@ if (NOT USE_SYSTEM_ITK)
 else()
   include(${ITK_USE_FILE})
 endif()
+
+# dlib because the one in Plastimatch is two years old
+# external_proj(DLIB)
 
 # Plastimatch
 external_proj(${plm})
