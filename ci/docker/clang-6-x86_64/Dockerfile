@@ -6,7 +6,7 @@ USER root
 # Useful for debugging docker: bash sudo vim \
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y make clang git cmake qt5-default libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev libtinfo-dev valgrind libhdf5-dev wget mesa-opencl-icd clinfo \ 
+    && apt install -y make clang git cmake qt5-default libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev libtinfo-dev valgrind libhdf5-dev wget pocl-opencl-icd clinfo \ 
     && groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
     && groupadd 2000 -g 2000 \
