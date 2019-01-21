@@ -40,6 +40,8 @@ OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for red
 if(NOT WIN32)
   set(BUILD_SHARED_LIBS OFF)
   OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" ON)
+  # We should prefer the official server, so we don't depend on Manu Sanchez to always have a build available for us.
+  set(TINYREFL_LLVM_DOWNLOAD_FROM_OFFICIAL_SERVER ON)
 else()
   OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
@@ -47,6 +49,7 @@ OPTION(CBCTRECON_BUILD_SHARED_LIBS "Build shared libraries for CbctRecon" ${BUIL
 
 OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
 # BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests
+# And because ITK fails to download test data outside Master project source dir.
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
