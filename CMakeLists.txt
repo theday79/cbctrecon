@@ -41,7 +41,7 @@ if(NOT WIN32)
   set(BUILD_SHARED_LIBS OFF)
   OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" ON)
   # We should prefer the official server, so we don't depend on Manu Sanchez to always have a build available for us.
-  set(TINYREFL_LLVM_DOWNLOAD_FROM_OFFICIAL_SERVER ON)
+  set(TINYREFL_LLVM_DOWNLOAD_FROM_OFFICIAL_SERVER ON CACHE BOOL "" FORCE)
 else()
   OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
