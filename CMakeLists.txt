@@ -208,11 +208,6 @@ if(CBCTRECON_BUILD_TESTS)
       DEPENDENCIES CbctRecon_test CbctReconLib
       )
   endif()
-  # Because ctest runs in CMAKE_BINARY_DIR we'll apparently also need the opencl file there
-  add_custom_command(TARGET CbctReconLib
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/Library/CbctReconLib/fdk_opencl.cl" "${CMAKE_BINARY_DIR}"
-    )
 endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
