@@ -15,6 +15,9 @@ endmacro()
 set(ZLIB_GIT_REPOSITORY "${git_protocol}hub.com/madler/zlib.git")
 set(ZLIB_GIT_TAG master)
 
+set(GDCM_GIT_REPOSITORY "${git_protocol}hub.com/malaterre/gdcm.git")
+set(GDCM_GIT_TAG master)
+
 set(DCMTK_GIT_REPOSITORY "${git_protocol}hub.com/DCMTK/DCMTK.git")
 set(DCMTK_GIT_TAG master)
 
@@ -33,6 +36,14 @@ set(TINYREFL_GIT_TAG master)
 
 # ZLIB
 external_proj(ZLIB)
+
+# GDCM
+if(WIN32)
+  option(USE_SYSTEM_GDCM "ON=Use ITKs GDCM, OFF=Download GDCM" OFF)
+else()
+  option(USE_SYSTEM_GDCM "ON=Use ITKs GDCM, OFF=Download GDCM" ON)
+endif()
+external_proj(GDCM)
 
 # DCMTK
 external_proj(DCMTK)
