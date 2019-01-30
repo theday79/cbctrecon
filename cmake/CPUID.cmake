@@ -314,6 +314,10 @@ int main()
 "
 HAVE_CPUID_INFO_
 )
+if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/cpuid.txt")
+  message(STATUS "cpuid.txt were not created in ${CMAKE_CURRENT_BINARY_DIR} !!")
+  set(HAVE_CPUID_INFO_ FALSE)
+endif()
 
 if(HAVE_CPUID_INFO_)
     set(_CPUID_INFO "${CMAKE_CURRENT_BINARY_DIR}/cpuid.txt")
