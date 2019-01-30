@@ -4,6 +4,8 @@
 #include <array>
 #include <memory>
 
+#undef TIMEOUT
+#undef CUDA_FOUND
 #include "plm_image.h"
 #include "rtss.h"
 #include "rtss_contour.h"
