@@ -39,9 +39,7 @@ external_proj(ZLIB)
 
 # GDCM
 option(USE_SYSTEM_GDCM "ON=Use ITKs GDCM, OFF=Download GDCM" OFF)
-if(WIN32)
-  external_proj(GDCM)
-endif()
+external_proj(GDCM)
 
 # DCMTK
 external_proj(DCMTK)
