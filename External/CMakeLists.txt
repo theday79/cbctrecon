@@ -38,12 +38,10 @@ set(TINYREFL_GIT_TAG master)
 external_proj(ZLIB)
 
 # GDCM
+option(USE_SYSTEM_GDCM "ON=Use ITKs GDCM, OFF=Download GDCM" OFF)
 if(WIN32)
-  option(USE_SYSTEM_GDCM "ON=Use ITKs GDCM, OFF=Download GDCM" OFF)
-else()
-  option(USE_SYSTEM_GDCM "ON=Use ITKs GDCM, OFF=Download GDCM" ON)
+  external_proj(GDCM)
 endif()
-external_proj(GDCM)
 
 # DCMTK
 external_proj(DCMTK)
