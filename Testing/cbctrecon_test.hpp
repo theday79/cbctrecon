@@ -16,6 +16,8 @@
 #include "cbctrecon.h"
 #include "cbctregistration.h"
 
+#include "cbctrecon_types.h"
+
 class CbctReconTest {
 public:
   CbctReconTest();

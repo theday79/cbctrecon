@@ -150,7 +150,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
         "Mismatch in number of files and Geometry information!\nHowever, Xim "
         "detected, so it may be safe to continue anyway?",
         QMessageBox::Yes | QMessageBox::No);*/
-    if (reply == true) {     // QMessageBox::Yes) {
+    if (reply) {     // QMessageBox::Yes) {
       std::cerr << "continuing despite warning..."
                 << "\n";
     } else {
@@ -477,7 +477,7 @@ int main(const int argc, char *argv[]) {
               << "\n";
     return -4;
   }
-  if (!cbctrecon_test->m_cbctrecon->m_spRawReconImg) {
+  if (cbctrecon_test->m_cbctrecon->m_spRawReconImg == nullptr) {
     std::cerr << "Raw reconstruction was Null!\n";
     return -5;
   }

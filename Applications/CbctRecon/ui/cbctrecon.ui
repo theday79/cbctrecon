@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1184</width>
-    <height>753</height>
+    <height>759</height>
    </rect>
   </property>
   <property name="font">
@@ -70,7 +70,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>535</height>
+           <height>541</height>
           </rect>
          </property>
          <attribute name="label">
@@ -2306,12 +2306,6 @@
           </item>
           <item row="1" column="0" rowspan="8" colspan="5">
            <widget class="qyklabel" name="labelReconImage">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="minimumSize">
              <size>
               <width>256</width>
@@ -2320,13 +2314,13 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>1024</width>
-              <height>1024</height>
+              <width>16777215</width>
+              <height>16777215</height>
              </size>
             </property>
             <property name="font">
              <font>
-              <family>Segoe UI</family>
+              <family>MS Shell Dlg 2</family>
               <pointsize>12</pointsize>
              </font>
             </property>
