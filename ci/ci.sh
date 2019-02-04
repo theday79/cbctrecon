@@ -38,7 +38,8 @@ make $MAKE_CONCURRENCY CbctRecon
 cmake ..
 make $MAKE_CONCURRENCY CbctData
 make $MAKE_CONCURRENCY CbctRecon_test
-ctest -V
+ls -l | grep opencl
+ctest -VV
 if [[ "$COVERAGE" = "YES" ]]; then
     make $MAKE_CONCURRENCY CbctReconLib_coverage
 fi
