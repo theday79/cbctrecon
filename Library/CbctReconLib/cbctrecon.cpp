@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #if USE_TINYREFL
 #include "cbctrecon.h"
@@ -38,7 +39,6 @@
 #include <itkEuler3DTransform.h>
 #include <itkFlipImageFilter.h>
 #include <itkImageDuplicator.h>
-#include <itkImageIOBase.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMaskImageFilter.h>
@@ -242,13 +242,13 @@ bool CbctRecon::FillProjForDisplay(const int slice_number) {
 int hex_to_int(const char ch) {
   if (ch >= '0' && ch <= '9') {
     return ch - '0';
-}
+  }
   if (ch >= 'A' && ch <= 'F') {
     return ch - 'A' + 10;
-}
+  }
   if (ch >= 'a' && ch <= 'f') {
     return ch - 'a' + 10;
-}
+  }
   return -1;
 }
 
@@ -532,7 +532,7 @@ CbctRecon::BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg) {
 }
 
 void CbctRecon::SetProjDir(QString &strProjPath) {
-  m_strPathGeomXML = "";
+  m_strPathGeomXML.clear();
   m_strPathDirDefault = strProjPath;
 
   const UShortImageType::Pointer spNull;
@@ -565,8 +565,6 @@ CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
     regexp = "Proj_.*.xim";
     break;
   }
-  // char * regexp = ".*.his";
-  std::vector<std::string> names;
   auto regexpnames = itk::RegularExpressionSeriesFileNames::New();
   regexpnames->SetDirectory(dirPath.toLocal8Bit().constData());
   // regexpnames->SetNumericSort(false);
@@ -577,12 +575,12 @@ CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
   regexpnames->SetSubMatch(
       1); // SetSubMatch(0) led to sorting from last digit of the name
 
-  names = regexpnames->GetFileNames();
+  auto names = regexpnames->GetFileNames();
 
   rtk::RegisterIOFactories();
   std::vector<size_t> idxtopop;
   for (auto &fn : names) {
-    itk::ImageIOBase::Pointer imageio = itk::ImageIOFactory::CreateImageIO(
+    auto imageio = itk::ImageIOFactory::CreateImageIO(
         fn.c_str(), itk::ImageIOFactory::ReadMode);
 
     if (imageio.IsNull()) {
@@ -895,8 +893,7 @@ void CbctRecon::NormalizeProjections(ProjReaderType::Pointer &reader) {
   std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin
             << std::endl;
 
-  if (correctionValue != 10.0 &&
-      correctionValue != 20.0) { // 10 and 20 are error codes
+  if (correctionValue > 1000.0) {
     if (originalMax - originalMin > log(65535.0f) - theoreticalMin) {
       OpenCL_AddConst_MulConst_InPlace(
           static_cast<cl_float *>(reader->GetOutput()->GetBufferPointer()),
@@ -917,7 +914,7 @@ void CbctRecon::NormalizeProjections(ProjReaderType::Pointer &reader) {
     originalMax = -1.0;
     originalMin = -1.0;
     if (GetMaxAndMinValueOfProjectionImage(originalMax, originalMin,
-                                           reader->GetOutput()) != 20.0) {
+                                           reader->GetOutput()) > -1000.0) {
       std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin
                 << std::endl;
     }
@@ -934,13 +931,13 @@ bool CbctRecon::ResampleProjections(double &resample_factor) {
   m_fProjSpacingX = m_spProjImg3DFloat->GetSpacing()[0];
   m_fProjSpacingY = m_spProjImg3DFloat->GetSpacing()[1];
 
-  if (resample_factor > 1 && resample_factor <= 0) {
+  if (resample_factor > 1 || resample_factor <= 0) {
     std::cout << "wrong resample factor. reset to 1.0" << std::endl;
     resample_factor = 1.0;
     return false;
   }
 
-  if (resample_factor != 1.0) {
+  if (fabs(resample_factor - 1.0) > 0.001) {
     ResampleItkImage(
         m_spProjImg3DFloat, m_spProjImg3DFloat,
         resample_factor); // was! BROKEN AF for .his where input size
@@ -1024,8 +1021,7 @@ void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
               enExcludingMode == 1) {
             latest_Idx = j;
             vTargetIdx.push_back(latest_Idx);
-          } else if (j != sizeFull - 2 &&
-                     (enExcludingMode == 0 || enExcludingMode == 2)) {
+          } else if (j != sizeFull - 2 && enExcludingMode == 2) {
             latest_Idx = j + 1;
             vTargetIdx.push_back(latest_Idx);
           } else {
@@ -1057,8 +1053,7 @@ void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
               enExcludingMode == 1) {
             latest_Idx = j;
             vTargetIdx.push_back(latest_Idx);
-          } else if (j != sizeFull - 2 &&
-                     (enExcludingMode == 0 || enExcludingMode == 2)) {
+          } else if (j != sizeFull - 2 && enExcludingMode == 2) {
             latest_Idx = j + 1;
             vTargetIdx.push_back(latest_Idx);
           } else {
@@ -2095,31 +2090,32 @@ void CbctRecon::FindAllRelevantPaths(
   // QString aa;
   // std::cout<< "ddd " << aa.toLocal8Bit().constData() << std::endl;
 
-  m_strDCMUID = "";
-  m_strPathPatientDir = "";
-  m_strPatientDirName = "";
-  m_strPathFRAME_DBF = "";
-  m_strPathIMAGE_DBF = "";
-  m_strPathGeomXML = "";
-  m_strPathPlanCTDir = "";
-  m_strPathRS = "";
-  m_strPathRS_CBCT = "";
-  m_strPathElektaINI = "";
-  m_strPathElektaINIXVI2 = "";
+  m_strDCMUID.clear();
+  m_strPathPatientDir.clear();
+  m_strPatientDirName.clear();
+  m_strPathFRAME_DBF.clear();
+  m_strPathIMAGE_DBF.clear();
+  m_strPathGeomXML.clear();
+  m_strPathPlanCTDir.clear();
+  m_strPathRS.clear();
+  m_strPathRS_CBCT.clear();
+  m_strPathElektaINI.clear();
+  m_strPathElektaINIXVI2.clear();
 
-  m_strPathPlan = "";
+  m_strPathPlan.clear();
 
-  m_strPathIMAGES = "";
+  m_strPathIMAGES.clear();
 
   QDir curHisDir(pathProjHisDir);
   QDir movingDir(pathProjHisDir);
   m_projFormat = HIS_FORMAT;
 
-  if (!curHisDir.dirName().contains("img_", Qt::CaseSensitive) &&
-      !curHisDir.dirName().contains("fwd_", Qt::CaseSensitive) &&
-      !curHisDir.dirName().contains("sca_", Qt::CaseSensitive) &&
-      !curHisDir.dirName().contains("cor_", Qt::CaseSensitive)) {
-    if (curHisDir.dirName().contains("Scan0", Qt::CaseSensitive)) {
+  const auto cur_his_path = curHisDir.dirName();
+  if (!cur_his_path.contains("img_", Qt::CaseSensitive) &&
+      !cur_his_path.contains("fwd_", Qt::CaseSensitive) &&
+      !cur_his_path.contains("sca_", Qt::CaseSensitive) &&
+      !cur_his_path.contains("cor_", Qt::CaseSensitive)) {
+    if (cur_his_path.contains("Scan0", Qt::CaseSensitive)) {
       std::cout << "XML set by guessing: Scan0/../ProjectionInfo.xml"
                 << std::endl;
       m_strPathGeomXML =
@@ -2141,11 +2137,11 @@ void CbctRecon::FindAllRelevantPaths(
     return;
   }
 
-  auto tmpStr = curHisDir.dirName();
+  const auto &tmpStr = cur_his_path;
   auto strListDir = tmpStr.split("_");
   m_strDCMUID = strListDir.at(1);
 
-  // m_strDCMUID = curHisDir.dirName().right(curHisDir.dirName().length() - 4);
+  // m_strDCMUID = cur_his_path.right(cur_his_path.length() - 4);
 
   if (!movingDir.cdUp()) // projDir ==> IMAGES
   {
@@ -2242,7 +2238,7 @@ void CbctRecon::FindAllRelevantPaths(
     m_strPathFRAME_DBF = fInfo_FrameDBF.absoluteFilePath();
     m_strPathIMAGE_DBF = fInfo_ImageDBF.absoluteFilePath();
 
-    m_strPathGeomXML = "";
+    m_strPathGeomXML.clear();
     m_strPathGeomXML = MakeElektaXML(
         m_strPathIMAGE_DBF, m_strPathFRAME_DBF,
         m_strDCMUID); // if DBF files exist but UID is not found, it will crash
@@ -2376,9 +2372,9 @@ void CbctRecon::FindAllRelevantPaths(
   QDir movingDirCBCTRS;
 
   if (enDirStructure_Type == 0) {
-    movingDirCBCTRS = tmpDir_PatientFolder;
+    movingDirCBCTRS = std::move(tmpDir_PatientFolder);
   } else if (enDirStructure_Type == 1) {
-    movingDirCBCTRS = tmpDir_IMAGES;
+    movingDirCBCTRS = std::move(tmpDir_IMAGES);
   }
 
   if (!movingDirCBCTRS.cd("CBCT_RS")) {
@@ -2391,7 +2387,7 @@ void CbctRecon::FindAllRelevantPaths(
       std::cout << "No CBCT DICOM RS file exist. proceeding w/o RS"
                 << std::endl;
       // return;
-      m_strPathRS_CBCT = "";
+      m_strPathRS_CBCT.clear();
     } else {
       for (const auto &i : listFile2) {
         if (i.suffix().contains("DCM", Qt::CaseInsensitive)) {
@@ -2481,7 +2477,7 @@ void CbctRecon::SaveProjImageAsHIS(UShortImageType::Pointer &spProj3D,
   UShortImageType::Pointer targetImg3D;
   const auto restoreResampleF = 1.0 / resampleF;
 
-  if (resampleF != 1.0) {
+  if (fabs(resampleF - 1.0) > 0.001) {
     std::cout << "restore the  resampled image by applying a factor of "
               << restoreResampleF << std::endl;
     ResampleItkImage(spProj3D, targetImg3D, restoreResampleF);
@@ -3007,7 +3003,7 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
       MedianFilterType::InputSizeType radius{};
 
       radius[0] = qRound(postMedian / 2.0);
-      radius[1] = qRound(postMedian / 2.0);
+      radius[1] = radius[0];
 
       /*	if (ui.radioButton_UseCUDA->isChecked())
               {
@@ -3709,9 +3705,9 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput,
   fout << std::endl;
 
   for (auto i = 0; i < cntWEPL; i++) {
-    fout << vOutputWEPL_rawCBCT.at(i).ptIndex << "\t"
-         << vOutputWEPL_rawCBCT.at(i).fGanAngle << "\t" << i << "\t"
-         << vOutputWEPL_rawCBCT.at(i).fWEPL << "\t";
+    const auto cur_rawpoint = vOutputWEPL_rawCBCT.at(i);
+    fout << cur_rawpoint.ptIndex << "\t" << cur_rawpoint.fGanAngle << "\t" << i
+         << "\t" << cur_rawpoint.fWEPL << "\t";
 
     if (m_spScatCorrReconImg != nullptr &&
         static_cast<int>(vOutputWEPL_corCBCT.size()) == cntWEPL) {
@@ -3762,14 +3758,13 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
   const std::array<double, 3> pixel_size = {{spUshortImage->GetSpacing()[0],
                                              spUshortImage->GetSpacing()[1],
                                              spUshortImage->GetSpacing()[2]}};
+  const auto img_size = spUshortImage->GetLargestPossibleRegion().GetSize();
   const std::array<size_t, 3> cubedim = {
-      {spUshortImage->GetLargestPossibleRegion().GetSize()[0],
-       spUshortImage->GetLargestPossibleRegion().GetSize()[1],
-       spUshortImage->GetLargestPossibleRegion().GetSize()[2]}};
+      {img_size[0], img_size[1], img_size[2]}};
 
   const auto couch = 0.0;
 
-  for (auto i = 0; i < sizeAngles; i++) {
+  for (auto i = 0; i < sizeAngles; ++i) {
     const double gantry = fAngleStart + i * fAngleGap;
     const auto basis = get_basis_from_angles(gantry, couch);
     size_t loop_idx = 0;
@@ -3809,7 +3804,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
 
 void CbctRecon::GetAngularWEPL_SinglePoint(
     UShortImageType::Pointer &spUshortImage, const float fAngleGap,
-    const float fAngleStart, const float fAngleEnd, const VEC3D calcPt,
+    const float fAngleStart, const float fAngleEnd, const VEC3D &calcPt,
     const int curPtIdx, std::vector<WEPLData> &vOutputWEPLData,
     const bool bAppend) const {
   if (spUshortImage == nullptr) {
@@ -4011,11 +4006,12 @@ void CbctRecon::GetAngularWEPL_MultiPoint(
       scene->append_beam();
       scene->set_patient(ct_vol); // . to ->
       auto newBeam = scene->get_last_rt_beam();
-      newBeam->get_aperture()->set_distance(ap_distance);
-      newBeam->get_aperture()->set_distance(ap_distance);
-      newBeam->get_aperture()->set_spacing(&ap_spacing[0]);
-      newBeam->get_aperture()->set_dim(&ap_dim[0]);
-      newBeam->get_aperture()->set_center(&ap_center[0]);
+      auto p_aperture = newBeam->get_aperture().get();
+      p_aperture->set_distance(ap_distance);
+      p_aperture->set_distance(ap_distance);
+      p_aperture->set_spacing(&ap_spacing[0]);
+      p_aperture->set_dim(&ap_dim[0]);
+      p_aperture->set_center(&ap_center[0]);
 
       newBeam->set_step_length(ray_step);
       newBeam->set_isocenter_position(&isoTarget[0]);
@@ -4173,9 +4169,9 @@ void CbctRecon::GeneratePOIData(const bool AnteriorToPosterior,
       }
     }
   }
-  std::cout << "POI data generated! last value: [" << m_vPOI_DCM.back().x
-            << ", " << m_vPOI_DCM.back().y << ", " << m_vPOI_DCM.back().z << "]"
-            << std::endl;
+  const auto last_point = m_vPOI_DCM.back();
+  std::cout << "POI data generated! last value: [" << last_point.x << ", "
+            << last_point.y << ", " << last_point.z << "]" << std::endl;
 }
 
 void CbctRecon::LoadExternalFloatImage(QString &strPath,
@@ -4216,7 +4212,8 @@ void CbctRecon::LoadExternalFloatImage(QString &strPath,
 }
 
 // Only can be used for m_spRawRecon
-void CbctRecon::MedianFilterByGUI(const UShortImageType::SizeType indexRadius) {
+void CbctRecon::MedianFilterByGUI(
+    const UShortImageType::SizeType &indexRadius) {
   using FilterType = itk::MedianImageFilter<UShortImageType, UShortImageType>;
   auto medFilter = FilterType::New();
 
@@ -4858,7 +4855,7 @@ void CbctRecon::LoadShort3DImage(QString &filePath,
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  m_spCrntReconImg = spImg;
+  m_spCrntReconImg = std::move(spImg.GetPointer());
 
   m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 }
@@ -4975,10 +4972,9 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   m_spProjImgCT3D->FillBuffer(0);
 
   // YKTEMP
-  std::cout << "ProjImgCT Size = "
-            << m_spProjImgCT3D->GetBufferedRegion().GetSize()[0] << ", "
-            << m_spProjImgCT3D->GetBufferedRegion().GetSize()[1] << ", "
-            << m_spProjImgCT3D->GetBufferedRegion().GetSize()[2] << std::endl;
+  const auto proj_size = m_spProjImgCT3D->GetBufferedRegion().GetSize();
+  std::cout << "ProjImgCT Size = " << proj_size[0] << ", " << proj_size[1]
+            << ", " << proj_size[2] << std::endl;
   std::cout << "ProjImgCT origin = " << m_spProjImgCT3D->GetOrigin()[0] << ", "
             << m_spProjImgCT3D->GetOrigin()[1] << ", "
             << m_spProjImgCT3D->GetOrigin()[2] << std::endl;
@@ -5349,7 +5345,8 @@ for (int i = 0; i < IFDSize; i++)
   fwrite(&m_rXResol, 8, 1, fd);
   fwrite(&m_rYResol, 8, 1, fd);
 
-  fwrite(&m_rXPos, 8, 10, fd);
+  fwrite(&m_rXPos, 8, 1,
+         fd); // Used to be 10 instead of 1, but that must've been a mistake
   fwrite(&m_rYPos, 8, 1, fd);
 
   const auto iDummySize = static_cast<size_t>(1024 - (offsetY + 8));

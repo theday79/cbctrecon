@@ -43,7 +43,7 @@ double GetMaxAndMinValueOfProjectionImage(
   if (projImage == nullptr) {
     fProjImgValueMax = -1.0;
     fProjImgValueMin = -1.0;
-    return 20.0;
+    return -2000.0;
   }
 
   using MinMaxCalcType = itk::MinimumMaximumImageCalculator<FloatImageType>;
@@ -235,7 +235,7 @@ double GetRawIntensityScaleFactor(QString &strRef_mAs, QString &strCur_mAs) {
   if (listmAsCur.length() == 2) {
     fCur_mAs = listmAsCur.at(0).toDouble() * listmAsCur.at(1).toDouble();
   }
-  if (fRef_mAs * fCur_mAs != 0) {
+  if (fabs(fRef_mAs * fCur_mAs) > 0.0001) {
     rawIntensityScaleF = fRef_mAs / fCur_mAs;
   }
 
@@ -394,8 +394,8 @@ void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 // by 10.0
 void ImageTransformUsingCouchCorrection(
     UShortImageType::Pointer &spUshortInput,
-    UShortImageType::Pointer &spUshortOutput, const VEC3D couch_trans,
-    const VEC3D couch_rot) {
+    UShortImageType::Pointer &spUshortOutput, const VEC3D& couch_trans,
+    const VEC3D& couch_rot) {
   // couch_trans, couch_rot--> as it is from the text file. only x 10.0 was
   // applied
   if (spUshortInput == nullptr) {

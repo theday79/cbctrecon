@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include <memory>
 
@@ -54,7 +55,7 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
 
 std::unique_ptr<Rtss_modern>
 StructureSet::transform_by_vector(const ctType struct_set,
-                                  const FloatVector vec) const {
+                                  FloatVector &vec) const {
   const auto ss = get_ss(struct_set);
   auto out_ss = std::make_unique<Rtss_modern>(*ss);
 
@@ -125,7 +126,7 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_Lambda(
   return out_ss;
 }
 
-bool StructureSet::ApplyRigidTransformToPlan(QFile rigid_transform_file) {
+bool StructureSet::ApplyRigidTransformToPlan(QFile& rigid_transform_file) {
   auto xform = std::make_unique<Xform>();
   xform->load(rigid_transform_file.fileName().toStdString());
 
@@ -183,16 +184,16 @@ bool StructureSet::ApplyRigidTransformToPlan(QFile rigid_transform_file) {
     return false;
   }
 
-  const FloatVector trn_vec{static_cast<float>(params.x()),
-                            static_cast<float>(params.y()),
-                            static_cast<float>(params.z())};
+  FloatVector trn_vec{static_cast<float>(params.x()),
+                      static_cast<float>(params.y()),
+                      static_cast<float>(params.z())};
 
   m_rigid_ss = transform_by_vector(PLAN_CT, trn_vec);
 
   return true;
 }
 
-bool StructureSet::ApplyDeformTransformToRigid(QFile deform_transform_file) {
+bool StructureSet::ApplyDeformTransformToRigid(QFile& deform_transform_file) {
   auto xform = Xform::New();
   xform->load(deform_transform_file.fileName().toStdString());
 

@@ -140,12 +140,13 @@ void CbctReconWidget::SLT_DrawRawImages() const {
 
   const auto width = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iWidth;
   const auto height = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iHeight;
-  this->m_cbctrecon->m_dspYKImgProj->CreateImage(width, height, 0);
-  this->m_cbctrecon->m_dspYKImgProj->CopyFromBuffer(
+  auto p_ykproj = this->m_cbctrecon->m_dspYKImgProj.get();
+  p_ykproj->CreateImage(width, height, 0);
+  p_ykproj->CopyFromBuffer(
       this->m_cbctrecon->m_arrYKImage[crntIdx].m_pData, width, height);
 
-  this->m_cbctrecon->m_dspYKImgProj->FillPixMapMinMax(windowMin, windowMax);
-  this->ui.labelImageRaw->SetBaseImage(this->m_cbctrecon->m_dspYKImgProj.get());
+  p_ykproj->FillPixMapMinMax(windowMin, windowMax);
+  this->ui.labelImageRaw->SetBaseImage(p_ykproj);
   this->ui.labelImageRaw->update();
 }
 
@@ -377,21 +378,20 @@ void CbctReconWidget::SLT_DrawReconImage() {
   this->m_cbctrecon->PostApplyFOVDispParam(physPosX, physPosY, physRadius,
                                            physTablePosY);
   // SLT_UpdatePostProcDispObj();
-
+  auto p_dspykimg = this->m_cbctrecon->m_dspYKReconImage.get();
   if (this->ui.checkBox_PostDispObjOn->isChecked()) {
-    this->m_cbctrecon->m_dspYKReconImage->m_bDrawFOVCircle = true;
-    this->m_cbctrecon->m_dspYKReconImage->m_bDrawTableLine = true;
+    p_dspykimg->m_bDrawFOVCircle = true;
+    p_dspykimg->m_bDrawTableLine = true;
   }
 
   else {
-    this->m_cbctrecon->m_dspYKReconImage->m_bDrawFOVCircle = false;
-    this->m_cbctrecon->m_dspYKReconImage->m_bDrawTableLine = false;
+    p_dspykimg->m_bDrawFOVCircle = false;
+    p_dspykimg->m_bDrawTableLine = false;
   }
 
-  this->m_cbctrecon->m_dspYKReconImage->FillPixMapMinMax(
+  p_dspykimg->FillPixMapMinMax(
       this->ui.sliderReconImgMin->value(), this->ui.sliderReconImgMax->value());
-  this->ui.labelReconImage->SetBaseImage(
-      this->m_cbctrecon->m_dspYKReconImage.get());
+  this->ui.labelReconImage->SetBaseImage(p_dspykimg);
   this->ui.labelReconImage->update();
 
   // SLT_DrawGraph();
@@ -459,7 +459,7 @@ FDK_options CbctReconWidget::getFDKoptions() const {
 }
 
 void CbctReconWidget::SLT_DoReconstruction() {
-  const auto fdk_options = getFDKoptions();
+  auto fdk_options = getFDKoptions();
 
   itk::TimeProbe reconTimeProbe;
   reconTimeProbe.Start();
@@ -632,7 +632,7 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   float ms = 0.0;
   GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
 
-  if (kVp * mA * ms != 0) {
+  if (fabs(kVp * mA * ms) > 0.001) {
     // update GUI
     std::cout << "Updating current mAs setting from INI file: "
               << "kVp= " << kVp << ", mA= " << mA << ", ms= " << ms
@@ -796,9 +796,9 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
                             this->m_cbctrecon->m_strError, QMessageBox::Ok);
     }
   }
-
+  const auto p_geometry = this->m_cbctrecon->m_spFullGeometry.GetPointer();
   const auto iFullGeoDataSize =
-      this->m_cbctrecon->m_spFullGeometry->GetGantryAngles().size();
+      p_geometry->GetGantryAngles().size();
   if (iFullGeoDataSize < 1) {
     std::cout << "Not enough projection image (should be > 0)" << std::endl;
     return;
@@ -824,8 +824,8 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     }
   }
 
-  auto angle_gaps = this->m_cbctrecon->m_spFullGeometry->GetAngularGaps(
-      this->m_cbctrecon->m_spFullGeometry->GetSourceAngles());
+  auto angle_gaps = p_geometry->GetAngularGaps(
+      p_geometry->GetSourceAngles());
 
   auto sum_gap =
       std::accumulate(std::begin(angle_gaps), std::end(angle_gaps), 0.0);
@@ -938,11 +938,13 @@ void CbctReconWidget::SLT_DataProbeProj() const {
   const auto dspWidth = this->ui.labelImageRaw->width();
   const auto dspHeight = this->ui.labelImageRaw->height();
 
+  const auto p_ykproj = this->m_cbctrecon->m_dspYKImgProj.get();
+
   if (this->m_cbctrecon->m_iImgCnt >
       0) // there is indep loaded projection files
   {
-    const auto dataWidth = this->m_cbctrecon->m_dspYKImgProj->m_iWidth;
-    const auto dataHeight = this->m_cbctrecon->m_dspYKImgProj->m_iHeight;
+    const auto dataWidth = p_ykproj->m_iWidth;
+    const auto dataHeight = p_ykproj->m_iHeight;
 
     const auto dataX = qRound(this->ui.labelImageRaw->x /
                               static_cast<double>(dspWidth * dataWidth));
@@ -950,7 +952,7 @@ void CbctReconWidget::SLT_DataProbeProj() const {
                               static_cast<double>(dspHeight * dataHeight));
     const auto dataZ = this->ui.spinBoxImgIdx->value();
     const auto fProbeValue = static_cast<double>(
-        this->m_cbctrecon->m_dspYKImgProj->m_pData[dataWidth * dataY + dataX]);
+        p_ykproj->m_pData[dataWidth * dataY + dataX]);
     const auto dspText = QString("(%1, %2, %3): %4")
                              .arg(dataX)
                              .arg(dataY)
@@ -980,8 +982,7 @@ void CbctReconWidget::SLT_DataProbeProj() const {
     // fProbeValue = m_dspYKImgProj->m_pData[dataWidth*dataY +
     // dataX]/m_multiplyFactor;
     const auto fProbeValue =
-        static_cast<double>(this->m_cbctrecon->m_dspYKImgProj
-                                ->m_pData[dataWidth * dataY + dataX]) /
+        static_cast<double>(p_ykproj->m_pData[dataWidth * dataY + dataX]) /
             this->m_cbctrecon->m_multiplyFactor +
         this->m_cbctrecon->m_fProjImgValueMin;
     const auto dspText = QString("(%1, %2, %3): %4")
@@ -1076,9 +1077,10 @@ void CbctReconWidget::SLT_DrawGraph() const
   // std::cout << "check graph 2" << std::endl;
 
   this->ui.customPlot->addGraph();
-  this->ui.customPlot->graph(0)->setData(vAxisX, vAxisY);
-  this->ui.customPlot->graph(0)->setPen(QPen(Qt::blue));
-  this->ui.customPlot->graph(0)->setName("Image profile");
+  auto p_graph = this->ui.customPlot->graph(0);
+  p_graph->setData(vAxisX, vAxisY);
+  p_graph->setPen(QPen(Qt::blue));
+  p_graph->setName("Image profile");
 
   this->ui.lineEditXMin->setText(QString("%1").arg(minX));
   this->ui.lineEditXMax->setText(QString("%1").arg(maxX));
@@ -1543,16 +1545,16 @@ void CbctReconWidget::SLT_PostProcCropInv() {
   const auto physRadius = this->ui.lineEdit_PostFOV_R->text().toDouble();
   // double physTablePosY = this->ui.lineEdit_PostTablePosY->text().toDouble();
 
-  auto origin = this->m_cbctrecon->m_spCrntReconImg->GetOrigin();
-  auto spacing = this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
+  const auto p_curimg = this->m_cbctrecon->m_spCrntReconImg.GetPointer();
+  auto origin = p_curimg->GetOrigin();
+  auto spacing = p_curimg->GetSpacing();
   // UShortImageType::SizeType size =
   // m_spCrntReconImg->GetBufferedRegion().GetSize();
 
   // itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spReconImg,
   // m_spReconImg->GetRequestedRegion());
   itk::ImageSliceIteratorWithIndex<UShortImageType> it(
-      this->m_cbctrecon->m_spCrntReconImg,
-      this->m_cbctrecon->m_spCrntReconImg->GetRequestedRegion());
+      p_curimg, p_curimg->GetRequestedRegion());
 
   // ImageSliceConstIteratorWithIndex<ImageType> it( image,
   // image->GetRequestedRegion() );
@@ -1654,12 +1656,10 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
   if (strPatientID.isEmpty()) {
     return;
   }
-
-  for (auto i = 0; i < this->m_dlgRegistration->ui.comboBoxImgFixed->count();
-       i++) {
-    this->m_dlgRegistration->ui.comboBoxImgFixed->setCurrentIndex(i);
-    auto strDirName =
-        this->m_dlgRegistration->ui.comboBoxImgFixed->currentText();
+  auto p_combobox = this->m_dlgRegistration->ui.comboBoxImgFixed;
+  for (auto i = 0; i < p_combobox->count(); i++) {
+    p_combobox->setCurrentIndex(i);
+    auto strDirName = p_combobox->currentText();
     const auto tmpResult =
         crntDir.mkdir(strDirName); // what if the directory exists?
     if (!tmpResult) {
@@ -1760,6 +1760,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
         this, tr("Open Directory"), ".",
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   }
+  auto p_projimg = this->m_cbctrecon->m_spProjImgCT3D.GetPointer();
+
   if (m_dlgRegistration->m_spMoving != nullptr) {
     this->m_cbctrecon
         ->ForwardProjection_master<UShortImageType, UShortImageType>(
@@ -1784,22 +1786,23 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   }
 
   // YKTEMP
+  auto projsize = p_projimg->GetBufferedRegion().GetSize();
   std::cout
       << "ProjImgCT Size = "
-      << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[0]
+      << projsize[0]
       << ", "
-      << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[1]
+      << projsize[1]
       << ", "
-      << this->m_cbctrecon->m_spProjImgCT3D->GetBufferedRegion().GetSize()[2]
+      << projsize[2]
       << "\n";
   std::cout << "ProjImgCT origin = "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[0] << ", "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[1] << ", "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetOrigin()[2] << "\n";
+            << p_projimg->GetOrigin()[0] << ", "
+            << p_projimg->GetOrigin()[1] << ", "
+            << p_projimg->GetOrigin()[2] << "\n";
   std::cout << "ProjImgCT spacing = "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[0] << ", "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[1] << ", "
-            << this->m_cbctrecon->m_spProjImgCT3D->GetSpacing()[2] << std::endl;
+            << p_projimg->GetSpacing()[0] << ", "
+            << p_projimg->GetSpacing()[1] << ", "
+            << p_projimg->GetSpacing()[2] << std::endl;
 
   // double scaResam = this->ui.lineEdit_scaResam->text().toDouble();
   const auto scaMedian = this->ui.lineEdit_scaMedian->text().toDouble();
@@ -1808,7 +1811,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
   this->m_cbctrecon->GenScatterMap_PriorCT(
-      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgCT3D,
+      this->m_cbctrecon->m_spProjImgRaw3D,
+      this->m_cbctrecon->m_spProjImgCT3D,
       this->m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
       this->m_cbctrecon->m_iFixedOffset_ScatterMap,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
@@ -1823,7 +1827,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   this->ui.lineEdit_CurmAs->setText(this->m_cbctrecon->m_strCur_mAs);
   this->ui.lineEdit_RefmAs->setText(this->m_cbctrecon->m_strRef_mAs);
 
-  this->m_cbctrecon->m_spProjImgCT3D->Initialize(); // memory saving
+  p_projimg->Initialize(); // memory saving
 
   std::cout << "Scatter correction is in progress..." << std::endl;
 
@@ -1902,10 +1906,11 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
                                        QString &fileName) {
   this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
-  const auto origin_new = this->m_cbctrecon->m_spCrntReconImg->GetOrigin();
-  const auto spacing_new = this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
+  const auto p_curimg = this->m_cbctrecon->m_spCrntReconImg.GetPointer();
+  const auto origin_new = p_curimg->GetOrigin();
+  const auto spacing_new = p_curimg->GetSpacing();
   const auto size_new =
-      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+      p_curimg->GetBufferedRegion().GetSize();
 
   std::cout << "New Origin" << origin_new << std::endl;
   std::cout << "New spacing" << spacing_new << std::endl;
@@ -1914,7 +1919,7 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
   this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
   auto size =
-      this->m_cbctrecon->m_spCrntReconImg->GetRequestedRegion().GetSize();
+      p_curimg->GetRequestedRegion().GetSize();
 
   this->m_cbctrecon->m_dspYKReconImage->CreateImage(size[0], size[1], 0);
 
@@ -2297,17 +2302,18 @@ void CbctReconWidget::SLT_LoadPOIData() // it fills m_vPOI_DCM
 
     this->m_cbctrecon->m_vPOI_DCM.push_back(fPOI);
   }
-  for (auto i = 0; i < static_cast<int>(this->m_cbctrecon->m_vPOI_DCM.size());
-       i++) {
-    std::cout << "Data " << i << "	"
-              << this->m_cbctrecon->m_vPOI_DCM.at(i).x << ", "
-              << this->m_cbctrecon->m_vPOI_DCM.at(i).y << ", "
-              << this->m_cbctrecon->m_vPOI_DCM.at(i).z << std::endl;
+  fin.close();
+
+  auto i = 0U;
+  for (auto& point : this->m_cbctrecon->m_vPOI_DCM) {
+    std::cout << "Data " << i++ << "	"
+              << point.x << ", "
+              << point.y << ", "
+              << point.z << "\n";
   }
   std::cout << "POI data has been loaded. "
             << this->m_cbctrecon->m_vPOI_DCM.size() << " data points are read"
             << std::endl;
-  fin.close();
 }
 
 void CbctReconWidget::SLT_StartSyncFromSharedMem() {
@@ -2554,21 +2560,24 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
     return;
   }
 
+  const auto p_curimg = this->m_cbctrecon->m_spCrntReconImg.GetPointer();
+
   const auto originLeft =
-      static_cast<double>(this->m_cbctrecon->m_spCrntReconImg->GetOrigin()[0]);
+      static_cast<double>(p_curimg->GetOrigin()[0]);
   const auto originTop = static_cast<double>(
-      this->m_cbctrecon->m_spCrntReconImg->GetOrigin()[1]); // not sure...
+      p_curimg->GetOrigin()[1]); // not sure...
 
   const auto spacingX =
-      static_cast<double>(this->m_cbctrecon->m_spCrntReconImg->GetSpacing()[0]);
+      static_cast<double>(p_curimg->GetSpacing()[0]);
   const auto spacingY = static_cast<double>(
-      this->m_cbctrecon->m_spCrntReconImg->GetSpacing()[1]); // not sure...
+      p_curimg->GetSpacing()[1]); // not sure...
 
+  const auto p_dspykimg = this->m_cbctrecon->m_dspYKReconImage.get();
   if (!SaveDoseGrayImage(strPath.toLocal8Bit().constData(),
-                         this->m_cbctrecon->m_dspYKReconImage->m_iWidth,
-                         this->m_cbctrecon->m_dspYKReconImage->m_iHeight,
+                         p_dspykimg->m_iWidth,
+                         p_dspykimg->m_iHeight,
                          spacingX, spacingY, originLeft, originTop,
-                         this->m_cbctrecon->m_dspYKReconImage->m_pData)) {
+                         p_dspykimg->m_pData)) {
     std::cout << "Failed in save gray dose file" << std::endl;
   } else {
     std::cout << "image exported successfully." << std::endl;
@@ -2659,8 +2668,9 @@ void CbctReconWidget::SLTM_ForwardProjection() {
   }
   // if there is a geometry
 
+  const auto p_geometry = this->m_cbctrecon->m_spCustomGeometry.GetPointer();
   const auto cntProj =
-      this->m_cbctrecon->m_spCustomGeometry->GetGantryAngles().size();
+      p_geometry->GetGantryAngles().size();
 
   if (cntProj < 1) {
     std::cout << "ERROR: geometry is not ready" << std::endl;
@@ -2680,13 +2690,13 @@ void CbctReconWidget::SLTM_ForwardProjection() {
 
   for (auto i = 0U; i < cntProj; i++) {
     const auto curSID =
-        this->m_cbctrecon->m_spCustomGeometry->GetSourceToIsocenterDistances()
+        p_geometry->GetSourceToIsocenterDistances()
             .at(i);
     const auto curSDD =
-        this->m_cbctrecon->m_spCustomGeometry->GetSourceToDetectorDistances()
+        p_geometry->GetSourceToDetectorDistances()
             .at(i);
     auto curGantryAngle =
-        this->m_cbctrecon->m_spCustomGeometry->GetGantryAngles().at(i);
+        p_geometry->GetGantryAngles().at(i);
     const auto kVAng = curGantryAngle * 360. / (2. * itk::Math::pi);
     auto MVAng =
         kVAng - (this->m_cbctrecon->m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
@@ -2696,19 +2706,19 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     curGantryAngle = MVAng;
 
     const auto curProjOffsetX =
-        this->m_cbctrecon->m_spCustomGeometry->GetProjectionOffsetsX().at(i);
+        p_geometry->GetProjectionOffsetsX().at(i);
     const auto curProjOffsetY =
-        this->m_cbctrecon->m_spCustomGeometry->GetProjectionOffsetsY().at(i);
+        p_geometry->GetProjectionOffsetsY().at(i);
 
     const auto curOutOfPlaneAngles =
-        this->m_cbctrecon->m_spCustomGeometry->GetOutOfPlaneAngles().at(i);
+        p_geometry->GetOutOfPlaneAngles().at(i);
     const auto curInPlaneAngles =
-        this->m_cbctrecon->m_spCustomGeometry->GetInPlaneAngles().at(i);
+        p_geometry->GetInPlaneAngles().at(i);
 
     const auto curSrcOffsetX =
-        this->m_cbctrecon->m_spCustomGeometry->GetSourceOffsetsX().at(i);
+        p_geometry->GetSourceOffsetsX().at(i);
     const auto curSrcOffsetY =
-        this->m_cbctrecon->m_spCustomGeometry->GetSourceOffsetsY().at(i);
+        p_geometry->GetSourceOffsetsY().at(i);
 
     // if (bOverridePanelShift)
     //{
@@ -3440,7 +3450,8 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   }
   fout << std::endl;
 
-  const auto cnt_wepl = vArrOutputWEPL.at(0).size();
+  const auto first_wepl = vArrOutputWEPL.at(0);
+  const auto cnt_wepl = first_wepl.size();
   for (auto i = 0; i < iCntFiles; i++) {
     const auto cur_count = vArrOutputWEPL.at(i).size();
     if (cnt_wepl != cur_count) {
@@ -3450,8 +3461,8 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   }
 
   for (auto i = 0U; i < cnt_wepl; i++) {
-    fout << vArrOutputWEPL.at(0).at(i).ptIndex << "\t"
-         << vArrOutputWEPL.at(0).at(i).fGanAngle << "\t" << i;
+    fout << first_wepl.at(i).ptIndex << "\t"
+         << first_wepl.at(i).fGanAngle << "\t" << i;
 
     for (auto j = 0; j < iCntFiles; j++) {
       fout << "\t" << vArrOutputWEPL.at(j).at(i).fWEPL;
@@ -3500,7 +3511,8 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
     return;
   }
 
-  this->m_cbctrecon->m_strListPerProjRefVol.clear();
+  auto p_proj_strlist = this->m_cbctrecon->m_strListPerProjRefVol;
+  p_proj_strlist.clear();
 
   char str[MAX_LINE_LENGTH];
   // File format:
@@ -3524,10 +3536,10 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
       break;
     }
 
-    this->m_cbctrecon->m_strListPerProjRefVol.push_back(strList.at(3));
+    p_proj_strlist.push_back(strList.at(3));
   }
 
-  std::cout << this->m_cbctrecon->m_strListPerProjRefVol.count()
+  std::cout << p_proj_strlist.count()
             << " image paths were found" << std::endl;
 
   fin.close();
@@ -3956,7 +3968,7 @@ void CbctReconWidget::SLT_ReloadProjections() {
   ImageReader->SetFileName(projFile.fileName().toStdString());
   ImageReader->Update();
   this->m_cbctrecon->m_spProjImg3DFloat = ImageReader->GetOutput();
-
+  auto p_projimg = this->m_cbctrecon->m_spProjImg3DFloat.GetPointer();
   // Copied from SLT_LoadSelectedFiles:
 
   if (this->m_cbctrecon->m_fResampleF != 1.0) {
@@ -3983,10 +3995,11 @@ void CbctReconWidget::SLT_ReloadProjections() {
               // X*res_f)*out_spacing     <- will still
               // break down at fw_projection
 
-  auto originPt = this->m_cbctrecon->m_spProjImg3DFloat->GetOrigin();
+  const auto p_projimgfloat = this->m_cbctrecon->m_spProjImg3DFloat;
+  auto originPt = p_projimgfloat->GetOrigin();
   auto FloatImgSize =
-      this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize();
-  auto FloatImgSpacing = this->m_cbctrecon->m_spProjImg3DFloat->GetSpacing();
+      p_projimgfloat->GetBufferedRegion().GetSize();
+  auto FloatImgSpacing = p_projimgfloat->GetSpacing();
 
   std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
             << originPt[2] << std::endl;
@@ -4138,11 +4151,10 @@ void CbctReconWidget::SLT_LoadRawImages() {
   auto castFilter = CastFilterType::New();
   castFilter->SetInput(reader->GetOutput());
   castFilter->Update();
-
+  auto p_rawimg = castFilter->GetOutput();
   const auto width =
-      castFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0]; // width
-  const auto height = castFilter->GetOutput()
-                          ->GetLargestPossibleRegion()
+      p_rawimg->GetLargestPossibleRegion().GetSize()[0]; // width
+  const auto height = p_rawimg->GetLargestPossibleRegion()
                           .GetSize()[1]; // height
   const auto sizePix = width * height;
   const auto sizeBuf = sizePix * sizeof(FloatImageType::PixelType);
@@ -4159,7 +4171,7 @@ void CbctReconWidget::SLT_LoadRawImages() {
     it.CreateImage(width, height, 0);
 
     // reader->Read(it.m_pData);
-    it.m_pData = &castFilter->GetOutput()->GetBufferPointer()[sizePix * index];
+    it.m_pData = &p_rawimg->GetBufferPointer()[sizePix * index];
 
     it.m_strFilePath = strFile;
     // Copy his header - 100 bytes

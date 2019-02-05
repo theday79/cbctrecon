@@ -131,10 +131,6 @@ bool AG17RGBAImage::CreateImage(const int width, const int height,
     return false;
   }
 
-  if (usVal < 0 || usVal > 65535) {
-    usVal = 0;
-  }
-
   // if (m_pData != NULL)
   // delete [] m_pData;
 
@@ -923,7 +919,7 @@ bool AG17RGBAImage::isPtInFirstImage(const int dataX, const int dataY) const {
   }
 
   if (m_enSplitOption == PRI_LEFT_TOP && !IsEmpty()) {
-    return (dataX >= 0 && dataX < m_ptSplitCenter.x() && dataY >= 0 &&
+    return (dataX < m_ptSplitCenter.x() &&
             dataY < m_ptSplitCenter.y()) ||
            (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
             dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);
@@ -968,7 +964,7 @@ void AG17RGBAImage::MedianFilter(const int iMedianSizeX,
   idxStart[0] = 0;
   idxStart[1] = 0;
   UShortImage2DType::SpacingType spacing;
-  if (m_fSpacingX * m_fSpacingY == 0) {
+  if (m_fSpacingX * m_fSpacingY <= 0.0) {
     spacing[0] = 1.0;
     spacing[1] = 1.0;
   } else {
@@ -1023,7 +1019,7 @@ UShortImage2DType::Pointer AG17RGBAImage::CloneItkImage() const {
   idxStart[0] = 0;
   idxStart[1] = 0;
   UShortImage2DType::SpacingType spacing;
-  if (m_fSpacingX * m_fSpacingY == 0) {
+  if (m_fSpacingX * m_fSpacingY <= 0.0) {
     spacing[0] = 1.0;
     spacing[1] = 1.0;
   } else {

@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include "cbctregistration.h"
 
@@ -9,7 +10,6 @@
 #include <itkConfigure.h>
 
 // ITK
-#include <gdcmUIDGenerator.h>
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkGDCMImageIO.h>
 #include <itkImageSeriesWriter.h>
@@ -202,9 +202,9 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
       }
 
       fout << "max_its=" << strListOption1.at(6).toInt() << "\n";
-      fout << "grid_spac=" << strListOption1.at(3).toInt() << " "
-           << strListOption1.at(3).toInt() << " "
-           << strListOption1.at(3).toInt() << "\n"; // 20 20 20 --> minimum
+      const auto grid_spacing = strListOption1.at(3).toInt();
+      fout << "grid_spac=" << grid_spacing << " " << grid_spacing << " "
+           << grid_spacing << "\n"; // 20 20 20 --> minimum
       fout << "res=" << strListOption1.at(0).toInt() << " "
            << strListOption1.at(1).toInt() << " "
            << strListOption1.at(2).toInt() << "\n";
@@ -230,9 +230,9 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
       }
 
       fout << "max_its=" << strListOption2.at(6).toInt() << "\n";
-      fout << "grid_spac=" << strListOption2.at(3).toInt() << " "
-           << strListOption2.at(3).toInt() << " "
-           << strListOption2.at(3).toInt() << "\n"; // 20 20 20 --> minimum
+      const auto grid_spacing = strListOption2.at(3).toInt();
+      fout << "grid_spac=" << grid_spacing << " " << grid_spacing << " "
+           << grid_spacing << "\n"; // 20 20 20 --> minimum
       fout << "res=" << strListOption2.at(0).toInt() << " "
            << strListOption2.at(1).toInt() << " "
            << strListOption2.at(2).toInt() << "\n";
@@ -257,9 +257,9 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
       }
 
       fout << "max_its=" << strListOption3.at(6).toInt() << "\n";
-      fout << "grid_spac=" << strListOption3.at(3).toInt() << " "
-           << strListOption3.at(3).toInt() << " "
-           << strListOption3.at(3).toInt() << "\n"; // 20 20 20 --> minimum
+      const auto grid_spacing = strListOption3.at(3).toInt();
+      fout << "grid_spac=" << grid_spacing << " " << grid_spacing << " "
+           << grid_spacing << "\n"; // 20 20 20 --> minimum
       fout << "res=" << strListOption3.at(0).toInt() << " "
            << strListOption3.at(1).toInt() << " "
            << strListOption3.at(2).toInt() << "\n";
@@ -372,7 +372,8 @@ bool CbctRegistration::PreprocessCT(
   sb.m_lower_threshold = static_cast<float>(iAirThresholdShort);
 
   /* Load the input image */
-  in.load_native(m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData());
+  const auto &ct_path = m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData();
+  in.load_native(ct_path);
 
   sb.img_in = &in;
   sb.img_out = &out;
@@ -402,10 +403,8 @@ bool CbctRegistration::PreprocessCT(
   Rt_study rtds;
 
   parms.input_fn = m_pParent->m_strPathRS.toLocal8Bit().constData();
-  parms.referenced_dicom_dir =
-      m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData();
-  std::cout << m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData()
-            << std::endl;
+  parms.referenced_dicom_dir = ct_path;
+  std::cout << ct_path << std::endl;
 
   auto ssimg_path_all = m_strPathPlastimatch + "/ssimg_all.mha";
   auto sslist_path_all = m_strPathPlastimatch + "/sslist_all.txt";
@@ -438,8 +437,6 @@ bool CbctRegistration::PreprocessCT(
   char str[MAX_LINE_LENGTH];
 
   QString strLineSkin;
-  QString strLineLungLt;
-  QString strLineLungRt;
 
   strRSName = strRSName.trimmed();
 
@@ -767,7 +764,7 @@ void CbctRegistration::plm_threshold_main(QString &strRange, QString &img_in_fn,
   const auto img_in = plm_image->m_itk_float;
   UCharImageType::Pointer img_out;
 
-  if (strRange != "") {
+  if (!strRange.isEmpty()) {
     img_out =
         itk_threshold(img_in, std::string(strRange.toLocal8Bit().constData()));
   }
@@ -980,9 +977,7 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // "/skin_removed_CBCT_tmp.mha";
 
   const auto mask_option = MASK_OPERATION_MASK;
-  auto input_fn = strPathRawCBCT;
   auto mask_fn = strPath_mskSkinCT_manRegi_exp;
-  auto output_fn = strPathOutputCBCT;
   // parms_msk.mask_value = 0.0; //unsigned short
   const float mask_value = bkGroundValUshort; // unsigned short
 
@@ -990,12 +985,14 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
                          // checkBoxCropBkgroundCBCT. But mask files are always
                          // prepared.
   {
+    auto input_fn = strPathRawCBCT;
+    auto output_fn = strPathOutputCBCT;
     std::cout << "Entering plm_mask_main to crop the skin image." << std::endl;
     plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
   } else {
     std::cout << "bPrepareMaskOnly flag is on. Skipping plm_mask_main.. "
               << std::endl;
-    strPathOutputCBCT = "";
+    strPathOutputCBCT.clear();
   }
 
   m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; // for further use
@@ -1282,7 +1279,7 @@ bool CbctRegistration::CallingGPMCcommand(
     return false;
   }
 
-  if (moving_dcm_dir != "") {
+  if (!moving_dcm_dir.isEmpty()) {
     gPMC_command_str = QString("gPMC.exe") + " --dir " + moving_dcm_dir +
                        " --output " + moving_dcm_dir + "/dose_moving.mha" +
                        get_output_options(spMoving) + image_independent_string;
@@ -1337,7 +1334,7 @@ bool CbctRegistration::CallingGPMCcommand(
               << "	" << spacing[2] << std::endl;
   }
 
-  if (moving_dcm_dir != "") {
+  if (!moving_dcm_dir.isEmpty()) {
     auto movingDosePath = moving_dcm_dir + "/dose_moving.mha";
     auto finfomovingDosePath = QFileInfo(movingDosePath);
 
@@ -1619,7 +1616,7 @@ void CbctRegistration::GenShellMask(
 void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
                                        QString &strPathRS,
                                        const double cropMargin) const {
-  if (cropMargin != 0.0) {
+  if (fabs(cropMargin) > 0.01) {
     std::cout << "margin has not been implemented yet. regarded as 0.0 in this "
                  "version"
               << std::endl;

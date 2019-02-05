@@ -133,7 +133,7 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   // int labelNewFixedWidth = 0;
   // int labelNewFixedHeight = 0;
 
-  if (m_pYK16Image->m_fSpacingX * m_pYK16Image->m_fSpacingY != 0) {
+  if (fabs(m_pYK16Image->m_fSpacingX * m_pYK16Image->m_fSpacingY) > 0.0001) {
     phys_hor *= m_pYK16Image->m_fSpacingX;
     phys_ver *= m_pYK16Image->m_fSpacingY;
   }
@@ -179,6 +179,9 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
     for (auto &it : m_vPt_green) {
       painter.drawPoint(it.x(), it.y());
     }
+  }
+  if (m_pYK16Image == nullptr) {
+    return;
   }
 
   if (m_pYK16Image->m_bDrawROI) {
@@ -324,7 +327,7 @@ QPoint qyklabel::GetDataPtFromMousePos() {
     return {0, 0};
   }
 
-  if (m_pYK16Image->m_fZoom == 1.0 && m_pYK16Image->m_iOffsetX == 0 &&
+  if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 && m_pYK16Image->m_iOffsetX == 0 &&
       m_pYK16Image->m_iOffsetY == 0)
     return View2Data(QPoint(this->x, this->y), width(), height(),
                      m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
@@ -340,7 +343,8 @@ QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) {
     return {0, 0};
   }
 
-  if (m_pYK16Image->m_fZoom == 1.0 && m_pYK16Image->m_iOffsetX == 0 &&
+  if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 &&
+      m_pYK16Image->m_iOffsetX == 0 &&
       m_pYK16Image->m_iOffsetY == 0)
     return View2Data(QPoint(viewPtX, viewPtY), width(), height(),
                      m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
@@ -356,7 +360,8 @@ QPoint qyklabel::GetViewPtFromDataPt(const int dataPtX, const int dataPtY) {
     return {0, 0};
   }
 
-  if (m_pYK16Image->m_fZoom == 1.0 && m_pYK16Image->m_iOffsetX == 0 &&
+  if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 &&
+      m_pYK16Image->m_iOffsetX == 0 &&
       m_pYK16Image->m_iOffsetY == 0)
     return Data2View(QPoint(dataPtX, dataPtY), width(), height(),
                      m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);

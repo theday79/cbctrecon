@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include "OpenCLFFTFilter.h"
 
@@ -51,7 +52,8 @@ get_constext_queue(const size_t required_mem_alloc_size) {
   auto plat_dev = getPlatformAndDeviceID(required_mem_alloc_size);
 
   cl_context_properties props[3] = {
-      CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(std::get<0>(plat_dev)), 0};
+      CL_CONTEXT_PLATFORM,
+      reinterpret_cast<cl_context_properties>(std::get<0>(plat_dev)), 0};
 
   const auto ctx = clCreateContext(&props[0], 1, &std::get<1>(plat_dev),
                                    nullptr, nullptr, &err);
@@ -113,8 +115,8 @@ size_t get_local_work_size_large(cl_device_id device) {
   return 128;
 }
 
-void OpenCL_padding(const cl_int4 paddingIndex, const cl_uint4 paddingSize,
-                    const cl_uint4 inputSize,
+void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
+                    const cl_uint4 &inputSize,
                     const float *hostVolume, // input
                     float *hostPaddedVolume, // output
                     const std::vector<float> &mirrorWeights) {
@@ -655,8 +657,8 @@ void OpenCL_fft_convolution(const cl_int4 inputDimension,
 
 void OpenCL_subtract3Dfrom2DbySlice_InPlace(
     cl_float *buffer, const cl_float *sub_buffer,
-    itk::Image<float, 3U>::SizeType inputSize,
-    itk::Image<float, 2U>::SizeType subSize) {
+    const itk::Image<float, 3U>::SizeType &inputSize,
+    const itk::Image<float, 2U>::SizeType &subSize) {
   auto err = CL_SUCCESS;
 
   cl_program m_Program;
@@ -765,14 +767,15 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Num3D,
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
+  const auto region = Num3D->GetLargestPossibleRegion();
   auto buffer = Num3D->GetBufferPointer();
-  auto inputSize = Num3D->GetLargestPossibleRegion().GetSize();
+  auto inputSize = region.GetSize();
   auto sub_buffer = Denum3D->GetBufferPointer();
   auto subSize = Denum3D->GetLargestPossibleRegion().GetSize();
 
   auto outImage = itk::Image<float, 3U>::New();
-  const auto projCT_size = Num3D->GetLargestPossibleRegion().GetSize();
-  const auto projCT_idxStart = Num3D->GetLargestPossibleRegion().GetIndex();
+  const auto projCT_size = region.GetSize();
+  const auto projCT_idxStart = region.GetIndex();
   const auto projCT_spacing = Num3D->GetSpacing();
   const auto projCT_origin = Num3D->GetOrigin();
 
@@ -902,7 +905,7 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 }
 
 void OpenCL_AddConst_InPlace(cl_float *buffer,
-                             itk::Image<float, 3U>::SizeType inputSize,
+                             const itk::Image<float, 3U>::SizeType& inputSize,
                              const cl_float constant) {
 
   auto err = CL_SUCCESS;
@@ -1006,7 +1009,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
 }
 
 void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
-                                      itk::Image<float, 3U>::SizeType inputSize,
+                                      const itk::Image<float, 3U>::SizeType& inputSize,
                                       const cl_float add_constant,
                                       const cl_float mul_constant) {
 
@@ -1107,7 +1110,7 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
 }
 
 void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
-                                itk::Image<float, 2U>::SizeType inputSize,
+                                const itk::Image<float, 2U>::SizeType& inputSize,
                                 const cl_float constant) {
 
   auto err = CL_SUCCESS;
@@ -1208,7 +1211,7 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
 }
 
 cl_float2 OpenCL_min_max(const cl_float *buffer,
-                         itk::Image<float, 3U>::SizeType inputSize) {
+                         const itk::Image<float, 3U>::SizeType& inputSize) {
   auto err = CL_SUCCESS;
 
   cl_program m_Program;
@@ -1337,7 +1340,7 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
 }
 
 cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
-                            itk::Image<float, 2U>::SizeType inputSize) {
+                            const itk::Image<float, 2U>::SizeType& inputSize) {
 
   auto err = CL_SUCCESS;
 

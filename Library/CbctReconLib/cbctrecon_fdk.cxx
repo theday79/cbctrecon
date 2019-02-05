@@ -128,9 +128,6 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
     proj->xy_offset[1] = *itShiftY;
     itk::Index<3U> cur_idx = {{0, 0, image_num}};
     proj->img = &spCurImg->GetPixel(cur_idx);
-    if (proj->img == ITK_NULLPTR) {
-      std::cout << "No image!" << std::endl;
-    }
 
     proj->pmat = new Proj_matrix;
     proj->pmat->ic[0] = 0.5 * proj_dim[0] - 0.5 + proj->xy_offset[0];
@@ -167,7 +164,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
 
     /* Copy matrix to device (convert from double to float) */
     std::array<float, 12> matrix{};
-    std::memcpy(matrix.data(), &proj->pmat->matrix[0], 12);
+    std::memcpy(&matrix.at(0), &proj->pmat->matrix[0], 12 * sizeof(float));
 
     opencl_buf_write(&ocl_dev, ocl_buf_matrix, 12 * sizeof(float), &matrix[0]);
 

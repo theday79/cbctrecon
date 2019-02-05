@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include <algorithm> // for find_if, min_element, transform
 #include <array>
@@ -23,9 +24,9 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
 
-double lin_interpolate(std::array<int, 3> point_id,
-                       std::array<double, 3> point_id_pos, const int idx_2,
-                       const int idy_2, const int idz_2,
+double lin_interpolate(const std::array<int, 3> &point_id,
+                       const std::array<double, 3> &point_id_pos,
+                       const int idx_2, const int idy_2, const int idz_2,
                        const FloatImageType::Pointer &wepl_cube) {
 
   std::array<double, 8> weights{};
@@ -86,10 +87,10 @@ double lin_interpolate(std::array<int, 3> point_id,
   return out_val;
 }
 
-double WEPL_from_point(const std::array<size_t, 3> cur_point_id,
-                       const std::array<double, 3> vec_basis,
-                       const std::array<double, 3> vec_cubesize,
-                       const std::array<size_t, 3> cubedim,
+double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
+                       const std::array<double, 3> &vec_basis,
+                       const std::array<double, 3> &vec_cubesize,
+                       const std::array<size_t, 3> &cubedim,
                        const FloatImageType::Pointer &wepl_cube) {
   const auto step_length = 0.1;
   const std::array<double, 3> step = {{vec_basis.at(0) * step_length,
@@ -175,10 +176,10 @@ std::array<double, 3> get_basis_from_angles(double gantry, double couch) {
 }
 
 std::vector<double>
-WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
-                      const std::array<double, 3> vec_basis,
-                      const std::array<double, 3> vec_cubesize,
-                      const std::array<size_t, 3> cubedim,
+WEPL_trace_from_point(const std::array<size_t, 3> &cur_point_id,
+                      const std::array<double, 3> &vec_basis,
+                      const std::array<double, 3> &vec_cubesize,
+                      const std::array<size_t, 3> &cubedim,
                       const FloatImageType::Pointer &wepl_cube) {
 
   std::vector<double> cumWEPL; // cumulative WEPL
@@ -269,17 +270,15 @@ WEPL_trace_from_point(const std::array<size_t, 3> cur_point_id,
 
 std::vector<WEPLVector>
 WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
-                           const std::array<double, 3> vec_basis,
+                           const std::array<double, 3> &vec_basis,
                            const FloatImageType::Pointer &wepl_cube) {
 
   const std::array<double, 3> pixel_size = {{wepl_cube->GetSpacing()[0],
                                              wepl_cube->GetSpacing()[1],
                                              wepl_cube->GetSpacing()[2]}};
-
+  const auto img_size = wepl_cube->GetLargestPossibleRegion().GetSize();
   const std::array<size_t, 3> cubedim = {
-      {wepl_cube->GetLargestPossibleRegion().GetSize()[0],
-       wepl_cube->GetLargestPossibleRegion().GetSize()[1],
-       wepl_cube->GetLargestPossibleRegion().GetSize()[2]}};
+      {img_size[0], img_size[1], img_size[2]}};
 
   std::vector<WEPLVector> WEPL_contour;
 
@@ -305,18 +304,19 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
   return WEPL_contour;
 }
 
-DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
-                             const std::array<double, 3> vec_basis,
+DoubleVector point_from_WEPL(const DoubleVector &start_point,
+                             const double fWEPL,
+                             const std::array<double, 3> &vec_basis,
                              const FloatImageType::Pointer &wepl_cube) {
 
   const auto step_length = 0.1;
   const DoubleVector step = {vec_basis.at(0) * step_length,
                              vec_basis.at(1) * step_length,
                              vec_basis.at(2) * step_length};
-  const IntVector cubedim = {
-      static_cast<int>(wepl_cube->GetLargestPossibleRegion().GetSize()[0]),
-      static_cast<int>(wepl_cube->GetLargestPossibleRegion().GetSize()[1]),
-      static_cast<int>(wepl_cube->GetLargestPossibleRegion().GetSize()[2])};
+  const auto img_size = wepl_cube->GetLargestPossibleRegion().GetSize();
+  const IntVector cubedim = {static_cast<int>(img_size[0]),
+                             static_cast<int>(img_size[1]),
+                             static_cast<int>(img_size[2])};
 
   const DoubleVector pixel_size = {wepl_cube->GetSpacing()[0],
                                    wepl_cube->GetSpacing()[1],
@@ -376,8 +376,8 @@ DoubleVector point_from_WEPL(const DoubleVector start_point, const double fWEPL,
   return point;
 }
 
-FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
-                                     const std::array<double, 3> vec_basis,
+FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
+                                     const std::array<double, 3> &vec_basis,
                                      const FloatImageType::Pointer &wepl_cube) {
   /* Find point of intersection with edge of wepl cube
    * Then step into wepl cube from point until vwepl.WEPL is reached.
@@ -386,10 +386,10 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
   // VNL should use SSEX.Y when available (?)
   using VectorType = vnl_vector_fixed<double, 3>;
 
-  const IntVector cubedim = {
-      static_cast<int>(wepl_cube->GetLargestPossibleRegion().GetSize()[0]),
-      static_cast<int>(wepl_cube->GetLargestPossibleRegion().GetSize()[1]),
-      static_cast<int>(wepl_cube->GetLargestPossibleRegion().GetSize()[2])};
+  const auto img_size = wepl_cube->GetLargestPossibleRegion().GetSize();
+  const IntVector cubedim = {static_cast<int>(img_size[0]),
+                             static_cast<int>(img_size[1]),
+                             static_cast<int>(img_size[2])};
 
   /* Intersection of line with plane:
    * https://en.wikipedia.org/wiki/Line-plane_intersection
@@ -447,9 +447,9 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector vwepl,
   // index of min:
   const auto min_dist_plane = std::distance(std::begin(p_dist), it_min_dist);
   // Point of intersection:
-  const DoubleVector intersect = {p.at(min_dist_plane).get(0),
-                                  p.at(min_dist_plane).get(1),
-                                  p.at(min_dist_plane).get(2)};
+  const auto p_intersect = p.at(min_dist_plane);
+  const DoubleVector intersect = {p_intersect.get(0), p_intersect.get(1),
+                                  p_intersect.get(2)};
 
   const auto out_point =
       point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);

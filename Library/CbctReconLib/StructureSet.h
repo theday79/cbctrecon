@@ -27,7 +27,7 @@ public:
   void set_deformCT_ss(Rtss *struct_set);
 
   std::unique_ptr<Rtss_modern> transform_by_vector(ctType struct_set,
-                                                   FloatVector vec) const;
+                                                   FloatVector& vec) const;
 
   std::unique_ptr<Rtss_modern>
   transform_by_vectorField(ctType struct_set,
@@ -39,8 +39,8 @@ public:
 
   Rtss_modern *get_ss(ctType struct_set) const;
 
-  bool ApplyRigidTransformToPlan(QFile rigid_transform_file);
-  bool ApplyDeformTransformToRigid(QFile deform_transform_file);
+  bool ApplyRigidTransformToPlan(QFile& rigid_transform_file);
+  bool ApplyDeformTransformToRigid(QFile& deform_transform_file);
 
 private:
   std::unique_ptr<Rtss_modern> m_plan_ss;

@@ -179,11 +179,11 @@ public:
                           double resFactor) const; // using slice iterator
 
   template <enDeviceType Tdev>
-  void DoReconstructionFDK(enREGI_IMAGES target, FDK_options fdk_options);
+  void DoReconstructionFDK(enREGI_IMAGES target, const FDK_options& fdk_options);
 
   template <enDeviceType Tdev, typename ImageType, typename DDFType,
             typename PSSFType, typename FDKType>
-  void DoReconstructionFDK(enREGI_IMAGES target, FDK_options fdk_options);
+  void DoReconstructionFDK(enREGI_IMAGES target, const FDK_options& fdk_options);
 
   // void CudaDoReconstructionFDK(enREGI_IMAGES target);
   // void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
@@ -196,7 +196,7 @@ public:
   // vOutputWEPLData, bool bAppend);//output std::vector: append
   void GetAngularWEPL_SinglePoint(UShortImageType::Pointer &spUshortImage,
                                   float fAngleGap, float fAngleStart,
-                                  float fAngleEnd, VEC3D calcPt, int curPtIdx,
+                                  float fAngleEnd, const VEC3D &calcPt, int curPtIdx,
                                   std::vector<WEPLData> &vOutputWEPLData,
                                   bool bAppend) const;
   void GetAngularWEPL_MultiPoint(UShortImageType::Pointer &spUshortImage,
@@ -215,7 +215,7 @@ public:
   void LoadExternalFloatImage(QString &strPath, bool bConversion);
 
   void MedianFilterByGUI(
-      UShortImageType::SizeType indexRadius); // params are given at the UI
+      const UShortImageType::SizeType& indexRadius); // params are given at the UI
 
   /*Temporary implementation for XVI5 xml*/
   bool

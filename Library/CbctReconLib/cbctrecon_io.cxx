@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 /*All IO functions used with cbctrecon*/
 #include "cbctrecon.h"
@@ -180,8 +181,8 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   m_spFullGeometry = geometryReader->GetOutputObject();
 
   // fullGeometry->GetGantryAngles();
-  const auto geoDataSize =
-      m_spFullGeometry->GetGantryAngles().size(); // This is MV gantry angle!!!
+  const auto angles = m_spFullGeometry->GetGantryAngles();
+  const auto geoDataSize = angles.size(); // This is MV gantry angle!!!
   std::cout << "Geometry data size(projection gantry angles): " << geoDataSize
             << std::endl;
   if (geoDataSize < 1) {
@@ -204,8 +205,8 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
 
   std::vector<double> vTempConvAngles;
 
-  const auto itBegin = m_spFullGeometry->GetGantryAngles().begin();
-  const auto itEnd = m_spFullGeometry->GetGantryAngles().end();
+  const auto itBegin = angles.begin();
+  const auto itEnd = angles.end();
 
   for (auto it = itBegin; it != itEnd; ++it) {
     auto tmpAngle = *it;
@@ -449,8 +450,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
   auto rt_struct = std::make_unique<Rtss_modern>();
   rt_struct->num_structures = 0;
 
-  const gdcm::DataElement &roi_seq_tag =
-      ds.GetDataElement(gdcm::Tag(0x3006, 0x0020));
+  const auto &roi_seq_tag = ds.GetDataElement(gdcm::Tag(0x3006, 0x0020));
   auto roi_seq = roi_seq_tag.GetValueAsSQ();
   for (auto it_roi = roi_seq->Begin(); it_roi != roi_seq->End(); ++it_roi) {
     auto rt_roi = std::make_unique<Rtss_roi_modern>();
@@ -464,7 +464,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
     rt_struct->num_structures++;
   }
 
-  const gdcm::DataElement &roi_contour_seq_tag =
+  const auto &roi_contour_seq_tag =
       ds.GetDataElement(gdcm::Tag(0x3006, 0x0039));
   auto roi_contour_seq = roi_contour_seq_tag.GetValueAsSQ();
   auto i = 0U;
@@ -472,27 +472,29 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
        it_roi_contour != roi_contour_seq->End(); ++it_roi_contour) {
     auto at_roi_contour_number =
         gdcm_attribute_from<0x3006, 0x0084>(it_roi_contour);
-    if (static_cast<int>(rt_struct->slist.at(i).id) !=
-        at_roi_contour_number.GetValue()) {
-      std::cerr << "ID mismatch: " << rt_struct->slist.at(i).id << " vs "
+    auto &cur_entry = rt_struct->slist.at(i);
+    if (static_cast<int>(cur_entry.id) != at_roi_contour_number.GetValue()) {
+      std::cerr << "ID mismatch: " << cur_entry.id << " vs "
                 << at_roi_contour_number.GetValue() << "\n"
-                << "There might be something wrong with "
-                << rt_struct->slist.at(i).name << "\n"
+                << "There might be something wrong with " << cur_entry.name
+                << "\n"
                 << "Caution! As we continue anyway...\n";
     }
     auto at_roi_contour_colour =
         gdcm_attribute_from<0x3006, 0x002A>(it_roi_contour);
     const auto color = at_roi_contour_colour.GetValues();
-    auto s_color = std::to_string(color[0]) + " " + std::to_string(color[1]) +
-                   " " + std::to_string(color[2]);
-    rt_struct->slist.at(i).color = s_color;
+    const auto s_color = std::to_string(color[0]) + " " +
+                         std::to_string(color[1]) + " " +
+                         std::to_string(color[2]);
+
+    cur_entry.color = s_color;
 
     const auto &contour_seq_tag =
         it_roi_contour->GetDataElement(gdcm::Tag(0x3006, 0x0040));
     auto contour_seq = contour_seq_tag.GetValueAsSQ();
     auto j = 0U;
-    rt_struct->slist.at(i).num_contours = contour_seq->GetLength();
-    rt_struct->slist.at(i).pslist.resize(contour_seq->GetLength());
+    cur_entry.num_contours = contour_seq->GetLength();
+    cur_entry.pslist.resize(contour_seq->GetLength());
     for (auto it_contour = contour_seq->Begin();
          it_contour != contour_seq->End(); ++it_contour) {
       auto rt_contour = std::make_unique<Rtss_contour_modern>();
@@ -507,17 +509,17 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
 
       rt_contour->coordinates.resize(rt_contour->num_vertices);
 
-      std::generate(std::begin(rt_contour->coordinates),
-                    std::end(rt_contour->coordinates),
-                    [&points, k = 0]() mutable {
-                      auto vec = FloatVector{static_cast<float>(points[k + 0]),
-                                             static_cast<float>(points[k + 1]),
-                                             static_cast<float>(points[k + 2])};
-                      k += 3;
-                      return vec;
-                    });
+      std::generate(
+          std::begin(rt_contour->coordinates),
+          std::end(rt_contour->coordinates), [&points, k = 0]() mutable {
+            const auto vec = FloatVector{static_cast<float>(points[k + 0]),
+                                         static_cast<float>(points[k + 1]),
+                                         static_cast<float>(points[k + 2])};
+            k += 3;
+            return vec;
+          });
 
-      rt_struct->slist.at(i).pslist.at(j++) = std::move(rt_contour);
+      cur_entry.pslist.at(j++) = std::move(rt_contour);
     }
 
     i++;
@@ -529,7 +531,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
   auto filenamelist = std::vector<std::string>();
   auto dir = QDir(dirPath);
-  for (auto &&filename : dir.entryList(QDir::Files)){
+  for (auto &&filename : dir.entryList(QDir::Files)) {
     /*entryList(QStringList() << "*.dcm"
                                                      << "*.DCM"
                                                      << ".*[0-9]{8}",
@@ -706,15 +708,13 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
                                 QString &strPatientID, QString &strPatientName,
                                 QString &strPathTargetDir) {
   if (spImg == nullptr) {
-    return QString("");
+    return QString();
   }
 
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
   Plm_image plm_img(spShortImg);
-
-  QString endFix = "_DCM";
 
   auto newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
   // QString newDirPath =
@@ -724,7 +724,7 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
   if (!dirNew.exists()) {
     if (!dirNew.mkdir(".")) {
       std::cerr << "Could not create dir for dicom" << std::endl;
-      return QString("");
+      return QString();
     }
   }
 
@@ -755,14 +755,14 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   if (!dirNew.exists()) {
     if (!dirNew.mkdir(".")) {
       std::cerr << "Could not create dir for gdcm dicom" << std::endl;
-      return QString("");
+      return QString();
     }
   } else {
     if (dirNew.removeRecursively()) {
       QDir dirReNew(newDirPath);
-      if (!dirNew.mkdir(".")) {
+      if (!dirReNew.mkdir(".")) {
         std::cerr << "Could not create dir for gdcm dicom (2)" << std::endl;
-        return QString("");
+        return QString();
       }
     }
   }
@@ -836,25 +836,25 @@ QString get_output_options(const UShortImageType::Pointer &m_spFixed) {
           .arg(m_spFixed->GetOrigin()[0])
           .arg(m_spFixed->GetOrigin()[1])
           .arg(m_spFixed->GetOrigin()[2]);
+  const auto out_size = m_spFixed->GetBufferedRegion().GetSize();
   const auto str_fixed_dimension =
-      QString("%1,%2,%3")
-          .arg(m_spFixed->GetBufferedRegion().GetSize()[0])
-          .arg(m_spFixed->GetBufferedRegion().GetSize()[1])
-          .arg(m_spFixed->GetBufferedRegion().GetSize()[2]);
+      QString("%1,%2,%3").arg(out_size[0]).arg(out_size[1]).arg(out_size[2]);
+  const auto out_spacing = m_spFixed->GetSpacing();
   const auto str_fixed_spacing = QString("%1,%2,%3")
-                                     .arg(m_spFixed->GetSpacing()[0])
-                                     .arg(m_spFixed->GetSpacing()[1])
-                                     .arg(m_spFixed->GetSpacing()[2]);
+                                     .arg(out_spacing[0])
+                                     .arg(out_spacing[1])
+                                     .arg(out_spacing[2]);
+  const auto out_direction = m_spFixed->GetDirection();
   const auto str_fixed_direction = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
-                                       .arg(m_spFixed->GetDirection()[0][0])
-                                       .arg(m_spFixed->GetDirection()[0][1])
-                                       .arg(m_spFixed->GetDirection()[0][2])
-                                       .arg(m_spFixed->GetDirection()[1][0])
-                                       .arg(m_spFixed->GetDirection()[1][1])
-                                       .arg(m_spFixed->GetDirection()[1][2])
-                                       .arg(m_spFixed->GetDirection()[2][0])
-                                       .arg(m_spFixed->GetDirection()[2][1])
-                                       .arg(m_spFixed->GetDirection()[2][2]);
+                                       .arg(out_direction[0][0])
+                                       .arg(out_direction[0][1])
+                                       .arg(out_direction[0][2])
+                                       .arg(out_direction[1][0])
+                                       .arg(out_direction[1][1])
+                                       .arg(out_direction[1][2])
+                                       .arg(out_direction[2][0])
+                                       .arg(out_direction[2][1])
+                                       .arg(out_direction[2][2]);
 
   return QString(" --origin %1 --spacing %2 --dimension %3 --direction %4")
       .arg(str_fixed_origin)
@@ -993,7 +993,7 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
   }
   fin.close();
 
-  return !(kVp == 0.0f || mA == 0.0f || ms == 0.0f);
+  return !(fabs(kVp * mA * ms) < 0.0001f);
 }
 
 // Projection image Median filtering using CUDA

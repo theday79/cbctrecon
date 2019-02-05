@@ -339,7 +339,7 @@ void CbctReconTest::test_OpenElektaGeomFile() {}
 void CbctReconTest::test_SetOutputPath() {}
 
 void CbctReconTest::test_DoReconstruction() {
-  const auto fdk_options = getFDKoptions();
+  auto fdk_options = getFDKoptions();
 
   itk::TimeProbe reconTimeProbe;
   reconTimeProbe.Start();

@@ -86,12 +86,13 @@ typename ImageType::Pointer RTKOpenCLFDK(
   feldkampOCL->SetInput(0, constantImageSource->GetOutput());
   feldkampOCL->SetInput(1, castFilter->GetOutput());
   feldkampOCL->SetGeometry(m_spCustomGeometry);
-  feldkampOCL->GetRampFilter()->SetTruncationCorrection(
+  auto p_rampfilter = feldkampOCL->GetRampFilter().GetPointer();
+  p_rampfilter->SetTruncationCorrection(
       fdk_options.TruncCorFactor);
-  feldkampOCL->GetRampFilter()->SetHannCutFrequency(fdk_options.HannCutX);
-  feldkampOCL->GetRampFilter()->SetHannCutFrequencyY(fdk_options.HannCutY);
-  feldkampOCL->GetRampFilter()->SetCosineCutFrequency(fdk_options.CosCut);
-  feldkampOCL->GetRampFilter()->SetHammingFrequency(fdk_options.HammCut);
+  p_rampfilter->SetHannCutFrequency(fdk_options.HannCutX);
+  p_rampfilter->SetHannCutFrequencyY(fdk_options.HannCutY);
+  p_rampfilter->SetCosineCutFrequency(fdk_options.CosCut);
+  p_rampfilter->SetHammingFrequency(fdk_options.HammCut);
 
   // feldkampOCL->Update();
   // feldkampOCL->PrintTiming(std::cout); Deprecated in rtk 1.4
@@ -105,7 +106,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
 
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
-                                    const FDK_options fdk_options) {
+                                    const FDK_options& fdk_options) {
   if (Tdev == CUDA_DEVT) {
 #if USE_CUDA
     using CUDAFloatImageType = itk::CudaImage<float, 3U>;
@@ -127,7 +128,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 template <enDeviceType Tdev, typename ImageType, typename DDFType,
           typename PSSFType, typename FDKType>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
-                                    FDK_options fdk_options) {
+                                    const FDK_options& fdk_options) {
 
   using castToImageType = itk::CastImageFilter<FloatImageType, ImageType>;
   typename castToImageType::Pointer castfilter = castToImageType::New();
@@ -229,12 +230,13 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
               << std::endl;
   }
 
+  auto trunc_factor = fdk_options.TruncCorFactor;
   if (fdk_options.TruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
     std::cout << "Warning! Truncation factor is " << fdk_options.TruncCorFactor
               << ". Regardless of previous setting, this factor should not be "
                  "0 for scatter corrected CBCT. Now zero value is applied."
               << std::endl;
-    fdk_options.TruncCorFactor = 0.0;
+    trunc_factor = 0.0;
   }
 
   typename ImageType::Pointer targetImg;
@@ -267,12 +269,12 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     feldkamp->SetInput(0, constantImageSource->GetOutput());
     feldkamp->SetInput(1, spCurImg);
     feldkamp->SetGeometry(m_spCustomGeometry);
-    feldkamp->GetRampFilter()->SetTruncationCorrection(
-        fdk_options.TruncCorFactor);
-    feldkamp->GetRampFilter()->SetHannCutFrequency(fdk_options.HannCutX);
-    feldkamp->GetRampFilter()->SetCosineCutFrequency(fdk_options.CosCut);
-    feldkamp->GetRampFilter()->SetHammingFrequency(fdk_options.HammCut);
-    feldkamp->GetRampFilter()->SetHannCutFrequencyY(fdk_options.HannCutY);
+    auto p_rampfilter = feldkamp->GetRampFilter().GetPointer();
+    p_rampfilter->SetTruncationCorrection(trunc_factor);
+    p_rampfilter->SetHannCutFrequency(fdk_options.HannCutX);
+    p_rampfilter->SetHannCutFrequencyY(fdk_options.HannCutY);
+    p_rampfilter->SetCosineCutFrequency(fdk_options.CosCut);
+    p_rampfilter->SetHammingFrequency(fdk_options.HammCut);
 
     if (fdk_options.updateAfterDDF) {
       feldkamp->Update();
@@ -474,11 +476,11 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   // match.
   switch (target) {
   case REGISTER_RAW_CBCT:
-    m_spRawReconImg = tmpReconImg; // Checked.. successfully alive.
+    m_spRawReconImg = std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spRawReconImg;
     break;
   case REGISTER_COR_CBCT:
-    m_spScatCorrReconImg = tmpReconImg; // Checked.. successfully alive.
+    m_spScatCorrReconImg = std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spScatCorrReconImg;
     break;
   default:

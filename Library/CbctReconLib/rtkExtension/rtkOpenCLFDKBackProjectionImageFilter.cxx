@@ -105,10 +105,11 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
                       << error);
 
   // Set kernel parameters
+  const auto img_size = this->GetOutput()->GetRequestedRegion().GetSize();
   cl_uint4 volumeDim{};
-  volumeDim.s[0] = this->GetOutput()->GetRequestedRegion().GetSize()[0];
-  volumeDim.s[1] = this->GetOutput()->GetRequestedRegion().GetSize()[1];
-  volumeDim.s[2] = this->GetOutput()->GetRequestedRegion().GetSize()[2];
+  volumeDim.s[0] = img_size[0];
+  volumeDim.s[1] = img_size[1];
+  volumeDim.s[2] = img_size[2];
   volumeDim.s[3] = 1;
   OPENCL_CHECK_ERROR(
       clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), &m_DeviceVolume));
@@ -140,10 +141,12 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
   this->AllocateOutputs();
 
   const auto Dimension = ImageType::ImageDimension;
+  const auto input1_largestregion =
+      this->GetInput(1)->GetLargestPossibleRegion();
   const unsigned int nProj =
-      this->GetInput(1)->GetLargestPossibleRegion().GetSize(Dimension - 1);
+      input1_largestregion.GetSize(Dimension - 1);
   const unsigned int iFirstProj =
-      this->GetInput(1)->GetLargestPossibleRegion().GetIndex(Dimension - 1);
+      input1_largestregion.GetIndex(Dimension - 1);
 
   // Ramp factor is the correction for ramp filter which did not account for the
   // divergence of the beam
@@ -166,7 +169,7 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
   matrixIdxVol.SetIdentity();
   for (unsigned int i = 0; i < 3; i++) {
     matrixIdxVol[i][3] = this->GetOutput()->GetRequestedRegion().GetIndex()[i];
-    rotCenterIndex[i] -= this->GetOutput()->GetRequestedRegion().GetIndex()[i];
+    rotCenterIndex[i] -= matrixIdxVol[i][3];
   }
   // Go over each projection
   for (auto iProj = iFirstProj; iProj < iFirstProj + nProj; iProj++) {

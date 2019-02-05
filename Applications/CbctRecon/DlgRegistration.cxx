@@ -112,16 +112,17 @@ void DlgRegistration::initDlgRegistration(QString &strDCMUID) {
   const UShortImageType::Pointer spNull;
   // unlink all of the pointers
   // m_pParent->m_spReconImg->Delete(); //fixed image // ID: RawCBCT
-  m_cbctregistration->m_pParent->m_spRefCTImg = spNull;
-  m_cbctregistration->m_pParent->m_spManualRigidCT =
+  auto p_parent = m_cbctregistration->m_pParent;
+  p_parent->m_spRefCTImg = spNull;
+  p_parent->m_spManualRigidCT =
       spNull; // copied from RefCTImg; ID: RefCT --> Moving Img, cloned
-  m_cbctregistration->m_pParent->m_spAutoRigidCT = spNull; // ID: AutoRigidCT
-  m_cbctregistration->m_pParent->m_spDeformedCT1 =
+  p_parent->m_spAutoRigidCT = spNull; // ID: AutoRigidCT
+  p_parent->m_spDeformedCT1 =
       spNull; // Deformmation will be carried out based
               // on Moving IMage of GUI //AutoDeformCT1
-  m_cbctregistration->m_pParent->m_spDeformedCT2 = spNull;      // AutoDeformCT2
-  m_cbctregistration->m_pParent->m_spDeformedCT3 = spNull;      // AutoDeformCT3
-  m_cbctregistration->m_pParent->m_spDeformedCT_Final = spNull; // AutoDeformCT3
+  p_parent->m_spDeformedCT2 = spNull;      // AutoDeformCT2
+  p_parent->m_spDeformedCT3 = spNull;      // AutoDeformCT3
+  p_parent->m_spDeformedCT_Final = spNull; // AutoDeformCT3
 
   this->ui.checkBoxKeyMoving->setChecked(false);
   this->ui.lineEditOriginChanged->setText("");
@@ -435,32 +436,34 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
                                             this->ui.labelOverlapWnd3}};
 
   if (m_cbctregistration->cur_voi != nullptr) {
+    const auto p_cur_voi = m_cbctregistration->cur_voi.get();
 
     set_points_by_slice<UShortImageType, PLANE_AXIAL, RED>(
-        arr_wnd.at(refIdx % 3), m_cbctregistration->cur_voi.get(), curPhysPos,
+        arr_wnd.at(refIdx % 3), p_cur_voi, curPhysPos,
         imgSpacingMoving, imgOriginMoving, imgSizeMoving);
 
     set_points_by_slice<UShortImageType, PLANE_FRONTAL, RED>(
-        arr_wnd.at((refIdx + 1) % 3), m_cbctregistration->cur_voi.get(),
+        arr_wnd.at((refIdx + 1) % 3), p_cur_voi,
         curPhysPos, imgSpacingMoving, imgOriginMoving, imgSizeMoving);
 
     set_points_by_slice<UShortImageType, PLANE_SAGITTAL, RED>(
-        arr_wnd.at((refIdx + 2) % 3), m_cbctregistration->cur_voi.get(),
+        arr_wnd.at((refIdx + 2) % 3), p_cur_voi,
         curPhysPos, imgSpacingMoving, imgOriginMoving, imgSizeMoving);
   }
 
   if (m_cbctregistration->WEPL_voi != nullptr) {
+    const auto p_wepl_voi = m_cbctregistration->WEPL_voi.get();
 
     set_points_by_slice<UShortImageType, PLANE_AXIAL, GREEN>(
-        arr_wnd.at(refIdx % 3), m_cbctregistration->WEPL_voi.get(), curPhysPos,
+        arr_wnd.at(refIdx % 3), p_wepl_voi, curPhysPos,
         imgSpacing, imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, PLANE_FRONTAL, GREEN>(
-        arr_wnd.at((refIdx + 1) % 3), m_cbctregistration->WEPL_voi.get(),
+        arr_wnd.at((refIdx + 1) % 3), p_wepl_voi,
         curPhysPos, imgSpacing, imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, PLANE_SAGITTAL, GREEN>(
-        arr_wnd.at((refIdx + 2) % 3), m_cbctregistration->WEPL_voi.get(),
+        arr_wnd.at((refIdx + 2) % 3), p_wepl_voi,
         curPhysPos, imgSpacing, imgOriginFixed, imgSize);
   }
 
@@ -1097,11 +1100,11 @@ void DlgRegistration::LoadImgFromComboBox(
   }
 
   if (idx == 0) {
-    m_spFixed = spTmpImg;
+    m_spFixed = std::move(spTmpImg);
 
     whenFixedImgLoaded();
   } else if (idx == 1) {
-    m_spMoving = spTmpImg;
+    m_spMoving = std::move(spTmpImg);
     // std::cout << "idx: " << idx << "m_spMoving"  << m_spMoving << std::endl;
     whenMovingImgLoaded();
   }
@@ -1157,40 +1160,41 @@ void DlgRegistration::UpdateListOfComboBox(const int idx) const {
 
   // remove all the list
   crntCombo->clear();
+  const auto p_parent = m_cbctregistration->m_pParent;
 
-  if (m_cbctregistration->m_pParent->m_spRawReconImg != nullptr) {
+  if (p_parent->m_spRawReconImg != nullptr) {
     crntCombo->addItem("RAW_CBCT");
   }
 
-  if (m_cbctregistration->m_pParent->m_spRefCTImg != nullptr) {
+  if (p_parent->m_spRefCTImg != nullptr) {
     crntCombo->addItem("REF_CT");
   }
 
-  if (m_cbctregistration->m_pParent->m_spManualRigidCT != nullptr) {
+  if (p_parent->m_spManualRigidCT != nullptr) {
     crntCombo->addItem("MANUAL_RIGID_CT");
   }
 
-  if (m_cbctregistration->m_pParent->m_spAutoRigidCT != nullptr) {
+  if (p_parent->m_spAutoRigidCT != nullptr) {
     crntCombo->addItem("AUTO_RIGID_CT");
   }
 
-  if (m_cbctregistration->m_pParent->m_spDeformedCT1 != nullptr) {
+  if (p_parent->m_spDeformedCT1 != nullptr) {
     crntCombo->addItem("DEFORMED_CT1");
   }
 
-  if (m_cbctregistration->m_pParent->m_spDeformedCT2 != nullptr) {
+  if (p_parent->m_spDeformedCT2 != nullptr) {
     crntCombo->addItem("DEFORMED_CT2");
   }
 
-  if (m_cbctregistration->m_pParent->m_spDeformedCT3 != nullptr) {
+  if (p_parent->m_spDeformedCT3 != nullptr) {
     crntCombo->addItem("DEFORMED_CT3");
   }
 
-  if (m_cbctregistration->m_pParent->m_spDeformedCT_Final != nullptr) {
+  if (p_parent->m_spDeformedCT_Final != nullptr) {
     crntCombo->addItem("DEFORMED_CT_FINAL");
   }
 
-  if (m_cbctregistration->m_pParent->m_spScatCorrReconImg != nullptr) {
+  if (p_parent->m_spScatCorrReconImg != nullptr) {
     crntCombo->addItem("COR_CBCT");
   }
 }
@@ -1477,7 +1481,9 @@ bool DlgRegistration::eventFilter(QObject *target, QEvent *event) {
     }
 
     auto *keyEvent = dynamic_cast<QKeyEvent *>(event);
-
+    if (keyEvent == nullptr) {
+      return false;
+    }
     const auto iArrowKey = static_cast<int>(keyEvent->nativeVirtualKey());
     // std::cout << iArrowKey << std::endl;
     const auto resol = this->ui.lineEditMovingResol->text().toDouble(); // mm
@@ -1826,7 +1832,7 @@ void DlgRegistration::UpdateVOICombobox(const ctType ct_type) const {
 void DlgRegistration::SLT_RestoreMovingImg() {
   m_cbctregistration->m_pParent->RegisterImgDuplication(REGISTER_REF_CT,
                                                         REGISTER_MANUAL_RIGID);
-  this->ui.lineEditOriginChanged->setText(QString(""));
+  this->ui.lineEditOriginChanged->setText(QString());
 
   SelectComboExternal(1, REGISTER_MANUAL_RIGID);
 }
@@ -1846,12 +1852,14 @@ void DlgRegistration::SLT_PreProcessCT() {
     if (m_spMoving == nullptr || m_spFixed == nullptr) {
       return;
     }
-    if (m_spFixed->GetLargestPossibleRegion().GetSize()[0] !=
-            m_spMoving->GetLargestPossibleRegion().GetSize()[0] ||
-        m_spFixed->GetLargestPossibleRegion().GetSize()[1] !=
-            m_spMoving->GetLargestPossibleRegion().GetSize()[1] ||
-        m_spFixed->GetLargestPossibleRegion().GetSize()[2] !=
-            m_spMoving->GetLargestPossibleRegion().GetSize()[2]) {
+    const auto fixed_size = m_spFixed->GetLargestPossibleRegion().GetSize(); 
+    const auto moving_size = m_spMoving->GetLargestPossibleRegion().GetSize(); 
+    if (fixed_size[0] !=
+            moving_size[0] ||
+        fixed_size[1] !=
+            moving_size[1] ||
+        fixed_size[2] !=
+            moving_size[2]){
       std::cout
           << "Fixed and moving image is not the same size, consider using "
              "a platimatch registration to solve this."
@@ -2047,7 +2055,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     m_cbctregistration->GenPlastiRegisterCommandFile(
         pathCmdRegister, filePathFixed_proc, filePathMoving, filePathOutput,
         filePathXform, PLAST_BSPLINE, strDeformableStage1, strDeformableStage2,
-        strDeformableStage3, QString(""), mse, cuda, GradOptionStr);
+        strDeformableStage3, QString(), mse, cuda, GradOptionStr);
   }
   /*void DlgRegistration::GenPlastiRegisterCommandFile(QString
   strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg, QString
@@ -2171,15 +2179,15 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
 }
 
 void DlgRegistration::SLT_PassFixedImgForAnalysis() {
-  auto cur_fixed = this->ui.comboBoxImgFixed->currentText();
   if (m_spFixed != nullptr) {
+    auto cur_fixed = this->ui.comboBoxImgFixed->currentText();
     m_pParent->UpdateReconImage(m_spFixed, cur_fixed);
   }
 }
 
 void DlgRegistration::SLT_PassMovingImgForAnalysis() {
-  auto cur_moving = this->ui.comboBoxImgMoving->currentText();
   if (m_spMoving != nullptr) {
+    auto cur_moving = this->ui.comboBoxImgMoving->currentText();
     m_pParent->UpdateReconImage(m_spMoving, cur_moving);
   }
 }
@@ -2239,9 +2247,10 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
 }
 
 void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
+  const auto p_parent = m_cbctregistration->m_pParent;
   auto filePath = QFileDialog::getOpenFileName(
       this, "Open DCMRT Plan file",
-      m_cbctregistration->m_pParent->m_strPathDirDefault, "DCMRT Plan (*.dcm)",
+      p_parent->m_strPathDirDefault, "DCMRT Plan (*.dcm)",
       nullptr, nullptr);
 
   if (filePath.length() < 1) {
@@ -2263,8 +2272,8 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
     return;
   }
 
-  if (m_cbctregistration->m_pParent->m_spRefCTImg == nullptr ||
-      m_cbctregistration->m_pParent->m_spManualRigidCT == nullptr) {
+  if (p_parent->m_spRefCTImg == nullptr ||
+      p_parent->m_spManualRigidCT == nullptr) {
     return;
   }
 
@@ -2558,8 +2567,9 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
     return;
   }
 
-  if (m_cbctregistration->m_pParent->m_spRefCTImg == nullptr ||
-      m_cbctregistration->m_pParent->m_spManualRigidCT == nullptr) {
+  auto p_parent = m_cbctregistration->m_pParent;
+  if (p_parent->m_spRefCTImg == nullptr ||
+      p_parent->m_spManualRigidCT == nullptr) {
     return;
   }
 
@@ -2572,9 +2582,9 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
 
   const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCBCT->isChecked();
 
-  auto originBefore = m_cbctregistration->m_pParent->m_spRefCTImg->GetOrigin();
+  auto originBefore = p_parent->m_spRefCTImg->GetOrigin();
   auto originAfter =
-      m_cbctregistration->m_pParent->m_spManualRigidCT->GetOrigin();
+      p_parent->m_spManualRigidCT->GetOrigin();
 
   double fShift[3];
   fShift[0] = originBefore[0] - originAfter[0]; // DICOM
@@ -2644,13 +2654,13 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
     auto reader = readerType::New();
     reader->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
     reader->Update();
-    m_cbctregistration->m_pParent->m_spRawReconImg = reader->GetOutput();
+    p_parent->m_spRawReconImg = reader->GetOutput();
 
     const auto tmpSkinMargin =
         this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
     auto update_message =
         QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
-    m_pParent->UpdateReconImage(m_cbctregistration->m_pParent->m_spRawReconImg,
+    m_pParent->UpdateReconImage(p_parent->m_spRawReconImg,
                                 update_message);
 
     std::cout << "Reading is completed" << std::endl;

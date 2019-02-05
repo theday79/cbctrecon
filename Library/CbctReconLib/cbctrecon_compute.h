@@ -50,7 +50,7 @@ CBCTRECON_API bool GetCouchShiftFromINIXVI(QString &strPathINIXVI,
 CBCTRECON_API void
 ImageTransformUsingCouchCorrection(UShortImageType::Pointer &spUshortInput,
                                    UShortImageType::Pointer &spUshortOutput,
-                                   VEC3D couch_trans, VEC3D couch_rot);
+                                   const VEC3D& couch_trans, const VEC3D& couch_rot);
 
 CBCTRECON_API void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
                                       UShortImageType::Pointer &spOutputImgUS);
@@ -138,7 +138,7 @@ bool GetOutputResolutionFromFOV(
 
   if (outputFilePath.length() < 2 || !outFileDir.exists()) {
     const double radius = GetFOVRadius<ImageType>(geometry, ProjStack);
-    if (radius != -1.0) {
+    if (radius > 0.0) {
       sizeOutput[0] = 512; // AP
       sizeOutput[1] = 200; // SI
       sizeOutput[2] = 512; // LR

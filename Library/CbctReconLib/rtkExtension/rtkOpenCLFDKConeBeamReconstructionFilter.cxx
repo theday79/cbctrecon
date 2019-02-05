@@ -22,6 +22,7 @@
 //#define RTKOPENCLFDKCONEBEAMRECONSTRUCTIONFILTER_HXX
 
 #include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
+#include "itkMacro.h"
 
 namespace rtk {
 
@@ -53,6 +54,9 @@ void OpenCLFDKConeBeamReconstructionFilter ::GenerateData() {
   auto *openclbp = dynamic_cast<BackProjectionFilterType *>(
       m_BackProjectionFilter.GetPointer());
 
+  if (openclbp == nullptr) {
+    itkGenericExceptionMacro(<< "Backprojectionfilter was nullptr!\n");
+  }
   // Init GPU memory
   openclbp->InitDevice();
 #if USE_CLFFT

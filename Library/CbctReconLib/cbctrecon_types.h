@@ -176,21 +176,21 @@ struct RATIONAL {
 };
 
 struct FDK_options {
-  bool displacedDetectorFilter = true;
+  QString outputFilePath = QString(); // ui.lineEdit_OutputFilePath->text();
+  double ct_spacing[3] = {0.0, 0.0, 0.0}; // ui.lineEdit_outImgSp_[AP, SI, LR]->text().toDouble();
+  int ct_size[3] = {0, 0, 0};       // ui.lineEdit_outImgDim_[AP, SI, LR]->text().toInt()
+  int medianRadius[3] = {0, 0, 0};
   double HannCutX = 0.0;
   double HannCutY = 0.0;
   double CosCut = 0.0;
   double HammCut = 0.0;
   double TruncCorFactor = 0.0;
+  bool displacedDetectorFilter = true;
   bool updateAfterDDF = false; // ui.checkBox_UpdateAfterFiltering->isChecked()
   bool ParkerShortScan = true; // ui.checkBox_UsePSSF->isChecked()
-  double ct_spacing[3]; // ui.lineEdit_outImgSp_[AP, SI, LR]->text().toDouble();
-  int ct_size[3];       // ui.lineEdit_outImgDim_[AP, SI, LR]->text().toInt()
-  int medianRadius[3];
   bool medianFilter = true;
   // indexRadius[0] = ui.lineEdit_PostMedSizeX->text().toInt(); // radius along
   // x
-  QString outputFilePath; // ui.lineEdit_OutputFilePath->text();
 };
 
 using ItkVectorType = itk::Vector<float, 3U>;

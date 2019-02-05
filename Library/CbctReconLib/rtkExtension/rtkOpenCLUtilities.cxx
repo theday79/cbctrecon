@@ -20,6 +20,7 @@
  *=========================================================================*/
 
 #include "rtkOpenCLUtilities.h"
+#include <vector>
 #include <fstream>
 
 std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
@@ -111,14 +112,13 @@ void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
     size_t logSize;
     OPENCL_CHECK_ERROR(clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG,
                                              0, nullptr, &logSize));
-    auto *log = new char[logSize + 1];
+    // auto *log = new char[logSize + 1];
+    auto log = std::vector<char>(logSize + 1);
     OPENCL_CHECK_ERROR(clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG,
-                                             logSize, log, &logSize));
+                                             logSize, &log[0], &logSize));
     log[logSize] = '\0';
-    itkGenericExceptionMacro(<< "OPENCL ERROR with clBuildProgram. The log is:"
-                             << std::endl
-                             << log);
-    delete[] log;
+    itkGenericExceptionMacro(<< "OPENCL ERROR with clBuildProgram. The log is:\n"
+                             << &log[0]);
   }
   delete[] oclSource;
 }
