@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 /*All IO functions used with cbctrecon*/
 #include "cbctrecon.h"
 
@@ -28,7 +31,6 @@
 
 // RTK
 #include "rtkElektaSynergyGeometryReader.h"
-#include "rtkMacro.h" // for TRY_AND_EXIT_ON_ITK...
 #include "rtkProjectionsReader.h"
 #include "rtkThreeDCircularProjectionGeometryXMLFileReader.h" // for ThreeDCircularProje...
 #include "rtkThreeDCircularProjectionGeometryXMLFileWriter.h" // for ThreeDCircularProje...
@@ -527,11 +529,13 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
   auto filenamelist = std::vector<std::string>();
   auto dir = QDir(dirPath);
-  for (auto &&filename : dir.entryList(QStringList() << "*.dcm"
-                                                     << "*.DCM",
-                                       QDir::Files)) {
+  for (auto &&filename : dir.entryList(QDir::Files)){
+    /*entryList(QStringList() << "*.dcm"
+                                                     << "*.DCM"
+                                                     << ".*[0-9]{8}",
+                                       QDir::Files)) {*/
     const auto fullfilename = dir.absolutePath() + "/" + filename;
-    auto modality = get_dcm_modality(fullfilename);
+    const auto modality = get_dcm_modality(fullfilename);
     switch (modality) {
     case RTIMAGE:
     case RTDOSE:

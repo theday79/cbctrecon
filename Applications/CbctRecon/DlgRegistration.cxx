@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "DlgRegistration.h"
 
 #include <QDialog>
@@ -190,7 +193,7 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
 
   auto wnd_size = window->size();
   auto wnd_height = wnd_size.rheight();
-  auto wnd_width = wnd_size.rwidth();
+  const auto wnd_width = wnd_size.rwidth();
   auto x_scale = 1.0 / static_cast<double>(wnd_width);
   auto y_scale = 1.0 / static_cast<double>(wnd_height);
   switch (plane) {
@@ -220,7 +223,7 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
                                       (point.y - imgOriginFixed[1]) / y_scale));
       }
     }
-    for (auto point : contour.coordinates) {
+    for (auto& point : contour.coordinates) {
       // Frontal
       if (point.y > curPhysPos[1] - imgSpacing[1] &&
           point.y < curPhysPos[1] + imgSpacing[1] && plane == PLANE_FRONTAL) {

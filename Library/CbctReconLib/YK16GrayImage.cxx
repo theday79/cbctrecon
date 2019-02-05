@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include <cstdio>
 #include <fstream>
 
@@ -243,35 +246,52 @@ bool YK16GrayImage::CopyFromBuffer(const unsigned short *p_image_buf,
 }
 
 template <typename T>
-quint32 fill_pixel(T data, size_t lowVal, size_t uppVal, double d_win_width) {
+inline quint32 fill_pixel(const T data, const size_t lowVal, const size_t uppVal, const double d_win_width) {
   if (data >= uppVal) {
     return 0xffffffff;
   }
   if (data <= lowVal) {
     return 0xff000000;
   }
-  return qRgba(static_cast<uchar>((data - lowVal) / d_win_width * 255.0),
-               static_cast<uchar>((data - lowVal) / d_win_width * 255.0),
-               static_cast<uchar>((data - lowVal) / d_win_width * 255.0), 255);
+  const auto int8norm =
+      static_cast<uchar>((data - lowVal) / d_win_width * 255.0);
+  return qRgba(int8norm, int8norm, int8norm, 255);
 }
 
 template <typename T>
-quint32 fill_pixel_invert(T data, size_t low_val, size_t upp_val,
-                          double d_win_width) {
+inline quint32 fill_pixel_invert(const T data, const size_t low_val, const size_t upp_val,
+                          const double d_win_width) {
   if (data >= upp_val) {
     return 0xff000000;
   }
   if (data <= low_val) {
     return 0xffffffff;
   }
-  return qRgba(255 - static_cast<uchar>((data - low_val) / d_win_width * 255.0),
-               255 - static_cast<uchar>((data - low_val) / d_win_width * 255.0),
-               255 - static_cast<uchar>((data - low_val) / d_win_width * 255.0),
-               255);
+  const uchar int8norm =
+      255 - static_cast<uchar>((data - low_val) / d_win_width * 255.0);
+  return qRgba(int8norm, int8norm, int8norm, 255);
 }
 
+
+inline void fill_index(const size_t i, const size_t j, const size_t iWidth,
+                       const size_t uppVal, const size_t lowVal,
+                       const bool bShowInvert, const unsigned short *data,
+                       std::valarray<quint32> &tmpData, const int winWidth) {
+
+  const auto tmpIdx = static_cast<size_t>(i * iWidth + j); // *3
+
+  const auto d_win_width = static_cast<double>(winWidth);
+  if (!bShowInvert) {
+    tmpData[tmpIdx] = fill_pixel(data[tmpIdx], lowVal, uppVal, d_win_width);
+  } else {
+    tmpData[tmpIdx] =
+        fill_pixel_invert(data[tmpIdx], lowVal, uppVal, d_win_width);
+  }
+}
+
+/*
 void fill_array(std::valarray<quint32> &tmpData, unsigned short *m_pData,
-                size_t lowVal, size_t uppVal, size_t d_win_width,
+                const size_t lowVal, const size_t uppVal, const size_t d_win_width,
                 const bool m_bShowInvert) {
   if (!m_bShowInvert) {
     std::transform(&m_pData[0], &m_pData[tmpData.size() - 1],
@@ -287,6 +307,7 @@ void fill_array(std::valarray<quint32> &tmpData, unsigned short *m_pData,
         });
   }
 }
+*/
 
 bool YK16GrayImage::FillPixMap(const int winMid,
                                const int winWidth) // 0-65535 �� window level
@@ -310,56 +331,20 @@ bool YK16GrayImage::FillPixMap(const int winMid,
   // uchar* tmpData = new uchar [size*3];//RGB
   auto tmpData = std::valarray<quint32>(size); // rgb represented as 0xffRRGGBB
   const auto uppVal =
-      static_cast<unsigned short>(std::round(winMid + winWidth / 2.0));
+      static_cast<int>(winMid + winWidth / 2.0);
   const auto lowVal =
-      static_cast<unsigned short>(std::round(winMid - winWidth / 2.0));
-  const auto d_win_width = static_cast<double>(winWidth);
-  // It takes 0.4 s in Release mode
-  fill_array(tmpData, m_pData, lowVal, uppVal, d_win_width, m_bShowInvert);
-  /*
-  for (int i = 0; i < m_iHeight; i++) // So long time.... - YKP (not really -
-  AGA)
+      static_cast<int>(winMid - winWidth / 2.0);
+  // const auto d_win_width = static_cast<double>(winWidth);
+  
+  // fill_array(tmpData, m_pData, lowVal, uppVal, d_win_width, m_bShowInvert);
+  
+  for (auto i = 0; i < m_iHeight; i++) // So long time....
   {
-    for (int j = 0; j < m_iWidth; j++) {
-      const int tmpIdx = (i * m_iWidth + j); // *3
-
-      if (!m_bShowInvert) {
-
-        if (m_pData[tmpIdx] >= uppVal) {
-          tmpData[tmpIdx] = 0xffffffff;
-
-        } else if (m_pData[tmpIdx] <= lowVal) {
-          tmpData[tmpIdx] = 0xff000000;
-        } else {
-          tmpData[tmpIdx] =
-              qRgba(static_cast<uchar>((m_pData[tmpIdx] - lowVal) /
-                                       d_win_width * 255.0),
-                    static_cast<uchar>((m_pData[tmpIdx] - lowVal) /
-                                       d_win_width * 255.0),
-                    static_cast<uchar>((m_pData[tmpIdx] - lowVal) /
-                                       d_win_width * 255.0),
-                    255);
-        }
-      } else {
-        if (m_pData[tmpIdx] >= uppVal) {
-          tmpData[tmpIdx] = 0xff000000;
-
-        } else if (m_pData[tmpIdx] <= lowVal) {
-          tmpData[tmpIdx] = 0xffffffff;
-        } else {
-          tmpData[tmpIdx] =
-              qRgba(255 - static_cast<uchar>((m_pData[tmpIdx] - lowVal) /
-                                             d_win_width * 255.0),
-                    255 - static_cast<uchar>((m_pData[tmpIdx] - lowVal) /
-                                             d_win_width * 255.0),
-                    255 - static_cast<uchar>((m_pData[tmpIdx] - lowVal) /
-                                             d_win_width * 255.0),
-                    255);
-        }
-      }
+    for (auto j = 0; j < m_iWidth; j++) {
+      fill_index(i, j, m_iWidth, uppVal, lowVal, m_bShowInvert, m_pData,
+                 tmpData, winWidth);
     }
-  }*/
-  /// m_QImage.save("C:\\FromFillPixmap.png");//it works well
+  }
 
   // int iBytesPerLine = m_iWidth*3;
 
@@ -386,6 +371,7 @@ bool YK16GrayImage::FillPixMap(const int winMid,
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
 
+  /// m_QImage.save("C:\\FromFillPixmap.png");//it works well
   // copy (0,0, width, height)
 
   //*m_pPixmap = QPixmap::fromImage(m_QImage); //copy data to pre-allcated
@@ -1054,22 +1040,6 @@ void YK16GrayImage::EditImage_Mirror() const {
   }
 
   // delete[] pPrevImg;
-}
-
-inline void fill_index(const size_t i, const size_t j, const size_t iWidth,
-                       const size_t uppVal, const size_t lowVal,
-                       const bool bShowInvert, const unsigned short *data,
-                       std::valarray<quint32> &tmpData, const int winWidth) {
-
-  const auto tmpIdx = static_cast<size_t>(i * iWidth + j); // *3
-
-  const auto d_win_width = static_cast<double>(winWidth);
-  if (!bShowInvert) {
-    tmpData[tmpIdx] = fill_pixel(data[tmpIdx], lowVal, uppVal, d_win_width);
-  } else {
-    tmpData[tmpIdx] =
-        fill_pixel_invert(data[tmpIdx], lowVal, uppVal, d_win_width);
-  }
 }
 
 bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,

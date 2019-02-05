@@ -730,28 +730,16 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
 
     // Default value
     const auto calibF_A = 1.0;
-    const auto calibF_B = 0.0;
 
-    std::cout << "Temporary forcing CT# applied for tissue" << std::endl;
-
-    std::cout << "CBCT calibration Factor(Recommended: 1, 0): A = " << calibF_A
-              << "  B= " << calibF_B << std::endl;
     using MultiplyImageFilterType =
         itk::MultiplyImageFilter<FloatImageType, FloatImageType,
-                                 FloatImageType>;
+                                 DevFloatImageType>;
     auto multiplyImageFilter = MultiplyImageFilterType::New();
     multiplyImageFilter->SetInput(castFilter->GetOutput());
     multiplyImageFilter->SetConstant(calibF_A / 65535.0);
+    multiplyImageFilter->Update(); // will generate map of real_mu (att.coeff)
 
-    using AddImageFilterType =
-        itk::AddImageFilter<FloatImageType, FloatImageType, DevFloatImageType>;
-    auto addImageFilter = AddImageFilterType::New();
-    addImageFilter->SetInput1(multiplyImageFilter->GetOutput());
-    const auto addingVal = calibF_B / 65535.0;
-    addImageFilter->SetConstant2(addingVal);
-    addImageFilter->Update(); // will generate map of real_mu (att.coeff)
-
-    const auto spCTImg_mu = addImageFilter->GetOutput();
+    const auto spCTImg_mu = multiplyImageFilter->GetOutput();
 
     // 2) Prepare empty projection images //Should be corresonponding to raw
     // projection images

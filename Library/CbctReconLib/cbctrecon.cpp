@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #if USE_TINYREFL
 #include "cbctrecon.h"
 #include "cbctrecon.h.tinyrefl"
@@ -17,7 +20,6 @@
 #endif
 
 #include <cstdio>
-#include <thread>
 #include <valarray>
 
 // Qt
@@ -36,6 +38,7 @@
 #include <itkEuler3DTransform.h>
 #include <itkFlipImageFilter.h>
 #include <itkImageDuplicator.h>
+#include <itkImageIOBase.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
 #include <itkMaskImageFilter.h>
@@ -47,12 +50,6 @@
 #include <itkResampleImageFilter.h>
 #include <itkSmoothingRecursiveGaussianImageFilter.h>
 #include <itkTimeProbe.h>
-#if ITK_VERSION_MAJOR >= 4
-#include <gdcmUIDGenerator.h>
-#else
-#include <gdcm/src/gdcmFile.h>
-#include <gdcm/src/gdcmUtil.h>
-#endif
 
 #ifdef LOWPASS_FFT
 // ITK Low-pass fourier filter
@@ -98,7 +95,6 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
-#include "cbctregistration.h"
 
 CbctRecon::CbctRecon() {
 
