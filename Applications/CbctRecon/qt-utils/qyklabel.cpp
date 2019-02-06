@@ -322,7 +322,7 @@ void qyklabel::SetDrawPointToggle(const bool bToggle) {
   update();
 }
 
-QPoint qyklabel::GetDataPtFromMousePos() {
+QPoint qyklabel::GetDataPtFromMousePos() const {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }
@@ -338,7 +338,7 @@ QPoint qyklabel::GetDataPtFromMousePos() {
       m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) {
+QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) const {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }
@@ -355,7 +355,7 @@ QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) {
       m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::GetViewPtFromDataPt(const int dataPtX, const int dataPtY) {
+QPoint qyklabel::GetViewPtFromDataPt(const int dataPtX, const int dataPtY) const {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }

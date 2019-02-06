@@ -459,7 +459,7 @@ FDK_options CbctReconWidget::getFDKoptions() const {
 }
 
 void CbctReconWidget::SLT_DoReconstruction() {
-  auto fdk_options = getFDKoptions();
+  const auto fdk_options = getFDKoptions();
 
   itk::TimeProbe reconTimeProbe;
   reconTimeProbe.Start();
@@ -796,7 +796,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
                             this->m_cbctrecon->m_strError, QMessageBox::Ok);
     }
   }
-  const auto p_geometry = this->m_cbctrecon->m_spFullGeometry.GetPointer();
+  const auto &p_geometry = this->m_cbctrecon->m_spFullGeometry;
   const auto iFullGeoDataSize =
       p_geometry->GetGantryAngles().size();
   if (iFullGeoDataSize < 1) {
@@ -1545,7 +1545,7 @@ void CbctReconWidget::SLT_PostProcCropInv() {
   const auto physRadius = this->ui.lineEdit_PostFOV_R->text().toDouble();
   // double physTablePosY = this->ui.lineEdit_PostTablePosY->text().toDouble();
 
-  const auto p_curimg = this->m_cbctrecon->m_spCrntReconImg.GetPointer();
+  const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
   auto origin = p_curimg->GetOrigin();
   auto spacing = p_curimg->GetSpacing();
   // UShortImageType::SizeType size =
@@ -1760,7 +1760,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
         this, tr("Open Directory"), ".",
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   }
-  auto p_projimg = this->m_cbctrecon->m_spProjImgCT3D.GetPointer();
+  auto &p_projimg = this->m_cbctrecon->m_spProjImgCT3D;
 
   if (m_dlgRegistration->m_spMoving != nullptr) {
     this->m_cbctrecon
@@ -1906,7 +1906,7 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
                                        QString &fileName) {
   this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
-  const auto p_curimg = this->m_cbctrecon->m_spCrntReconImg.GetPointer();
+  const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
   const auto origin_new = p_curimg->GetOrigin();
   const auto spacing_new = p_curimg->GetSpacing();
   const auto size_new =
@@ -2560,7 +2560,7 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
     return;
   }
 
-  const auto p_curimg = this->m_cbctrecon->m_spCrntReconImg.GetPointer();
+  const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
 
   const auto originLeft =
       static_cast<double>(p_curimg->GetOrigin()[0]);
@@ -2668,7 +2668,7 @@ void CbctReconWidget::SLTM_ForwardProjection() {
   }
   // if there is a geometry
 
-  const auto p_geometry = this->m_cbctrecon->m_spCustomGeometry.GetPointer();
+  const auto &p_geometry = this->m_cbctrecon->m_spCustomGeometry;
   const auto cntProj =
       p_geometry->GetGantryAngles().size();
 
@@ -3968,13 +3968,13 @@ void CbctReconWidget::SLT_ReloadProjections() {
   ImageReader->SetFileName(projFile.fileName().toStdString());
   ImageReader->Update();
   this->m_cbctrecon->m_spProjImg3DFloat = ImageReader->GetOutput();
-  auto p_projimg = this->m_cbctrecon->m_spProjImg3DFloat.GetPointer();
+  auto &p_projimg = this->m_cbctrecon->m_spProjImg3DFloat;
   // Copied from SLT_LoadSelectedFiles:
 
   if (this->m_cbctrecon->m_fResampleF != 1.0) {
     this->m_cbctrecon->ResampleItkImage(
-        this->m_cbctrecon->m_spProjImg3DFloat,
-        this->m_cbctrecon->m_spProjImg3DFloat,
+        p_projimg,
+        p_projimg,
         this->m_cbctrecon
             ->m_fResampleF); // was! BROKEN AF for .his where input size
                              // != 1024 (tested with 1016) -> outputs
@@ -3988,14 +3988,14 @@ void CbctReconWidget::SLT_ReloadProjections() {
   }
 
   this->m_cbctrecon->ConvertLineInt2Intensity(
-      this->m_cbctrecon->m_spProjImg3DFloat,
+      p_projimg,
       this->m_cbctrecon->m_spProjImgRaw3D,
       65535); // if X not 1024 == input size: out_offset =
               // in_offset + (1024*res_f -
               // X*res_f)*out_spacing     <- will still
               // break down at fw_projection
 
-  const auto p_projimgfloat = this->m_cbctrecon->m_spProjImg3DFloat;
+  const auto p_projimgfloat = p_projimg;
   auto originPt = p_projimgfloat->GetOrigin();
   auto FloatImgSize =
       p_projimgfloat->GetBufferedRegion().GetSize();

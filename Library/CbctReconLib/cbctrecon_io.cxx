@@ -534,8 +534,10 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   for (auto &&filename : dir.entryList(QDir::Files)) {
     /*entryList(QStringList() << "*.dcm"
                                                      << "*.DCM"
-                                                     << ".*[0-9]{8}",
                                        QDir::Files)) {*/
+    if (filename.contains("-hash-stamp")) {
+      continue; // Just so the test data is less annoying.
+    }
     const auto fullfilename = dir.absolutePath() + "/" + filename;
     const auto modality = get_dcm_modality(fullfilename);
     switch (modality) {

@@ -4855,7 +4855,7 @@ void CbctRecon::LoadShort3DImage(QString &filePath,
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  m_spCrntReconImg = std::move(spImg.GetPointer());
+  m_spCrntReconImg = spImg.GetPointer();
 
   m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 }

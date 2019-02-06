@@ -1100,11 +1100,11 @@ void DlgRegistration::LoadImgFromComboBox(
   }
 
   if (idx == 0) {
-    m_spFixed = std::move(spTmpImg);
+    m_spFixed = spTmpImg.GetPointer();
 
     whenFixedImgLoaded();
   } else if (idx == 1) {
-    m_spMoving = std::move(spTmpImg);
+    m_spMoving = spTmpImg.GetPointer();
     // std::cout << "idx: " << idx << "m_spMoving"  << m_spMoving << std::endl;
     whenMovingImgLoaded();
   }
@@ -2451,7 +2451,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
 
 void DlgRegistration::SLT_WEPLcalc() {
   // Get VOI
-  auto voi_name = this->ui.comboBox_VOI->currentText().toStdString();
+  const auto voi_name = this->ui.comboBox_VOI->currentText().toStdString();
 
   const auto gantry_angle = this->ui.spinBox_GantryAngle->value();
   const auto couch_angle = this->ui.spinBox_CouchAngle->value();

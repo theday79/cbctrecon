@@ -66,11 +66,11 @@ public:
                       int dataWidth, int dataHeight, QPoint ptDataOffset,
                       double fUserZoom) const;
 
-  QPoint GetDataPtFromMousePos(); // Return data position of the mouse
-                                  // position.m_pYK16 image is mandatory
-  QPoint GetDataPtFromViewPt(int viewPtX, int viewPtY);
+  QPoint GetDataPtFromMousePos() const; // Return data position of the mouse
+                                        // position.m_pYK16 image is mandatory
+  QPoint GetDataPtFromViewPt(int viewPtX, int viewPtY) const;
 
-  QPoint GetViewPtFromDataPt(int dataPtX, int dataPtY);
+  QPoint GetViewPtFromDataPt(int dataPtX, int dataPtY) const;
 
 protected:
   void paintEvent(QPaintEvent * /*unused*/) override;

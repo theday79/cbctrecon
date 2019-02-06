@@ -8,7 +8,6 @@
 #include <cmath> // for asin, cos
 #include <cstdlib>
 #include <iostream> // for operator<<, endl, basic_ostream, cout
-#include <string>   // for operator<<
 
 // Local
 #include "cbctrecon_types.h"

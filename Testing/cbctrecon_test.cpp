@@ -148,17 +148,6 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
       return false;
     }
 
-    const auto reply = true; /*QMessageBox::question(
-        this, "Mismatch in number of files and Geometry information!",
-        "Mismatch in number of files and Geometry information!\nHowever, Xim "
-        "detected, so it may be safe to continue anyway?",
-        QMessageBox::Yes | QMessageBox::No);*/
-    if (reply) {     // QMessageBox::Yes) {
-      std::cerr << "continuing despite warning..."
-                << "\n";
-    } else {
-      return false;
-    }
   }
 
   auto angle_gaps = this->m_cbctrecon->m_spFullGeometry->GetAngularGaps(
@@ -175,14 +164,6 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
   const auto gantryAngleInterval = 1.0;
   // this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
 
-  if (false) { // this->ui.Radio_ManualProjAngleGap->isChecked()) {
-
-    if (gantryAngleInterval < mean_gap) {
-      std::cerr << "Angle gap size is too small. Terminating the app"
-                << "\n";
-      return false;
-    }
-  }
 
   const auto exclude_ids = this->m_cbctrecon->GetExcludeProjFiles(
       false /*this->ui.Radio_ManualProjAngleGap->isChecked()*/,
@@ -345,11 +326,11 @@ void CbctReconTest::test_DoReconstruction() {
   reconTimeProbe.Start();
 
 #ifdef USE_CUDA
-  const bool use_cuda = false; // true;
+  const auto use_cuda = false; //true;
 #else
   const bool use_cuda = false;
 #endif
-  const bool use_opencl = true; // prefer OpenCL to CPU
+  const auto use_opencl = true; // prefer OpenCL to CPU
 
   if (use_cuda) {
     this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
