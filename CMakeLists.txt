@@ -1,27 +1,35 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.10) # Yes, less won't do.
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+include(HunterGate)
+HunterGate(  # Latest version: 27/01/2019
+    URL "https://github.com/ruslo/hunter/archive/v0.23.89.tar.gz"
+    SHA1 "a370290a8b32987755a36d64807bf8c7f5b61730"
+)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #-----------------------------------------------------------------------------
 # BASIC CMAKE
 set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
 set(CbctRecon_VERSION_MINOR "4") # bump at functionality change
-set(CbctRecon_VERSION_PATCH "1") # bump at minor change
+set(CbctRecon_VERSION_PATCH "2") # bump at minor change
 
 project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
-  LANGUAGES CXX
   )
 
 SET(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard specification")
 
 set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 #-----------------------------------------------------------------------------
 
 # Check Instruction set available and set intel compiler flags
 include(feature_defs OPTIONAL)
 
+option(USE_SYSTEM_QT "ON=Use local Qt dist., OFF=hunter downloads and configs. qtbase" ON)
+option(USE_SYSTEM_OPENCL "ON=Use local OpenCL dist., OFF=hunter downloads and configs. OpenCL" ON)
 OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
@@ -39,7 +47,7 @@ OPTION(CBCTRECON_COVERAGE "Get test coverage report for CbctReconLib" ${TMP_COVE
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
 if(NOT WIN32)
   set(BUILD_SHARED_LIBS OFF)
-  OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" ON)
+  OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF) # ON) <- May return when TinyRefl has a stable release
   # We should prefer the official server, so we don't depend on Manu Sanchez to always have a build available for us.
   set(TINYREFL_LLVM_DOWNLOAD_FROM_OFFICIAL_SERVER ON CACHE BOOL "" FORCE)
 else()
@@ -68,7 +76,14 @@ IF(USE_TINYREFL)
   ADD_DEFINITIONS(-DUSE_TINYREFL=TRUE)
 ENDIF(USE_TINYREFL)
 
-FIND_PACKAGE(OpenCL REQUIRED)
+
+if(APPLE OR USE_SYSTEM_OPENCL)
+    # On macOS use system OpenCL library.
+    find_package(OpenCL REQUIRED)
+else()
+    hunter_add_package(OpenCL)  # Requires mesa-common-dev on ubuntu
+    find_package(OpenCL CONFIG REQUIRED)
+endif()
 if(OpenCL_FOUND)
   add_definitions(-DUSE_OPENCL_PLM=TRUE)
   add_definitions(-DUSE_OPENCL_RTK=TRUE)
@@ -101,13 +116,23 @@ IF(USE_CLFFT)
   add_definitions(-DUSE_CLFFT=TRUE)
 ENDIF(USE_CLFFT)
 
-if(WIN32)
+if(USE_SYSTEM_QT)
+  find_package(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED)
+  if(WIN32)
     set(CMAKE_PREFIX_PATH
-        ${CMAKE_PREFIX_PATH}
-        "C:\\Qt\\5.11.2\\msvc2015_64"
-        )
+      ${CMAKE_PREFIX_PATH}
+      "C:\\Qt\\5.11.2\\msvc2015_64"
+      )
+  endif()
+else()
+  hunter_add_package(Qt)
 endif()
-FIND_PACKAGE(Qt5 COMPONENTS Core Gui OpenGL PrintSupport Widgets Test REQUIRED)
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5PrintSupport REQUIRED)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Test REQUIRED)
 
 
 #-----------------------------------------------------------------------------
@@ -201,7 +226,6 @@ set(CBCTRECON_DEP_LIBS
 if(CBCTRECON_COVERAGE)
   include(CodeCoverage)
   APPEND_COVERAGE_COMPILER_FLAGS()
-  set(COVERAGE_LCOV_EXCLUDES 'Applications/*') # 'dir2/*')
 endif()
 
 add_subdirectory(Library)
@@ -213,14 +237,6 @@ if(CBCTRECON_BUILD_TESTS)
   add_subdirectory(Testing)
   include(ExternalData)
   ExternalData_Add_Target(CbctData)
-  if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
-    include(CodeCoverage)
-    setup_target_for_coverage_gcovr_xml(
-      NAME CbctReconLib_coverage
-      EXECUTABLE ctest -j ${PROCESSOR_COUNT}
-      DEPENDENCIES CbctRecon_test CbctReconLib
-      )
-  endif()
 endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
