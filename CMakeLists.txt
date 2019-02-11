@@ -28,8 +28,9 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Check Instruction set available and set intel compiler flags
 include(feature_defs OPTIONAL)
 
-option(USE_SYSTEM_QT "ON=Use local Qt dist., OFF=hunter downloads and configs. qtbase" ON)
-option(USE_SYSTEM_OPENCL "ON=Use local OpenCL dist., OFF=hunter downloads and configs. OpenCL" ON)
+option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
+option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)
+option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs. Zlib" ON)
 OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
@@ -134,6 +135,10 @@ find_package(Qt5PrintSupport REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Test REQUIRED)
 
+if(NOT USE_SYSTEM_ZLIB)
+  hunter_add_package(ZLIB)
+  find_package(ZLIB CONFIG REQUIRED)
+endif()
 
 #-----------------------------------------------------------------------------
 # Set a default build type if none was specified
@@ -155,19 +160,6 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin" CACHE PATH "")
 set(EXECUTEABLE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "")
 
 add_subdirectory(External)
-
-if(NOT ZLIB_FOUND)
-  if(NOT USE_SYSTEM_ZLIB)
-    set(ZLIB_DIR "${CMAKE_BINARY_DIR}/ZLIB-build")
-  endif()
-  find_package(zlib)
-endif()
-if(NOT GDCM_FOUND)
-  if(NOT USE_SYSTEM_GDCM)
-    set(GDCM_DIR "${CMAKE_BINARY_DIR}/GDCM-build")
-  endif()
-  find_package(gdcm)
-endif()
 
 if(NOT DCMTK_FOUND)
   if(NOT USE_SYSTEM_DCMTK)

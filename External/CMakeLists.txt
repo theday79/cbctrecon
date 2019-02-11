@@ -12,8 +12,8 @@ macro(external_proj NAME)
 endmacro()
 
 # REPOSITORIES
-set(ZLIB_GIT_REPOSITORY "${git_protocol}hub.com/madler/zlib.git")
-set(ZLIB_GIT_TAG master)
+# set(ZLIB_GIT_REPOSITORY "${git_protocol}hub.com/madler/zlib.git")
+# set(ZLIB_GIT_TAG master)
 
 set(GDCM_GIT_REPOSITORY "${git_protocol}hub.com/malaterre/gdcm.git")
 set(GDCM_GIT_TAG master)
@@ -33,15 +33,6 @@ set(${plm}_GIT_TAG master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
 
 set(TINYREFL_GIT_REPOSITORY "${git_protocol}lab.com/Manu343726/tinyrefl.git")
 set(TINYREFL_GIT_TAG master)
-
-# ZLIB
-external_proj(ZLIB)
-
-# GDCM
-option(USE_SYSTEM_GDCM "ON=Use system GDCM, OFF=Download GDCM" OFF)
-if (NOT USE_SYSTEM_ITK) # Because ITK also defines the gdcm symbols
-  external_proj(GDCM)
-endif()
 
 # DCMTK
 external_proj(DCMTK)
