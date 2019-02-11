@@ -30,7 +30,7 @@ include(feature_defs OPTIONAL)
 
 option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
 option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)
-option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs. Zlib" ON)
+option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs. Zlib" OFF)
 OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
@@ -138,6 +138,8 @@ find_package(Qt5Test REQUIRED)
 if(NOT USE_SYSTEM_ZLIB)
   hunter_add_package(ZLIB)
   find_package(ZLIB CONFIG REQUIRED)
+else()
+  find_package(ZLIB)
 endif()
 
 #-----------------------------------------------------------------------------
