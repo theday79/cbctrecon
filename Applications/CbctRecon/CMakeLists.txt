@@ -165,6 +165,9 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/ui/style.qss DESTINATION bin/ui)
 ##  Additional install files
 ##-----------------------------------------------------------------------------
 if(WIN32)
+  if(NOT USE_SYSTEM_QT)
+    hunter_add_package(Qt COMPONENTS qttools)
+  endif()
   include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/WindeployQt.cmake)
   if($<CONFIG:Debug>)
     windeployqt(CbctRecon "debug" "${CMAKE_CURRENT_BINARY_DIR}/QtLibs")

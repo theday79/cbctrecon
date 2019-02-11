@@ -29,7 +29,7 @@ set(ITK_GIT_TAG release-4.13) #"d92873e33e8a54e933e445b92151191f02feab42") #"v4.
 
 set(plm Plastimatch)
 set(${plm}_GIT_REPOSITORY "${git_protocol}lab.com/plastimatch/plastimatch.git")
-set(${plm}_GIT_TAG master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
+set(${plm}_GIT_TAG 1.7.4) #master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
 
 set(TINYREFL_GIT_REPOSITORY "${git_protocol}lab.com/Manu343726/tinyrefl.git")
 set(TINYREFL_GIT_TAG master)

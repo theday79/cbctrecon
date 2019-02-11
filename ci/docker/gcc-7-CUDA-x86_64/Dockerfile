@@ -25,7 +25,7 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
     && apt install -y --no-install-recommends \
         make gcc g++ git wget qt5-default libqt5opengl5-dev \
         libfftw3-dev libsqlite3-dev libtinfo-dev libhdf5-dev \
-        valgrind python gcovr \
+        valgrind python lcov \
     && rm -rf /var/lib/apt/lists/*
 
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.

@@ -57,11 +57,11 @@ function(add_cbctrecon_test)
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     )
 
-  find_program(GPU_MEMORYCHECK_COMMAND oclgrind) #valgrind)
+  # find_program(GPU_MEMORYCHECK_COMMAND oclgrind) #valgrind)
 
   if(GPU_MEMORYCHECK_COMMAND)
     message(STATUS "Running CTest ${ARGS_TARGET} with oclgrind")
-    set(VG_COMM ${GPU_MEMORYCHECK_COMMAND} "--leak-check=full")
+    set(VG_COMM "") #${GPU_MEMORYCHECK_COMMAND}) # "--leak-check=full")
   endif()
 
   ExternalData_Add_test(CbctData
