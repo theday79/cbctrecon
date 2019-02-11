@@ -36,12 +36,14 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
 
 std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
   cl_uint numberOfDevices;
-  OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
-                                    &numberOfDevices));
+  cl_int error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
+                                &numberOfDevices);
 
   std::vector<cl_device_id> deviceList(numberOfDevices);
-  OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU,
-                                    numberOfDevices, &deviceList[0], nullptr));
+  if (error != -1){ // -1 means we didn't find a GPU
+    OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU,
+                                      numberOfDevices, &deviceList[0], nullptr));
+  }
 
   cl_bool bImageSupport = 0u;
   // If found, check if supports image.
