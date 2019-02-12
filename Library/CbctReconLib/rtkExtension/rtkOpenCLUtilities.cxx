@@ -47,10 +47,11 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
 
   cl_bool bImageSupport = 0u;
   // If found, check if supports image.
-  if (numberOfDevices > 0)
-    OPENCL_CHECK_ERROR(clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
+  if (numberOfDevices > 0 && error != -1){
+    error = clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
                                        sizeof(cl_bool), &bImageSupport,
-                                       nullptr));
+                                       nullptr);
+  }
 
   // If not a good device, switch to CPU.
   if (bImageSupport == 0u) {
