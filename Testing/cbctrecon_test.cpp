@@ -408,14 +408,16 @@ int main(const int argc, char *argv[]) {
 
   if (argc < 3) {
     std::cerr << "Usage:\n"
-              << argv[0] << " ./dicom/directory ./CB_proj/directory\n";
+              << argv[0] << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
     return -1;
   }
 
   std::cerr << "Running cbctrecon_test!\n";
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
-  auto dcm_dir = QDir(argv[1]);
+  auto dcm_dir_str = QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+
+  auto dcm_dir = QDir(dcm_dir_str);
   auto dcm_path = dcm_dir.absolutePath();
   if (!dcm_dir.exists()) {
     std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
@@ -434,7 +436,8 @@ int main(const int argc, char *argv[]) {
   }
 
   /* Load projections (Needs to be uploaded to girder first) */
-  auto cbct_dir = QDir(argv[2]);
+  auto cbct_dir_str = QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
+  auto cbct_dir = QDir(cbct_dir_str);
   auto cbct_path = cbct_dir.absolutePath();
   if (!cbct_dir.exists()) {
     std::cerr << "Directory didn't exist: " << cbct_path.toStdString() << "\n";
