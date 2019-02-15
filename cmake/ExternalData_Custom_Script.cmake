@@ -1,4 +1,4 @@
-set(retry 3)
+set(retry 5)
 while(retry)
   math(EXPR retry "${retry} - 1")
   if(ExternalData_TIMEOUT_INACTIVITY)
