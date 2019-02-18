@@ -1,7 +1,7 @@
 # CbctRecon
 CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 
-[![pipeline status](https://gitlab.com/agravgaard/cbctrecon/badges/master/pipeline.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/WEPLVisualization)
+[![pipeline status](https://gitlab.com/agravgaard/cbctrecon/badges/master/pipeline.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/WEPLvisualization)
 [![Build status](https://ci.appveyor.com/api/projects/status/ek8g59aguufokj3q?svg=true)](https://ci.appveyor.com/project/agravgaard/cbctrecon)
 
 **Proton dose calculation on scatter-corrected CBCT image: Feasibility study for adaptive proton therapy**
@@ -9,6 +9,8 @@ http://dx.doi.org/10.1118/1.4923179
 
 Software will be tested on Linux (Arch, Manjaro and Ubuntu), MacOS (High Sierra), Windows (8.1 , 10 and Server 2012).
 Using GCC (7, 8), Clang (6, 7 and latest xcode), ICC (17, 18), MSVC (2015 and 2017).
+((Currently Clang is unable to compile anything requiring pthread.h or nanosleep on my system and will not be tested until it is fixed))
+
 Some compilers and OSs are not tested as often.
 
 In order to compile the software, you must have installed the following prerequisites and a C++ compiler compatible with your version of CUDA. (See [this table](https://gist.github.com/ax3l/9489132))

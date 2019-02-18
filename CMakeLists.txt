@@ -77,7 +77,6 @@ IF(USE_TINYREFL)
   ADD_DEFINITIONS(-DUSE_TINYREFL=TRUE)
 ENDIF(USE_TINYREFL)
 
-
 if(APPLE OR USE_SYSTEM_OPENCL)
     # On macOS use system OpenCL library.
     find_package(OpenCL REQUIRED)
