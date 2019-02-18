@@ -43,13 +43,17 @@ function(add_cbctrecon_test)
     ARGS
     ""
     "TARGET"
-    "SRC_FILES;DATA_ARGS"
+    "DATA_ARGS"
     ${ARGN}
     )
 
-  add_executable(${ARGS_TARGET} ${ARGS_SRC_FILES})
+  set(SRC_FILES
+    ${ARGS_TARGET}.cpp
+    )
+
+  add_executable(${ARGS_TARGET} ${SRC_FILES})
   target_link_libraries(${ARGS_TARGET}
-    PRIVATE CbctReconLib
+    PRIVATE cbctrecon_test
     )
 
   target_include_directories(${ARGS_TARGET}
@@ -69,6 +73,16 @@ function(add_cbctrecon_test)
     COMMAND ${VG_COMM} $<TARGET_FILE:${ARGS_TARGET}> ${ARGS_DATA_ARGS}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 	)
+
+  set_tests_properties(${ARGS_TARGET} PROPERTIES TIMEOUT 6000)
+
+  install(TARGETS ${ARGS_TARGET}
+    RUNTIME DESTINATION bin
+    )
+
+  if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
+    target_link_libraries(${ARGS_TARGET} PRIVATE gcov)
+  endif()
 
 endfunction()
 

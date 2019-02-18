@@ -21,8 +21,9 @@ function(unpack_ext_data)
   )
 endfunction()
 
+
 set(test_target
-  CbctRecon_test
+  cbctrecon_test
   )
 
 set(${test_target}_SRC
@@ -30,24 +31,18 @@ set(${test_target}_SRC
   cbctrecon_test.hpp
   )
 
-set(${test_target}_DATA
-  DATA{Input/Alderson/CT.tar.gz}
-  DATA{Input/Alderson/CBCT.tar.gz}
-  # DATA{Input/Alderson/CT/,REGEX:.*}
-  # DATA{Input/Alderson/CBCT/,RECURSE:,REGEX:.*}
-  )
-  
-add_cbctrecon_test(
-    TARGET "${test_target}"
-    SRC_FILES "${${test_target}_SRC}"
-    DATA_ARGS "${${test_target}_DATA}"
+add_library(${test_target}
+  ${${test_target}_SRC})
+
+target_link_libraries(${test_target}
+  PUBLIC CbctReconLib
   )
 
-set_tests_properties(${test_target} PROPERTIES TIMEOUT 6000)
-
-install(TARGETS ${test_target}
-  RUNTIME DESTINATION bin
+target_include_directories(${test_target}
+  PUBLIC ${CBCTRECON_INCLUDE_DIRS}
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
   )
+
 
 if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
   include(CodeCoverage)
@@ -59,6 +54,22 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
     )
   target_link_libraries(${test_target} PRIVATE gcov)
 endif()
+
+# Test: End 2 End
+
+set(test_target
+    test_end_to_end
+    )
+
+set(${test_target}_DATA
+  DATA{Input/Alderson/CT.tar.gz}
+  DATA{Input/Alderson/CBCT.tar.gz}
+  )
+  
+add_cbctrecon_test(
+  TARGET ${test_target}
+  DATA_ARGS ${${test_target}_DATA}
+  )
 
 set(TAR_OUTPUT_PATH ${CMAKE_BINARY_DIR}/ExternalData/Testing/Input/Alderson)
 set(TAR_FILE ${TAR_OUTPUT_PATH}/CT.tar.gz)
@@ -81,3 +92,17 @@ unpack_ext_data(
   TAR_SUBOUTPUT ${TAR_SUBOUTPUT}
   )
 
+# Test: Reading Dicom files
+
+set(test_target
+  test_dcm_reader
+  )
+
+set(${test_target}_DATA
+  DATA{Input/Alderson/CT.tar.gz}
+  )
+
+add_cbctrecon_test(
+  TARGET ${test_target}
+  DATA_ARGS ${${test_target}_DATA}
+  )
