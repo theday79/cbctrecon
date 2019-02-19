@@ -6,7 +6,6 @@
 #endif // OF
 #include "gdcmAttribute.h"
 
-#include "StructureSet.h"
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 

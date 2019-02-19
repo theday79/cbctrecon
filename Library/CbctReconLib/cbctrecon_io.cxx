@@ -401,8 +401,8 @@ DCM_MODALITY get_dcm_modality(const QString &filename) {
     std::cerr << "Reading dicom: " << filename.toStdString() << " failed!\n";
     return RTUNKNOWN;
   }
-  gdcm::File &file = reader.GetFile();
-  gdcm::DataSet &ds = file.GetDataSet();
+  auto &file = reader.GetFile();
+  auto &ds = file.GetDataSet();
   gdcm::Attribute<0x0008, 0x0060> at_modality;
   at_modality.SetFromDataElement(
       ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::GetTag()));
@@ -436,11 +436,12 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
     return nullptr;
   }
 
-  gdcm::File &file = reader.GetFile();
-  gdcm::DataSet &ds = file.GetDataSet();
+  auto &file = reader.GetFile();
+  auto &ds = file.GetDataSet();
 
   gdcm::Attribute<0x0008, 0x0060> at_modality;
-  at_modality.SetFromDataElement(ds.GetDataElement(at_modality.GetTag()));
+  at_modality.SetFromDataElement(ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::
+                                                   GetTag()));
   const auto modality = at_modality.GetValue();
   if (modality != "RTSTRUCT") {
     std::cerr << "Modality was not RTSTRUCT, it was: " << modality << "\n";
@@ -505,7 +506,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
           static_cast<unsigned long>(at_contour_number_of_points.GetValue());
 
       auto at_contour_points = gdcm_attribute_from<0x3006, 0x0050>(it_contour);
-      const auto points = at_contour_points.GetValues();
+      const auto &points = at_contour_points.GetValues();
 
       rt_contour->coordinates.resize(rt_contour->num_vertices);
 
