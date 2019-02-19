@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 // For testing CbctRecon
 
@@ -83,7 +84,8 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
   return nullptr;
 }
 
-bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
+bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
+                                               bool reconstruct) {
   // this->ui.pushButton_DoRecon->setDisabled(true);
   // 1) Get all projection file names
   auto dirPath = proj_path; // this->ui.lineEdit_HisDirPath->text();
@@ -147,7 +149,6 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
                 << "\n";
       return false;
     }
-
   }
 
   auto angle_gaps = this->m_cbctrecon->m_spFullGeometry->GetAngularGaps(
@@ -163,7 +164,6 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
 
   const auto gantryAngleInterval = 1.0;
   // this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
-
 
   const auto exclude_ids = this->m_cbctrecon->GetExcludeProjFiles(
       false /*this->ui.Radio_ManualProjAngleGap->isChecked()*/,
@@ -205,14 +205,11 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
     test_DoBowtieCorrection();
   }
   auto &proj_ref = this->m_cbctrecon->m_spProjImg3DFloat;
-  auto save_proj_thread =
-      std::thread([&proj_ref]() { saveImageAsMHA<FloatImageType>(proj_ref); });
+
   auto res_factor = 0.5;
-  // this->ui.lineEdit_DownResolFactor->text().toDouble();
   if (!this->m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
     // reset factor if image was not resampled
     std::cerr << "Could not resample projection size!\n";
-    // this->ui.lineEdit_DownResolFactor->setText("1.0");
   }
 
   this->m_cbctrecon->ConvertLineInt2Intensity(
@@ -230,10 +227,9 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
 
   this->test_DrawProjImages(); // Update Table is called
 
-  if (!std::get<0>(answers)) { // instaRecon
-    std::cerr
-        << "FINISHED!: Loading projection files. Proceed to reconstruction"
-        << "\n";
+  if (!reconstruct) { //! std::get<0>(answers)) { // instaRecon
+    std::cerr << "FINISHED!: Loading projection files."
+              << "\n";
   } else {
     test_DoReconstruction();
   }
@@ -241,7 +237,6 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path) {
   if (std::get<1>(answers)) { // CT DCM dir was found
     test_ViewRegistration();
   }
-  save_proj_thread.join();
   return true;
 }
 
@@ -330,7 +325,8 @@ void CbctReconTest::test_DoReconstruction() {
 #else
   const bool use_cuda = false;
 #endif
-  const auto use_opencl = false; // prefer CPU because we usually run tests in dockers without gpu's
+  const auto use_opencl =
+      false; // prefer CPU because we usually run tests in dockers without gpu's
 
   if (use_cuda) {
     this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,

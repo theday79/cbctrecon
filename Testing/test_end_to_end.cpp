@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 // For testing CbctRecon
 
@@ -20,12 +21,12 @@
 
 #include "cbctrecon_test.hpp"
 
-
 int main(const int argc, char *argv[]) {
 
   if (argc < 3) {
     std::cerr << "Usage:\n"
-              << argv[0] << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
+              << argv[0]
+              << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
     return -1;
   }
 
@@ -53,7 +54,8 @@ int main(const int argc, char *argv[]) {
   }
 
   /* Load projections (Needs to be uploaded to girder first) */
-  auto cbct_dir_str = QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
+  auto cbct_dir_str =
+      QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
   auto cbct_dir = QDir(cbct_dir_str);
   auto cbct_path = cbct_dir.absolutePath();
   if (!cbct_dir.exists()) {
@@ -76,7 +78,7 @@ int main(const int argc, char *argv[]) {
   cbctrecon_test->test_SetHisDir(proj_path);
 
   auto start_time = std::chrono::steady_clock::now();
-  if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path)) {
+  if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path, true)) {
     std::cerr << "Could not load or reconstruct CB projections!"
               << "\n";
     return -4;

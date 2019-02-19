@@ -55,17 +55,16 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
   target_link_libraries(${test_target} PRIVATE gcov)
 endif()
 
-# Test: End 2 End
+# Test: Reading Dicom files
 
 set(test_target
-    test_end_to_end
-    )
+  test_dcm_reader
+  )
 
 set(${test_target}_DATA
   DATA{Input/Alderson/CT.tar.gz}
-  DATA{Input/Alderson/CBCT.tar.gz}
   )
-  
+
 add_cbctrecon_test(
   TARGET ${test_target}
   DATA_ARGS ${${test_target}_DATA}
@@ -82,6 +81,22 @@ unpack_ext_data(
   TAR_SUBOUTPUT ${TAR_SUBOUTPUT}
   )
 
+# Test: CB projection reader
+
+set(test_target
+    test_cb_reader
+    )
+
+set(${test_target}_DATA
+  DATA{Input/Alderson/CBCT.tar.gz}
+  DATA{Baseline/Alderson/CBproj.mha}
+  )
+
+add_cbctrecon_test(
+  TARGET ${test_target}
+  DATA_ARGS ${${test_target}_DATA}
+  )
+
 set(TAR_FILE ${TAR_OUTPUT_PATH}/CBCT.tar.gz)
 set(TAR_SUBOUTPUT CBCT)
 
@@ -92,16 +107,17 @@ unpack_ext_data(
   TAR_SUBOUTPUT ${TAR_SUBOUTPUT}
   )
 
-# Test: Reading Dicom files
+# Test: End 2 End
 
 set(test_target
-  test_dcm_reader
-  )
+    test_end_to_end
+    )
 
 set(${test_target}_DATA
   DATA{Input/Alderson/CT.tar.gz}
+  DATA{Input/Alderson/CBCT.tar.gz}
   )
-
+  
 add_cbctrecon_test(
   TARGET ${test_target}
   DATA_ARGS ${${test_target}_DATA}
