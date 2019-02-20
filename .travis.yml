@@ -10,7 +10,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-5', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt5-default']
-      env: TOOLSET=g++-5 LLVM_VERSION=3.9 LLVM_CONFIG_BINARY=/usr/bin/llvm-config-3.9
+      env: TOOLSET=g++-5
 
     - os: linux
       dist: trusty
