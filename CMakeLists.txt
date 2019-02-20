@@ -38,7 +38,7 @@ OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't 
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
-if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_BUILD_TESTS AND USE_CUDA)
+if(CMAKE_COMPILER_IS_GNUCXX AND ${CBCTRECON_BUILD_TESTS} AND ${USE_CUDA})
   set(TMP_COVERAGE ON)  # gcov requires gcc and tests to be build.
   # CUDA is to only do this on private GitLab runners and to enable most routes
 endif()

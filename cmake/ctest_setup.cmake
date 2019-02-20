@@ -80,7 +80,7 @@ function(add_cbctrecon_test)
     RUNTIME DESTINATION bin
     )
 
-  if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
+  if(CBCTRECON_COVERAGE)
     target_link_libraries(${ARGS_TARGET} PRIVATE gcov)
   endif()
 

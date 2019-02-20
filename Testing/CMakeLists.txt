@@ -44,15 +44,14 @@ target_include_directories(${test_target}
   )
 
 
-if(CMAKE_COMPILER_IS_GNUCXX AND CBCTRECON_COVERAGE)
-  include(CodeCoverage)
+if(CBCTRECON_COVERAGE)
   setup_target_for_coverage(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    NAME CbctReconLib_coverage
-    SOURCES Library/CbctReconLib/*
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    NAME CbctRecon_coverage
+    SOURCES
+      Library/CbctReconLib/*
     COLLECT_EXISTING
     )
-  target_link_libraries(${test_target} PRIVATE gcov)
 endif()
 
 # Test: Reading Dicom files

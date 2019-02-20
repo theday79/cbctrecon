@@ -256,6 +256,7 @@ void CbctReconTest::test_LoadDICOMdir() const {
                                               REGISTER_MANUAL_RIGID);
   }
 }
+
 void CbctReconTest::test_LoadRTKoutput() {}
 void CbctReconTest::test_DrawRawImages() const {}
 void CbctReconTest::test_DrawProjImages() {}
