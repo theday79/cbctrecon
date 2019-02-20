@@ -17,16 +17,20 @@ public:
   AG17RGBAImage *m_pRGBAImage;
   QRect m_Rt;
   std::vector<QPoint> m_vPt;
+  std::vector<QPoint> m_vPt_green;
   bool m_bDrawPoints;
   int m_iMouseWheelDelta;
 
   bool m_bFocusIn;
 
-public:
-  qyklabel(QWidget *parent);
+  explicit qyklabel(QWidget *parent);
   ~qyklabel() override;
+  qyklabel(const qyklabel &) = delete;
+  void operator=(const qyklabel &) = delete;
+  qyklabel(qyklabel &&) = delete;
+  void operator=(qyklabel &&) = delete;
 
-  bool isFocusIn() { return m_bFocusIn; }
+  bool isFocusIn() const { return m_bFocusIn; }
 
   // virtual function reimplementation
   void
@@ -51,22 +55,22 @@ public:
   void ConvertAndCopyPoints(std::vector<QPoint> &vSrcPoint, int iDataWidth,
                             int iDataHeight);
 
-  QPoint View2Data(QPoint viewPt, int viewWidth, int viewHeight, int dataWidth,
-                   int dataHeight);
+  QPoint View2Data(QPoint view_pt, int view_width, int view_height,
+                   int data_width, int data_height) const;
   QPoint View2DataExt(QPoint viewPt, int viewWidth, int viewHeight,
                       int dataWidth, int dataHeight, QPoint ptDataOffset,
-                      double fUserZoom);
-  QPoint Data2View(QPoint dataPt, int viewWidth, int viewHeight, int dataWidth,
-                   int dataHeight);
+                      double fUserZoom) const;
+  QPoint Data2View(QPoint data_pt, int view_width, int view_height,
+                   int data_width, int data_height) const;
   QPoint Data2ViewExt(QPoint dataPt, int viewWidth, int viewHeight,
                       int dataWidth, int dataHeight, QPoint ptDataOffset,
-                      double fUserZoom);
+                      double fUserZoom) const;
 
-  QPoint GetDataPtFromMousePos(); // Return data position of the mouse
-                                  // position.m_pYK16 image is mandatory
-  QPoint GetDataPtFromViewPt(int viewPtX, int viewPtY);
+  QPoint GetDataPtFromMousePos() const; // Return data position of the mouse
+                                        // position.m_pYK16 image is mandatory
+  QPoint GetDataPtFromViewPt(int viewPtX, int viewPtY) const;
 
-  QPoint GetViewPtFromDataPt(int dataPtX, int dataPtY);
+  QPoint GetViewPtFromDataPt(int dataPtX, int dataPtY) const;
 
 protected:
   void paintEvent(QPaintEvent * /*unused*/) override;
@@ -88,8 +92,6 @@ signals:
 
 public slots:
   void SetDrawPointToggle(bool bToggle);
-
-private:
 };
 
 #endif // QYKLABEL_H

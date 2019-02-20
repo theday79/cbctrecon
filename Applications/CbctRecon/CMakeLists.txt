@@ -1,14 +1,12 @@
 ### The main application ###
+set(CMAKE_CXX_STARDARD 14) # only for this sub directory
+# dlib headers are not ready for 17
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOUIC_SEARCH_PATHS
-  ${CMAKE_AUTOUIC_SEARCH_PATHS}
-  ${CMAKE_CURRENT_SOURCE_DIR}/ui
-  )
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
+# set(CMAKE_AUTOMOC ON)
+# set(CMAKE_AUTOUIC ON)
+# set(CMAKE_AUTORCC ON)
 
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH bin)
@@ -21,54 +19,21 @@ option(CbctRecon_PACKAGE_WIX "Set to ON when packaging binaries with WIX" ON)
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
-configure_file (
-  ${CMAKE_CURRENT_SOURCE_DIR}/cbctrecon_config.h.in
-  ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
-)
-
 ############## Qt start wrapping ##############
-SET(CbctRecon_SOURCES
-  cbctrecon.cpp
-  qt-utils/YK16GrayImage.cxx
-  qt-utils/AG17RGBAImage.cxx
+set(CbctReconExe_SOURCES
+  cbctrecon_mainwidget.cxx
+  DlgRegistration.cxx
+  DlgExternalCommand.cxx
   qt-utils/qyklabel.cpp
   qt-utils/qcustomplot.cpp
-  DlgRegistration.cxx
-  StructureSet.cxx
-  PlmWrapper.cxx
-  DlgExternalCommand.cxx
-  rtkExtension/rtkOpenCLUtilities.cxx
-  rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
-  OpenCLFFTFilter.cxx
   CMakeSetup.rc
 )
 
-SET(CbctRecon_NonQt_HEADERS
-  qt-utils/YK16GrayImage.h
-  qt-utils/AG17RGBAImage.h
-  PlmWrapper.h
-  StructureSet.h
-  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
-  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.hxx
-  rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
-  rtkExtension/rtkOpenCLFFTRampImageFilter.h
-  rtkExtension/rtkOpenCLFFTConvolutionImageFilter.h
-  rtkExtension/rtkOpenCLFFTConvolutionImageFilter.hxx
-  rtkExtension/itkOpenCLImageToImageFilter.h
-  rtkExtension/itkOpenCLImageToImageFilter.hxx
-  rtkExtension/rtkOpenCLUtilities.h
-  OpenCLFFTFilter.h
-  io.hxx
-  compute.hxx
-  fdk.hxx
-  ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
-)
-
 SET(CbctRecon_HEADERS
-  cbctrecon.h
+  cbctrecon_mainwidget.h
+  DlgRegistration.h
   qt-utils/qyklabel.h
   qt-utils/qcustomplot.h
-  DlgRegistration.h
   DlgExternalCommand.h
 )
 SET(CbctRecon_FORMS
@@ -86,30 +51,20 @@ set(CBCTRECON_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/ui
   ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils
-  ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension
-  )
-
-if(MSVC AND NOT(MSVC_VERSION LESS 1400))
-  set_source_files_properties(cbctrecon.cpp
-    PROPERTIES COMPILE_FLAGS "/bigobj")
-endif()
-
-if(CBCTRECON_BUILD_SHARED_LIBS)
-  set(SHARED_FLAG SHARED)
-endif()
-
-add_library(CbctReconLib ${SHARED_FLAG}
-  ${CbctRecon_SOURCES}
-  ${CbctRecon_NonQt_HEADERS}
-  ${CbctRecon_HEADERS_MOC}
-  ${CbctRecon_FORMS_HEADERS}
-  ${CbctRecon_RCC}
   )
 
 # Executable
 add_executable(CbctRecon
   main.cpp
+  ${CbctReconExe_SOURCES}
+  ${CbctRecon_HEADERS}
+  ${CbctRecon_HEADERS_MOC}
+  ${CbctRecon_FORMS_HEADERS}
+  ${CbctRecon_RCC}
 )
+
+# Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
+set_target_cpu_flags(CbctRecon)
 
 set_target_properties(CbctRecon
   PROPERTIES
@@ -150,42 +105,15 @@ set(CBCTRECON_DEP_INCLUDES
   ${CLFFT_INCLUDE_DIRS}
 )
 
-target_include_directories(CbctReconLib
-  PUBLIC ${CBCTRECON_DEP_INCLUDES}
-  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-)
-
 target_include_directories(CbctRecon
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 #this is for "Linker->Additional dependencies"
-target_link_libraries(CbctReconLib
-  PUBLIC ${PLM_TARGETS}
-  PUBLIC ${CBCTRECON_DEP_LIBS}
-)
 target_link_libraries(CbctRecon
   PRIVATE CbctReconLib
 )
-if(USE_TINYREFL)
-  include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
-  if(EXISTS ${GEN_UI_HEADER_DIR}/ui_cbctrecon.h
-     AND NOT is_multi_config)
-    tinyrefl_tool(
-      TARGET CbctReconLib
-      HEADERS cbctrecon.h
-      COMPILE_OPTIONS -fPIC
-      )
-  elseif(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/ui_cbctrecon.h
-     AND is_multi_config)
-    tinyrefl_tool(
-      TARGET CbctReconLib
-      HEADERS cbctrecon.h
-      COMPILE_OPTIONS -fPIC
-      )
-  endif()
-endif()
 
 ############## INSTALL ##############
 ## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
@@ -223,7 +151,7 @@ endif()
 
 
 
-install( TARGETS CbctRecon CbctReconLib
+install( TARGETS CbctRecon
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -231,13 +159,15 @@ install( TARGETS CbctRecon CbctReconLib
   RESOURCE DESTINATION bin/ui
   )
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/ui/style.qss DESTINATION bin/ui)
 
 ##-----------------------------------------------------------------------------
 ##  Additional install files
 ##-----------------------------------------------------------------------------
 if(WIN32)
+  if(NOT USE_SYSTEM_QT)
+    hunter_add_package(Qt COMPONENTS qttools)
+  endif()
   include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/WindeployQt.cmake)
   if($<CONFIG:Debug>)
     windeployqt(CbctRecon "debug" "${CMAKE_CURRENT_BINARY_DIR}/QtLibs")
@@ -257,57 +187,6 @@ if(WIN32)
   endif(OPENMP_FOUND)
   include(InstallRequiredSystemLibraries)
 
-  if(CUDA_FOUND)
-    set (DLL_PATTERNS "cufft64*.dll" "cublas64*.dll" "cudart64*.dll")
-    foreach (p ${DLL_PATTERNS})
-    file (GLOB DLLFILES "${CUDA_TOOLKIT_ROOT_DIR}/bin/${p}")
-    if(DLLFILES)
-      install (FILES ${DLLFILES} DESTINATION bin)
-    endif()
-    endforeach ()
-  endif()
-
-  if(ITK_FOUND)
-    # ITK*.dll might not include RTK_AS_ITK_EXTERNAL libs
-    set (DLL_PATTERNS "*.dll")
-    foreach (p ${DLL_PATTERNS})
-      file (GLOB DLLFILES "${ITK_DIR}/bin/release/${p}")
-      if(DLLFILES)
-        install (FILES ${DLLFILES} DESTINATION bin)
-      endif()
-    endforeach ()
-  endif()
-
-  if(RTK_FOUND)
-    install (FILES ${RTK_DIR}/bin/release/RTK.dll DESTINATION bin)
-    install (FILES ${RTK_DIR}/bin/release/rtkcuda.dll DESTINATION bin)
-    install (FILES ${RTK_DIR}/bin/release/ITKCudaCommon.dll DESTINATION bin)
-    install (FILES ${RTK_DIR}/bin/release/lpsolve55.dll DESTINATION bin) #is 55 a version number?
-  endif()
-
-  if(Plastimatch_FOUND)
-    set (DLL_PATTERNS "plm*.dll" "")
-    foreach (p ${DLL_PATTERNS})
-      file (GLOB DLLFILES "${Plastimatch_BUILD_DIR}/release/${p}")
-      if(DLLFILES)
-        install (FILES ${DLLFILES} DESTINATION bin)
-      endif()
-    endforeach ()
-  endif()
-
-  if(USE_CLFFT)
-    install (FILES ${CLFFT_ROOT_DIR}/bin/clFFT.dll DESTINATION bin)
-  endif()
-
-  #Add FFT dlls to Install
-  if(FFTW_FOUND)
-    if(EXISTS "${FFTW_DIR}/libfftw3-3.dll")
-      install (FILES "${FFTW_DIR}/libfftw3-3.dll" DESTINATION bin)
-    endif()
-    if(EXISTS "${FFTW_DIR}/libfftw3f-3.dll")
-      install (FILES "${FFTW_DIR}/libfftw3f-3.dll" DESTINATION bin)
-    endif()
-  endif()
 endif()
 
 ##-----------------------------------------------------------------------------

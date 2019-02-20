@@ -1,7 +1,16 @@
-#include "DlgExternalCommand.h"
-#include "DlgRegistration.h"
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
+// Qt
 #include <QFileDialog>
 #include <QProcess>
+
+// Local
+#include "DlgExternalCommand.h"
+#include "DlgRegistration.h"
+#include "cbctrecon_io.h"
+#include "cbctrecon_mainwidget.h"
+#include "cbctregistration.h"
 
 DlgExternalCommand::DlgExternalCommand() {
   /* Sets up the GUI */
@@ -11,7 +20,7 @@ DlgExternalCommand::DlgExternalCommand() {
 DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent) {
   /* Sets up the GUI */
   ui.setupUi(this);
-  m_pParent = dynamic_cast<CbctRecon *>(parent);
+  m_pParent = dynamic_cast<CbctReconWidget *>(parent);
 
   // int len = BuildRTKCommandFilter();
 }
@@ -19,7 +28,7 @@ DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent) {
 DlgExternalCommand::~DlgExternalCommand() = default;
 
 void DlgExternalCommand::SLT_SetRTKPath() {
-  QString dirPath = QFileDialog::getExistingDirectory(
+  auto dirPath = QFileDialog::getExistingDirectory(
       this, tr("Open RTK bin Directory"), "",
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
@@ -30,7 +39,7 @@ void DlgExternalCommand::SLT_SetRTKPath() {
 
 void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
   // If DIr is exist
-  QDir dirInfo = QDir(strDirPath);
+  auto dirInfo = QDir(strDirPath);
 
   if (!dirInfo.exists()) {
     std::cout << "ERROR! " << strDirPath.toLocal8Bit().constData()
@@ -48,19 +57,17 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
     return;
   }
 
-  int cnt = m_listRTKCommandFilter.length();
+  const auto cnt = m_listRTKCommandFilter.length();
 
-  QString tmpStrPath;
-
-  for (int i = 0; i < cnt; i++) {
-    QString strCommandFilter = m_listRTKCommandFilter.at(i);
-    tmpStrPath = m_strDirRTKBin;
+  for (auto i = 0; i < cnt; i++) {
+    const auto strCommandFilter = m_listRTKCommandFilter.at(i);
+    auto tmpStrPath = m_strDirRTKBin;
     tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
 
     std::cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
     std::cout << tmpStrPath.toLocal8Bit().constData() << std::endl;
 
-    QFileInfo fInfo = QFileInfo(tmpStrPath);
+    auto fInfo = QFileInfo(tmpStrPath);
     if (fInfo.exists()) // add combo
     {
       ui.comboBoxRTKOption->addItem(strCommandFilter);
@@ -69,8 +76,8 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
 }
 
 void DlgExternalCommand::SLT_GenRTKCommand() {
-  QString crntPath = ui.plainTextRTKPath->toPlainText();
-  QString crntCommand = ui.comboBoxRTKOption->currentText();
+  auto crntPath = ui.plainTextRTKPath->toPlainText();
+  auto crntCommand = ui.comboBoxRTKOption->currentText();
 
   QString strFinalCommandText;
 
@@ -80,8 +87,6 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     return;
   }
 
-  // QString strGeometry;
-  QString strOutput; // this should be member and unique //this is float format
   // QString strHardware;
   // QString strTruncation;
   // QString strHann;
@@ -95,7 +100,7 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   // QString strOutDirection; //no clue about what it is
 
   // geometry
-  QString str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
+  auto str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
 
   if (str_mainGeometry.length() < 1) {
     std::cout << "Command will not be valid. set geometry file path in the "
@@ -113,30 +118,33 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   }
 
   // QString str_mainTruncation;
-  double f_mainTrunc =
+  const auto f_mainTrunc =
       m_pParent->ui.lineEdit_Ramp_TruncationCorrection->text().toDouble();
-  double f_mainHann = m_pParent->ui.lineEdit_Ramp_HannCut->text().toDouble();
-  double f_mainHannY = m_pParent->ui.lineEdit_Ramp_HannCutY->text().toDouble();
+  const auto f_mainHann =
+      m_pParent->ui.lineEdit_Ramp_HannCut->text().toDouble();
+  const auto f_mainHannY =
+      m_pParent->ui.lineEdit_Ramp_HannCutY->text().toDouble();
 
-  QString str_mainProjPath = m_pParent->ui.lineEdit_HisDirPath->text();
+  const auto str_mainProjPath = m_pParent->ui.lineEdit_HisDirPath->text();
 
-  QString str_mainProjRegExp = ".*.his";
+  const auto str_mainProjRegExp = ".*.his";
 
-  QString str_mainDimension =
+  const auto str_mainDimension =
       QString("%1,%2,%3")
-          .arg(m_pParent->ui.lineEdit_outImgDim_AP->text())
-          .arg(m_pParent->ui.lineEdit_outImgDim_SI->text())
-          .arg(m_pParent->ui.lineEdit_outImgDim_LR->text());
+          .arg(m_pParent->ui.lineEdit_outImgDim_AP->text(),
+               m_pParent->ui.lineEdit_outImgDim_SI->text(),
+               m_pParent->ui.lineEdit_outImgDim_LR->text());
 
-  QString str_mainSpacing =
+  const auto str_mainSpacing =
       QString("%1,%2,%3")
-          .arg(m_pParent->ui.lineEdit_outImgSp_AP->text())
-          .arg(m_pParent->ui.lineEdit_outImgSp_SI->text())
-          .arg(m_pParent->ui.lineEdit_outImgSp_LR->text());
+          .arg(m_pParent->ui.lineEdit_outImgSp_AP->text(),
+               m_pParent->ui.lineEdit_outImgSp_SI->text(),
+               m_pParent->ui.lineEdit_outImgSp_LR->text());
 
-  QTime curTime = QTime::currentTime();
-  QString strTimeStamp = curTime.toString("hhmmss");
-  QDir tmpPlmDir = QDir(m_pParent->m_pDlgRegistration->m_strPathPlastimatch);
+  auto curTime = QTime::currentTime();
+  const auto strTimeStamp = curTime.toString("hhmmss");
+  auto tmpPlmDir = QDir(
+      m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
 
   if (!tmpPlmDir.exists()) {
     std::cout << "Error! No tmp plm path is available."
@@ -145,8 +153,8 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     return;
   }
 
-  strOutput = tmpPlmDir.absolutePath() + "/" + "ExternalRtk_" + crntCommand +
-              "_" + strTimeStamp + ".mha";
+  const auto strOutput = tmpPlmDir.absolutePath() + "/" + "ExternalRtk_" +
+                         crntCommand + "_" + strTimeStamp + ".mha";
 
   if (crntCommand == "rtkfdk") {
     // clang-format off
@@ -173,15 +181,15 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
           lineEditSARTsubsetproj*/
 
   else if (crntCommand == "rtksart") {
-    QString strIteration =
+    const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
-    QString strLamda = ui.lineEditSARTlamda->text()
-                           .trimmed(); // Convergence factor : default 0.3
-    QString strPositivity = ui.lineEditSARTpositivity->text()
-                                .trimmed(); // Enforces positivity
-                                            // during the reconstruction
-                                            // (default=off)",
-    QString strNprojpersubset =
+    const auto strLamda = ui.lineEditSARTlamda->text()
+                              .trimmed(); // Convergence factor : default 0.3
+    const auto strPositivity = ui.lineEditSARTpositivity->text()
+                                   .trimmed(); // Enforces positivity
+                                               // during the reconstruction
+                                               // (default=off)",
+    const auto strNprojpersubset =
         ui.lineEditSARTsubsetproj->text().trimmed(); // Number of projections
                                                      // processed between each
                                                      // update of the
@@ -225,14 +233,14 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
     //			lineEditTVbeta
     //		lineEditTVCGiter* /
 
-    QString strIteration =
+    const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
-    QString strTValpha = ui.lineEditTValpha->text()
-                             .trimmed(); // Convergence factor : default 0.3
-    QString strTVbeta =
+    const auto strTValpha = ui.lineEditTValpha->text()
+                                .trimmed(); // Convergence factor : default 0.3
+    const auto strTVbeta =
         ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
                                              // reconstruction (default=off)",
-    QString strTVCGiter =
+    const auto strTVCGiter =
         ui.lineEditTVCGiter->text().trimmed(); // Enforces positivity during the
                                                // reconstruction (default=off)",
     QString strFwdMethod = "Joseph";
@@ -265,19 +273,19 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 		" --output " + strOutput;
     // clang-format on
   } else if (crntCommand == "rtkadmmwavelets") {
-    QString strIteration =
+    const auto strIteration =
         ui.lineEditIteration->text().trimmed(); // niterations default 5
-    QString strTValpha = ui.lineEditTValpha->text()
-                             .trimmed(); // Convergence factor : default 0.3
-    QString strTVbeta =
+    const auto strTValpha = ui.lineEditTValpha->text()
+                                .trimmed(); // Convergence factor : default 0.3
+    const auto strTVbeta =
         ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
                                              // reconstruction (default=off)",
-    QString strTVCGiter =
+    const auto strTVCGiter =
         ui.lineEditTVCGiter->text().trimmed(); // Enforces positivity during the
                                                // reconstruction (default=off)",
 
-    QString strWVorder = ui.lineEditWVorder->text().trimmed();
-    QString strWVlevel = ui.lineEditWVlevel->text().trimmed();
+    const auto strWVorder = ui.lineEditWVorder->text().trimmed();
+    const auto strWVlevel = ui.lineEditWVlevel->text().trimmed();
     //"      --order=INT         The order of the Daubechies wavelets
     //(default=`3')", "      --levels=INT        The number of decomposition
     // levels in the wavelets \n                            transform
@@ -321,7 +329,8 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
 }
 
 void DlgExternalCommand::SLT_RunRTKCommand() {
-  QString strFinalExternalCommand = ui.plainTextRTKCommandLine->toPlainText();
+  const auto strFinalExternalCommand =
+      ui.plainTextRTKCommandLine->toPlainText();
   if (QProcess::execute(strFinalExternalCommand) < 0) {
     qDebug() << "Failed to run";
   }
@@ -329,14 +338,40 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
   std::cout << "External RTK reconstruction is done" << std::endl;
   std::cout << "File is being loaded" << std::endl;
 
-  m_pParent->LoadExternalFloatImage(m_strRecentOutputPath,
-                                    true); // true: conversion (float, direction
+  m_pParent->m_cbctrecon->LoadExternalFloatImage(
+      m_strRecentOutputPath,
+      true); // true: conversion (float, direction
 
   if (m_pParent->ui.checkBox_PostMedianOn->isChecked()) {
-    m_pParent->MedianFilterByGUI(); // applied to raw image
+    UShortImageType::SizeType indexRadius{};
+    indexRadius[0] =
+        m_pParent->ui.lineEdit_PostMedSizeX->text().toInt(); // radius along x
+    indexRadius[1] =
+        m_pParent->ui.lineEdit_PostMedSizeY->text().toInt(); // radius along y
+    indexRadius[2] =
+        m_pParent->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along y
+    m_pParent->m_cbctrecon->MedianFilterByGUI(
+        indexRadius); // applied to raw image
   }
 
-  m_pParent->FileExportByGUI(); // applied to raw image
+  auto outputFilePath = this->m_pParent->ui.lineEdit_OutputFilePath->text();
+  QFileInfo outFileInfo(outputFilePath);
+  auto outFileDir = outFileInfo.absoluteDir();
+
+  // bool b = outFileDir.exists();
+  // QString tmpPath = outFileDir.absolutePath();
+
+  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
+    std::cout << "No available output path. Should be exported later"
+              << std::endl;
+  } else {
+    saveImageAsMHA<UShortImageType>(
+        this->m_pParent->m_cbctrecon->m_spRawReconImg,
+        outputFilePath.toStdString());
+
+    std::cout << "Wrote the image to: " << outputFilePath.toStdString()
+              << std::endl;
+  }
 }
 
 int DlgExternalCommand::BuildRTKCommandFilter() // called when it is created
@@ -352,11 +387,11 @@ int DlgExternalCommand::BuildRTKCommandFilter() // called when it is created
   // m_listRTKCommandFilter.push_back("rtktotalvariationdenoising");
   // m_listRTKCommandFilter.push_back("rtkwaveletsdenoising");
 
-  return (m_listRTKCommandFilter.length());
+  return m_listRTKCommandFilter.length();
 }
 
 void DlgExternalCommand::SLT_SetRTKPathManual() // apply button
 {
-  QString tmpPlainText = ui.plainTextRTKPath->toPlainText();
+  auto tmpPlainText = ui.plainTextRTKPath->toPlainText();
   SetRTKBinPath(tmpPlainText);
 }

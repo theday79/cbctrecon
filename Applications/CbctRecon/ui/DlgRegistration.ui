@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1316</width>
-    <height>582</height>
+    <width>1530</width>
+    <height>809</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -67,51 +67,117 @@
          <widget class="QToolBox" name="toolBox">
           <property name="minimumSize">
            <size>
-            <width>400</width>
-            <height>350</height>
+            <width>420</width>
+            <height>592</height>
            </size>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="page">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>385</width>
-             <height>460</height>
+             <width>420</width>
+             <height>631</height>
             </rect>
            </property>
            <attribute name="label">
             <string>Prepare CBCT and CT</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_9">
-            <item row="12" column="1">
-             <widget class="QLineEdit" name="lineEditCropContourName">
+            <item row="3" column="1" colspan="2">
+             <widget class="QLabel" name="label_38">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>Skin</string>
+               <string>skin</string>
               </property>
              </widget>
             </item>
-            <item row="0" column="2" rowspan="2">
-             <widget class="QLabel" name="label_36">
+            <item row="4" column="1" colspan="2">
+             <widget class="QLineEdit" name="lineEditBubDetectCBCT">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>Fill</string>
+               <string>500</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="1">
+            <item row="11" column="1" colspan="2">
+             <widget class="QLabel" name="label_33">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Detect</string>
+              </property>
+             </widget>
+            </item>
+            <item row="18" column="1" colspan="2">
+             <widget class="QSpinBox" name="spinBox_overrideRadius">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>10</number>
+              </property>
+              <property name="value">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0" colspan="2">
+             <widget class="QLabel" name="label_47">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>FOV Center X,Y, Radius (mm)</string>
+              </property>
+             </widget>
+            </item>
+            <item row="13" column="1" colspan="2">
+             <widget class="QLineEdit" name="lineEditBkDetectCT">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>-600</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1" rowspan="2" colspan="2">
+             <widget class="QLabel" name="label_35">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Detect</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1" colspan="2">
              <widget class="QLineEdit" name="lineEditCBCTSkinCropBfRegid">
               <property name="font">
                <font>
@@ -123,7 +189,91 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
+            <item row="8" column="1" colspan="2">
+             <widget class="QLineEdit" name="lineEditNormRoiRadius">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>30</string>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="1" colspan="2">
+             <widget class="QLineEdit" name="lineEditCropContourName">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Skin</string>
+              </property>
+             </widget>
+            </item>
+            <item row="19" column="1" colspan="2">
+             <widget class="QSpinBox" name="spinBox_overrideValue">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="minimum">
+               <number>-1024</number>
+              </property>
+              <property name="maximum">
+               <number>1024</number>
+              </property>
+             </widget>
+            </item>
+            <item row="12" column="1" colspan="2">
+             <widget class="QLabel" name="label_37">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>skin</string>
+              </property>
+             </widget>
+            </item>
+            <item row="16" column="0" colspan="4">
+             <widget class="Line" name="line_4">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="17" column="0">
+             <widget class="QLabel" name="label_8">
+              <property name="text">
+               <string>Manual modification</string>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0" colspan="4">
+             <widget class="Line" name="line_5">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="0">
+             <widget class="QLabel" name="label_49">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Ref. Radius(mm)</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
              <widget class="QCheckBox" name="checkBoxFillBubbleCBCT">
               <property name="font">
                <font>
@@ -138,69 +288,19 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label_49">
+            <item row="0" column="3" rowspan="2">
+             <widget class="QLabel" name="label_36">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>Ref. Radius(mm)</string>
+               <string>Fill</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QLabel" name="label_38">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>skin</string>
-              </property>
-             </widget>
-            </item>
-            <item row="10" column="1">
-             <widget class="QLabel" name="label_37">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>skin</string>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="1">
-             <spacer name="verticalSpacer_4">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="9" column="0">
-             <widget class="QLabel" name="label_7">
-              <property name="font">
-               <font>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>CT</string>
-              </property>
-             </widget>
-            </item>
-            <item row="16" column="2">
+            <item row="19" column="3">
              <widget class="QPushButton" name="pushButton_override">
               <property name="font">
                <font>
@@ -225,19 +325,20 @@
               </property>
              </widget>
             </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label_47">
+            <item row="11" column="0">
+             <widget class="QLabel" name="label_7">
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>FOV Center X,Y, Radius (mm)</string>
+               <string>CT</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="2">
+            <item row="4" column="3">
              <widget class="QLineEdit" name="lineEditBubFillCBCT">
               <property name="font">
                <font>
@@ -249,7 +350,7 @@
               </property>
              </widget>
             </item>
-            <item row="15" column="2">
+            <item row="18" column="3">
              <widget class="QComboBox" name="comboBox_imToOverride">
               <property name="font">
                <font>
@@ -268,7 +369,7 @@
               </item>
              </widget>
             </item>
-            <item row="6" column="1" colspan="2">
+            <item row="7" column="2" colspan="2">
              <widget class="QLineEdit" name="lineEditFOVPos">
               <property name="font">
                <font>
@@ -280,31 +381,7 @@
               </property>
              </widget>
             </item>
-            <item row="12" column="2">
-             <widget class="QPushButton" name="pushButtonProcessCT">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Process</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1" rowspan="2">
-             <widget class="QLabel" name="label_35">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Detect</string>
-              </property>
-             </widget>
-            </item>
-            <item row="11" column="2">
+            <item row="13" column="3">
              <widget class="QLineEdit" name="lineEditBubFillCT">
               <property name="font">
                <font>
@@ -316,7 +393,19 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="0">
+            <item row="14" column="3">
+             <widget class="QPushButton" name="pushButtonProcessCT">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Process</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="0">
              <widget class="QLabel" name="label_48">
               <property name="font">
                <font>
@@ -328,7 +417,7 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="2">
+            <item row="8" column="3">
              <widget class="QPushButton" name="pushButtonIntensityNormCBCT">
               <property name="font">
                <font>
@@ -342,34 +431,7 @@
               </property>
              </widget>
             </item>
-            <item row="16" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Value [HU]</string>
-              </property>
-             </widget>
-            </item>
-            <item row="11" column="0">
-             <widget class="QCheckBox" name="checkBoxFillBubbleCT">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Fill bubble</string>
-              </property>
-              <property name="checked">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="2">
+            <item row="11" column="3">
              <widget class="QLabel" name="label_34">
               <property name="font">
                <font>
@@ -381,7 +443,19 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="19" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Value [HU]</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
              <widget class="QCheckBox" name="checkBoxCropBkgroundCBCT">
               <property name="font">
                <font>
@@ -396,37 +470,22 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="2">
-             <widget class="QLineEdit" name="lineEditBkFillCBCT">
+            <item row="13" column="0">
+             <widget class="QCheckBox" name="checkBoxFillBubbleCT">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>0</string>
+               <string>Fill bubble</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
               </property>
              </widget>
             </item>
-            <item row="15" column="1">
-             <widget class="QSpinBox" name="spinBox_overrideRadius">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>10</number>
-              </property>
-              <property name="value">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="12" column="0">
+            <item row="14" column="0">
              <widget class="QLabel" name="label_43">
               <property name="font">
                <font>
@@ -438,46 +497,19 @@
               </property>
              </widget>
             </item>
-            <item row="11" column="1">
-             <widget class="QLineEdit" name="lineEditBkDetectCT">
+            <item row="3" column="3">
+             <widget class="QLineEdit" name="lineEditBkFillCBCT">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>-600</string>
+               <string>0</string>
               </property>
              </widget>
             </item>
-            <item row="16" column="1">
-             <widget class="QSpinBox" name="spinBox_overrideValue">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="minimum">
-               <number>-1024</number>
-              </property>
-              <property name="maximum">
-               <number>1024</number>
-              </property>
-             </widget>
-            </item>
-            <item row="15" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Radius[voxel]</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
+            <item row="5" column="0">
              <widget class="QLabel" name="label_39">
               <property name="font">
                <font>
@@ -489,44 +521,7 @@
               </property>
              </widget>
             </item>
-            <item row="10" column="2">
-             <widget class="QLineEdit" name="lineEditBkFillCT">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>-1024</string>
-              </property>
-             </widget>
-            </item>
-            <item row="13" column="1">
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="9" column="1">
-             <widget class="QLabel" name="label_33">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Detect</string>
-              </property>
-             </widget>
-            </item>
-            <item row="10" column="0">
+            <item row="12" column="0">
              <widget class="QCheckBox" name="checkBoxCropBkgroundCT">
               <property name="font">
                <font>
@@ -541,36 +536,55 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
-             <widget class="QLineEdit" name="lineEditBubDetectCBCT">
+            <item row="18" column="0">
+             <widget class="QLabel" name="label_4">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>500</string>
+               <string>Radius[voxel]</string>
               </property>
              </widget>
             </item>
-            <item row="7" column="1">
-             <widget class="QLineEdit" name="lineEditNormRoiRadius">
+            <item row="12" column="3">
+             <widget class="QLineEdit" name="lineEditBkFillCT">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>30</string>
+               <string>-1024</string>
               </property>
              </widget>
             </item>
-            <item row="14" column="0">
-             <widget class="QLabel" name="label_8">
-              <property name="text">
-               <string>Manual modification</string>
+            <item row="15" column="0">
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
               </property>
-             </widget>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="9" column="0">
+             <spacer name="verticalSpacer_4">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
             </item>
            </layout>
           </widget>
@@ -579,185 +593,15 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>400</width>
-             <height>372</height>
+             <width>420</width>
+             <height>631</height>
             </rect>
            </property>
            <attribute name="label">
-            <string>Manual and Rigid Registration</string>
+            <string>Manual, Rigid and Deform Registration</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_12">
-            <item row="1" column="1">
-             <widget class="QPushButton" name="pushButtonMoveFromDCMPlan">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>DCM_plan</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="3">
-             <widget class="QPushButton" name="pushButtonConfirmManualRegi">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Crop Skin</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QLineEdit" name="lineEditGradOption">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>0.7,0.7,0.7</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="2">
-             <widget class="QLabel" name="label">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>mm</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label_41">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Crop skin  bf. DIR</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1" colspan="3">
-             <widget class="QLineEdit" name="lineEditOriginChanged">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_23">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Moving resolution</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="1" colspan="3">
-             <widget class="QPushButton" name="pushButtonDoRigid">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Do Rigid Registration</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="2" colspan="2">
-             <widget class="QPushButton" name="pushButtonRestoreOriginal">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Restore</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_19">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Moving origin</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QLineEdit" name="lineEditCBCTSkinCropBfDIR">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>8.0</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="0">
-             <widget class="QCheckBox" name="checkBoxUseROIForRigid">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Use FOV mask</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QPushButton" name="pushButtonGradSearch">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Gradient</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="2">
-             <widget class="QLabel" name="label_42">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>mm</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2" colspan="2">
+            <item row="2" column="4" colspan="2">
              <widget class="QPushButton" name="pushButtonMoveFromDCMPlanOpen">
               <property name="font">
                <font>
@@ -769,7 +613,31 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_23">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Moving resolution</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0">
+             <widget class="QLabel" name="label_41">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Crop skin  bf. DIR</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
              <widget class="QCheckBox" name="checkBoxKeyMoving">
               <property name="font">
                <font>
@@ -786,7 +654,90 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="1">
+            <item row="4" column="0">
+             <widget class="QPushButton" name="pushButtonGradSearch">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Gradient</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="4">
+             <widget class="QLabel" name="label">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2" colspan="4">
+             <widget class="QLineEdit" name="lineEditOriginChanged">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="4">
+             <widget class="QLabel" name="label_42">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="5">
+             <widget class="QPushButton" name="pushButtonConfirmManualRegi">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Crop Skin</string>
+              </property>
+             </widget>
+            </item>
+            <item row="18" column="2" colspan="4">
+             <widget class="QLineEdit" name="lineEditArgument2">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="2" colspan="2">
+             <widget class="QPushButton" name="pushButtonMoveFromDCMPlan">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>DCM_plan</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="2" colspan="2">
              <widget class="QLineEdit" name="lineEditMovingResol">
               <property name="font">
                <font>
@@ -798,51 +749,38 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="1">
-             <spacer name="verticalSpacer_3">
+            <item row="12" column="0" colspan="6">
+             <widget class="Line" name="line_3">
               <property name="orientation">
-               <enum>Qt::Vertical</enum>
+               <enum>Qt::Horizontal</enum>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
+             </widget>
             </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="page_4">
-           <attribute name="label">
-            <string>Deformable Registration</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_15">
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_28">
+            <item row="4" column="4" colspan="2">
+             <widget class="QPushButton" name="pushButtonRestoreOriginal">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>Step3</string>
+               <string>Restore</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="1" colspan="2">
-             <widget class="QLineEdit" name="lineEditArgument1">
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_19">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>2,2,1,30,0.00001,0.005,30</string>
+               <string>Moving origin</string>
               </property>
              </widget>
             </item>
-            <item row="6" column="1" colspan="2">
+            <item row="21" column="0" colspan="6">
              <widget class="QPushButton" name="pushButtonDoDeformable">
               <property name="font">
                <font>
@@ -856,7 +794,31 @@
               </property>
              </widget>
             </item>
-            <item row="6" column="0">
+            <item row="15" column="0">
+             <widget class="QLabel" name="label_25">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Optimization</string>
+              </property>
+             </widget>
+            </item>
+            <item row="19" column="2" colspan="4">
+             <widget class="QLineEdit" name="lineEditArgument3">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="4" colspan="2">
              <widget class="QCheckBox" name="checkBoxUseROIForDIR">
               <property name="font">
                <font>
@@ -871,82 +833,50 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="1" colspan="2">
-             <widget class="QLineEdit" name="lineEditArgument2">
+            <item row="4" column="2" colspan="2">
+             <widget class="QLineEdit" name="lineEditGradOption">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string/>
+               <string>0.7,0.7,0.7</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_26">
+            <item row="17" column="2" colspan="4">
+             <widget class="QLineEdit" name="lineEditArgument1">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>Step1</string>
+               <string>2,2,1,30,0.00001,0.005,30</string>
               </property>
              </widget>
             </item>
-            <item row="5" column="1" colspan="2">
-             <widget class="QLineEdit" name="lineEditArgument3">
+            <item row="6" column="0" colspan="6">
+             <widget class="Line" name="line_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="2" rowspan="2" colspan="4">
+             <widget class="QPushButton" name="pushButtonDoRigid">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string/>
+               <string>Do Rigid Registration</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_27">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Step2</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0" rowspan="2">
-             <widget class="QLabel" name="label_25">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Optimization</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1" rowspan="2">
-             <widget class="QRadioButton" name="radioButton_mi">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>MI</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2" rowspan="2">
+            <item row="15" column="3">
              <widget class="QRadioButton" name="radioButton_mse">
               <property name="font">
                <font>
@@ -961,9 +891,160 @@
               </property>
              </widget>
             </item>
+            <item row="10" column="0" rowspan="2">
+             <widget class="QCheckBox" name="checkBoxUseROIForRigid">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Use FOV mask</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="2" colspan="2">
+             <widget class="QLineEdit" name="lineEditCBCTSkinCropBfDIR">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>8.0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0">
+             <spacer name="verticalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="13" column="0">
+             <spacer name="verticalSpacer_5">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="17" column="0" colspan="2">
+             <widget class="QLabel" name="label_26">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Step1</string>
+              </property>
+             </widget>
+            </item>
+            <item row="18" column="0" colspan="2">
+             <widget class="QLabel" name="label_27">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Step2</string>
+              </property>
+             </widget>
+            </item>
+            <item row="19" column="0" colspan="2">
+             <widget class="QLabel" name="label_28">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Step3</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="1" colspan="2">
+             <widget class="QRadioButton" name="radioButton_mi">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>MI</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="0" colspan="6">
+             <widget class="QLabel" name="label_16">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Deform registration</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="0" colspan="6">
+             <widget class="QLabel" name="label_24">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Rigid registration</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="6">
+             <widget class="QLabel" name="label_40">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Manual registration</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
           <widget class="QWidget" name="page_5">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>420</width>
+             <height>631</height>
+            </rect>
+           </property>
            <attribute name="label">
             <string>Post - Mask Intensity Correction</string>
            </attribute>
@@ -1071,47 +1152,19 @@
            </layout>
           </widget>
           <widget class="QWidget" name="page_3">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>420</width>
+             <height>631</height>
+            </rect>
+           </property>
            <attribute name="label">
-            <string>Dose recalculation</string>
+            <string>WEPL and Dose recalculation</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_4">
-            <item row="1" column="1">
-             <widget class="QLabel" name="label_3">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string># of DCM plans</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QSpinBox" name="spinBox_NdcmPlans">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QSpinBox" name="spinBox_Nsims">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
+            <item row="16" column="1" colspan="3">
              <widget class="QLabel" name="label_2">
               <property name="font">
                <font>
@@ -1123,7 +1176,7 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="0" colspan="2">
+            <item row="14" column="0" colspan="4">
              <widget class="QPushButton" name="pushButton_recalcDose">
               <property name="font">
                <font>
@@ -1132,6 +1185,186 @@
               </property>
               <property name="text">
                <string>gPMC - recalc</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="0">
+             <widget class="QSpinBox" name="spinBox_NdcmPlans">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="16" column="0">
+             <widget class="QSpinBox" name="spinBox_Nsims">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_10">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>WEPL</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0" colspan="3">
+             <widget class="QComboBox" name="comboBox_VOI"/>
+            </item>
+            <item row="9" column="3">
+             <widget class="QPushButton" name="pushButton_VOIWEPL">
+              <property name="text">
+               <string>Calculate</string>
+              </property>
+             </widget>
+            </item>
+            <item row="12" column="0" rowspan="2">
+             <widget class="QLabel" name="label_9">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Dose</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>Angle</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="1" colspan="3">
+             <widget class="QLabel" name="label_3">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string># of DCM plans</string>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="0">
+             <spacer name="verticalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="10" column="0" colspan="4">
+             <widget class="Line" name="line">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="3">
+             <widget class="QSpinBox" name="spinBox_CouchAngle">
+              <property name="minimum">
+               <number>-90</number>
+              </property>
+              <property name="maximum">
+               <number>90</number>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1" colspan="2">
+             <widget class="QSpinBox" name="spinBox_GantryAngle">
+              <property name="minimum">
+               <number>-180</number>
+              </property>
+              <property name="maximum">
+               <number>180</number>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QLabel" name="label_15">
+              <property name="text">
+               <string>Couch</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="3">
+             <widget class="QDial" name="dial_CouchAngle">
+              <property name="minimum">
+               <number>-90</number>
+              </property>
+              <property name="maximum">
+               <number>90</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="invertedAppearance">
+               <bool>false</bool>
+              </property>
+              <property name="notchTarget">
+               <double>8.699999999999999</double>
+              </property>
+              <property name="notchesVisible">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1" colspan="2">
+             <widget class="QLabel" name="label_14">
+              <property name="text">
+               <string>Gantry</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="2">
+             <widget class="QDial" name="dial_GantryAngle">
+              <property name="minimum">
+               <number>-180</number>
+              </property>
+              <property name="maximum">
+               <number>180</number>
+              </property>
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="notchTarget">
+               <double>8.699999999999999</double>
+              </property>
+              <property name="notchesVisible">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -1471,8 +1704,8 @@
          </property>
          <property name="minimumSize">
           <size>
-           <width>256</width>
-           <height>256</height>
+           <width>512</width>
+           <height>512</height>
           </size>
          </property>
          <property name="font">
@@ -1735,15 +1968,6 @@
           <string/>
          </property>
          <layout class="QGridLayout" name="gridLayout_11">
-          <item row="0" column="5">
-           <widget class="QComboBox" name="comboBoxImgMoving">
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
-            </property>
-           </widget>
-          </item>
           <item row="4" column="0">
            <spacer name="horizontalSpacer_3">
             <property name="font">
@@ -1930,7 +2154,16 @@
             </property>
            </spacer>
           </item>
-          <item row="4" column="3" colspan="3">
+          <item row="0" column="5" colspan="2">
+           <widget class="QComboBox" name="comboBoxImgMoving">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3" colspan="4">
            <widget class="QLineEdit" name="lineEditOriginMoving">
             <property name="font">
              <font>
@@ -2004,24 +2237,6 @@
             </property>
             <property name="value">
              <number>1024</number>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="3" colspan="2">
-           <widget class="QLineEdit" name="lineEditOriginFixed">
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QComboBox" name="comboBoxImgFixed">
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
             </property>
            </widget>
           </item>
@@ -2163,6 +2378,24 @@
             </property>
            </spacer>
           </item>
+          <item row="0" column="4" colspan="2">
+           <widget class="QComboBox" name="comboBoxImgFixed">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3" colspan="3">
+           <widget class="QLineEdit" name="lineEditOriginFixed">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -2174,7 +2407,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Chage View</string>
+          <string>Change View</string>
          </property>
         </widget>
        </item>
@@ -2203,8 +2436,8 @@
    <slot>SLT_CrntPosGo()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>412</x>
-     <y>634</y>
+     <x>339</x>
+     <y>452</y>
     </hint>
     <hint type="destinationlabel">
      <x>555</x>
@@ -2251,8 +2484,8 @@
    <slot>SLT_DrawImageWhenSliceChange()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>695</x>
-     <y>317</y>
+     <x>892</x>
+     <y>290</y>
     </hint>
     <hint type="destinationlabel">
      <x>808</x>
@@ -2267,12 +2500,12 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>458</x>
-     <y>696</y>
+     <x>778</x>
+     <y>582</y>
     </hint>
     <hint type="destinationlabel">
      <x>423</x>
-     <y>701</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2283,12 +2516,12 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>456</x>
-     <y>721</y>
+     <x>778</x>
+     <y>616</y>
     </hint>
     <hint type="destinationlabel">
      <x>420</x>
-     <y>733</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2299,12 +2532,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>655</x>
-     <y>701</y>
+     <x>778</x>
+     <y>582</y>
     </hint>
     <hint type="destinationlabel">
-     <x>689</x>
-     <y>699</y>
+     <x>866</x>
+     <y>581</y>
     </hint>
    </hints>
   </connection>
@@ -2315,12 +2548,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>667</x>
-     <y>722</y>
+     <x>778</x>
+     <y>616</y>
     </hint>
     <hint type="destinationlabel">
-     <x>683</x>
-     <y>722</y>
+     <x>866</x>
+     <y>615</y>
     </hint>
    </hints>
   </connection>
@@ -2331,12 +2564,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>710</x>
-     <y>727</y>
+     <x>866</x>
+     <y>615</y>
     </hint>
     <hint type="destinationlabel">
-     <x>647</x>
-     <y>728</y>
+     <x>778</x>
+     <y>616</y>
     </hint>
    </hints>
   </connection>
@@ -2347,12 +2580,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>686</x>
-     <y>697</y>
+     <x>866</x>
+     <y>581</y>
     </hint>
     <hint type="destinationlabel">
-     <x>659</x>
-     <y>697</y>
+     <x>778</x>
+     <y>582</y>
     </hint>
    </hints>
   </connection>
@@ -2363,8 +2596,8 @@
    <slot>SLT_ChangeView()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>597</x>
-     <y>608</y>
+     <x>479</x>
+     <y>377</y>
     </hint>
     <hint type="destinationlabel">
      <x>638</x>
@@ -2379,8 +2612,8 @@
    <slot>SLT_DrawImageWhenSliceChange()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>281</x>
-     <y>584</y>
+     <x>98</x>
+     <y>484</y>
     </hint>
     <hint type="destinationlabel">
      <x>256</x>
@@ -2395,8 +2628,8 @@
    <slot>SLT_RestoreImageSingle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>529</x>
-     <y>585</y>
+     <x>464</x>
+     <y>492</y>
     </hint>
     <hint type="destinationlabel">
      <x>541</x>
@@ -2411,8 +2644,8 @@
    <slot>SLT_RestoreImageAll()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>508</x>
-     <y>632</y>
+     <x>464</x>
+     <y>452</y>
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
@@ -2427,8 +2660,8 @@
    <slot>SLT_DoRegistrationRigid()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1030</x>
-     <y>490</y>
+     <x>1300</x>
+     <y>354</y>
     </hint>
     <hint type="destinationlabel">
      <x>828</x>
@@ -2443,8 +2676,8 @@
    <slot>SLT_BringFocusToEnableArrow(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>900</x>
-     <y>150</y>
+     <x>1028</x>
+     <y>111</y>
     </hint>
     <hint type="destinationlabel">
      <x>1012</x>
@@ -2459,8 +2692,8 @@
    <slot>SLT_KeyMoving(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>900</x>
-     <y>150</y>
+     <x>1028</x>
+     <y>111</y>
     </hint>
     <hint type="destinationlabel">
      <x>1019</x>
@@ -2475,12 +2708,12 @@
    <slot>SLT_MovingImageSelected(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>780</x>
-     <y>674</y>
+     <x>869</x>
+     <y>550</y>
     </hint>
     <hint type="destinationlabel">
      <x>822</x>
-     <y>721</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2491,8 +2724,8 @@
    <slot>SLT_RestoreMovingImg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>940</x>
-     <y>170</y>
+     <x>1300</x>
+     <y>194</y>
     </hint>
     <hint type="destinationlabel">
      <x>968</x>
@@ -2507,8 +2740,8 @@
    <slot>SLT_DoRegistrationDeform()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>868</x>
-     <y>700</y>
+     <x>1300</x>
+     <y>565</y>
     </hint>
     <hint type="destinationlabel">
      <x>951</x>
@@ -2523,8 +2756,8 @@
    <slot>SLT_PassMovingImgForAnalysis()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>613</x>
-     <y>670</y>
+     <x>780</x>
+     <y>551</y>
     </hint>
     <hint type="destinationlabel">
      <x>667</x>
@@ -2555,8 +2788,8 @@
    <slot>SLT_ManualMoveByDCMPlan()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>993</x>
-     <y>162</y>
+     <x>1153</x>
+     <y>119</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -2571,8 +2804,8 @@
    <slot>SLT_ConfirmManualRegistration()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1048</x>
-     <y>240</y>
+     <x>1300</x>
+     <y>229</y>
     </hint>
     <hint type="destinationlabel">
      <x>1094</x>
@@ -2587,8 +2820,8 @@
    <slot>SLT_IntensityNormCBCT()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1061</x>
-     <y>422</y>
+     <x>1300</x>
+     <y>280</y>
     </hint>
     <hint type="destinationlabel">
      <x>1081</x>
@@ -2603,12 +2836,12 @@
    <slot>SLT_DoLowerMaskIntensity()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1060</x>
-     <y>764</y>
+     <x>1300</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
      <x>1064</x>
-     <y>791</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2619,8 +2852,8 @@
    <slot>SLT_ManualMoveByDCMPlanOpen()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1064</x>
-     <y>163</y>
+     <x>1300</x>
+     <y>119</y>
     </hint>
     <hint type="destinationlabel">
      <x>1108</x>
@@ -2635,12 +2868,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>254</x>
-     <y>698</y>
+     <x>273</x>
+     <y>582</y>
     </hint>
     <hint type="destinationlabel">
-     <x>284</x>
-     <y>697</y>
+     <x>436</x>
+     <y>581</y>
     </hint>
    </hints>
   </connection>
@@ -2651,12 +2884,12 @@
    <slot>SLT_FixedImageSelected(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>381</x>
-     <y>663</y>
+     <x>439</x>
+     <y>550</y>
     </hint>
     <hint type="destinationlabel">
      <x>387</x>
-     <y>792</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2667,12 +2900,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>716</y>
+     <x>247</x>
+     <y>616</y>
     </hint>
     <hint type="destinationlabel">
-     <x>297</x>
-     <y>716</y>
+     <x>436</x>
+     <y>615</y>
     </hint>
    </hints>
   </connection>
@@ -2683,8 +2916,8 @@
    <slot>SLT_PassFixedImgForAnalysis()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>190</x>
-     <y>672</y>
+     <x>350</x>
+     <y>551</y>
     </hint>
     <hint type="destinationlabel">
      <x>18</x>
@@ -2699,12 +2932,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>693</y>
+     <x>436</x>
+     <y>581</y>
     </hint>
     <hint type="destinationlabel">
-     <x>240</x>
-     <y>694</y>
+     <x>259</x>
+     <y>582</y>
     </hint>
    </hints>
   </connection>
@@ -2715,12 +2948,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>296</x>
-     <y>727</y>
+     <x>436</x>
+     <y>615</y>
     </hint>
     <hint type="destinationlabel">
-     <x>256</x>
-     <y>728</y>
+     <x>275</x>
+     <y>616</y>
     </hint>
    </hints>
   </connection>
@@ -2731,12 +2964,12 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>46</x>
-     <y>697</y>
+     <x>65</x>
+     <y>582</y>
     </hint>
     <hint type="destinationlabel">
      <x>16</x>
-     <y>697</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2747,12 +2980,12 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>43</x>
-     <y>723</y>
+     <x>62</x>
+     <y>616</y>
     </hint>
     <hint type="destinationlabel">
      <x>14</x>
-     <y>731</y>
+     <y>666</y>
     </hint>
    </hints>
   </connection>
@@ -2763,8 +2996,8 @@
    <slot>SLT_gPMCrecalc()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1234</x>
-     <y>207</y>
+     <x>1300</x>
+     <y>565</y>
     </hint>
     <hint type="destinationlabel">
      <x>641</x>
@@ -2779,8 +3012,8 @@
    <slot>SLT_PreProcessCT()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>952</x>
-     <y>93</y>
+     <x>1300</x>
+     <y>385</y>
     </hint>
     <hint type="destinationlabel">
      <x>1008</x>
@@ -2795,8 +3028,8 @@
    <slot>SLT_Override()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>380</x>
-     <y>559</y>
+     <x>1300</x>
+     <y>531</y>
     </hint>
     <hint type="destinationlabel">
      <x>453</x>
@@ -2804,9 +3037,58 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>dial_GantryAngle</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>spinBox_GantryAngle</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1070</x>
+     <y>220</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1047</x>
+     <y>297</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>dial_CouchAngle</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>spinBox_CouchAngle</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1146</x>
+     <y>230</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1131</x>
+     <y>304</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_VOIWEPL</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_WEPLcalc()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1244</x>
+     <y>343</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>654</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SLT_CrntPosGo()</slot>
+  <slot>SLT_WEPLcalc()</slot>
   <slot>SLT_gPMCrecalc()</slot>
   <slot>SLT_Override()</slot>
   <slot>SLT_DrawImageWhenSliceChange()</slot>

@@ -1,14 +1,17 @@
 #ifndef DLGEXTERNALCOMMAND_H
 #define DLGEXTERNALCOMMAND_H
 
-#include "cbctrecon_config.h"
-#include "cbctrecon.h"
-#include "ui_DlgExternalCommand.h"
+// Qt
 #include <QDialog>
 #include <QString>
 #include <QStringList>
 
-class CBCTRECON_API DlgExternalCommand : public QDialog, public Ui::DlgExternalCommandClass {
+// Local
+#include "ui_DlgExternalCommand.h"
+
+class CbctReconWidget;
+
+class DlgExternalCommand : public QDialog, public Ui::DlgExternalCommandClass {
   Q_OBJECT
 
 public slots:
@@ -19,16 +22,19 @@ public slots:
 
 public:
   DlgExternalCommand();
-  DlgExternalCommand(QWidget *parent);
+  explicit DlgExternalCommand(QWidget *parent);
   ~DlgExternalCommand() override;
+  DlgExternalCommand(const DlgExternalCommand &) = delete;
+  void operator=(const DlgExternalCommand &) = delete;
+  DlgExternalCommand(DlgExternalCommand &&) = delete;
+  void operator=(DlgExternalCommand &&) = delete;
 
   int BuildRTKCommandFilter(); // pull predefined command names that you want.
                                // From some preset option file
 
   void SetRTKBinPath(QString &strDirPath);
 
-public:
-  CbctRecon *m_pParent{}; // to pull 3D images
+  CbctReconWidget *m_pParent{}; // to pull 3D images
   QString m_strDirRTKBin;
 
   QStringList m_listRTKCommandFilter;

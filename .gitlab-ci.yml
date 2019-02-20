@@ -4,7 +4,7 @@ variables:
     CUDA_AVAILABLE: "NO"
 
 
-test-x86_64-linux-ubuntu-gcc7:
+Ubuntu-gcc7:
     stage: test
     tags:
       - linux
@@ -13,7 +13,7 @@ test-x86_64-linux-ubuntu-gcc7:
     script:
       - ./ci/ci.sh
 
-test-x86_64-linux-CUDA-gcc7:
+Ubuntu-gcc7-CUDA:
     stage: test
     tags:
       - linux
@@ -25,7 +25,7 @@ test-x86_64-linux-CUDA-gcc7:
     script:
       - ./ci/ci.sh
 
-test-x86_64-linux-ubuntu-gcc7-prebuild-DCM-I-RTK:
+Ubuntu-gcc7-prebuild-DCM-I-RTK:
     stage: test
     tags:
       - linux
@@ -34,29 +34,29 @@ test-x86_64-linux-ubuntu-gcc7-prebuild-DCM-I-RTK:
     script:
       - ./ci/ci.sh
 
-test-x86_64-linux-ubuntu-clang6:
-    stage: test
-    tags:
-      - linux
-      - docker
-    image: andreasga/cbctrecon:clang-6-x86_64
-    script:
-      - ./ci/ci.sh
+#test-x86_64-linux-ubuntu-clang6:
+#    stage: test
+#    tags:
+#      - linux
+#      - docker
+#    image: andreasga/cbctrecon:clang-6-x86_64
+#    script:
+#      - ./ci/ci.sh
 
-test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK:
-    stage: test
-    tags:
-      - linux
-      - docker
-    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-RTKmaster
-    script:
-      - ./ci/ci.sh
+#test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK:
+#    stage: test
+#    tags:
+#      - linux
+#      - docker
+#    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-RTKmaster
+#    script:
+#      - ./ci/ci.sh
 
-test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK-integrated:
-    stage: test
-    tags:
-      - linux
-      - docker
-    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-integrated-RTKmaster
-    script:
-      - ./ci/ci.sh
+#test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK-integrated:
+#    stage: test
+#    tags:
+#      - linux
+#      - docker
+#    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-integrated-RTKmaster
+#    script:
+#      - ./ci/ci.sh

@@ -3,7 +3,7 @@
 if (MINGW)
   # Cuda doesn't work with mingw at all
   set (CUDA_FOUND FALSE)
-elseif (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} LESS 2.8)
+elseif (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} VERSION_LESS 2.8)
   # FindCuda is included with CMake 2.8
   set (CUDA_FOUND FALSE)
 else ()
@@ -13,7 +13,7 @@ else ()
     set (CUDA_PROPAGATE_HOST_FLAGS CACHE BOOL OFF)
   endif ()
 
-  # GCS 2012-05-11:  We need to propagate cxx flags to nvcc, but 
+  # GCS 2012-05-11:  We need to propagate cxx flags to nvcc, but
   # the flag -ftest-coverage causes nvcc to barf, so exclude that one
   if (CMAKE_COMPILER_IS_GNUCC)
     string (REPLACE "-ftest-coverage" "" TMP "${CMAKE_CXX_FLAGS}")
@@ -29,20 +29,16 @@ endif ()
 
 # GCS 2012-09-25 - Seems this is needed too
 if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-	#  set (CUDA_CXX_FLAGS "${CUDA_CXX_FLAGS},-fPIC")
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler -fPIC")
 endif ()
 
+# SR Remove warning with shared libs and MSVC
+if(MSVC)
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DRTK_EXPORTS")
+endif()
 
 set (CUDA_FOUND ${CUDA_FOUND} CACHE BOOL "Did we find cuda?")
 mark_as_advanced(CUDA_FOUND)
-
-if(CUDA_FOUND)
-  if(${CUDA_VERSION} LESS 3.2)
-    message("CUDA version ${CUDA_VERSION} found, too old for RTK")
-    set(CUDA_FOUND FALSE)
-  endif()
-endif()
 
 if (CUDA_FOUND)
   cuda_include_directories (${CMAKE_CURRENT_SOURCE_DIR})
@@ -53,28 +49,14 @@ endif ()
 #   This script will modify CUDA_NVCC_FLAGS if system default is not gcc-4.3
 include (nvcc-check)
 
-if("${CUDA_VERSION}" LESS 6.5)
-	#  set (CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-	#        -gencode arch=compute_10,code=sm_10
-	#        -gencode arch=compute_11,code=sm_11
-	#        -gencode arch=compute_12,code=sm_12
-	#        -gencode arch=compute_13,code=sm_13
-	#      )
-endif ()
-
-if("${CUDA_VERSION}" LESS 5.0)
- set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-     -gencode arch=compute_20,code=sm_20
-     -gencode arch=compute_20,code=compute_20
-    )
-elseif("${CUDA_VERSION}" LESS 8.0)
+if("${CUDA_VERSION}" VERSION_LESS 8.0)
  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
      -gencode arch=compute_20,code=sm_20
      -gencode arch=compute_30,code=sm_30
      -gencode arch=compute_35,code=sm_35
      -gencode arch=compute_35,code=compute_35
      )
-elseif("${CUDA_VERSION}" LESS 9.0)
+elseif("${CUDA_VERSION}" VERSION_LESS 9.0)
  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
      -Wno-deprecated-gpu-targets
      -gencode arch=compute_20,code=sm_20
@@ -92,9 +74,9 @@ endif()
 
 if(CUDA_FOUND)
   try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
-         ${CMAKE_BINARY_DIR} 
+         ${CMAKE_BINARY_DIR}
          ${CMAKE_CURRENT_LIST_DIR}/has_cuda_gpu.cxx
-         CMAKE_FLAGS 
+         CMAKE_FLAGS
              -DINCLUDE_DIRECTORIES:STRING=${CUDA_TOOLKIT_INCLUDE}
              -DLINK_LIBRARIES:STRING=${CUDA_CUDART_LIBRARY}
          COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
