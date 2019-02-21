@@ -29,7 +29,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8']
-          packages: ['clang-8' 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt5-default']
+          packages: ['clang-8', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt5-default']
       env: TOOLSET=clang++-8
 
     - os: linux
