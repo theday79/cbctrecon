@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include <memory>
 
@@ -230,4 +231,13 @@ Rtss_modern::get_roi_by_name(const std::string &name) {
   }
   std::cerr << "VOI name was not in structure set !?" << std::endl;
   return nullptr;
+}
+
+Rtss_roi_modern &Rtss_modern::get_roi_ref_by_name(const std::string &name) {
+  for (auto &roi : slist) {
+    if (roi.name == name) {
+      return roi;
+    }
+  }
+  std::cerr << "VOI name was not in structure set !?" << std::endl;
 }

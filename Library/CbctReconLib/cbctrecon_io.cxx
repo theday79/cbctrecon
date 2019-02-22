@@ -440,8 +440,8 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
   auto &ds = file.GetDataSet();
 
   gdcm::Attribute<0x0008, 0x0060> at_modality;
-  at_modality.SetFromDataElement(ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::
-                                                   GetTag()));
+  at_modality.SetFromDataElement(
+      ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::GetTag()));
   const auto modality = at_modality.GetValue();
   if (modality != "RTSTRUCT") {
     std::cerr << "Modality was not RTSTRUCT, it was: " << modality << "\n";
@@ -500,25 +500,34 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
          it_contour != contour_seq->End(); ++it_contour) {
       auto rt_contour = std::make_unique<Rtss_contour_modern>();
 
-      auto at_contour_number_of_points =
+      const auto at_offset = gdcm_attribute_from<0x3006, 0x0045>(it_contour);
+      const auto &offset = at_offset.GetValues();
+
+      const auto at_contour_number_of_points =
           gdcm_attribute_from<0x3006, 0x0046>(it_contour);
       rt_contour->num_vertices =
           static_cast<unsigned long>(at_contour_number_of_points.GetValue());
 
-      auto at_contour_points = gdcm_attribute_from<0x3006, 0x0050>(it_contour);
+      const auto at_contour_points =
+          gdcm_attribute_from<0x3006, 0x0050>(it_contour);
       const auto &points = at_contour_points.GetValues();
 
       rt_contour->coordinates.resize(rt_contour->num_vertices);
 
-      std::generate(
-          std::begin(rt_contour->coordinates),
-          std::end(rt_contour->coordinates), [&points, k = 0]() mutable {
-            const auto vec = FloatVector{static_cast<float>(points[k + 0]),
-                                         static_cast<float>(points[k + 1]),
-                                         static_cast<float>(points[k + 2])};
-            k += 3;
-            return vec;
-          });
+      std::generate(std::begin(rt_contour->coordinates),
+                    std::end(rt_contour->coordinates),
+                    [&points, &offset, k = 0]() mutable {
+                      const auto vec = FloatVector{
+                          static_cast<float>(points[k + 0] + offset[0]),
+                          static_cast<float>(points[k + 1] + offset[1]),
+                          static_cast<float>(points[k + 2] + offset[2])};
+                      k += 3;
+                      return vec;
+                    });
+
+      /*std::cerr << "Fist coord: " << rt_contour->coordinates.at(0).x << ", "
+                << rt_contour->coordinates.at(0).y << ", "
+                << rt_contour->coordinates.at(0).z << "\n";*/
 
       cur_entry.pslist.at(j++) = std::move(rt_contour);
     }
