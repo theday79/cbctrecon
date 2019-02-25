@@ -22,6 +22,7 @@
 #include "gdcmReader.h"
 #include "gdcmUIDGenerator.h"
 #include "itkGDCMImageIO.h"
+#include "itkGDCMSeriesFileNames.h"
 #include "itkImageDuplicator.h"
 #include "itkImageFileWriter.h"
 #include "itkImageSeriesWriter.h"
@@ -500,9 +501,6 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
          it_contour != contour_seq->End(); ++it_contour) {
       auto rt_contour = std::make_unique<Rtss_contour_modern>();
 
-      const auto at_offset = gdcm_attribute_from<0x3006, 0x0045>(it_contour);
-      const auto &offset = at_offset.GetValues();
-
       const auto at_contour_number_of_points =
           gdcm_attribute_from<0x3006, 0x0046>(it_contour);
       rt_contour->num_vertices =
@@ -514,16 +512,15 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
 
       rt_contour->coordinates.resize(rt_contour->num_vertices);
 
-      std::generate(std::begin(rt_contour->coordinates),
-                    std::end(rt_contour->coordinates),
-                    [&points, &offset, k = 0]() mutable {
-                      const auto vec = FloatVector{
-                          static_cast<float>(points[k + 0] + offset[0]),
-                          static_cast<float>(points[k + 1] + offset[1]),
-                          static_cast<float>(points[k + 2] + offset[2])};
-                      k += 3;
-                      return vec;
-                    });
+      std::generate(
+          std::begin(rt_contour->coordinates),
+          std::end(rt_contour->coordinates), [&points, k = 0]() mutable {
+            const auto vec = FloatVector{static_cast<float>(points[k + 0]),
+                                         static_cast<float>(points[k + 1]),
+                                         static_cast<float>(points[k + 2])};
+            k += 3;
+            return vec;
+          });
 
       /*std::cerr << "Fist coord: " << rt_contour->coordinates.at(0).x << ", "
                 << rt_contour->coordinates.at(0).y << ", "
@@ -538,9 +535,41 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
   return rt_struct;
 }
 
+std::vector<std::string> get_dcm_image_files(QDir &dir) {
+
+  using NamesGeneratorType = itk::GDCMSeriesFileNames;
+  NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+
+  nameGenerator->SetUseSeriesDetails(true);
+  nameGenerator->AddSeriesRestriction("0008|0021");
+  nameGenerator->SetGlobalWarningDisplay(false);
+  nameGenerator->SetDirectory(dir.absolutePath().toStdString());
+
+  using SeriesIdContainer = std::vector<std::string>;
+  const SeriesIdContainer &seriesUID = nameGenerator->GetSeriesUIDs();
+  auto seriesItr = seriesUID.begin();
+  auto seriesEnd = seriesUID.end();
+
+  if (seriesItr == seriesEnd) {
+    std::cerr << "No DICOMs in: " << dir.absolutePath().toStdString() << "\n";
+    return {{}};
+  }
+
+  seriesItr = seriesUID.begin();
+  while (seriesItr != seriesUID.end()) {
+    auto seriesIdentifier = seriesItr->c_str();
+    seriesItr++;
+    auto fileNames = nameGenerator->GetFileNames(seriesIdentifier);
+
+    return fileNames;
+  }
+}
+
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
-  auto filenamelist = std::vector<std::string>();
+
   auto dir = QDir(dirPath);
+  const auto filenamelist = get_dcm_image_files(dir);
+
   for (auto &&filename : dir.entryList(QDir::Files)) {
     /*entryList(QStringList() << "*.dcm"
                                                      << "*.DCM"
@@ -553,7 +582,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     switch (modality) {
     case RTIMAGE:
     case RTDOSE:
-      filenamelist.push_back(fullfilename.toStdString());
+      // filenamelist.push_back(fullfilename.toStdString());
       break;
     case RTSTRUCT:
       m_structures->set_planCT_ss(load_rtstruct(fullfilename));
@@ -574,6 +603,8 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   if (!filenamelist.empty()) {
     using dcm_reader_type = itk::ImageSeriesReader<ShortImageType>;
     auto dcm_reader = dcm_reader_type::New();
+    auto dicom_io = itk::GDCMImageIO::New();
+    dcm_reader->SetImageIO(dicom_io);
     dcm_reader->SetFileNames(filenamelist);
     dcm_reader->Update();
     spShortImg = dcm_reader->GetOutput();

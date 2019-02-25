@@ -31,6 +31,25 @@ UShortImageType::Pointer get_image_from_dicom(QString &dir) {
   if (cbctrecon_test->m_cbctrecon->m_spManualRigidCT.IsNull()) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
   }
+  /* Some debug info: */
+  UShortImageType::PointType first_point;
+  UShortImageType::IndexType index{0, 0, 0};
+  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
+      index, first_point);
+  std::cerr << "First pixel point: " << first_point[0] << ", " << first_point[1]
+            << ", " << first_point[2] << "\n";
+
+  auto size =
+      cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetLargestPossibleRegion()
+          .GetSize();
+  index.SetElement(0, size[0]);
+  index.SetElement(1, size[1]);
+  index.SetElement(2, size[2]);
+  UShortImageType::PointType last_point;
+  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
+      index, last_point);
+  std::cerr << "Last pixel point: " << last_point[0] << ", " << last_point[1]
+            << ", " << last_point[2] << "\n";
 
   return cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
 }
@@ -83,12 +102,12 @@ int main(const int argc, char *argv[]) {
   std::cerr << voi << "\n";
 
   /* calculate WEPL coordinates */
-  UShortImageType::PointType point;
+  UShortImageType::PointType first_point;
   UShortImageType::IndexType index{0, 0, 0};
   cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
-      index, point);
-  std::cerr << "First pixel point: " << point[0] << ", " << point[1] << ", "
-            << point[2];
+      index, first_point);
+  std::cerr << "First pixel point: " << first_point[0] << ", " << first_point[1]
+            << ", " << first_point[2] << "\n";
 
   auto size =
       cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetLargestPossibleRegion()
@@ -96,25 +115,13 @@ int main(const int argc, char *argv[]) {
   index.SetElement(0, size[0]);
   index.SetElement(1, size[1]);
   index.SetElement(2, size[2]);
+  UShortImageType::PointType last_point;
   cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
-      index, point);
-  std::cerr << "Last pixel point: " << point[0] << ", " << point[1] << ", "
-            << point[2];
-
-  const auto &offset =
-      cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetOrigin();
+      index, last_point);
+  std::cerr << "Last pixel point: " << last_point[0] << ", " << last_point[1]
+            << ", " << last_point[2] << "\n";
 
   auto &orig_voi = ss->get_roi_ref_by_name(voi);
-  std::for_each(std::begin(orig_voi.pslist), std::end(orig_voi.pslist),
-                [&offset](Rtss_contour_modern &contour) {
-                  std::for_each(std::begin(contour.coordinates),
-                                std::end(contour.coordinates),
-                                [&offset](FloatVector &coord) {
-                                  coord.x += offset[0];
-                                  coord.y += offset[1];
-                                  coord.z += offset[2];
-                                });
-                });
 
   cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
       voi, 90, 0, cbctrecon_test->m_cbctrecon->m_spManualRigidCT, recalc_img);
