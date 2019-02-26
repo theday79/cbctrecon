@@ -40,7 +40,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-6']
           packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: CXX=clang++-6 CC=clang-6 CUDA=10.0.130 MACCUDA=NONE
+      env: CXX=clang++-6 CC=clang-6 CUDA=10.0.130-1 MACCUDA=NONE
 
     - os: osx
       osx_image: xcode9.2
@@ -75,9 +75,9 @@ before_install:
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt-get update -qq; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt-get install -y cuda; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt-get clean; fi
+  - if test "$CUDA" != NONE; then travis_retry sudo apt update -qq; fi
+  - if test "$CUDA" != NONE; then travis_retry sudo apt install -y cuda; fi
+  - if test "$CUDA" != NONE; then travis_retry sudo apt clean; fi
   - if test "$CUDA" != NONE; then export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}; fi
   - if test "$CUDA" != NONE; then export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}; fi
   - if test "$CUDA" != NONE; then export USECUDA=ON; else export USECUDA=OFF; fi
