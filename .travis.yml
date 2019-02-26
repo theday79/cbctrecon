@@ -9,7 +9,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-5', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['g++-5', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=g++-5 CC=gcc-5 CUDA=NONE
 
     - os: linux
@@ -19,7 +19,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-5', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['g++-5', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=g++-5 CC=gcc-5 CBCTRECON_COVERAGE=ON CUDA=8.0.61-1
 
     - os: linux
@@ -29,7 +29,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8']
-          packages: ['clang-8', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['clang-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=clang++-8 CC=clang-8 CUDA=NONE
 
     - os: linux
@@ -39,7 +39,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8']
-          packages: ['clang-8', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['clang-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=clang++-8 CC=clang-8 CUDA=NONE
 
     - os: osx
@@ -66,7 +66,6 @@ before_install:
   - if test "$CUDA" != NONE; then export USECUDA=ON; else export USECUDA=OFF; fi
   - if test $TRAVIS_OS_NAME == osx ; then HOMEBREW_NO_AUTO_UPDATE=1 brew install fftw || true ; brew link --overwrite fftw || true ; fi
   - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
-  - export CXXFLAGS="-fPIC -std=c++14"
 
 install:
   - cd ../
