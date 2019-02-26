@@ -14,7 +14,8 @@
 #include <itkFixedArray.h>      // for FixedArray
 #include <itkImage.h> // for Image<>::Pointer, Image, Image<>::IndexType, Image<>::PointType
 #include <itkImageFileWriter.h> // for ImageFileWriter
-#include <itkMacro.h>         // for CastImageFilter::New, ImageFileWriter::New
+#include <itkMacro.h> // for CastImageFilter::New, ImageFileWriter::New
+#include <itkUnaryFunctorImageFilter.h>
 #include <vnl_vector_fixed.h> // for vnl_vector_fixed
 
 #include "plm_math.h" // for M_PI, NLMAX, NLMIN
@@ -23,6 +24,14 @@
 #include "WEPL.h"
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
+
+double itk_lin_interpolate(const itk::ContinuousIndex<double, 3> index_pos,
+                           const FloatImageType::Pointer &wepl_cube) {
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<FloatImageType, double>::New();
+  interpolator->SetInputImage(wepl_cube);
+  return interpolator->EvaluateAtContinuousIndex(index_pos);
+}
 
 double lin_interpolate(const std::array<int, 3> &point_id,
                        const std::array<double, 3> &point_id_pos,
@@ -94,73 +103,39 @@ double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
                        const std::array<size_t, 3> &cubedim,
                        const FloatImageType::Pointer &wepl_cube) {
   const auto step_length = 0.1;
-  const std::array<double, 3> step = {{vec_basis.at(0) * step_length,
-                                       vec_basis.at(1) * step_length,
-                                       vec_basis.at(2) * step_length}};
+  const auto step =
+      DoubleVector{vec_basis.at(0) * step_length, vec_basis.at(1) * step_length,
+                   vec_basis.at(2) * step_length};
 
-  const std::array<double, 3> inv_voxelsize = {{1.0 / vec_voxelsize.at(0),
-                                                1.0 / vec_voxelsize.at(1),
-                                                1.0 / vec_voxelsize.at(2)}};
+  const auto inv_voxelsize =
+      DoubleVector{1.0 / vec_voxelsize.at(0), 1.0 / vec_voxelsize.at(1),
+                   1.0 / vec_voxelsize.at(2)};
 
-  std::array<double, 3> point = {
-      {static_cast<double>(cur_point_id.at(0)) * vec_voxelsize.at(0),
-       static_cast<double>(cur_point_id.at(1)) * vec_voxelsize.at(1),
-       static_cast<double>(cur_point_id.at(2)) * vec_voxelsize.at(2)}};
+  auto point = DoubleVector{
+      static_cast<double>(cur_point_id.at(0)) * vec_voxelsize.at(0),
+      static_cast<double>(cur_point_id.at(1)) * vec_voxelsize.at(1),
+      static_cast<double>(cur_point_id.at(2)) * vec_voxelsize.at(2)};
 
   auto out = 0.0;
 
   while (true) {
-    // point_id = point / cube_size
-    const std::array<int, 3> point_id = {
-        {static_cast<int>(round(point.at(0) * inv_voxelsize.at(0))),
-         static_cast<int>(round(point.at(1) * inv_voxelsize.at(1))),
-         static_cast<int>(round(point.at(2) * inv_voxelsize.at(2)))}};
+    auto index_pos = itk::ContinuousIndex<double, 3>();
+    index_pos[0] = point.x * inv_voxelsize.x;
+    index_pos[1] = point.y * inv_voxelsize.y;
+    index_pos[2] = point.z * inv_voxelsize.z;
 
-    if (point_id.at(0) < 0.0 ||
-        point_id.at(0) >= static_cast<int>(cubedim.at(0)) ||
-        point_id.at(1) < 0.0 ||
-        point_id.at(1) >= static_cast<int>(cubedim.at(1)) ||
-        point_id.at(2) < 0.0 ||
-        point_id.at(2) >= static_cast<int>(cubedim.at(2))) {
+    if (!wepl_cube->GetBufferedRegion().IsInside(index_pos)) {
       break;
     }
-
-    // get nearest neighbors:
-    const std::array<double, 3> point_id_pos = {
-        {point.at(0) * inv_voxelsize.at(0), point.at(1) * inv_voxelsize.at(1),
-         point.at(2) * inv_voxelsize.at(2)}};
-
-    auto idx_2 = -1;
-    if (point_id.at(0) < point_id_pos.at(0)) {
-      idx_2 = 1;
+    const auto val = itk_lin_interpolate(index_pos, wepl_cube);
+    if (!isnan(val)) { // Hopefully this is only happening at the edge!?
+      out += val;
     }
-
-    auto idy_2 = -1;
-    if (point_id.at(1) < point_id_pos.at(1)) {
-      idy_2 = 1;
-    }
-
-    auto idz_2 = -1;
-    if (point_id.at(2) < point_id_pos.at(2)) {
-      idz_2 = 1;
-    }
-
-    if (point_id.at(0) + idx_2 < 0.0 ||
-        point_id.at(0) + idx_2 >= static_cast<int>(cubedim.at(0)) ||
-        point_id.at(1) + idy_2 < 0.0 ||
-        point_id.at(1) + idy_2 >= static_cast<int>(cubedim.at(1)) ||
-        point_id.at(2) + idz_2 < 0.0 ||
-        point_id.at(2) + idz_2 >= static_cast<int>(cubedim.at(2))) {
-      break;
-    }
-
-    out +=
-        lin_interpolate(point_id, point_id_pos, idx_2, idy_2, idz_2, wepl_cube);
 
     // point = point - step
-    point.at(0) -= step.at(0);
-    point.at(1) -= step.at(1);
-    point.at(2) -= step.at(2);
+    point.x -= step.x;
+    point.y -= step.y;
+    point.z -= step.z;
   }
 
   return out * step_length;
@@ -337,65 +312,38 @@ FloatImageType::PointType point_from_WEPL(
   }
 
   const auto step_length = 0.1;
-  const DoubleVector step = {vec_basis.at(0) * step_length,
-                             vec_basis.at(1) * step_length,
-                             vec_basis.at(2) * step_length};
-  const auto img_size = wepl_cube->GetLargestPossibleRegion().GetSize();
-  const IntVector cubedim = {static_cast<int>(img_size[0]),
-                             static_cast<int>(img_size[1]),
-                             static_cast<int>(img_size[2])};
+  const auto step =
+      DoubleVector{vec_basis.at(0) * step_length, vec_basis.at(1) * step_length,
+                   vec_basis.at(2) * step_length};
 
-  const DoubleVector pixel_size = {wepl_cube->GetSpacing()[0],
-                                   wepl_cube->GetSpacing()[1],
-                                   wepl_cube->GetSpacing()[2]};
+  const auto pixel_size =
+      DoubleVector{wepl_cube->GetSpacing()[0], wepl_cube->GetSpacing()[1],
+                   wepl_cube->GetSpacing()[2]};
 
-  const DoubleVector inv_pixel_size = {1.0 / pixel_size.x, 1.0 / pixel_size.y,
-                                       1.0 / pixel_size.z};
+  const auto inv_pixel_size =
+      DoubleVector{1.0 / pixel_size.x, 1.0 / pixel_size.y, 1.0 / pixel_size.z};
 
   auto point = // +pixel_size so we don't break on the first pixel interpolation
-      DoubleVector{start_idx[0] * pixel_size.x + pixel_size.x,
-                   start_idx[1] * pixel_size.y + pixel_size.y,
-                   start_idx[2] * pixel_size.z + pixel_size.z};
+      DoubleVector{start_idx[0] * pixel_size.x, start_idx[1] * pixel_size.y,
+                   start_idx[2] * pixel_size.z};
 
   // Acumulate WEPL until fWEPL is reached
   auto accumWEPL = 0.0;
   while (accumWEPL < fWEPL) {
-    // point_id = point / cube_size
-    const std::array<int, 3> point_id = {
-        {static_cast<int>(round(point.x * inv_pixel_size.x)),
-         static_cast<int>(round(point.y * inv_pixel_size.y)),
-         static_cast<int>(round(point.z * inv_pixel_size.z))}};
+    auto index_pos = itk::ContinuousIndex<double, 3>();
+    index_pos[0] = point.x * inv_pixel_size.x;
+    index_pos[1] = point.y * inv_pixel_size.y;
+    index_pos[2] = point.z * inv_pixel_size.z;
 
-    // get nearest neighbors:
-    const std::array<double, 3> point_id_pos = {{point.x * inv_pixel_size.x,
-                                                 point.y * inv_pixel_size.y,
-                                                 point.z * inv_pixel_size.z}};
-    auto idx_2 = -1;
-    if (point_id.at(0) < point_id_pos.at(0)) {
-      idx_2 = 1;
-    }
-
-    auto idy_2 = -1;
-    if (point_id.at(1) < point_id_pos.at(1)) {
-      idy_2 = 1;
-    }
-
-    auto idz_2 = -1;
-    if (point_id.at(2) < point_id_pos.at(2)) {
-      idz_2 = 1;
-    }
-
-    // Check we are still in cube:
-    if (point_id.at(0) + idx_2 < 0.0 || point_id.at(0) + idx_2 >= cubedim.x ||
-        point_id.at(1) + idy_2 < 0.0 || point_id.at(1) + idy_2 >= cubedim.y ||
-        point_id.at(2) + idz_2 < 0.0 || point_id.at(2) + idz_2 >= cubedim.z) {
-      std::cerr << "Image boundary was reached on point from WEPL calc!"
-                << std::endl;
+    if (!wepl_cube->GetBufferedRegion().IsInside(index_pos)) {
+      std::cerr << "Hit image boundary on WEPL re-calc\n";
       break;
     }
+    const auto val = itk_lin_interpolate(index_pos, wepl_cube);
+    if (!isnan(val)) {
+      accumWEPL += val * step_length;
+    }
 
-    accumWEPL +=
-        lin_interpolate(point_id, point_id_pos, idx_2, idy_2, idz_2, wepl_cube);
     // point = point + step (Reverse of WEPL_from_point)
     point.x += step.x;
     point.y += step.y;
@@ -504,78 +452,76 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
                      static_cast<float>(out_point.GetElement(2))};
 }
 
-/**** Convert CT to dEdx ****/
-constexpr auto lookup = std::array<std::pair<float, double>, 16>{
-    {// Data from TRiP: 19990218.hlut
-     std::pair<float, double>(std::numeric_limits<float>::min(), 0),
-     std::pair<float, double>(-1000.0f, 0.041),
-     std::pair<float, double>(-798.0f, 0.244),
-     std::pair<float, double>(-750.0f, 0.297),
-     std::pair<float, double>(-108.0f, 0.943),
-     std::pair<float, double>(-75.0f, 0.977),
-     std::pair<float, double>(0.0f, 1.0),
-     std::pair<float, double>(40.0f, 1.042),
-     std::pair<float, double>(55.0f, 1.049),
-     std::pair<float, double>(67.0f, 1.065),
-     std::pair<float, double>(262.0f, 1.095),
-     std::pair<float, double>(1033.0f, 1.468),
-     std::pair<float, double>(1432.0f, 1.634),
-     std::pair<float, double>(1974.0f, 1.778),
-     std::pair<float, double>(3000.0f, 2.051),
-     std::pair<float, double>(std::numeric_limits<float>::max(), 2.051)}};
+class hu_to_dedx_functor {
+public:
+  /*{ // plastimatch data:
+          std::pair<float, double>(NLMIN(float), 0),
+                  std::pair<float, double>(-1000, 0.00106),
+                  std::pair<float, double>(0, 1.0),
+                  std::pair<float, double>(41.46, 1.048674),
+                  std::pair<float, double>(NLMAX(float), 0.005011) // wtf?
+  };*/
 
-/*{ // plastimatch data:
-        std::pair<float, double>(NLMIN(float), 0),
-                std::pair<float, double>(-1000, 0.00106),
-                std::pair<float, double>(0, 1.0),
-                std::pair<float, double>(41.46, 1.048674),
-                std::pair<float, double>(NLMAX(float), 0.005011) // wtf?
-};*/
+  hu_to_dedx_functor() = default;
+  ~hu_to_dedx_functor() = default;
+  // Linear interpolator (as first class function)
+  inline float operator()(short val) {
+    /**** Convert CT to dEdx ****/
+    constexpr static const auto lookup =
+        std::array<std::pair<short, double>, 16>{
+            {// Data from TRiP: 19990218.hlut
+             std::pair<short, double>(std::numeric_limits<short>::min(), 0.0),
+             std::pair<short, double>(-1000, 0.041),
+             std::pair<short, double>(-798, 0.244),
+             std::pair<short, double>(-750, 0.297),
+             std::pair<short, double>(-108, 0.943),
+             std::pair<short, double>(-75, 0.977),
+             std::pair<short, double>(0, 1.0),
+             std::pair<short, double>(40, 1.042),
+             std::pair<short, double>(55, 1.049),
+             std::pair<short, double>(67, 1.065),
+             std::pair<short, double>(262, 1.095),
+             std::pair<short, double>(1033, 1.468),
+             std::pair<short, double>(1432, 1.634),
+             std::pair<short, double>(1974, 1.778),
+             std::pair<short, double>(3000, 2.051),
+             std::pair<short, double>(std::numeric_limits<short>::max(),
+                                      2.051)}};
 
-// Linear interpolator (as first class function)
-float hu_to_dEdx(float val) {
-  const auto lookup_cond = [&val](const std::pair<float, double> cur_pair) {
-    return val < cur_pair.first;
-  };
-  // Find first index in lookup that satisfies "val < lookup[i].first" :
-  const auto lookup_upper_ptr =
-      std::find_if(std::begin(lookup), std::end(lookup), lookup_cond);
+    const auto lookup_cond = [&val](const std::pair<short, double> cur_pair) {
+      return val < cur_pair.first;
+    };
+    // Find first index in lookup that satisfies "val < lookup[i].first" :
+    const auto lookup_upper_ptr =
+        std::find_if(std::begin(lookup), std::end(lookup), lookup_cond);
 
-  const auto lookup_upper = *lookup_upper_ptr;
+    const auto lookup_upper = *lookup_upper_ptr;
 
-  // Get the previous index:
-  const auto lookup_lower = lookup.at(static_cast<size_t>(
-      std::max(0, static_cast<int>(lookup_upper_ptr - lookup.begin() - 1))));
+    // Get the previous index:
+    const auto lookup_lower = lookup.at(static_cast<size_t>(
+        std::max(0, static_cast<int>(lookup_upper_ptr - lookup.begin() - 1))));
 
-  // Do linear interpolation between upper and lower data point:
-  const auto a = (lookup_upper.second - lookup_lower.second) /
-                 static_cast<double>(lookup_upper.first - lookup_lower.first);
-  const auto b =
-      lookup_upper.second - a * static_cast<double>(lookup_upper.first);
+    // Do linear interpolation between upper and lower data point:
+    const auto a = (lookup_upper.second - lookup_lower.second) /
+                   static_cast<double>(lookup_upper.first - lookup_lower.first);
+    const auto b =
+        lookup_upper.second - a * static_cast<double>(lookup_upper.first);
 
-  return static_cast<float>(a * static_cast<double>(val) + b);
-}
+    return static_cast<float>(a * static_cast<double>(val) + b);
+  }
+};
 
 FloatImageType::Pointer
 ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   ShortImageType::Pointer hu_image_tmp;
   ConvertUshort2Short(spImgUshort, hu_image_tmp);
 
-  using CastFilterType = itk::CastImageFilter<ShortImageType, FloatImageType>;
-  auto cast_filter = CastFilterType::New();
-  cast_filter->SetInput(hu_image_tmp);
-  cast_filter->Update();
-
-  FloatImageType::Pointer wepl_image = cast_filter->GetOutput();
-
-  itk::ImageRegionIterator<FloatImageType> it(
-      wepl_image, wepl_image->GetLargestPossibleRegion());
-
-  // std::transform(it.Begin(), it.End(), hu_to_dEdx); //ITK iterators doesn't
-  // support <algorithm> (yet?)
-  for (it.GoToBegin(); !it.IsAtEnd(); ++it) {
-    it.Set(hu_to_dEdx(it.Get()));
-  }
+  auto hu_to_dedx_filter =
+      itk::UnaryFunctorImageFilter<ShortImageType, FloatImageType,
+                                   hu_to_dedx_functor>::New();
+  hu_to_dedx_filter->SetInput(hu_image_tmp);
+  hu_to_dedx_filter->Update();
+  auto wepl_image = hu_to_dedx_filter->GetOutput();
 
   using WriterType = itk::ImageFileWriter<FloatImageType>;
   auto writer = WriterType::New();
