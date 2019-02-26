@@ -9,7 +9,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['gcc-7', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['gcc-7', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=g++-7 CC=gcc-7 CUDA=NONE MACCUDA=NONE
 
     - os: linux
@@ -19,7 +19,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['gcc-7', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['gcc-7', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=g++-7 CC=gcc-7 CBCTRECON_COVERAGE=ON CUDA=10.0.130-1 MACCUDA=NONE
 
     - os: linux
@@ -29,7 +29,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-6']
-          packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=clang++-6 CC=clang-6 CUDA=NONE MACCUDA=NONE
 
     - os: linux
@@ -39,7 +39,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-6']
-          packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CXX=clang++-6 CC=clang-6 CUDA=10.0.130 MACCUDA=NONE
 
     - os: osx
@@ -52,6 +52,7 @@ matrix:
           casks: nvidia-cuda
           packages:
             - fftw
+            - qt
             - libomp
           update: true
       env: CXX=clang++ CC=clang CUDA=NONE MACCUDA=10.0
@@ -63,6 +64,7 @@ matrix:
         homebrew:
           packages:
             - fftw
+            - qt
             - libomp
           update: true
       env: CXX=clang++ CC=clang CUDA=NONE MACCUDA=NONE
@@ -74,12 +76,7 @@ before_install:
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt-get update -qq; fi
-  - if test "$CUDA" != NONE; then export CUDA_APT=${CUDA%-*}; fi
-  - if test "$CUDA" != NONE; then export CUDA_APT=${CUDA_APT/./-}; fi
-  - if test "$CUDA" != NONE; then export CUDA_APT=${CUDA_APT:0:3}; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt-get install -y cuda-drivers cuda-core-${CUDA_APT} cuda-cudart-dev-${CUDA_APT}; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt-get install -y cuda-cufft-${CUDA_APT} cuda-cufft-dev-${CUDA_APT}; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt-get install -y cuda-cublas-${CUDA_APT} cuda-cublas-dev-${CUDA_APT}; fi
+  - if test "$CUDA" != NONE; then travis_retry sudo apt-get install -y cuda; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt-get clean; fi
   - if test "$CUDA" != NONE; then export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}; fi
   - if test "$CUDA" != NONE; then export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}; fi
@@ -103,7 +100,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz && ls && ls cmake-3.13.4-Darwin-x86_64; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
 
   - $CXX --version
   - $CMAKE --version
