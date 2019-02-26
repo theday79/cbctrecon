@@ -45,6 +45,11 @@ matrix:
     - os: osx
       osx_image: xcode9.2
       compiler: clang
+      addons:
+        homebrew:
+          packages:
+            ['fftw', 'libomp']
+          update: true
       env: CXX=clang++ CC=clang CUDA=NONE
 
 
@@ -64,7 +69,6 @@ before_install:
   - if test "$CUDA" != NONE; then export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}; fi
   - if test "$CUDA" != NONE; then export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}; fi
   - if test "$CUDA" != NONE; then export USECUDA=ON; else export USECUDA=OFF; fi
-  - if test $TRAVIS_OS_NAME == osx ; then HOMEBREW_NO_AUTO_UPDATE=1 brew install fftw || true ; brew link --overwrite fftw || true ; fi
   - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
 
 install:
