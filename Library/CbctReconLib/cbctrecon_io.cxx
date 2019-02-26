@@ -538,7 +538,7 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
 std::vector<std::string> get_dcm_image_files(QDir &dir) {
 
   using NamesGeneratorType = itk::GDCMSeriesFileNames;
-  NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+  auto nameGenerator = NamesGeneratorType::New();
 
   nameGenerator->SetUseSeriesDetails(true);
   nameGenerator->AddSeriesRestriction("0008|0021");
@@ -546,23 +546,24 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
   nameGenerator->SetDirectory(dir.absolutePath().toStdString());
 
   using SeriesIdContainer = std::vector<std::string>;
-  const SeriesIdContainer &seriesUID = nameGenerator->GetSeriesUIDs();
+  const auto &seriesUID = nameGenerator->GetSeriesUIDs();
   auto seriesItr = seriesUID.begin();
-  auto seriesEnd = seriesUID.end();
+  const auto seriesEnd = seriesUID.end();
 
   if (seriesItr == seriesEnd) {
     std::cerr << "No DICOMs in: " << dir.absolutePath().toStdString() << "\n";
-    return {{}};
+    return {};
   }
 
   seriesItr = seriesUID.begin();
-  while (seriesItr != seriesUID.end()) {
-    auto seriesIdentifier = seriesItr->c_str();
-    seriesItr++;
+  if (seriesItr != seriesUID.end()) {
+    const auto seriesIdentifier = seriesItr->c_str();
+    ++seriesItr;
     auto fileNames = nameGenerator->GetFileNames(seriesIdentifier);
 
     return fileNames;
   }
+  return {};
 }
 
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
@@ -603,7 +604,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   if (!filenamelist.empty()) {
     using dcm_reader_type = itk::ImageSeriesReader<ShortImageType>;
     auto dcm_reader = dcm_reader_type::New();
-    auto dicom_io = itk::GDCMImageIO::New();
+    const auto dicom_io = itk::GDCMImageIO::New();
     dcm_reader->SetImageIO(dicom_io);
     dcm_reader->SetFileNames(filenamelist);
     dcm_reader->Update();

@@ -37,7 +37,7 @@ int main(const int argc, char *argv[]) {
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   /* Load projections */
-  auto cbct_dir_str =
+  const auto cbct_dir_str =
       QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
   auto cbct_dir = QDir(cbct_dir_str);
   auto cbct_path = cbct_dir.absolutePath();
@@ -60,7 +60,7 @@ int main(const int argc, char *argv[]) {
   auto proj_path = proj_dir.absolutePath();
   cbctrecon_test->test_SetHisDir(proj_path);
 
-  auto start_time = std::chrono::steady_clock::now();
+  const auto start_time = std::chrono::steady_clock::now();
   if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path, false)) {
     std::cerr << "Could not load or reconstruct CB projections!"
               << "\n";
@@ -70,7 +70,7 @@ int main(const int argc, char *argv[]) {
     std::cerr << "Projections was Null!\n";
     return -5;
   }
-  auto end_time = std::chrono::steady_clock::now();
+  const auto end_time = std::chrono::steady_clock::now();
   std::cerr << "Proj. was loaded in: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                      start_time)

@@ -3758,9 +3758,6 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
   const std::array<double, 3> pixel_size = {{spUshortImage->GetSpacing()[0],
                                              spUshortImage->GetSpacing()[1],
                                              spUshortImage->GetSpacing()[2]}};
-  const auto img_size = spUshortImage->GetLargestPossibleRegion().GetSize();
-  const std::array<size_t, 3> cubedim = {
-      {img_size[0], img_size[1], img_size[2]}};
 
   const auto couch = 0.0;
 
@@ -3793,7 +3790,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
 
       WEPLData wepl_data{};
       wepl_data.fWEPL =
-          WEPL_from_point(point_id, basis, pixel_size, cubedim, wepl_image);
+          WEPL_from_point(point_id, basis, pixel_size, wepl_image);
       wepl_data.ptIndex = loop_idx;
       wepl_data.fGanAngle = gantry;
 
@@ -3853,8 +3850,6 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
                                              wepl_image->GetSpacing()[2]}};
 
   auto region = wepl_image->GetLargestPossibleRegion();
-  const std::array<size_t, 3> cube_dim = {
-      {region.GetSize()[0], region.GetSize()[1], region.GetSize()[2]}};
 
   std::vector<WEPLData> stArrWEPL(sizeAngles);
 
@@ -3868,7 +3863,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
     ofs << std::fixed << std::setprecision(3) << curAngle << ", [" << basis[0]
         << ", " << basis[1] << ", " << basis[2] << "]: ";
 
-    it.fWEPL = WEPL_from_point(isoTarget, basis, pixel_size, cube_dim,
+    it.fWEPL = WEPL_from_point(isoTarget, basis, pixel_size,
                                wepl_image); // get_rgdepth
     it.fGanAngle = curAngle;
     it.ptIndex = curPtIdx;

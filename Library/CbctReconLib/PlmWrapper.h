@@ -8,11 +8,11 @@
 #undef CUDA_FOUND
 #include "plm_image.h"
 #include "rtss.h"
-#include "rtss_contour.h"
-#include "rtss_roi.h"
 
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
+
+class Rtss_contour;
 
 class Plm_image_friend : public Plm_image {
 public:

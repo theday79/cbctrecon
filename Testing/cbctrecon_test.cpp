@@ -13,7 +13,6 @@
 #include "cbctrecon.h"
 #endif
 
-#include <chrono>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -213,8 +212,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   }
 
   this->m_cbctrecon->ConvertLineInt2Intensity(
-      this->m_cbctrecon->m_spProjImg3DFloat,
-      this->m_cbctrecon->m_spProjImgRaw3D,
+      proj_ref, this->m_cbctrecon->m_spProjImgRaw3D,
       65535); // if X not 1024 == input size: out_offset =
               // in_offset + (1024*res_f -
               // X*res_f)*out_spacing     <- will still

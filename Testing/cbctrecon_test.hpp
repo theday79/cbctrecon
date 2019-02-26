@@ -1,12 +1,6 @@
 #ifndef CBCTRECON_TEST_HPP
 #define CBCTRECON_TEST_HPP
 
-/* Defines necessary for using TinyRefl */
-
-// #define TINYREFL_API_CODEGEN_VERSION_MAJOR 0
-// #define TINYREFL_API_CODEGEN_VERSION_MINOR 1
-// #define TINYREFL_API_CODEGEN_VERSION_FIX   1
-
 #include <memory>
 #include <tuple>
 
@@ -28,15 +22,9 @@ public:
   }
 
 private:
-  std::tuple<bool, bool> probeUser(const QString &guessDir);
   FilterReaderType::Pointer
   ReadBowtieFileWhileProbing(const QString &proj_path,
                              std::tuple<bool, bool> &answers) const;
-  bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
-                                        enREGI_IMAGES enFwdRefImg,
-                                        bool bFullResolRecon,
-                                        bool bExportImages,
-                                        bool bCBCT_IntensityShift);
 
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon = std::make_unique<CbctRecon>();
@@ -147,13 +135,14 @@ public:
 template <class TImage>
 void CheckImageQuality(typename TImage::Pointer recon,
                        typename TImage::Pointer ref,
-                       double ErrorPerPixelTolerance, double PSNRTolerance,
-                       double RefValueForPSNR) {
+                       const double ErrorPerPixelTolerance,
+                       const double PSNRTolerance,
+                       const double RefValueForPSNR) {
   typedef itk::ImageRegionConstIterator<TImage> ImageIteratorType;
   ImageIteratorType itTest(recon, recon->GetBufferedRegion());
   ImageIteratorType itRef(ref, ref->GetBufferedRegion());
 
-  typedef double ErrorType;
+  using ErrorType = double;
   ErrorType TestError = 0.;
   ErrorType EnerError = 0.;
 
@@ -169,17 +158,18 @@ void CheckImageQuality(typename TImage::Pointer recon,
     ++itRef;
   }
   // Error per Pixel
-  ErrorType ErrorPerPixel =
+  const ErrorType ErrorPerPixel =
       TestError / ref->GetBufferedRegion().GetNumberOfPixels();
   std::cout << "\nError per Pixel = " << ErrorPerPixel << std::endl;
   // MSE
-  ErrorType MSE = EnerError / ref->GetBufferedRegion().GetNumberOfPixels();
+  const ErrorType MSE =
+      EnerError / ref->GetBufferedRegion().GetNumberOfPixels();
   std::cout << "MSE = " << MSE << std::endl;
   // PSNR
-  ErrorType PSNR = 20 * log10(RefValueForPSNR) - 10 * log10(MSE);
+  const ErrorType PSNR = 20 * log10(RefValueForPSNR) - 10 * log10(MSE);
   std::cout << "PSNR = " << PSNR << "dB" << std::endl;
   // QI
-  ErrorType QI = (RefValueForPSNR - ErrorPerPixel) / RefValueForPSNR;
+  const ErrorType QI = (RefValueForPSNR - ErrorPerPixel) / RefValueForPSNR;
   std::cout << "QI = " << QI << std::endl;
 
   //   // It is often necessary to write the images and look at them

@@ -34,10 +34,10 @@ const static auto true_super_sums = std::array<std::string, 13>{
      "9e1f5a48"}};
 
 template <typename T> std::string float_to_hex(T x) {
-  const unsigned char *pf = reinterpret_cast<const unsigned char *>(&x);
+  const auto pf = reinterpret_cast<const unsigned char *>(&x);
   std::stringstream ss;
   ss << std::hex << std::setfill('0');
-  for (int i = 0; i < sizeof(float); ++i) {
+  for (auto i = 0U; i < sizeof(float); ++i) {
     ss << std::setw(2) << static_cast<unsigned>(pf[i]);
   }
   return ss.str();
@@ -53,7 +53,8 @@ int main(const int argc, char *argv[]) {
   std::cerr << "Running test_dcm_reader!\n";
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
-  auto dcm_dir_str = QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+  const auto dcm_dir_str =
+      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
 
   auto dcm_dir = QDir(dcm_dir_str);
   auto dcm_path = dcm_dir.absolutePath();
@@ -78,7 +79,7 @@ int main(const int argc, char *argv[]) {
   auto true_vois = std::begin(true_voi_names);
   auto true_super_sum = std::begin(true_super_sums);
   for (auto &structure : ss->slist) {
-    if (true_vois->compare(structure.name) == 0) {
+    if (*true_vois == structure.name) {
       ++true_vois;
     } else {
       std::cerr << "­\"" << structure.name << "\" is not \"" << *true_vois
@@ -87,7 +88,7 @@ int main(const int argc, char *argv[]) {
     }
     auto super_sum = 0.0f;
     for (auto &contour : structure.pslist) {
-      auto start = FloatVector{.0f, .0f, .0f};
+      const auto start = FloatVector{.0f, .0f, .0f};
       const auto sum = std::accumulate(
           std::begin(contour.coordinates), std::end(contour.coordinates), start,
           [](auto acc_val, auto val) {
@@ -97,7 +98,7 @@ int main(const int argc, char *argv[]) {
       super_sum += sum.x + sum.y + sum.z;
     }
 
-    if (true_super_sum->compare(float_to_hex(super_sum)) == 0) {
+    if (*true_super_sum == float_to_hex(super_sum)) {
       ++true_super_sum;
     } else {
       std::cerr << "\"" << float_to_hex(super_sum) << "\" != \""

@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include "DlgRegistration.h"
 
@@ -117,11 +118,10 @@ void DlgRegistration::initDlgRegistration(QString &strDCMUID) {
   p_parent->m_spManualRigidCT =
       spNull; // copied from RefCTImg; ID: RefCT --> Moving Img, cloned
   p_parent->m_spAutoRigidCT = spNull; // ID: AutoRigidCT
-  p_parent->m_spDeformedCT1 =
-      spNull; // Deformmation will be carried out based
-              // on Moving IMage of GUI //AutoDeformCT1
-  p_parent->m_spDeformedCT2 = spNull;      // AutoDeformCT2
-  p_parent->m_spDeformedCT3 = spNull;      // AutoDeformCT3
+  p_parent->m_spDeformedCT1 = spNull; // Deformmation will be carried out based
+                                      // on Moving IMage of GUI //AutoDeformCT1
+  p_parent->m_spDeformedCT2 = spNull; // AutoDeformCT2
+  p_parent->m_spDeformedCT3 = spNull; // AutoDeformCT3
   p_parent->m_spDeformedCT_Final = spNull; // AutoDeformCT3
 
   this->ui.checkBoxKeyMoving->setChecked(false);
@@ -179,6 +179,7 @@ template <enCOLOR color> auto get_qtpoint_vector(qyklabel *window) {
   case RED:
     return &window->m_vPt;
   case GREEN:
+  default:
     return &window->m_vPt_green;
   }
 }
@@ -224,7 +225,7 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
                                       (point.y - imgOriginFixed[1]) / y_scale));
       }
     }
-    for (auto& point : contour.coordinates) {
+    for (auto &point : contour.coordinates) {
       // Frontal
       if (point.y > curPhysPos[1] - imgSpacing[1] &&
           point.y < curPhysPos[1] + imgSpacing[1] && plane == PLANE_FRONTAL) {
@@ -439,32 +440,32 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     const auto p_cur_voi = m_cbctregistration->cur_voi.get();
 
     set_points_by_slice<UShortImageType, PLANE_AXIAL, RED>(
-        arr_wnd.at(refIdx % 3), p_cur_voi, curPhysPos,
-        imgSpacingMoving, imgOriginMoving, imgSizeMoving);
+        arr_wnd.at(refIdx % 3), p_cur_voi, curPhysPos, imgSpacingMoving,
+        imgOriginMoving, imgSizeMoving);
 
     set_points_by_slice<UShortImageType, PLANE_FRONTAL, RED>(
-        arr_wnd.at((refIdx + 1) % 3), p_cur_voi,
-        curPhysPos, imgSpacingMoving, imgOriginMoving, imgSizeMoving);
+        arr_wnd.at((refIdx + 1) % 3), p_cur_voi, curPhysPos, imgSpacingMoving,
+        imgOriginMoving, imgSizeMoving);
 
     set_points_by_slice<UShortImageType, PLANE_SAGITTAL, RED>(
-        arr_wnd.at((refIdx + 2) % 3), p_cur_voi,
-        curPhysPos, imgSpacingMoving, imgOriginMoving, imgSizeMoving);
+        arr_wnd.at((refIdx + 2) % 3), p_cur_voi, curPhysPos, imgSpacingMoving,
+        imgOriginMoving, imgSizeMoving);
   }
 
   if (m_cbctregistration->WEPL_voi != nullptr) {
     const auto p_wepl_voi = m_cbctregistration->WEPL_voi.get();
 
     set_points_by_slice<UShortImageType, PLANE_AXIAL, GREEN>(
-        arr_wnd.at(refIdx % 3), p_wepl_voi, curPhysPos,
-        imgSpacing, imgOriginFixed, imgSize);
+        arr_wnd.at(refIdx % 3), p_wepl_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, PLANE_FRONTAL, GREEN>(
-        arr_wnd.at((refIdx + 1) % 3), p_wepl_voi,
-        curPhysPos, imgSpacing, imgOriginFixed, imgSize);
+        arr_wnd.at((refIdx + 1) % 3), p_wepl_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, PLANE_SAGITTAL, GREEN>(
-        arr_wnd.at((refIdx + 2) % 3), p_wepl_voi,
-        curPhysPos, imgSpacing, imgOriginFixed, imgSize);
+        arr_wnd.at((refIdx + 2) % 3), p_wepl_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
   }
 
   /*qDebug() << strOriFixed;
@@ -1852,14 +1853,10 @@ void DlgRegistration::SLT_PreProcessCT() {
     if (m_spMoving == nullptr || m_spFixed == nullptr) {
       return;
     }
-    const auto fixed_size = m_spFixed->GetLargestPossibleRegion().GetSize(); 
-    const auto moving_size = m_spMoving->GetLargestPossibleRegion().GetSize(); 
-    if (fixed_size[0] !=
-            moving_size[0] ||
-        fixed_size[1] !=
-            moving_size[1] ||
-        fixed_size[2] !=
-            moving_size[2]){
+    const auto fixed_size = m_spFixed->GetLargestPossibleRegion().GetSize();
+    const auto moving_size = m_spMoving->GetLargestPossibleRegion().GetSize();
+    if (fixed_size[0] != moving_size[0] || fixed_size[1] != moving_size[1] ||
+        fixed_size[2] != moving_size[2]) {
       std::cout
           << "Fixed and moving image is not the same size, consider using "
              "a platimatch registration to solve this."
@@ -2249,9 +2246,8 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
 void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
   const auto p_parent = m_cbctregistration->m_pParent;
   auto filePath = QFileDialog::getOpenFileName(
-      this, "Open DCMRT Plan file",
-      p_parent->m_strPathDirDefault, "DCMRT Plan (*.dcm)",
-      nullptr, nullptr);
+      this, "Open DCMRT Plan file", p_parent->m_strPathDirDefault,
+      "DCMRT Plan (*.dcm)", nullptr, nullptr);
 
   if (filePath.length() < 1) {
     return;
@@ -2259,7 +2255,8 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
 
   const auto planIso = m_cbctregistration->GetIsocenterDCM_FromRTPlan(filePath);
 
-  if (planIso.x == 0.0 && planIso.y == 0.0 && planIso.z == 0.0) {
+  if (fabs(planIso.x) < 0.001 && fabs(planIso.y) < 0.001 &&
+      fabs(planIso.z) < 0.001) {
     std::cout
         << "Warning!!!! Plan iso is 0 0 0. Most likely not processed properly"
         << std::endl;
@@ -2583,8 +2580,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCBCT->isChecked();
 
   auto originBefore = p_parent->m_spRefCTImg->GetOrigin();
-  auto originAfter =
-      p_parent->m_spManualRigidCT->GetOrigin();
+  auto originAfter = p_parent->m_spManualRigidCT->GetOrigin();
 
   double fShift[3];
   fShift[0] = originBefore[0] - originAfter[0]; // DICOM
@@ -2660,8 +2656,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
         this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
     auto update_message =
         QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
-    m_pParent->UpdateReconImage(p_parent->m_spRawReconImg,
-                                update_message);
+    m_pParent->UpdateReconImage(p_parent->m_spRawReconImg, update_message);
 
     std::cout << "Reading is completed" << std::endl;
 

@@ -33,7 +33,8 @@ int main(const int argc, char *argv[]) {
   std::cerr << "Running cbctrecon_test!\n";
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
-  auto dcm_dir_str = QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+  const auto dcm_dir_str =
+      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
 
   auto dcm_dir = QDir(dcm_dir_str);
   auto dcm_path = dcm_dir.absolutePath();
@@ -54,7 +55,7 @@ int main(const int argc, char *argv[]) {
   }
 
   /* Load projections (Needs to be uploaded to girder first) */
-  auto cbct_dir_str =
+  const auto cbct_dir_str =
       QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
   auto cbct_dir = QDir(cbct_dir_str);
   auto cbct_path = cbct_dir.absolutePath();

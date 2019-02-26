@@ -49,7 +49,7 @@ void saveImageAsMHA(typename ImageType::Pointer &image,
 
 template <int group, int element, typename T>
 auto gdcm_attribute_from(T parent) {
-  gdcm::Attribute<group, element> attribute;
+  auto attribute = gdcm::Attribute<group, element>();
   attribute.SetFromDataElement(parent->GetDataElement(attribute.GetTag()));
   return attribute;
 }
