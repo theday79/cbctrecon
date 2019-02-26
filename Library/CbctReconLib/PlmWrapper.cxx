@@ -4,6 +4,9 @@
 
 #include <memory>
 
+#include "rtss_contour.h"
+#include "rtss_roi.h"
+
 #include "PlmWrapper.h"
 #include <itkImageRegionIterator.h>
 
@@ -239,5 +242,8 @@ Rtss_roi_modern &Rtss_modern::get_roi_ref_by_name(const std::string &name) {
       return roi;
     }
   }
-  std::cerr << "VOI name was not in structure set !?" << std::endl;
+  std::cerr << "VOI name was not in structure set !?\n";
+  std::cerr << "Warning: Returning " << slist.at(0).name << " instead of "
+            << name << "\n";
+  return slist.at(0);
 }
