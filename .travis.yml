@@ -10,7 +10,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-5', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: TOOLSET=g++-5 CUDA=NONE
+      env: CXX=g++-5 CC=gcc-5 CUDA=NONE
 
     - os: linux
       dist: trusty
@@ -20,7 +20,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-5', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: TOOLSET=g++-5 CBCTRECON_COVERAGE=ON CUDA=8.0.61-1
+      env: CXX=g++-5 CC=gcc-5 CBCTRECON_COVERAGE=ON CUDA=8.0.61-1
 
     - os: linux
       dist: trusty
@@ -30,7 +30,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8']
           packages: ['clang-8', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: TOOLSET=clang++-8 CUDA=NONE
+      env: CXX=clang++-8 CC=clang-8 CUDA=NONE
 
     - os: linux
       dist: trusty
@@ -40,12 +40,12 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8']
           packages: ['clang-8', 'libfftw3-3', 'libfftw3-dev', 'ocl-icd-opencl-dev', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: TOOLSET=clang++-8 CUDA=NONE
+      env: CXX=clang++-8 CC=clang-8 CUDA=NONE
 
     - os: osx
       osx_image: xcode9.2
       compiler: clang
-      env: TOOLSET=clang++ CUDA=NONE
+      env: CXX=clang++ CC=clang CUDA=NONE
 
 
 
@@ -83,7 +83,6 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
 
-  - export CXX=$TOOLSET
   - $CXX --version
   - $CMAKE --version
 
