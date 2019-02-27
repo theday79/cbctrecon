@@ -9,8 +9,8 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['gcc-7', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: MATRIX_EVAL="CXX=g++-7 && CC=gcc-7" CUDA=NONE MACCUDA=NONE
+          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+      env: CUDA=NONE MACCUDA=NONE
 
     - os: linux
       dist: bionic
@@ -20,7 +20,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['gcc-7', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: MATRIX_EVAL="CXX=g++-7 && CC=gcc-7" CBCTRECON_COVERAGE=ON CUDA=10.0.130-1 MACCUDA=NONE
+      env: CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: linux
       dist: bionic
@@ -28,9 +28,9 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-6']
-          packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: MATRIX_EVAL="CXX=clang++-6 && CC=clang-6" CUDA=NONE MACCUDA=NONE
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-7']
+          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+      env: CUDA=NONE MACCUDA=NONE
 
     - os: linux
       dist: bionic
@@ -38,9 +38,9 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-6']
-          packages: ['clang-6', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: MATRIX_EVAL="CXX=clang++-6 && CC=clang-6" CUDA=10.0.130-1 MACCUDA=NONE
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-7']
+          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+      env: CUDA=10.0.130-1 MACCUDA=NONE
 
     - os: osx
       osx_image: xcode9.2
@@ -55,7 +55,7 @@ matrix:
             - qt
             - libomp
           update: true
-      env: MATRIX_EVAL="CXX=clang++ && CC=clang" CUDA=NONE MACCUDA=10.0
+      env: CUDA=NONE MACCUDA=10.0
 
     - os: osx
       osx_image: xcode9.2
@@ -72,7 +72,7 @@ matrix:
 
 
 before_install:
-  - eval "$(MATRIX_EVAL)"
+  - eval $MATRIX_EVAL
   - export OMP_NUM_THREADS=4
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
