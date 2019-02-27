@@ -9,7 +9,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['gcc-7', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers' 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['gcc-7', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: MATRIX_EVAL="CXX=g++-7 && CC=gcc-7" CUDA=NONE MACCUDA=NONE
 
     - os: linux
