@@ -54,6 +54,7 @@ matrix:
             - fftw
             - qt
             - libomp
+            - clinfo
           update: true
       env: CUDA=NONE MACCUDA=10.0
 
@@ -66,13 +67,13 @@ matrix:
             - fftw
             - qt
             - libomp
+            - clinfo
           update: true
-      env: MATRIX_EVAL="CXX=clang++ && CC=clang" CUDA=NONE MACCUDA=NONE
+      env: CUDA=NONE MACCUDA=NONE
 
 
 
 before_install:
-  - eval $MATRIX_EVAL
   - export OMP_NUM_THREADS=4
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
@@ -96,6 +97,7 @@ install:
 
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then bash ./cbctrecon/.travis/install_intel_opencl.sh; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.13/cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/cmake; fi
