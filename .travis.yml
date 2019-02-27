@@ -77,7 +77,7 @@ before_install:
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
-  - if test "$CUDA" != NONE; then sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub; fi
+  - if test "$CUDA" != NONE; then sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt update -qq; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt install -y cuda; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt clean; fi
