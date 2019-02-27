@@ -77,7 +77,7 @@ before_install:
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1804_${CUDA}_amd64.deb; fi
-  - if test "$CUDA" != NONE; then sudo apt-key add /var/cuda-repo-$CUDA/7fa2af80.pub; fi
+  - if test "$CUDA" != NONE; then sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt update -qq; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt install -y cuda; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt clean; fi
@@ -105,7 +105,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz && ls && ls cmake-3.13.4-Darwin-x86_64; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH"; fi
 
   - $CXX --version
   - $CMAKE --version
