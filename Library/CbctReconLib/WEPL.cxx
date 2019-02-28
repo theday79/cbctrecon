@@ -261,13 +261,16 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
 }
 
 FloatImageType::PointType point_from_WEPL(
-    const FloatImageType::PointType &start_point /* Physical point */,
-    const double fWEPL, const std::array<double, 3> &vec_basis,
+    const vnl_vector_fixed<double, 3> &start_point /* Physical point */,
+    const double fWEPL, const vnl_vector_fixed<double, 3> &vec_basis,
     const FloatImageType::Pointer &wepl_cube) {
 
-  auto start_idx = FloatImageType::IndexType();
+  using VectorType = vnl_vector_fixed<double, 3>;
 
-  if (!wepl_cube->TransformPhysicalPointToIndex(start_point, start_idx)) {
+  const auto start_point_phys = FloatImageType::PointType(&start_point[0]);
+  auto start_idx = itk::ContinuousIndex<double, 3>();
+  if (!wepl_cube->TransformPhysicalPointToContinuousIndex(start_point_phys,
+                                                          start_idx)) {
     std::cerr << "Start point {" << start_point[0] << ", " << start_point[1]
               << ", " << start_point[2]
               << "} for reverse WEPL calc was not in image!\n";
@@ -275,61 +278,47 @@ FloatImageType::PointType point_from_WEPL(
   }
 
   const auto step_length = 0.1;
-  const auto step =
-      DoubleVector{vec_basis.at(0) * step_length, vec_basis.at(1) * step_length,
-                   vec_basis.at(2) * step_length};
+  const auto step = vec_basis * step_length;
 
-  const auto pixel_size =
-      DoubleVector{wepl_cube->GetSpacing()[0], wepl_cube->GetSpacing()[1],
-                   wepl_cube->GetSpacing()[2]};
+  const auto pixel_size = wepl_cube->GetSpacing().GetVnlVector();
+  const auto ones = VectorType(1.0);
+  const auto inv_pixel_size = element_quotient(ones, pixel_size);
 
-  const auto inv_pixel_size =
-      DoubleVector{1.0 / pixel_size.x, 1.0 / pixel_size.y, 1.0 / pixel_size.z};
-
-  auto point = // +pixel_size so we don't break on the first pixel interpolation
-      DoubleVector{start_idx[0] * pixel_size.x, start_idx[1] * pixel_size.y,
-                   start_idx[2] * pixel_size.z};
+  auto point = element_product(start_idx.GetVnlVector(), pixel_size);
 
   // Acumulate WEPL until fWEPL is reached
   auto accumWEPL = 0.0;
   while (accumWEPL < fWEPL) {
-    auto index_pos = itk::ContinuousIndex<double, 3>();
-    index_pos[0] = point.x * inv_pixel_size.x;
-    index_pos[1] = point.y * inv_pixel_size.y;
-    index_pos[2] = point.z * inv_pixel_size.z;
+    const auto index_pos_vec = element_quotient(point, pixel_size);
+    const auto index_pos = itk::ContinuousIndex<double, 3>(&index_pos_vec[0]);
 
     if (!wepl_cube->GetBufferedRegion().IsInside(index_pos)) {
-      std::cerr << "Hit image boundary on WEPL re-calc\n";
+      const auto size = wepl_cube->GetBufferedRegion().GetSize();
+      std::cerr << "Hit {" << index_pos.GetElement(0) << ", "
+                << index_pos.GetElement(1) << ", " << index_pos.GetElement(2)
+                << "} outside image boundary: {" << size[0] << ", " << size[1]
+                << ", " << size[2] << "} on WEPL re-calc\n";
       break;
     }
     const auto val = itk_lin_interpolate(index_pos, wepl_cube);
-    if (!isnan(val)) {
-      accumWEPL += val * step_length;
-    }
+    accumWEPL += val * step_length;
 
     // point = point + step (Reverse of WEPL_from_point)
-    point.x += step.x;
-    point.y += step.y;
-    point.z += step.z;
+    point += step;
   }
 
-  auto point_idx = FloatImageType::IndexType();
-  point_idx.SetElement(0, static_cast<FloatImageType::IndexValueType>(
-                              round(point.x * inv_pixel_size.x)));
-  point_idx.SetElement(1, static_cast<FloatImageType::IndexValueType>(
-                              round(point.y * inv_pixel_size.y)));
-  point_idx.SetElement(2, static_cast<FloatImageType::IndexValueType>(
-                              round(point.z * inv_pixel_size.z)));
+  const auto point_idx_vec = element_product(point, inv_pixel_size);
+  auto point_idx = itk::ContinuousIndex<double, 3>(&point_idx_vec[0]);
 
   auto out_point = FloatImageType::PointType();
 
-  wepl_cube->TransformIndexToPhysicalPoint(point_idx, out_point);
+  wepl_cube->TransformContinuousIndexToPhysicalPoint(point_idx, out_point);
 
   return out_point;
 }
 
 FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
-                                     const std::array<double, 3> &vec_basis,
+                                     const std::array<double, 3> &arr_basis,
                                      const FloatImageType::Pointer &wepl_cube) {
   /* Find point of intersection with edge of wepl cube
    * Then step into wepl cube from point until vwepl.WEPL is reached.
@@ -337,6 +326,24 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
 
   // VNL should use SSEX.Y when available (?)
   using VectorType = vnl_vector_fixed<double, 3>;
+  const auto vec_basis =
+      VectorType(arr_basis.at(0), arr_basis.at(1), arr_basis.at(2));
+  // Find direction of itk coordinate system vs. index coordinate system:
+  auto first_idx = FloatImageType::IndexType();
+  first_idx.SetElement(0, 0);
+  first_idx.SetElement(1, 0);
+  first_idx.SetElement(2, 0);
+
+  auto first_phys_point = FloatImageType::PointType();
+  wepl_cube->TransformIndexToPhysicalPoint(first_idx, first_phys_point);
+  const auto sign_vec =
+      IntVector{sgn(first_phys_point.GetElement(0) - vwepl.point.x),
+                sgn(first_phys_point.GetElement(1) - vwepl.point.y),
+                sgn(first_phys_point.GetElement(2) - vwepl.point.z)};
+  // The sign of the first minus any point in cube should yield the sign
+  // transformation we want on vec_basis
+  std::cerr << "Signs: " << sign_vec.x << ", " << sign_vec.y << ", "
+            << sign_vec.z << "\n";
 
   const auto img_size = wepl_cube->GetLargestPossibleRegion().GetSize();
   const IntVector cubedim = {static_cast<int>(img_size[0]),
@@ -353,16 +360,18 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
    * => p = d * l + l_0
    */
   const VectorType l_0(vwepl.point.x, vwepl.point.y, vwepl.point.z);
-  const VectorType l(vec_basis.at(0), vec_basis.at(1), vec_basis.at(2));
+  const VectorType l(sign_vec.x * vec_basis.get(0),
+                     sign_vec.y * vec_basis.get(1),
+                     sign_vec.z * vec_basis.get(2));
 
   /* We will only need to check three planes
    * Depending on the sign of vec_basis:
    *    _________         __________
-   *   /   y-   /|       /|        /|
+   *   /   y+   /|       /|        /|
    *  /_______ / |      /_|______ / |
-   * |        |x+|     |x-|  z+  |  |
-   * |   z-   |  |     |  |______|__|
-   * |        | /      | /   y+  | /
+   * |        |x+|     |x-|  z-  |  |
+   * |   z+   |  |     |  |______|__|
+   * |        | /      | /   y-  | /
    * |________|/       |/________|/
    */
   // Find p_0 and n of the three planes:
@@ -377,9 +386,9 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
 
   std::array<VectorType, 3U> n = {{
       // Normal vectors to the three planes
-      VectorType(sgn(vec_basis.at(0)), 0.0, 0.0),
-      VectorType(0.0, sgn(vec_basis.at(1)), 0.0),
-      VectorType(0.0, 0.0, sgn(vec_basis.at(2))),
+      VectorType(1.0, 0.0, 0.0),
+      VectorType(0.0, 1.0, 0.0),
+      VectorType(0.0, 0.0, 1.0),
   }};
 
   // d = (p_0 - l_0) dot n / ( l dot n)
@@ -402,13 +411,11 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
   // Point of intersection:
   const auto p_intersect = p.at(min_dist_plane);
 
-  auto intersect = FloatImageType::PointType();
-  intersect.SetElement(0, p_intersect[0]);
-  intersect.SetElement(1, p_intersect[1]);
-  intersect.SetElement(2, p_intersect[2]);
+  const VectorType pixel_size = wepl_cube->GetSpacing().GetVnlVector();
+  const auto start_point = p_intersect + element_product(pixel_size, vec_basis);
 
   const auto out_point =
-      point_from_WEPL(intersect, vwepl.WEPL, vec_basis, wepl_cube);
+      point_from_WEPL(start_point, vwepl.WEPL, vec_basis, wepl_cube);
 
   return FloatVector{static_cast<float>(out_point.GetElement(0)),
                      static_cast<float>(out_point.GetElement(1)),
@@ -485,12 +492,6 @@ ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   hu_to_dedx_filter->SetInput(hu_image_tmp);
   hu_to_dedx_filter->Update();
   const auto wepl_image = hu_to_dedx_filter->GetOutput();
-
-  using WriterType = itk::ImageFileWriter<FloatImageType>;
-  auto writer = WriterType::New();
-  writer->SetInput(wepl_image);
-  writer->SetFileName("wepl_image.mha");
-  writer->Update();
 
   return wepl_image;
 }

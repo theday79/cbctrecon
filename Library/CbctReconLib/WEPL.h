@@ -30,8 +30,8 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
                            const FloatImageType::Pointer &wepl_cube);
 
 FloatImageType::PointType
-point_from_WEPL(const FloatImageType::PointType &start_point, double fWEPL,
-                const std::array<double, 3> &vec_basis,
+point_from_WEPL(FloatImageType::PointType &start_point, double fWEPL,
+                const vnl_vector_fixed<double, 3> &vec_basis,
                 const FloatImageType::Pointer &wepl_cube);
 
 FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,

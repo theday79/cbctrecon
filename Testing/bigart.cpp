@@ -123,6 +123,17 @@ int main(const int argc, char *argv[]) {
 
   auto &orig_voi = ss->get_roi_ref_by_name(voi);
 
+  using WriterType = itk::ImageFileWriter<FloatImageType>;
+  auto writer = WriterType::New();
+  writer->SetInput(ConvertUshort2WeplFloat(recalc_img));
+  writer->SetFileName("recalc_wepl_image.mha");
+  writer->Update();
+
+  writer->SetInput(
+      ConvertUshort2WeplFloat(cbctrecon_test->m_cbctrecon->m_spManualRigidCT));
+  writer->SetFileName("calc_wepl_image.mha");
+  writer->Update();
+
   cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
       voi, 90, 0, cbctrecon_test->m_cbctrecon->m_spManualRigidCT, recalc_img);
 

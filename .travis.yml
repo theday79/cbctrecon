@@ -43,7 +43,7 @@ matrix:
       env: CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: osx
-      osx_image: xcode9.2
+      osx_image: xcode10
       compiler: clang
       addons:
         homebrew:
@@ -56,10 +56,10 @@ matrix:
             - libomp
             - clinfo
           update: true
-      env: CUDA=NONE MACCUDA=10.0
+      env: CUDA=NONE MACCUDA=10.1
 
     - os: osx
-      osx_image: xcode9.2
+      osx_image: xcode10
       compiler: clang
       addons:
         homebrew:
@@ -97,14 +97,14 @@ install:
 
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then bash ./cbctrecon/.travis/install_intel_opencl.sh; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo bash ./cbctrecon/.travis/install_intel_opencl.sh; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.13/cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/cmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz && ls && ls cmake-3.13.4-Darwin-x86_64; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH"; fi
