@@ -12,9 +12,20 @@
 
 #include <QDir>
 
+#include "itkEuler3DTransform.h"
+#include "vnl_vector_fixed.h"
+
+#include "cbctrecon_io.h"
 #include "cbctrecon_test.hpp"
 
-UShortImageType::Pointer get_image_from_dicom(QString &dir) {
+constexpr auto deg2rad(double deg) { return deg / 180.0 * itk::Math::pi; }
+
+UShortImageType::Pointer
+get_image_from_dicom(const QString &dir,
+                     const UShortImageType::SpacingType &new_spacing,
+                     const UShortImageType::SizeType &new_size,
+                     const UShortImageType::PointType &new_origin,
+                     const UShortImageType::DirectionType &new_direction) {
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   auto dcm_dir = QDir(dir);
@@ -28,30 +39,51 @@ UShortImageType::Pointer get_image_from_dicom(QString &dir) {
 
   cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
   cbctrecon_test->test_LoadDICOMdir();
-  if (cbctrecon_test->m_cbctrecon->m_spManualRigidCT.IsNull()) {
+  auto &ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+
+  if (ct_img.IsNull()) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
   }
   /* Some debug info: */
   UShortImageType::PointType first_point;
   UShortImageType::IndexType index{0, 0, 0};
-  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
-      index, first_point);
+  ct_img->TransformIndexToPhysicalPoint(index, first_point);
   std::cerr << "First pixel point: " << first_point[0] << ", " << first_point[1]
             << ", " << first_point[2] << "\n";
 
-  auto size =
-      cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetLargestPossibleRegion()
-          .GetSize();
+  auto size = ct_img->GetLargestPossibleRegion().GetSize();
   index.SetElement(0, size[0]);
   index.SetElement(1, size[1]);
   index.SetElement(2, size[2]);
   UShortImageType::PointType last_point;
-  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
-      index, last_point);
+  ct_img->TransformIndexToPhysicalPoint(index, last_point);
   std::cerr << "Last pixel point: " << last_point[0] << ", " << last_point[1]
             << ", " << last_point[2] << "\n";
 
-  return cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+  auto resampler =
+      itk::ResampleImageFilter<UShortImageType, UShortImageType>::New();
+
+  auto transform = itk::Euler3DTransform<double>::New();
+  transform->SetRotation(deg2rad(-0.8843), deg2rad(1.6274), deg2rad(-0.3450));
+
+  auto translation = itk::Euler3DTransform<double>::InputVectorType();
+  translation.SetElement(0, 5.5185);  // -X in eclipse -> X itk
+  translation.SetElement(1, -2.6872); // -Y in eclipse -> Y itk
+  translation.SetElement(2, -6.4281); // -Z in eclipse -> Z itk
+  transform->SetTranslation(translation);
+
+  resampler->SetInput(ct_img);
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<UShortImageType, double>::New();
+  resampler->SetInterpolator(interpolator);
+  resampler->SetSize(new_size);
+  resampler->SetOutputSpacing(new_spacing);
+  resampler->SetOutputOrigin(new_origin);
+  resampler->SetOutputDirection(new_direction);
+  resampler->SetTransform(transform);
+  resampler->Update();
+
+  return resampler->GetOutput();
 }
 
 int main(const int argc, char *argv[]) {
@@ -63,9 +95,6 @@ int main(const int argc, char *argv[]) {
   }
 
   std::cerr << "Running BiGART script!\n";
-
-  auto recalc_dcm_dir = QString(argv[2]);
-  auto recalc_img = get_image_from_dicom(recalc_dcm_dir);
 
   /* Read dicom and structures */
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
@@ -84,10 +113,22 @@ int main(const int argc, char *argv[]) {
 
   cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
   cbctrecon_test->test_LoadDICOMdir();
-  if (cbctrecon_test->m_cbctrecon->m_spManualRigidCT.IsNull()) {
+
+  auto &ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+  if (ct_img.IsNull()) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
     return -4;
   }
+
+  auto recalc_dcm_dir = QString(argv[2]);
+  auto recalc_img =
+      get_image_from_dicom(recalc_dcm_dir, ct_img->GetSpacing(),
+                           ct_img->GetLargestPossibleRegion().GetSize(),
+                           ct_img->GetOrigin(), ct_img->GetDirection());
+
+  saveImageAsMHA<UShortImageType>(recalc_img,
+                                  recalc_dcm_dir.toStdString() + "/recalc.mha");
+  saveImageAsMHA<UShortImageType>(ct_img, dcm_path.toStdString() + "/orig.mha");
 
   /* Structure test: */
   auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
@@ -104,38 +145,24 @@ int main(const int argc, char *argv[]) {
   /* calculate WEPL coordinates */
   UShortImageType::PointType first_point;
   UShortImageType::IndexType index{0, 0, 0};
-  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
-      index, first_point);
+  ct_img->TransformIndexToPhysicalPoint(index, first_point);
   std::cerr << "First pixel point: " << first_point[0] << ", " << first_point[1]
             << ", " << first_point[2] << "\n";
 
-  auto size =
-      cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetLargestPossibleRegion()
-          .GetSize();
+  auto size = ct_img->GetLargestPossibleRegion().GetSize();
   index.SetElement(0, size[0]);
   index.SetElement(1, size[1]);
   index.SetElement(2, size[2]);
   UShortImageType::PointType last_point;
-  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->TransformIndexToPhysicalPoint(
-      index, last_point);
+  ct_img->TransformIndexToPhysicalPoint(index, last_point);
   std::cerr << "Last pixel point: " << last_point[0] << ", " << last_point[1]
             << ", " << last_point[2] << "\n";
 
   auto &orig_voi = ss->get_roi_ref_by_name(voi);
-
-  using WriterType = itk::ImageFileWriter<FloatImageType>;
-  auto writer = WriterType::New();
-  writer->SetInput(ConvertUshort2WeplFloat(recalc_img));
-  writer->SetFileName("recalc_wepl_image.mha");
-  writer->Update();
-
-  writer->SetInput(
-      ConvertUshort2WeplFloat(cbctrecon_test->m_cbctrecon->m_spManualRigidCT));
-  writer->SetFileName("calc_wepl_image.mha");
-  writer->Update();
-
+  const auto gantry_angle = 90;
+  const auto couch_angle = 0;
   cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
-      voi, 90, 0, cbctrecon_test->m_cbctrecon->m_spManualRigidCT, recalc_img);
+      voi, gantry_angle, couch_angle, ct_img, recalc_img);
 
   /* Generate a vector of vectors with distances */
   const auto &wepl_voi = cbctrecon_test->m_cbctregistration->WEPL_voi;
@@ -160,17 +187,24 @@ int main(const int argc, char *argv[]) {
       });
 
   /* Write distances to file */
-  auto pFile = fopen("out.txt", "w");
+  auto output_filename =
+      "Dist_" + orig_voi.name + "_CT" + dcm_path.back().toLatin1() + "_to_CT" +
+      recalc_dcm_dir.back().toLatin1() + "_at_G" +
+      std::to_string(gantry_angle) + "C" + std::to_string(couch_angle) + ".txt";
+
+  std::ofstream f_stream;
+  f_stream.open(output_filename);
+  f_stream << std::fixed << std::setprecision(5);
 
   std::for_each(std::begin(output), std::end(output),
-                [&pFile](const std::vector<float> out_vec) {
+                [&f_stream](const std::vector<float> out_vec) {
                   std::for_each(std::begin(out_vec), std::end(out_vec),
-                                [&pFile](const float val) {
-                                  fprintf(pFile, "%.3f\n", val);
+                                [&f_stream](const float val) {
+                                  f_stream << val << "\n";
                                 });
                 });
 
-  fclose(pFile);
+  f_stream.close();
 
   return 0;
 }

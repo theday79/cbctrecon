@@ -221,24 +221,24 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
     if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
         first_point.z < curPhysPos[0] + imgSpacing[2] && plane == PLANE_AXIAL) {
       for (auto point : contour.coordinates) {
-        Wnd_contour->push_back(QPoint((point.x - imgOriginFixed[0]) / x_scale,
-                                      (point.y - imgOriginFixed[1]) / y_scale));
+        Wnd_contour->emplace_back((point.x - imgOriginFixed[0]) / x_scale,
+                                  (point.y - imgOriginFixed[1]) / y_scale);
       }
     }
     for (auto &point : contour.coordinates) {
       // Frontal
       if (point.y > curPhysPos[1] - imgSpacing[1] &&
           point.y < curPhysPos[1] + imgSpacing[1] && plane == PLANE_FRONTAL) {
-        Wnd_contour->push_back(
-            QPoint((point.x - imgOriginFixed[0]) / x_scale,
-                   wnd_height - (point.z - imgOriginFixed[2]) / y_scale));
+        Wnd_contour->emplace_back((point.x - imgOriginFixed[0]) / x_scale,
+                                  wnd_height -
+                                      (point.z - imgOriginFixed[2]) / y_scale);
       }
       // Sagittal
       if (point.x > curPhysPos[2] - imgSpacing[0] &&
           point.x < curPhysPos[2] + imgSpacing[0] && plane == PLANE_SAGITTAL) {
-        Wnd_contour->push_back(
-            QPoint((point.y - imgOriginFixed[1]) / x_scale,
-                   wnd_height - (point.z - imgOriginFixed[2]) / y_scale));
+        Wnd_contour->emplace_back((point.y - imgOriginFixed[1]) / x_scale,
+                                  wnd_height -
+                                      (point.z - imgOriginFixed[2]) / y_scale);
       }
     }
   }
@@ -440,16 +440,16 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     const auto p_cur_voi = m_cbctregistration->cur_voi.get();
 
     set_points_by_slice<UShortImageType, PLANE_AXIAL, RED>(
-        arr_wnd.at(refIdx % 3), p_cur_voi, curPhysPos, imgSpacingMoving,
-        imgOriginMoving, imgSizeMoving);
+        arr_wnd.at(refIdx % 3), p_cur_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, PLANE_FRONTAL, RED>(
-        arr_wnd.at((refIdx + 1) % 3), p_cur_voi, curPhysPos, imgSpacingMoving,
-        imgOriginMoving, imgSizeMoving);
+        arr_wnd.at((refIdx + 1) % 3), p_cur_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, PLANE_SAGITTAL, RED>(
-        arr_wnd.at((refIdx + 2) % 3), p_cur_voi, curPhysPos, imgSpacingMoving,
-        imgOriginMoving, imgSizeMoving);
+        arr_wnd.at((refIdx + 2) % 3), p_cur_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
   }
 
   if (m_cbctregistration->WEPL_voi != nullptr) {

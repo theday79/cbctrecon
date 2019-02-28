@@ -36,7 +36,6 @@
 #include <itkBinaryErodeImageFilter.h>
 #include <itkBinaryFillholeImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
-#include <itkEuler3DTransform.h>
 #include <itkFlipImageFilter.h>
 #include <itkImageDuplicator.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
