@@ -342,8 +342,6 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
                 sgn(first_phys_point.GetElement(2) - vwepl.point.z)};
   // The sign of the first minus any point in cube should yield the sign
   // transformation we want on vec_basis
-  std::cerr << "Signs: " << sign_vec.x << ", " << sign_vec.y << ", "
-            << sign_vec.z << "\n";
 
   const auto img_size = wepl_cube->GetLargestPossibleRegion().GetSize();
   const IntVector cubedim = {static_cast<int>(img_size[0]),
