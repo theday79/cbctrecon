@@ -87,6 +87,7 @@ endif()
 if(OpenCL_FOUND)
   add_definitions(-DUSE_OPENCL_PLM=TRUE)
   add_definitions(-DUSE_OPENCL_RTK=TRUE)
+  set(OPENCL_INCLUDE_DIRS ${OpenCL_INCLUDE_DIR})
 endif(OpenCL_FOUND)
 
 IF(USE_CUDA)

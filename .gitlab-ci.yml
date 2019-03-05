@@ -9,6 +9,7 @@ Ubuntu-gcc7:
     tags:
       - linux
       - docker
+      - gpu
     image: andreasga/cbctrecon:gcc-7-x86_64
     script:
       - ./ci/ci.sh
@@ -19,6 +20,7 @@ Ubuntu-gcc7-CUDA:
       - linux
       - docker
       - cuda
+      - gpu
     image: andreasga/cbctrecon:gcc-7-CUDA-x86_64
     variables:
       CUDA_AVAILABLE: "YES"
@@ -30,6 +32,7 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
     tags:
       - linux
       - docker
+      - gpu
     image: andreasga/cbctrecon:gcc-7-x86_64-DCMTK363-ITKv4131-RTKmaster
     script:
       - ./ci/ci.sh

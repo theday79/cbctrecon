@@ -7,9 +7,9 @@
 
 include (CheckCXXSourceRuns)
 
-if(NOT WIN32)
-    set(CMAKE_REQUIRED_FLAGS "-std=c++11")
-endif()
+#if(NOT WIN32)
+#    set(CMAKE_REQUIRED_FLAGS "-std=c++11")
+#endif()
 
 check_cxx_source_runs(
 "
