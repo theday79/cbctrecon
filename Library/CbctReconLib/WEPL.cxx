@@ -126,7 +126,7 @@ double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
       break;
     }
     const auto val = itk_lin_interpolate(index_pos, wepl_cube);
-    if (!isnan(val)) { // Hopefully this is only happening at the edge!?
+    if (!std::isnan(val)) { // Hopefully this is only happening at the edge!?
       out += val;
     }
 
@@ -183,7 +183,7 @@ WEPL_trace_from_point(const std::array<size_t, 3> &cur_point_id,
       break;
     }
     const auto val = itk_lin_interpolate(index_pos, wepl_cube);
-    if (!isnan(val)) { // Hopefully this is only happening at the edge!?
+    if (!std::isnan(val)) { // Hopefully this is only happening at the edge!?
       out_wepl += val;
     }
 
