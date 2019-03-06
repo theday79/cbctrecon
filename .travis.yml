@@ -10,7 +10,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['gcc-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: CUDA=NONE MACCUDA=NONE
+      env: CC_VER=8 CUDA=NONE MACCUDA=NONE
 
     - os: linux
       dist: xenial
@@ -20,7 +20,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['gcc-8', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
+      env: CC_VER=8 CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: linux
       dist: xenial
@@ -30,7 +30,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
           packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: CUDA=NONE MACCUDA=NONE
+      env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
     - os: linux
       dist: xenial
@@ -40,7 +40,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
           packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
-      env: CUDA=10.1.105-1 MACCUDA=NONE
+      env: CC_VER=DEFAULT CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: osx
       osx_image: xcode10
@@ -57,7 +57,7 @@ matrix:
             - libomp
             - clinfo
           update: true
-      env: CUDA=NONE MACCUDA=10.1
+      env: CC_VER=DEFAULT CUDA=NONE MACCUDA=10.1
 
     - os: osx
       osx_image: xcode10
@@ -70,12 +70,14 @@ matrix:
             - libomp
             - clinfo
           update: true
-      env: CUDA=NONE MACCUDA=NONE
+      env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
 
 
 before_install:
   - export OMP_NUM_THREADS=4
+  - if test "$CC_VER" != DEFAULT; then export CC=$CC-$CC_VER; fi
+  - if test "$CC_VER" != DEFAULT; then export CXX=$CXX-$CC_VER; fi
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
