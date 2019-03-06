@@ -9,7 +9,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['gcc-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CUDA=NONE MACCUDA=NONE
 
     - os: linux
@@ -19,7 +19,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
+          packages: ['gcc-8', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt-default', 'libqt5opengl5-dev']
       env: CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: linux
@@ -48,8 +48,9 @@ matrix:
       addons:
         homebrew:
           tap:
-            - caskroom/drivers
-          casks: nvidia-cuda
+            - homebrew/cask-drivers
+          casks:
+            - nvidia-cuda
           packages:
             - fftw
             - qt
@@ -106,7 +107,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/ctest; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH"; fi
 
   - $CXX --version

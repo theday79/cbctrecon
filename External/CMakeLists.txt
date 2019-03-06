@@ -40,7 +40,9 @@ if(WIN32)
 endif()
 
 # DCMTK
-external_proj(DCMTK)
+if(USE_DCMTK)
+  external_proj(DCMTK)
+endif()
 
 # ITK/RTK
 external_proj(ITK)

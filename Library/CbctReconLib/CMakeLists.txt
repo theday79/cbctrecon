@@ -73,6 +73,10 @@ set_target_cpu_flags(CbctReconLib)
 # Only sets report flags if Intel Compiler:
 set_target_vectorizer_report_flags(CbctReconLib)
 
+if(CBCTRECON_SANITIZE)
+    sanitize_build(CbctReconLib)
+endif()
+
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)
 

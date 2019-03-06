@@ -27,17 +27,21 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Check Instruction set available and set intel compiler flags
 include(feature_defs OPTIONAL)
+include(Sanitize)
 
 option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
 option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)
 option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs. Zlib" OFF)
 OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
+OPTION(USE_DCMTK "Toggle DCMTK on or off" ON) # ON by default because PLM can't figure out what to do by itself.
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
+option(CBCTRECON_SANITIZE "Sanitize build of CbctRecon" ON)
+
 if(CMAKE_COMPILER_IS_GNUCXX AND ${CBCTRECON_BUILD_TESTS} AND ${USE_CUDA})
   set(TMP_COVERAGE ON)  # gcov requires gcc and tests to be build.
   # CUDA is to only do this on private GitLab runners and to enable most routes

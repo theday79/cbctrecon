@@ -34,6 +34,10 @@ set(${test_target}_SRC
 add_library(${test_target}
   ${${test_target}_SRC})
 
+if(CBCTRECON_SANITIZE)
+  sanitize_build(cbctrecon_test)
+endif()
+
 target_link_libraries(${test_target}
   PUBLIC CbctReconLib
   )
@@ -116,7 +120,7 @@ set(${test_target}_DATA
   DATA{Input/Alderson/CT.tar.gz}
   DATA{Input/Alderson/CBCT.tar.gz}
   )
-  
+
 add_cbctrecon_test(
   TARGET ${test_target}
   DATA_ARGS ${${test_target}_DATA}
