@@ -8,7 +8,7 @@ matrix:
       compiler: gcc-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'beineri/opt-qt-5.12.1-xenial']
+          sources: ['ubuntu-toolchain-r-test', 'beineri-opt-qt-5.12.1-xenial']
           packages: ['gcc-8', 'g++-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
       env: CC_VER=8 CUDA=NONE MACCUDA=NONE
 
@@ -18,7 +18,7 @@ matrix:
       compiler: gcc-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'beineri/opt-qt-5.12.1-xenial']
+          sources: ['ubuntu-toolchain-r-test', 'beineri-opt-qt-5.12.1-xenial']
           packages: ['gcc-8', 'g++-8', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
       env: CC_VER=8 CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
@@ -28,7 +28,7 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7', 'beineri/opt-qt-5.12.1-xenial']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7', 'beineri-opt-qt-5.12.1-xenial']
           packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
       env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
@@ -38,7 +38,7 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7', 'beineri/opt-qt-5.12.1-xenial']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7', 'beineri-opt-qt-5.12.1-xenial']
           packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
       env: CC_VER=DEFAULT CUDA=10.1.105-1 MACCUDA=NONE
 
