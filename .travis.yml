@@ -8,8 +8,8 @@ matrix:
       compiler: gcc-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'beineri-opt-qt-5.12.1-xenial']
-          packages: ['gcc-8', 'g++-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['gcc-8', 'g++-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
       env: CC_VER=8 CUDA=NONE MACCUDA=NONE
 
     - os: linux
@@ -18,8 +18,8 @@ matrix:
       compiler: gcc-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'beineri-opt-qt-5.12.1-xenial']
-          packages: ['gcc-8', 'g++-8', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['gcc-8', 'g++-8', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
       env: CC_VER=8 CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: linux
@@ -28,8 +28,8 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7', 'beineri-opt-qt-5.12.1-xenial']
-          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
+          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
       env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
     - os: linux
@@ -38,8 +38,8 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7', 'beineri-opt-qt-5.12.1-xenial']
-          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo', 'qt512-meta-full']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
+          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
       env: CC_VER=DEFAULT CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: osx
@@ -78,6 +78,7 @@ before_install:
   - export OMP_NUM_THREADS=4
   - if test "$CC_VER" != DEFAULT; then export CC=$CC-$CC_VER; fi
   - if test "$CC_VER" != DEFAULT; then export CXX=$CXX-$CC_VER; fi
+
   - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
   - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
@@ -101,10 +102,15 @@ install:
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo bash ./cbctrecon/.travis/install_intel_opencl.sh; fi
+
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.13/cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/cmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
+
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository ppa:beineri/opt-qt-5.12.1-xenial; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt install -y qt512-meta-full; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz; fi
