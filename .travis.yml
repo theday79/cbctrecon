@@ -120,9 +120,11 @@ install:
   - git config --global user.email "andreasga22@gmail.com"
   - git config --global user.name "Andreas Gravgaard Andersen"
 
-script:
+before_script:
   - mkdir build/ && cd build/
   - $CMAKE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
+
+script:
   - $CMAKE .
   - $CMAKE --build .
   - $CTEST
