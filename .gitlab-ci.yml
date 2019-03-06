@@ -15,7 +15,7 @@ Ubuntu-gcc7:
       - ./ci/ci.sh
     cache:
       paths:
-        - /home/user/cbctrecon/build/ExternalData/Testing/*
+        - /home/user/cbctrecon/build/ExternalData/Testing/
 
 Ubuntu-gcc7-CUDA:
     stage: test
@@ -31,7 +31,7 @@ Ubuntu-gcc7-CUDA:
       - ./ci/ci.sh
     cache:
       paths:
-        - /home/user/cbctrecon/build/ExternalData/Testing/*
+        - /home/user/cbctrecon/build/ExternalData/Testing/
 
 Ubuntu-gcc7-prebuild-DCM-I-RTK:
     stage: test
@@ -44,7 +44,7 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
       - ./ci/ci.sh
     cache:
       paths:
-        - /home/user/cbctrecon/build/ExternalData/Testing/*
+        - /home/user/cbctrecon/build/ExternalData/Testing/
 
 #test-x86_64-linux-ubuntu-clang6:
 #    stage: test
