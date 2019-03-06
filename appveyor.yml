@@ -141,7 +141,7 @@ before_build:
   # Config ITK and exit to cache the configuration
   - if not exist "%ITK_BINARY_DIR%" (
       cd C:/projects/ &
-      mkdir "%ITK_BINARY_DIR%"i &
+      mkdir "%ITK_BINARY_DIR%" &
       cd "%ITK_BINARY_DIR%" &
       cp "%APPVEYOR_BUILD_FOLDER%/External/patches/ExternalRTK.remote.cmake" "%ITK_SOURCE_DIR%/Modules/Remote/" &
       cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="%FFTW_DIR%/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="%FFTW_DIR%/libfftw3-3.lib" -DFFTW_INCLUDE_PATH="%FFTW_DIR%" -DFFTW_INCLUDE_DIR="%FFTW_DIR%" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DOPENCL_INCLUDE_DIRS="%OPENCL_DIR%/include" -DOPENCL_LIBRARIES="%OPENCL_DIR%/lib/x64/OpenCL.lib"  -DOPENCL_ROOT_DIR="%OPENCL_DIR%" -DITK_USE_SYSTEM_DCMTK=ON -DDCMTK_DIR="%DCMTK_BINARY_DIR%" -DModule_ITKMathematicalMorphology=ON -DRTK_BUILD_APPLICATIONS=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_USE_CUDA=OFF &
