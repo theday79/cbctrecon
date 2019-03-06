@@ -4,7 +4,7 @@ set -xe
 # Show available OpenCL driver & device:
 clinfo
 
-mkdir build && cd build
+mkdir -p build && cd build
 
 echo Test building: $BUILD_TESTING
 
@@ -28,10 +28,11 @@ else
 fi
 
 cmake ..
-ninja
+cmake --build . --target CbctData
+cmake --build .
 
 ctest -VV
 
 if [[ "$COVERAGE" = "YES" ]]; then
-    make $MAKE_CONCURRENCY CbctReconLib_coverage
+    cmake --build . --target CbctReconLib_coverage
 fi

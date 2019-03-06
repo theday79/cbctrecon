@@ -13,6 +13,9 @@ Ubuntu-gcc7:
     image: andreasga/cbctrecon:gcc-7-x86_64
     script:
       - ./ci/ci.sh
+    cache:
+      paths:
+        - /home/user/cbctrecon/build/ExternalData/Testing/*
 
 Ubuntu-gcc7-CUDA:
     stage: test
@@ -26,6 +29,9 @@ Ubuntu-gcc7-CUDA:
       CUDA_AVAILABLE: "YES"
     script:
       - ./ci/ci.sh
+    cache:
+      paths:
+        - /home/user/cbctrecon/build/ExternalData/Testing/*
 
 Ubuntu-gcc7-prebuild-DCM-I-RTK:
     stage: test
@@ -36,6 +42,9 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
     image: andreasga/cbctrecon:gcc-7-x86_64-DCMTK363-ITKv4131-RTKmaster
     script:
       - ./ci/ci.sh
+    cache:
+      paths:
+        - /home/user/cbctrecon/build/ExternalData/Testing/*
 
 #test-x86_64-linux-ubuntu-clang6:
 #    stage: test
