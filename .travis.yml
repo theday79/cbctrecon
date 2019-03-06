@@ -1,4 +1,7 @@
 language: cpp
+cache:
+  directories:
+    - $HOME/Library/Caches/Homebrew
 
 matrix:
   include:
@@ -112,6 +115,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt install -y qt512-meta-full; fi
 
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_wait brew install casks nvidia-cuda; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
@@ -134,6 +138,9 @@ script:
   - $CMAKE .
   - $CMAKE --build .
   - $CTEST
+
+before_cache:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
 
 after_script:
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then $CMAKE --build . --target CbctRecon_coverage && cd ../ && coveralls --no-gcov --lcov-file build/CbctRecon_coverage.info.cleaned; fi
