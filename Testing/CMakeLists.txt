@@ -127,7 +127,7 @@ add_cbctrecon_test(
   )
 
 # Temporary script for BiGART
-add_cbctrecon_test(
-  TARGET bigart
-  DATA_ARGS ""
-  )
+#add_cbctrecon_test(
+#  TARGET bigart
+#  DATA_ARGS ""
+#  )
