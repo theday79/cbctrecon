@@ -52,8 +52,6 @@ matrix:
         homebrew:
           taps:
             - homebrew/cask-drivers
-          casks:
-            - nvidia-cuda
           packages:
             - fftw
             - qt
