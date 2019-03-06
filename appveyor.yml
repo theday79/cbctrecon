@@ -104,6 +104,7 @@ cache:
   # Caching ITK source and build tree
   - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR% -> .appveyor_clear_cache'
+  - '%ITK_BINARY_DIR%/lib -> .appveyor_clear_cache'
 
 build:
   parallel: true
