@@ -47,7 +47,7 @@ matrix:
       compiler: clang
       addons:
         homebrew:
-          tap:
+          taps:
             - homebrew/cask-drivers
           casks:
             - nvidia-cuda
