@@ -16,15 +16,35 @@
 
 #include "rtkOpenCLUtilities.h"
 
+// If this function fails, something is probably wrong with the local OpenCL ICD
+// setup. Therefore we will just let it run and not throw, so the user gets as
+// much info as possible before the crash
 std::tuple<cl_platform_id, cl_device_id>
 getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
-  cl_platform_id platform;
-  cl_device_id device;
+  std::vector<cl_platform_id> platform;
 
   /* Setup OpenCL environment. */
-  auto err = clGetPlatformIDs(1, &platform, nullptr);
+  cl_uint num_platforms = 0;
+  auto err = clGetPlatformIDs(0, nullptr, &num_platforms);
+  if (err != CL_SUCCESS) {
+    std::cerr << "CL " << err << ": Could not get number of platforms!\n";
+  }
+  if (num_platforms == 0) {
+    std::cerr << "CL: Number of platforms were 0!\n";
+  }
+  platform.resize(num_platforms);
 
-  err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, nullptr);
+  err |= clGetPlatformIDs(num_platforms, &platform[0], nullptr);
+  if (err != CL_SUCCESS) {
+    std::cerr << "CL " << err << ": Could not get platform ID\n";
+  }
+
+  cl_device_id device;
+  err |= clGetDeviceIDs(platform.at(0), CL_DEVICE_TYPE_DEFAULT, 1, &device,
+                        nullptr);
+  if (err != CL_SUCCESS) {
+    std::cerr << "CL " << err << ": Could not get default OpenCL device ID\n";
+  }
 
   cl_ulong max_mem_alloc;
   err |= clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong),
@@ -36,14 +56,15 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
               << " was larger than DEV_MAX_MEM: "
               << max_mem_alloc / (1024 * 1024) << "MB\n"
               << "Changing to CPU mode..." << std::endl;
-    err |= clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, nullptr);
+    err |=
+        clGetDeviceIDs(platform.at(0), CL_DEVICE_TYPE_CPU, 1, &device, nullptr);
   }
   if (err != CL_SUCCESS) {
     std::cout << "Could not retrieve OpenCL device info, error code: " << err
               << std::endl;
   }
 
-  return std::make_tuple(platform, device);
+  return std::make_tuple(platform.at(0), device);
 }
 
 std::tuple<cl_context, cl_command_queue, cl_device_id>
@@ -905,7 +926,7 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 }
 
 void OpenCL_AddConst_InPlace(cl_float *buffer,
-                             const itk::Image<float, 3U>::SizeType& inputSize,
+                             const itk::Image<float, 3U>::SizeType &inputSize,
                              const cl_float constant) {
 
   auto err = CL_SUCCESS;
@@ -1008,10 +1029,9 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   }
 }
 
-void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
-                                      const itk::Image<float, 3U>::SizeType& inputSize,
-                                      const cl_float add_constant,
-                                      const cl_float mul_constant) {
+void OpenCL_AddConst_MulConst_InPlace(
+    cl_float *buffer, const itk::Image<float, 3U>::SizeType &inputSize,
+    const cl_float add_constant, const cl_float mul_constant) {
 
   auto err = CL_SUCCESS;
 
@@ -1109,9 +1129,9 @@ void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
   }
 }
 
-void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
-                                const itk::Image<float, 2U>::SizeType& inputSize,
-                                const cl_float constant) {
+void OpenCL_AddConst_InPlace_2D(
+    cl_float *buffer, const itk::Image<float, 2U>::SizeType &inputSize,
+    const cl_float constant) {
 
   auto err = CL_SUCCESS;
 
@@ -1211,7 +1231,7 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
 }
 
 cl_float2 OpenCL_min_max(const cl_float *buffer,
-                         const itk::Image<float, 3U>::SizeType& inputSize) {
+                         const itk::Image<float, 3U>::SizeType &inputSize) {
   auto err = CL_SUCCESS;
 
   cl_program m_Program;
@@ -1340,7 +1360,7 @@ cl_float2 OpenCL_min_max(const cl_float *buffer,
 }
 
 cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
-                            const itk::Image<float, 2U>::SizeType& inputSize) {
+                            const itk::Image<float, 2U>::SizeType &inputSize) {
 
   auto err = CL_SUCCESS;
 

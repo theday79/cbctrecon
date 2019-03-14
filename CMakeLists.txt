@@ -128,7 +128,7 @@ if(USE_SYSTEM_QT)
   if(WIN32)
     set(CMAKE_PREFIX_PATH
       ${CMAKE_PREFIX_PATH}
-      "C:\\Qt\\5.11.2\\msvc2015_64"
+      "C:\\Qt\\5.12.1\\msvc2015_64"
       )
   endif()
 else()
