@@ -44,6 +44,19 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
                         nullptr);
   if (err != CL_SUCCESS) {
     std::cerr << "CL " << err << ": Could not get default OpenCL device ID\n";
+
+    err =
+        clGetDeviceIDs(platform.at(0), CL_DEVICE_TYPE_GPU, 1, &device, nullptr);
+    if (err != CL_SUCCESS) {
+      std::cerr << "CL " << err
+                << ": Could not get GPU OpenCL device ID either!\n";
+      err = clGetDeviceIDs(platform.at(0), CL_DEVICE_TYPE_CPU, 1, &device,
+                           nullptr);
+      if (err != CL_SUCCESS) {
+        std::cerr << "CL " << err
+                  << ": Could not get CPU OpenCL device ID either!!\n";
+      }
+    }
   }
 
   cl_ulong max_mem_alloc;
