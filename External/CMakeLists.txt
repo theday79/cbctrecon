@@ -34,7 +34,7 @@ set(${plm}_GIT_TAG 1.7.4) #master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
 set(TINYREFL_GIT_REPOSITORY "${git_protocol}lab.com/Manu343726/tinyrefl.git")
 set(TINYREFL_GIT_TAG master)
 
-if(WIN32)
+if(WIN32 AND NOT (USE_ITK_GDCM OR USE_SYSTEM_ITK))
   external_proj(GDCM)
   set(GDCM_DIR ${GDCM_BUILD_DIR})
 endif()

@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 /* Do reconstruction algorithms */
 
@@ -163,7 +164,7 @@ FloatImageType::Pointer PlastimatchOpenCLFDK(
 
     /* Copy matrix to device (convert from double to float) */
     std::array<float, 12> matrix{};
-    std::memcpy(&matrix.at(0), &proj->pmat->matrix[0], 12 * sizeof(float));
+    std::copy_n(&proj->pmat->matrix[0], 12, std::begin(matrix));
 
     opencl_buf_write(&ocl_dev, ocl_buf_matrix, 12 * sizeof(float), &matrix[0]);
 

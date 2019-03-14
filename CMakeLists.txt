@@ -37,6 +37,7 @@ OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_DCMTK "Toggle DCMTK on or off" ON) # ON by default because PLM can't figure out what to do by itself.
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
+option(USE_ITK_GDCM OFF "Use the ITK implementation instead of downloading (Windows only)")
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
