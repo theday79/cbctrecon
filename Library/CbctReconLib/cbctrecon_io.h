@@ -48,10 +48,13 @@ void saveImageAsMHA(typename ImageType::Pointer &image,
 }
 
 template <int group, int element, typename T>
-auto gdcm_attribute_from(T parent) {
-  auto attribute = gdcm::Attribute<group, element>();
-  attribute.SetFromDataElement(parent->GetDataElement(attribute.GetTag()));
-  return attribute;
+auto gdcm_attribute_from(T &parent) {
+  // auto attribute = gdcm::Attribute<group, element>();
+  const auto tag = gdcm::Tag(group, element);
+  const auto &data_element = parent->GetDataElement(tag);
+  auto at = gdcm::Attribute<group, element>();
+  at.SetFromDataElement(data_element);
+  return at;
 }
 
 void CBCTRECON_API ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,

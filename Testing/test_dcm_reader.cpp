@@ -21,14 +21,14 @@
 
 #include "cbctrecon_test.hpp"
 
-const static auto true_voi_names = std::array<std::string, 13>{
+static const auto true_voi_names = std::array<std::string, 13>{
     {"BODY", "CTV1", "PTV1", "Airways_Lungs ", "Brain ", "Spinal cord ",
      "Brain Stem", "Mandible", "Parotid L ", "Parotid R ", "Thyroid L ",
      "Thyroid R ", "Hyoid "}};
 
 // Oops, this may depend on the binary reprentation of floats on the given
 // system!
-const static auto true_super_sums = std::array<std::string, 13>{
+static const auto true_super_sums = std::array<std::string, 13>{
     {"81b8a34b", "aa254449", "12079d49", "9a7de24a", "7718a24a", "49957c49",
      "9a027048", "6069a649", "1054e548", "3063a348", "a8fd6b48", "4d333c48",
      "9e1f5a48"}};

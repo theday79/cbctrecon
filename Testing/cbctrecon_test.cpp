@@ -55,7 +55,7 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
       FilterReaderType::New(); // we use is because we need the projections to
                                // be in the same unit (order of magnitude)
 
-  QDir guessDir(proj_path + QString("/../"));
+  // QDir guessDir(proj_path + QString("/../"));
 
   const auto calDir(proj_path + QString("/Calibrations/"));
 
@@ -291,8 +291,10 @@ void CbctReconTest::test_SetHisDir(QString &dirPath) {
   VEC3D couch_rot = {-999, -999,
                      -999}; // mm. In the text file, these values are in cm.
 
+  /*
   const auto res = GetCouchShiftFromINIXVI(
       this->m_cbctrecon->m_strPathElektaINIXVI2, &couch_trans, &couch_rot);
+
 
   if (res) {
     const auto strTransX = QString::number(couch_trans.x, 'f', 1);
@@ -306,6 +308,7 @@ void CbctReconTest::test_SetHisDir(QString &dirPath) {
 
     const auto strRotAll = strRotX + "," + strRotY + "," + strRotZ;
   }
+  */
 
   this->m_cbctrecon->m_vSelectedFileNames.clear();
 }
