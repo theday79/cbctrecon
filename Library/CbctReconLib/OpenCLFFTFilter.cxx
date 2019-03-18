@@ -44,6 +44,19 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
                         nullptr);
   if (err != CL_SUCCESS) {
     std::cerr << "CL " << err << ": Could not get default OpenCL device ID\n";
+
+    err =
+        clGetDeviceIDs(platform.at(0), CL_DEVICE_TYPE_GPU, 1, &device, nullptr);
+    if (err != CL_SUCCESS) {
+      std::cerr << "CL " << err
+                << ": Could not get GPU OpenCL device ID either!\n";
+      err = clGetDeviceIDs(platform.at(0), CL_DEVICE_TYPE_CPU, 1, &device,
+                           nullptr);
+      if (err != CL_SUCCESS) {
+        std::cerr << "CL " << err
+                  << ": Could not get CPU OpenCL device ID either!!\n";
+      }
+    }
   }
 
   cl_ulong max_mem_alloc;
@@ -789,9 +802,9 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
   const auto region = Num3D->GetLargestPossibleRegion();
-  auto buffer = Num3D->GetBufferPointer();
+  const auto buffer = Num3D->GetBufferPointer();
   auto inputSize = region.GetSize();
-  auto sub_buffer = Denum3D->GetBufferPointer();
+  const auto sub_buffer = Denum3D->GetBufferPointer();
   auto subSize = Denum3D->GetLargestPossibleRegion().GetSize();
 
   auto outImage = itk::Image<float, 3U>::New();

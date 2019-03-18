@@ -228,8 +228,9 @@ __kernel void subtract_kernel2D(
 	//int i = w % inputDimension.x;
 
 	//long int sub_idx = i + j * inputDimension.x;
+    const float out_val = input[idx] - subImg[w];
 
-	input[idx] = input[idx] - subImg[w];;
+	input[idx] = out_val;
 }
 
 // Actually is divide ln(65535/X) by ln(65535/Y) 
