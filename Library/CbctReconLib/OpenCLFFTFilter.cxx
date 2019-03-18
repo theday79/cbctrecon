@@ -802,9 +802,9 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
   const auto region = Num3D->GetLargestPossibleRegion();
-  auto buffer = Num3D->GetBufferPointer();
+  const auto buffer = Num3D->GetBufferPointer();
   auto inputSize = region.GetSize();
-  auto sub_buffer = Denum3D->GetBufferPointer();
+  const auto sub_buffer = Denum3D->GetBufferPointer();
   auto subSize = Denum3D->GetLargestPossibleRegion().GetSize();
 
   auto outImage = itk::Image<float, 3U>::New();
