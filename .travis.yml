@@ -3,6 +3,29 @@ cache:
   directories:
     - $HOME/Library/Caches/Homebrew
 
+addons:
+  apt:
+    sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
+    packages:
+      - libfftw3-3
+      - libfftw3-dev
+      - mesa-common-dev
+      - ocl-icd-opencl-dev
+      - ocl-icd-dev
+      - opencl-headers
+      - libsqlite3-dev
+      - clinfo
+      - libomp-dev
+  homebrew:
+    packages:
+      - fftw
+      - qt
+      - libomp
+      - clinfo
+    update: true
+
+
+
 matrix:
   include:
     - os: linux
@@ -11,8 +34,9 @@ matrix:
       compiler: gcc-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['gcc-8', 'g++-8', 'libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
+          packages:
+            - gcc-8
+            - g++-8
       env: CC_VER=8 CUDA=NONE MACCUDA=NONE
 
     - os: linux
@@ -21,28 +45,22 @@ matrix:
       compiler: gcc-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['gcc-8', 'g++-8', 'libomp-dev', 'lcov', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
+          packages:
+            - gcc-8
+            - g++-8
+            - lcov
       env: CC_VER=8 CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: linux
       dist: xenial
       sudo: false
       compiler: clang
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
-          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
       env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
     - os: linux
       dist: xenial
       sudo: false
       compiler: clang
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
-          packages: ['libomp-dev', 'libfftw3-3', 'libfftw3-dev', 'mesa-common-dev', 'ocl-icd-opencl-dev', 'ocl-icd-dev', 'opencl-headers', 'libsqlite3-dev', 'clinfo']
       env: CC_VER=DEFAULT CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: osx
@@ -52,25 +70,11 @@ matrix:
         homebrew:
           taps:
             - homebrew/cask-drivers
-          packages:
-            - fftw
-            - qt
-            - libomp
-            - clinfo
-          update: true
       env: CC_VER=DEFAULT CUDA=NONE MACCUDA=10.1
 
     - os: osx
       osx_image: xcode10
       compiler: clang
-      addons:
-        homebrew:
-          packages:
-            - fftw
-            - qt
-            - libomp
-            - clinfo
-          update: true
       env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
 
@@ -85,7 +89,7 @@ before_install:
   - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
   - if test "$CUDA" != NONE; then sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt update -qq; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt install -y cuda; fi
+  - if test "$CUDA" != NONE; then travis_wait 30 sudo apt install -y cuda; fi
   - if test "$CUDA" != NONE; then travis_retry sudo apt clean; fi
   - if test "$CUDA" != NONE; then export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}; fi
   - if test "$CUDA" != NONE; then export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}; fi
