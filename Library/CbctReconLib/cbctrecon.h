@@ -23,10 +23,10 @@ class CBCTRECON_API CbctRecon {
 public:
   CbctRecon();
   ~CbctRecon();
-  //CbctRecon(const CbctRecon &) = delete;
-  //void operator=(const CbctRecon &) = delete;
-  //CbctRecon(CbctRecon &&) = delete;
-  //void operator=(CbctRecon &&) = delete;
+  // CbctRecon(const CbctRecon &) = delete;
+  // void operator=(const CbctRecon &) = delete;
+  // CbctRecon(CbctRecon &&) = delete;
+  // void operator=(CbctRecon &&) = delete;
 
   // void DoRecon();
   void ReleaseMemory();
@@ -122,7 +122,7 @@ public:
 
   void FindAllRelevantPaths(const QString &pathProjHisDir);
 
-  template<typename CTImageType, typename ProjImageType>
+  template <typename CTImageType, typename ProjImageType>
   void ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
                                 GeometryType::Pointer &spGeometry,
                                 typename ProjImageType::Pointer &spProjCT3D,
@@ -155,12 +155,11 @@ public:
                           double resampleF)
       const; // arrYKImage include HIS header and original file name
 
-  void ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D,
-                                UShortImageType::Pointer &spProjIntensity3D,
-                                int bkIntensity) const;
-  void ConvertIntensity2LineInt(UShortImageType::Pointer &spProjIntensity3D,
-                                FloatImageType::Pointer &spProjLineInt3D,
-                                int bkIntensity) const;
+  static UShortImageType::Pointer
+  ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D);
+
+  static FloatImageType::Pointer
+  ConvertIntensity2LineInt(UShortImageType::Pointer &spProjIntensity3D);
 
   void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
                  UShortImageType::Pointer &spTargetImg3D, int idx,
@@ -179,11 +178,13 @@ public:
                           double resFactor) const; // using slice iterator
 
   template <enDeviceType Tdev>
-  void DoReconstructionFDK(enREGI_IMAGES target, const FDK_options& fdk_options);
+  void DoReconstructionFDK(enREGI_IMAGES target,
+                           const FDK_options &fdk_options);
 
   template <enDeviceType Tdev, typename ImageType, typename DDFType,
             typename PSSFType, typename FDKType>
-  void DoReconstructionFDK(enREGI_IMAGES target, const FDK_options& fdk_options);
+  void DoReconstructionFDK(enREGI_IMAGES target,
+                           const FDK_options &fdk_options);
 
   // void CudaDoReconstructionFDK(enREGI_IMAGES target);
   // void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
@@ -196,7 +197,8 @@ public:
   // vOutputWEPLData, bool bAppend);//output std::vector: append
   void GetAngularWEPL_SinglePoint(UShortImageType::Pointer &spUshortImage,
                                   float fAngleGap, float fAngleStart,
-                                  float fAngleEnd, const VEC3D &calcPt, int curPtIdx,
+                                  float fAngleEnd, const VEC3D &calcPt,
+                                  int curPtIdx,
                                   std::vector<WEPLData> &vOutputWEPLData,
                                   bool bAppend) const;
   void GetAngularWEPL_MultiPoint(UShortImageType::Pointer &spUshortImage,
@@ -214,8 +216,8 @@ public:
 
   void LoadExternalFloatImage(QString &strPath, bool bConversion);
 
-  void MedianFilterByGUI(
-      const UShortImageType::SizeType& indexRadius); // params are given at the UI
+  void MedianFilterByGUI(const UShortImageType::SizeType
+                             &indexRadius); // params are given at the UI
 
   /*Temporary implementation for XVI5 xml*/
   bool

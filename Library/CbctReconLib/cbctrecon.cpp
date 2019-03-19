@@ -61,7 +61,6 @@
 
 // RTK includes
 #include <rtkConstantImageSource.h>
-#include <rtkElektaSynergyGeometryReader.h>
 #include <rtkFieldOfViewImageFilter.h>
 #include <rtkProjectionsReader.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
@@ -3179,66 +3178,67 @@ void CbctRecon::Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
 //{
 //
 //}
-
-// From line integral to raw intensity
-// bkIntensity is usually 65535
-void CbctRecon::ConvertLineInt2Intensity(
-    FloatImageType::Pointer &spProjLineInt3D,
-    UShortImageType::Pointer &spProjIntensity3D, const int bkIntensity) const {
-  if (spProjLineInt3D == nullptr) {
-    return;
-  }
-  // FloatImageType::IMageRegionIteratorWithIndex
-
-  AllocateByRef<FloatImageType, UShortImageType>(spProjLineInt3D,
-                                                 spProjIntensity3D);
-
-  itk::ImageRegionConstIteratorWithIndex<FloatImageType> it_Src(
-      spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());
-  itk::ImageRegionIteratorWithIndex<UShortImageType> it_Tar(
-      spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());
-
-  for (it_Src.GoToBegin(), it_Tar.GoToBegin();
-       !it_Src.IsAtEnd() && !it_Tar.IsAtEnd(); ++it_Src, ++it_Tar) {
-    float intensityVal = exp(static_cast<double>(it_Src.Get()) * -1.0) *
-                         static_cast<double>(bkIntensity);
+class LineInt2Intensity {
+public:
+  LineInt2Intensity() = default;
+  ~LineInt2Intensity() = default;
+  float operator()(const float val) const {
+    const auto max_ushort = std::numeric_limits<unsigned short>::max();
+    float intensityVal =
+        exp(static_cast<double>(val) * -1.0) * static_cast<double>(max_ushort);
 
     if (intensityVal <= 1.0) {
       intensityVal = 1.0;
     }
-    if (intensityVal >= 65534) {
-      intensityVal = 65534.0;
+    if (intensityVal >= (max_ushort - 1)) {
+      intensityVal = static_cast<double>(max_ushort - 1);
     }
 
-    it_Tar.Set(static_cast<unsigned short>(intensityVal));
+    return static_cast<unsigned short>(intensityVal);
   }
-}
-
-void CbctRecon::ConvertIntensity2LineInt(
-    UShortImageType::Pointer &spProjIntensity3D,
-    FloatImageType::Pointer &spProjLineInt3D, const int bkIntensity) const {
-  if (spProjIntensity3D == nullptr) {
-    return;
+};
+// From line integral to raw intensity
+// bkIntensity is usually 65535
+UShortImageType::Pointer
+CbctRecon::ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D) {
+  if (spProjLineInt3D == nullptr) {
+    return nullptr;
   }
   // FloatImageType::IMageRegionIteratorWithIndex
 
-  AllocateByRef<UShortImageType, FloatImageType>(spProjIntensity3D,
-                                                 spProjLineInt3D);
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<FloatImageType, UShortImageType,
+                                   LineInt2Intensity>::New();
+  convert_filter->SetInput(spProjLineInt3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
 
-  itk::ImageRegionConstIteratorWithIndex<UShortImageType> it_Src(
-      spProjIntensity3D, spProjIntensity3D->GetRequestedRegion());
-  itk::ImageRegionIteratorWithIndex<FloatImageType> it_Tar(
-      spProjLineInt3D, spProjLineInt3D->GetRequestedRegion());
-
-  const auto background_intensity = static_cast<double>(bkIntensity);
-
-  for (it_Src.GoToBegin(), it_Tar.GoToBegin();
-       !it_Src.IsAtEnd() && !it_Tar.IsAtEnd(); ++it_Src, ++it_Tar) {
+class Intensity2LineInt {
+public:
+  Intensity2LineInt() = default;
+  ~Intensity2LineInt() = default;
+  float operator()(const unsigned short val) const {
+    const auto max_ushort = std::numeric_limits<unsigned short>::max();
     // mu = ln(I_0/I) OR mu = ln(I/I0)
-    float mu_t_val =
-        log(background_intensity / static_cast<double>(it_Src.Get()));
-    it_Tar.Set(mu_t_val);
+    const float mu_t_val =
+        log(static_cast<double>(max_ushort) / static_cast<double>(val));
+
+    return mu_t_val;
   }
+};
+
+FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt(
+    UShortImageType::Pointer &spProjIntensity3D) {
+  if (spProjIntensity3D == nullptr) {
+    return nullptr;
+  }
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<UShortImageType, FloatImageType,
+                                   Intensity2LineInt>::New();
+  convert_filter->SetInput(spProjIntensity3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
 }
 
 // it works! new memory will be allocated for spTarImg
@@ -3438,7 +3438,7 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
   // Original projection file can be replaced by the corrected one
   // Current projection map (float) used for the reconstruction is:
   // m_spProjImg3DFloat and this is resampled one
-  ConvertIntensity2LineInt(m_spProjImgCorr3D, m_spProjImg3DFloat, 65535U);
+  m_spProjImg3DFloat = ConvertIntensity2LineInt(m_spProjImgCorr3D);
 
   // Do reconstruction
 

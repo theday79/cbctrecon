@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 /*Utility functions for cbctrecon*/
 #include "cbctrecon_compute.h"
@@ -26,14 +27,14 @@
 
 #include "OpenCLFFTFilter.h"
 
-void ApplyBowtie(ProjReaderType::Pointer &reader,
-                 FilterReaderType::Pointer &bowtie_reader) {
+void ApplyBowtie(FloatImageType::Pointer &projections,
+                 const FloatImage2DType::Pointer &bowtie_proj) {
 
   OpenCL_subtract3Dfrom2DbySlice_InPlace(
-      static_cast<cl_float *>(reader->GetOutput()->GetBufferPointer()),
-      static_cast<cl_float *>(bowtie_reader->GetOutput()->GetBufferPointer()),
-      reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
-      bowtie_reader->GetOutput()->GetLargestPossibleRegion().GetSize());
+      static_cast<cl_float *>(projections->GetBufferPointer()),
+      static_cast<cl_float *>(bowtie_proj->GetBufferPointer()),
+      projections->GetLargestPossibleRegion().GetSize(),
+      bowtie_proj->GetLargestPossibleRegion().GetSize());
 }
 
 double GetMaxAndMinValueOfProjectionImage(
@@ -394,8 +395,8 @@ void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 // by 10.0
 void ImageTransformUsingCouchCorrection(
     UShortImageType::Pointer &spUshortInput,
-    UShortImageType::Pointer &spUshortOutput, const VEC3D& couch_trans,
-    const VEC3D& couch_rot) {
+    UShortImageType::Pointer &spUshortOutput, const VEC3D &couch_trans,
+    const VEC3D &couch_rot) {
   // couch_trans, couch_rot--> as it is from the text file. only x 10.0 was
   // applied
   if (spUshortInput == nullptr) {

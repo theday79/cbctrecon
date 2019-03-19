@@ -19,8 +19,8 @@
 
 class QXmlStreamReader;
 
-CBCTRECON_API void ApplyBowtie(ProjReaderType::Pointer &reader,
-                               FilterReaderType::Pointer &bowtie_reader);
+CBCTRECON_API void ApplyBowtie(FloatImageType::Pointer &projections,
+                               const FloatImage2DType::Pointer &bowtie_proj);
 
 CBCTRECON_API double GetMaxAndMinValueOfProjectionImage(
     double &fProjImgValueMax, double &fProjImgValueMin,
@@ -50,7 +50,8 @@ CBCTRECON_API bool GetCouchShiftFromINIXVI(QString &strPathINIXVI,
 CBCTRECON_API void
 ImageTransformUsingCouchCorrection(UShortImageType::Pointer &spUshortInput,
                                    UShortImageType::Pointer &spUshortOutput,
-                                   const VEC3D& couch_trans, const VEC3D& couch_rot);
+                                   const VEC3D &couch_trans,
+                                   const VEC3D &couch_rot);
 
 CBCTRECON_API void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
                                       UShortImageType::Pointer &spOutputImgUS);

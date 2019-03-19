@@ -13,6 +13,7 @@
 #include "cbctrecon.h"
 #endif
 
+#include <cassert>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -195,15 +196,36 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   this->m_cbctrecon->m_spProjImg3DFloat =
       reader->GetOutput(); // 1024 1024, line integ image
 
+  auto &proj_ref = this->m_cbctrecon->m_spProjImg3DFloat;
+  auto tmp_index = FloatImageType::IndexType();
+  const auto tmp_size = proj_ref->GetLargestPossibleRegion().GetSize();
+  tmp_index.SetElement(0, tmp_size[0] / 2);
+  tmp_index.SetElement(1, tmp_size[1] / 2);
+  tmp_index.SetElement(2, tmp_size[2] / 2);
+  const auto test_value = proj_ref->GetPixel(tmp_index);
+  std::cerr << "Test: " << test_value << "\n";
+  const auto bowtie_ref = bowtie_reader->GetOutput();
+
   if (bowtie_reader != nullptr) {
-    ApplyBowtie(reader, bowtie_reader);
+    auto tmp_bt_index = FloatImage2DType::IndexType();
+    const auto tmp_bt_size = bowtie_ref->GetLargestPossibleRegion().GetSize();
+    tmp_bt_index.SetElement(0, tmp_bt_size[0] / 2);
+    tmp_bt_index.SetElement(1, tmp_bt_size[1] / 2);
+    const auto bowtie_test_value = bowtie_ref->GetPixel(tmp_bt_index);
+    std::cerr << "Bowtie Test: " << bowtie_test_value << "\n";
+
+    ApplyBowtie(proj_ref, bowtie_ref);
+
+    const auto after_bowtie_test_value = proj_ref->GetPixel(tmp_index);
+    std::cerr << "After Bowtie Test: " << after_bowtie_test_value << "\n";
+    assert(fabs(after_bowtie_test_value - (test_value - bowtie_test_value)) <
+           0.01f);
   }
   if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
     std::cerr << "Fitted bowtie-filter correction ongoing..."
               << "\n";
     test_DoBowtieCorrection();
   }
-  auto &proj_ref = this->m_cbctrecon->m_spProjImg3DFloat;
 
   auto res_factor = 0.5;
   if (!this->m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
@@ -211,12 +233,8 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
     std::cerr << "Could not resample projection size!\n";
   }
 
-  this->m_cbctrecon->ConvertLineInt2Intensity(
-      proj_ref, this->m_cbctrecon->m_spProjImgRaw3D,
-      65535); // if X not 1024 == input size: out_offset =
-              // in_offset + (1024*res_f -
-              // X*res_f)*out_spacing     <- will still
-              // break down at fw_projection
+  this->m_cbctrecon->m_spProjImgRaw3D =
+      this->m_cbctrecon->ConvertLineInt2Intensity(proj_ref);
 
   this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image

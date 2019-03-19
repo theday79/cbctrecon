@@ -1,5 +1,6 @@
-﻿// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+﻿// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include "cbctrecon_mainwidget.h"
 
@@ -142,8 +143,8 @@ void CbctReconWidget::SLT_DrawRawImages() const {
   const auto height = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iHeight;
   auto p_ykproj = this->m_cbctrecon->m_dspYKImgProj.get();
   p_ykproj->CreateImage(width, height, 0);
-  p_ykproj->CopyFromBuffer(
-      this->m_cbctrecon->m_arrYKImage[crntIdx].m_pData, width, height);
+  p_ykproj->CopyFromBuffer(this->m_cbctrecon->m_arrYKImage[crntIdx].m_pData,
+                           width, height);
 
   p_ykproj->FillPixMapMinMax(windowMin, windowMax);
   this->ui.labelImageRaw->SetBaseImage(p_ykproj);
@@ -389,8 +390,8 @@ void CbctReconWidget::SLT_DrawReconImage() {
     p_dspykimg->m_bDrawTableLine = false;
   }
 
-  p_dspykimg->FillPixMapMinMax(
-      this->ui.sliderReconImgMin->value(), this->ui.sliderReconImgMax->value());
+  p_dspykimg->FillPixMapMinMax(this->ui.sliderReconImgMin->value(),
+                               this->ui.sliderReconImgMax->value());
   this->ui.labelReconImage->SetBaseImage(p_dspykimg);
   this->ui.labelReconImage->update();
 
@@ -797,8 +798,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     }
   }
   const auto &p_geometry = this->m_cbctrecon->m_spFullGeometry;
-  const auto iFullGeoDataSize =
-      p_geometry->GetGantryAngles().size();
+  const auto iFullGeoDataSize = p_geometry->GetGantryAngles().size();
   if (iFullGeoDataSize < 1) {
     std::cout << "Not enough projection image (should be > 0)" << std::endl;
     return;
@@ -824,8 +824,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     }
   }
 
-  auto angle_gaps = p_geometry->GetAngularGaps(
-      p_geometry->GetSourceAngles());
+  auto angle_gaps = p_geometry->GetAngularGaps(p_geometry->GetSourceAngles());
 
   auto sum_gap =
       std::accumulate(std::begin(angle_gaps), std::end(angle_gaps), 0.0);
@@ -882,9 +881,10 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
 
   this->m_cbctrecon->m_spProjImg3DFloat =
       reader->GetOutput(); // 1024 1024, line integ image
-
+  auto &proj = this->m_cbctrecon->m_spProjImg3DFloat;
+  const auto bowtie_proj = bowtie_reader->GetOutput();
   if (bowtie_reader != nullptr) {
-    ApplyBowtie(reader, bowtie_reader);
+    ApplyBowtie(proj, bowtie_proj);
   }
   if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
@@ -898,13 +898,12 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     this->ui.lineEdit_DownResolFactor->setText("1.0");
   }
 
-  this->m_cbctrecon->ConvertLineInt2Intensity(
-      this->m_cbctrecon->m_spProjImg3DFloat,
-      this->m_cbctrecon->m_spProjImgRaw3D,
-      65535); // if X not 1024 == input size: out_offset =
-              // in_offset + (1024*res_f -
-              // X*res_f)*out_spacing     <- will still
-              // break down at fw_projection
+  this->m_cbctrecon->m_spProjImgRaw3D =
+      this->m_cbctrecon->ConvertLineInt2Intensity(
+          this->m_cbctrecon->m_spProjImg3DFloat);
+  // if X not 1024 == input size: out_offset =
+  // in_offset + (1024*res_f - X*res_f)*out_spacing     <- will still
+  // break down at fw_projection
 
   this->ui.pushButton_DoRecon->setEnabled(true);
 
@@ -951,8 +950,8 @@ void CbctReconWidget::SLT_DataProbeProj() const {
     const auto dataY = qRound(this->ui.labelImageRaw->y /
                               static_cast<double>(dspHeight * dataHeight));
     const auto dataZ = this->ui.spinBoxImgIdx->value();
-    const auto fProbeValue = static_cast<double>(
-        p_ykproj->m_pData[dataWidth * dataY + dataX]);
+    const auto fProbeValue =
+        static_cast<double>(p_ykproj->m_pData[dataWidth * dataY + dataX]);
     const auto dspText = QString("(%1, %2, %3): %4")
                              .arg(dataX)
                              .arg(dataY)
@@ -1787,22 +1786,14 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   // YKTEMP
   auto projsize = p_projimg->GetBufferedRegion().GetSize();
-  std::cout
-      << "ProjImgCT Size = "
-      << projsize[0]
-      << ", "
-      << projsize[1]
-      << ", "
-      << projsize[2]
-      << "\n";
-  std::cout << "ProjImgCT origin = "
-            << p_projimg->GetOrigin()[0] << ", "
-            << p_projimg->GetOrigin()[1] << ", "
-            << p_projimg->GetOrigin()[2] << "\n";
-  std::cout << "ProjImgCT spacing = "
-            << p_projimg->GetSpacing()[0] << ", "
-            << p_projimg->GetSpacing()[1] << ", "
-            << p_projimg->GetSpacing()[2] << std::endl;
+  std::cout << "ProjImgCT Size = " << projsize[0] << ", " << projsize[1] << ", "
+            << projsize[2] << "\n";
+  std::cout << "ProjImgCT origin = " << p_projimg->GetOrigin()[0] << ", "
+            << p_projimg->GetOrigin()[1] << ", " << p_projimg->GetOrigin()[2]
+            << "\n";
+  std::cout << "ProjImgCT spacing = " << p_projimg->GetSpacing()[0] << ", "
+            << p_projimg->GetSpacing()[1] << ", " << p_projimg->GetSpacing()[2]
+            << std::endl;
 
   // double scaResam = this->ui.lineEdit_scaResam->text().toDouble();
   const auto scaMedian = this->ui.lineEdit_scaMedian->text().toDouble();
@@ -1811,8 +1802,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
   this->m_cbctrecon->GenScatterMap_PriorCT(
-      this->m_cbctrecon->m_spProjImgRaw3D,
-      this->m_cbctrecon->m_spProjImgCT3D,
+      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgCT3D,
       this->m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
       this->m_cbctrecon->m_iFixedOffset_ScatterMap,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
@@ -1909,8 +1899,7 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
   const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
   const auto origin_new = p_curimg->GetOrigin();
   const auto spacing_new = p_curimg->GetSpacing();
-  const auto size_new =
-      p_curimg->GetBufferedRegion().GetSize();
+  const auto size_new = p_curimg->GetBufferedRegion().GetSize();
 
   std::cout << "New Origin" << origin_new << std::endl;
   std::cout << "New spacing" << spacing_new << std::endl;
@@ -1918,8 +1907,7 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
 
   this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
-  auto size =
-      p_curimg->GetRequestedRegion().GetSize();
+  auto size = p_curimg->GetRequestedRegion().GetSize();
 
   this->m_cbctrecon->m_dspYKReconImage->CreateImage(size[0], size[1], 0);
 
@@ -2035,9 +2023,8 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
     return;
   }
 
-  UShortImageType::Pointer spIntensityRaw;
-  this->m_cbctrecon->ConvertLineInt2Intensity(
-      this->m_cbctrecon->m_spProjImg3DFloat, spIntensityRaw, 65535);
+  const auto spIntensityRaw = this->m_cbctrecon->ConvertLineInt2Intensity(
+      this->m_cbctrecon->m_spProjImg3DFloat);
 
   using ScatterFilterType =
       rtk::BoellaardScatterCorrectionImageFilter<UShortImageType,
@@ -2067,8 +2054,8 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
 
   UShortImageType::Pointer spIntensityUniformCorr = spScatFilter->GetOutput();
 
-  this->m_cbctrecon->ConvertIntensity2LineInt(
-      spIntensityUniformCorr, this->m_cbctrecon->m_spProjImg3DFloat, 65535);
+  this->m_cbctrecon->m_spProjImg3DFloat =
+      this->m_cbctrecon->ConvertIntensity2LineInt(spIntensityUniformCorr);
 
   // ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
 
@@ -2305,10 +2292,8 @@ void CbctReconWidget::SLT_LoadPOIData() // it fills m_vPOI_DCM
   fin.close();
 
   auto i = 0U;
-  for (auto& point : this->m_cbctrecon->m_vPOI_DCM) {
-    std::cout << "Data " << i++ << "	"
-              << point.x << ", "
-              << point.y << ", "
+  for (auto &point : this->m_cbctrecon->m_vPOI_DCM) {
+    std::cout << "Data " << i++ << "	" << point.x << ", " << point.y << ", "
               << point.z << "\n";
   }
   std::cout << "POI data has been loaded. "
@@ -2562,21 +2547,18 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
 
   const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
 
-  const auto originLeft =
-      static_cast<double>(p_curimg->GetOrigin()[0]);
-  const auto originTop = static_cast<double>(
-      p_curimg->GetOrigin()[1]); // not sure...
+  const auto originLeft = static_cast<double>(p_curimg->GetOrigin()[0]);
+  const auto originTop =
+      static_cast<double>(p_curimg->GetOrigin()[1]); // not sure...
 
-  const auto spacingX =
-      static_cast<double>(p_curimg->GetSpacing()[0]);
-  const auto spacingY = static_cast<double>(
-      p_curimg->GetSpacing()[1]); // not sure...
+  const auto spacingX = static_cast<double>(p_curimg->GetSpacing()[0]);
+  const auto spacingY =
+      static_cast<double>(p_curimg->GetSpacing()[1]); // not sure...
 
   const auto p_dspykimg = this->m_cbctrecon->m_dspYKReconImage.get();
   if (!SaveDoseGrayImage(strPath.toLocal8Bit().constData(),
-                         p_dspykimg->m_iWidth,
-                         p_dspykimg->m_iHeight,
-                         spacingX, spacingY, originLeft, originTop,
+                         p_dspykimg->m_iWidth, p_dspykimg->m_iHeight, spacingX,
+                         spacingY, originLeft, originTop,
                          p_dspykimg->m_pData)) {
     std::cout << "Failed in save gray dose file" << std::endl;
   } else {
@@ -2669,8 +2651,7 @@ void CbctReconWidget::SLTM_ForwardProjection() {
   // if there is a geometry
 
   const auto &p_geometry = this->m_cbctrecon->m_spCustomGeometry;
-  const auto cntProj =
-      p_geometry->GetGantryAngles().size();
+  const auto cntProj = p_geometry->GetGantryAngles().size();
 
   if (cntProj < 1) {
     std::cout << "ERROR: geometry is not ready" << std::endl;
@@ -2689,14 +2670,9 @@ void CbctReconWidget::SLTM_ForwardProjection() {
   // Regenerate geometry object
 
   for (auto i = 0U; i < cntProj; i++) {
-    const auto curSID =
-        p_geometry->GetSourceToIsocenterDistances()
-            .at(i);
-    const auto curSDD =
-        p_geometry->GetSourceToDetectorDistances()
-            .at(i);
-    auto curGantryAngle =
-        p_geometry->GetGantryAngles().at(i);
+    const auto curSID = p_geometry->GetSourceToIsocenterDistances().at(i);
+    const auto curSDD = p_geometry->GetSourceToDetectorDistances().at(i);
+    auto curGantryAngle = p_geometry->GetGantryAngles().at(i);
     const auto kVAng = curGantryAngle * 360. / (2. * itk::Math::pi);
     auto MVAng =
         kVAng - (this->m_cbctrecon->m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
@@ -2705,20 +2681,14 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     }
     curGantryAngle = MVAng;
 
-    const auto curProjOffsetX =
-        p_geometry->GetProjectionOffsetsX().at(i);
-    const auto curProjOffsetY =
-        p_geometry->GetProjectionOffsetsY().at(i);
+    const auto curProjOffsetX = p_geometry->GetProjectionOffsetsX().at(i);
+    const auto curProjOffsetY = p_geometry->GetProjectionOffsetsY().at(i);
 
-    const auto curOutOfPlaneAngles =
-        p_geometry->GetOutOfPlaneAngles().at(i);
-    const auto curInPlaneAngles =
-        p_geometry->GetInPlaneAngles().at(i);
+    const auto curOutOfPlaneAngles = p_geometry->GetOutOfPlaneAngles().at(i);
+    const auto curInPlaneAngles = p_geometry->GetInPlaneAngles().at(i);
 
-    const auto curSrcOffsetX =
-        p_geometry->GetSourceOffsetsX().at(i);
-    const auto curSrcOffsetY =
-        p_geometry->GetSourceOffsetsY().at(i);
+    const auto curSrcOffsetX = p_geometry->GetSourceOffsetsX().at(i);
+    const auto curSrcOffsetY = p_geometry->GetSourceOffsetsY().at(i);
 
     // if (bOverridePanelShift)
     //{
@@ -3461,8 +3431,8 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   }
 
   for (auto i = 0U; i < cnt_wepl; i++) {
-    fout << first_wepl.at(i).ptIndex << "\t"
-         << first_wepl.at(i).fGanAngle << "\t" << i;
+    fout << first_wepl.at(i).ptIndex << "\t" << first_wepl.at(i).fGanAngle
+         << "\t" << i;
 
     for (auto j = 0; j < iCntFiles; j++) {
       fout << "\t" << vArrOutputWEPL.at(j).at(i).fWEPL;
@@ -3539,8 +3509,7 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
     p_proj_strlist.push_back(strList.at(3));
   }
 
-  std::cout << p_proj_strlist.count()
-            << " image paths were found" << std::endl;
+  std::cout << p_proj_strlist.count() << " image paths were found" << std::endl;
 
   fin.close();
 }
@@ -3973,8 +3942,7 @@ void CbctReconWidget::SLT_ReloadProjections() {
 
   if (this->m_cbctrecon->m_fResampleF != 1.0) {
     this->m_cbctrecon->ResampleItkImage(
-        p_projimg,
-        p_projimg,
+        p_projimg, p_projimg,
         this->m_cbctrecon
             ->m_fResampleF); // was! BROKEN AF for .his where input size
                              // != 1024 (tested with 1016) -> outputs
@@ -3987,18 +3955,16 @@ void CbctReconWidget::SLT_ReloadProjections() {
     SLT_DoBowtieCorrection();
   }
 
-  this->m_cbctrecon->ConvertLineInt2Intensity(
-      p_projimg,
-      this->m_cbctrecon->m_spProjImgRaw3D,
-      65535); // if X not 1024 == input size: out_offset =
-              // in_offset + (1024*res_f -
-              // X*res_f)*out_spacing     <- will still
-              // break down at fw_projection
+  this->m_cbctrecon->m_spProjImgRaw3D =
+      this->m_cbctrecon->ConvertLineInt2Intensity(p_projimg);
+  // if X not 1024 == input size: out_offset =
+  // in_offset + (1024*res_f -
+  // X*res_f)*out_spacing     <- will still
+  // break down at fw_projection
 
   const auto p_projimgfloat = p_projimg;
   auto originPt = p_projimgfloat->GetOrigin();
-  auto FloatImgSize =
-      p_projimgfloat->GetBufferedRegion().GetSize();
+  auto FloatImgSize = p_projimgfloat->GetBufferedRegion().GetSize();
   auto FloatImgSpacing = p_projimgfloat->GetSpacing();
 
   std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
@@ -4152,10 +4118,9 @@ void CbctReconWidget::SLT_LoadRawImages() {
   castFilter->SetInput(reader->GetOutput());
   castFilter->Update();
   auto p_rawimg = castFilter->GetOutput();
-  const auto width =
-      p_rawimg->GetLargestPossibleRegion().GetSize()[0]; // width
-  const auto height = p_rawimg->GetLargestPossibleRegion()
-                          .GetSize()[1]; // height
+  const auto width = p_rawimg->GetLargestPossibleRegion().GetSize()[0]; // width
+  const auto height =
+      p_rawimg->GetLargestPossibleRegion().GetSize()[1]; // height
   const auto sizePix = width * height;
   const auto sizeBuf = sizePix * sizeof(FloatImageType::PixelType);
   const auto bytesPerPix = qRound(sizeBuf / static_cast<double>(sizePix));

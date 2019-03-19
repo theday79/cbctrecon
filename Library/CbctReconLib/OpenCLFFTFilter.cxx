@@ -21,7 +21,6 @@
 // much info as possible before the crash
 std::tuple<cl_platform_id, cl_device_id>
 getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
-  std::vector<cl_platform_id> platform;
 
   /* Setup OpenCL environment. */
   cl_uint num_platforms = 0;
@@ -32,7 +31,8 @@ getPlatformAndDeviceID(const size_t required_mem_alloc_size) {
   if (num_platforms == 0) {
     std::cerr << "CL: Number of platforms were 0!\n";
   }
-  platform.resize(num_platforms);
+
+  auto platform = std::vector<cl_platform_id>(num_platforms);
 
   err |= clGetPlatformIDs(num_platforms, &platform[0], nullptr);
   if (err != CL_SUCCESS) {
