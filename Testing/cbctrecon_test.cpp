@@ -203,7 +203,9 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   tmp_index.SetElement(1, tmp_size[1] / 2);
   tmp_index.SetElement(2, tmp_size[2] / 2);
   const auto test_value = proj_ref->GetPixel(tmp_index);
-  std::cerr << "Test: " << test_value << "\n";
+  std::cerr << "Test: " << test_value
+            << "\n"; // this value seem to be different on different systems!
+  // 5.26437... on Win, 5.10171... on Manjaro, 5.1791... on Ubuntu (travis-ci)
   const auto bowtie_ref = bowtie_reader->GetOutput();
 
   if (bowtie_reader != nullptr) {

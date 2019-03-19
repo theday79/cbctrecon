@@ -881,10 +881,9 @@ void CbctRecon::NormalizeProjections(ProjReaderType::Pointer &reader) {
   const auto theoreticalMin =
       0.1541 * 1.225e-3 *
       sqrt(pow(m_spCustomGeometry->GetSourceToDetectorDistances()[0], 2) +
-           pow(m_spCustomGeometry->GetSourceToDetectorDistances()[1],
-               2) + // mm->cm
+           pow(m_spCustomGeometry->GetSourceToDetectorDistances()[1], 2) +
            pow(m_spCustomGeometry->GetSourceToDetectorDistances()[2], 2)) *
-      0.1;
+      0.1; // mm -> cm
 
   const auto correctionValue = GetMaxAndMinValueOfProjectionImage(
       originalMax, originalMin, reader->GetOutput()); // , theoreticalMin);
@@ -2645,6 +2644,23 @@ FloatImage2DType::Pointer LowPassFFT(FloatImage2DType::Pointer &input,
 }
 #endif
 
+// a * x - y
+class axmy {
+public:
+  float a = 1.0;
+  explicit axmy(const float a_val) { this->a = a_val; };
+  axmy() = default;
+  ~axmy() = default;
+
+  // I think these two operators are required for the SetFunctor
+  bool operator!=(const axmy &) const { return false; }
+  bool operator==(const axmy &other) const { return !(*this != other); }
+
+  float operator()(const float val1, const float val2) const {
+    return val1 * a - val2;
+  }
+};
+
 // spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value
 // (0-65535)
 void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
@@ -2735,23 +2751,15 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
 
     // Dimension should be matched
     AllocateByRef<FloatImage2DType, FloatImage2DType>(spImg2DRaw, spImg2DScat);
-
-    itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src1(
-        spImg2DRaw, spImg2DRaw->GetRequestedRegion());
-    itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src2(
-        spImg2DPrim, spImg2DPrim->GetRequestedRegion());
-    itk::ImageRegionIteratorWithIndex<FloatImage2DType> it_Tar(
-        spImg2DScat, spImg2DScat->GetRequestedRegion());
-
-    // int cnt1 = 0; int cnt2 = 0;
-    for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin();
-         !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd();
-         ++it_Src1, ++it_Src2, ++it_Tar) {
-      float intensityValScat =
-          it_Src1.Get() * mAs_correctionFactor -
-          it_Src2.Get(); // raw intensity * mAs_CF - primary intensity
-      it_Tar.Set(intensityValScat); // float 	  //allow minus value
-    }
+    auto axmy_functor = axmy(mAs_correctionFactor);
+    auto axmy_filter =
+        itk::BinaryFunctorImageFilter<FloatImage2DType, FloatImage2DType,
+                                      FloatImage2DType, axmy>::New();
+    axmy_filter->SetFunctor(axmy_functor);
+    axmy_filter->SetInput1(spImg2DRaw);
+    axmy_filter->SetInput2(spImg2DPrim);
+    axmy_filter->Update();
+    spImg2DScat = axmy_filter->GetOutput();
 
 #ifdef LOWPASS_FFT
     spImg2DScat = LowPassFFT(spImg2DScat, gaussianSigma);
@@ -2892,6 +2900,42 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
   }
 }
 
+class corr_functor {
+public:
+  corr_functor(const float mAs_corr, const int nonNegOffset) {
+    this->mAs_correctionFactor = mAs_corr;
+    this->nonNegativeScatOffset = nonNegOffset;
+  }
+  corr_functor() = default;
+  ~corr_functor() = default;
+  float mAs_correctionFactor = 1.0f;
+  int nonNegativeScatOffset = 0;
+
+  // I think these two operators are required for the SetFunctor
+  bool operator!=(const corr_functor &) const { return false; }
+  bool operator==(const corr_functor &other) const { return !(*this != other); }
+
+  float operator()(const float val1, const float val2) const {
+    const auto rawVal = val1 * mAs_correctionFactor;
+    const auto scatVal = val2 - static_cast<float>(nonNegativeScatOffset);
+    auto corrVal = rawVal - scatVal;
+
+    if (corrVal < 1.0f) {
+      corrVal = 1.0f; // underflow control
+    }
+    // max unsigned short - 1, just so we don't overflow
+    const auto max_ushort =
+        static_cast<float>(std::numeric_limits<unsigned short>::max() - 1);
+    if (corrVal >
+        max_ushort) { // 65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
+      corrVal = max_ushort;
+    }
+
+    return corrVal; // later, add customSPR
+                    // corrVal = (float)(rawVal - customSPR*scatterVal);
+  }
+};
+
 void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
                                      UShortImageType::Pointer &spProjScat3D,
                                      UShortImageType::Pointer &m_spProjCorr3D,
@@ -2959,34 +3003,16 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
     Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, PLANE_AXIAL);
     Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, PLANE_AXIAL);
 
-    // Dimension should be matched
-    AllocateByRef<FloatImage2DType, FloatImage2DType>(spImg2DRaw, spImg2DCorr);
+    auto corr_fun = corr_functor(mAs_correctionFactor, nonNegativeScatOffset);
+    auto corr_filter =
+        itk::BinaryFunctorImageFilter<FloatImage2DType, FloatImage2DType,
+                                      FloatImage2DType, corr_functor>::New();
+    corr_filter->SetFunctor(corr_fun);
+    corr_filter->SetInput1(spImg2DRaw);
+    corr_filter->SetInput2(spImg2DScat);
+    corr_filter->Update();
+    spImg2DCorr = corr_filter->GetOutput();
 
-    itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src1(
-        spImg2DRaw, spImg2DRaw->GetRequestedRegion());
-    itk::ImageRegionConstIteratorWithIndex<FloatImage2DType> it_Src2(
-        spImg2DScat, spImg2DScat->GetRequestedRegion());
-    itk::ImageRegionIteratorWithIndex<FloatImage2DType> it_Tar(
-        spImg2DCorr, spImg2DCorr->GetRequestedRegion());
-
-    for (it_Src1.GoToBegin(), it_Src2.GoToBegin(), it_Tar.GoToBegin();
-         !it_Src1.IsAtEnd() && !it_Src2.IsAtEnd() && !it_Tar.IsAtEnd();
-         ++it_Src1, ++it_Src2, ++it_Tar) {
-      const float rawVal = it_Src1.Get() * mAs_correctionFactor;
-      const auto scatVal = it_Src2.Get() - nonNegativeScatOffset;
-      auto corrVal = rawVal - scatVal;
-
-      if (corrVal < 1.0f) {
-        corrVal = 1.0f; // Overflow control
-      }
-      if (corrVal >
-          65534.0f) { // 65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
-        corrVal = 65534.0f;
-      }
-
-      it_Tar.Set(corrVal); // float // later, add customSPR
-      // corrVal = (float)(rawVal - customSPR*scatterVal);
-    }
     // Post Median filtering
 
     if (bHighResolMacro) {
@@ -3139,7 +3165,7 @@ void CbctRecon::Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
   it_2D.GoToBegin();
 
   unsigned short outputVal = 0;
-
+  const auto max_ushort = std::numeric_limits<unsigned short>::max();
   for (auto i = 0; i < zSize && !it_3D.IsAtEnd(); i++) {
     /*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
     QString crntFileName = crntFileInfo.fileName();
@@ -3150,10 +3176,10 @@ void CbctRecon::Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
         while (!it_3D.IsAtEndOfLine()) {
           const auto fVal2D = it_2D.Get();
 
-          if (fVal2D < 0.0) {
+          if (fVal2D < 0.0f) {
             outputVal = 0U;
-          } else if (fVal2D > 65535.0) {
-            outputVal = 65535U;
+          } else if (fVal2D > static_cast<float>(max_ushort)) {
+            outputVal = max_ushort;
           } else {
             outputVal = static_cast<unsigned short>(qRound(fVal2D));
           }
