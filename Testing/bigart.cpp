@@ -115,7 +115,7 @@ int main(const int argc, char *argv[]) {
   auto dcm_dir_str = QString(argv[1]);
 
   auto dcm_dir = QDir(dcm_dir_str);
-  auto dcm_path = dcm_dir.absolutePath();
+  const auto dcm_path = dcm_dir.absolutePath();
   if (!dcm_dir.exists()) {
     std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
     return -2;
@@ -145,15 +145,16 @@ int main(const int argc, char *argv[]) {
                    std::stod(rotation_str.split(",").at(1).toStdString(), &sz),
                    std::stod(rotation_str.split(",").at(2).toStdString(), &sz)};
 
-  auto recalc_dcm_dir = QString(argv[2]);
+  auto recalc_dcm_dir = QDir(argv[2]);
+  const auto recalc_dcm_path = recalc_dcm_dir.absolutePath();
 
   auto recalc_img = get_image_from_dicom(
-      recalc_dcm_dir, ct_img->GetSpacing(),
+      recalc_dcm_path, ct_img->GetSpacing(),
       ct_img->GetLargestPossibleRegion().GetSize(), ct_img->GetOrigin(),
       ct_img->GetDirection(), translation, rotation);
 
   saveImageAsMHA<UShortImageType>(recalc_img,
-                                  recalc_dcm_dir.toStdString() + "/recalc.mha");
+                                  recalc_dcm_path.toStdString() + "/recalc.mha");
   saveImageAsMHA<UShortImageType>(ct_img, dcm_path.toStdString() + "/orig.mha");
 
   /* Structure test: */
@@ -221,9 +222,8 @@ int main(const int argc, char *argv[]) {
   std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
   std::replace(std::begin(better_name), std::end(better_name), '/', '-');
   auto output_filename =
-      "Dist_" + better_name + "_CT" +
-      dcm_path.at(dcm_path.size() - 1).toLatin1() + "_to_CT" +
-      recalc_dcm_dir.at(recalc_dcm_dir.size() - 1).toLatin1() + "_at_G" +
+      "Dist_" + better_name + "_" + dcm_dir.dirName().toStdString() + "_to_" +
+      recalc_dcm_dir.dirName().toStdString() + "_at_G" +
       std::to_string(gantry_angle) + "C" + std::to_string(couch_angle) + ".txt";
 
   std::ofstream f_stream;
