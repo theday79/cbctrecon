@@ -41,7 +41,7 @@ option(USE_ITK_GDCM OFF "Use the ITK implementation instead of downloading (Wind
 OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
-option(CBCTRECON_SANITIZE "Sanitize build of CbctRecon" ON)
+option(CBCTRECON_SANITIZE "Sanitize build of CbctRecon" OFF)
 
 if(CMAKE_COMPILER_IS_GNUCXX AND ${CBCTRECON_BUILD_TESTS} AND ${USE_CUDA})
   set(TMP_COVERAGE ON)  # gcov requires gcc and tests to be build.
