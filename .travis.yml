@@ -1,12 +1,47 @@
 language: cpp
+
+env:
+  global:
+    - DEPS_DIR=${TRAVIS_BUILD_DIR}/deps
+    # CMake
+    - CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v3.13.2/cmake-3.13.2-Linux-x86_64.tar.gz
+    # OpenCL
+    - OPENCL_LIB=default
+    # Khronos OpenCL ICD
+    - OPENCL_REGISTRY=https://www.khronos.org/registry/OpenCL/
+    - OPENCL_ROOT=${DEPS_DIR}/opencl
+    - OPENCL_ICD_LIB=${OPENCL_ROOT}/icd/build/lib/libOpenCL.so
+    # POCL
+    - POCL_BRANCH=release_1_2 # branch/tag
+    - POCL_LLVM_VERSION=7.0.0
+    - POCL_ROOT=${OPENCL_ROOT}/pocl-${POCL_BRANCH}/
+    - POCL_LLVM_CONFIG=${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}/bin/llvm-config
+    - POCL_CXX_COMPILER=${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}/bin/clang++
+    - POCL_C_COMPILER=${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}/bin/clang
+    - POCL_OPENCL_LIB=${POCL_ROOT}/lib/libOpenCL.so
+    # Misc
+    - COVERAGE=false
+    - CC_VER=DEFAULT
+    - CUDA=NONE
+    - MACCUDA=NONE
+
+
 cache:
   directories:
     - $HOME/Library/Caches/Homebrew
+    - ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}
+    - ${POCL_ROOT}
 
 addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
     packages:
+      # POCL
+      - libltdl-dev
+      - libhwloc-dev
+      - pkg-config
+      - libedit-dev
+      # Misc.
       - libfftw3-3
       - libfftw3-dev
       - libsqlite3-dev
@@ -14,14 +49,11 @@ addons:
       - gcc-8
       - g++-8
       - lcov
-      - ocl-icd-opencl-dev
-      - pocl-opencl_icd
       - clinfo
   homebrew:
     packages:
       - fftw
       - qt
-      - libomp
       - clinfo
     update: true
 
@@ -33,83 +65,206 @@ matrix:
       dist: xenial
       sudo: false
       compiler: gcc-8
-      env: CC_VER=8 CUDA=NONE MACCUDA=NONE
+      env:
+        - CC_VER=8
+        - OPENCL_LIB=pocl
+        - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+        # - OPENCL_LIB=intel
+        # - ENV_CXX_FLAGS="-Wno-unused-local-typedef -DBOOST_COMPUTE_MAX_CL_VERSION=200"
+        # - ENV_CMAKE_OPTIONS="-DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+        # - OPENCL_LIB=khronos-icd
+        # - RUN_TESTS=false
+        # - ENV_CXX_FLAGS="-Wno-unused-local-typedef -DBOOST_COMPUTE_MAX_CL_VERSION=202"
+        # - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${OPENCL_ICD_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include -DBOOST_COMPUTE_USE_CPP11=ON"
 
     - os: linux
       dist: xenial
       sudo: false
       compiler: gcc-8
-      env: CC_VER=8 CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
+      env:
+        - CC_VER=8
+        - CBCTRECON_COVERAGE=ON
+        - CUDA=10.1.105-1
+        - OPENCL_LIB=pocl
+        - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: linux
       dist: xenial
       sudo: false
       compiler: clang
-      env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
+      env:
+        - OPENCL_LIB=pocl
+        - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: linux
       dist: xenial
       sudo: false
       compiler: clang
-      env: CC_VER=DEFAULT CUDA=10.1.105-1 MACCUDA=NONE
+      env:
+        - OPENCL_LIB=pocl
+        - CUDA=10.1.105-1
+        - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: osx
       osx_image: xcode10
       compiler: clang
       addons:
         homebrew:
+          packages:
+            - fftw
+            - qt
+            - clinfo
           taps:
             - homebrew/cask-drivers
-      env: CC_VER=DEFAULT CUDA=NONE MACCUDA=10.1
+          update: true
+      env:
+        - MACCUDA=10.1
 
     - os: osx
       osx_image: xcode10
       compiler: clang
-      env: CC_VER=DEFAULT CUDA=NONE MACCUDA=NONE
 
 
 
 before_install:
+  # Combine global build options with OS/compiler-dependent options
+  - export CMAKE_OPTIONS="${CMAKE_OPTIONS} ${ENV_CMAKE_OPTIONS}"
+  - export CXX_FLAGS="${CXX_FLAGS} ${ENV_CXX_FLAGS}"
+
   - export OMP_NUM_THREADS=4
   - if test "$CC_VER" != DEFAULT; then export CC=$CC-$CC_VER; fi
   - if test "$CC_VER" != DEFAULT; then export CXX=$CXX-$CC_VER; fi
 
-  - if test "$CUDA" != NONE; then echo "Installing CUDA library"; fi
-  - if test "$CUDA" != NONE; then travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo dpkg -i cuda-repo-ubuntu1604_${CUDA}_amd64.deb; fi
-  - if test "$CUDA" != NONE; then sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt update -qq; fi
-  - if test "$CUDA" != NONE; then travis_wait 30 sudo apt install -y cuda; fi
-  - if test "$CUDA" != NONE; then travis_retry sudo apt clean; fi
-  - if test "$CUDA" != NONE; then export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}; fi
-  - if test "$CUDA" != NONE; then export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}; fi
-  - if test "$CUDA" != NONE; then export USECUDA=ON; else export USECUDA=OFF; fi
+  - |
+    # Cuda on Linux
+    if test "$CUDA" != NONE; then
+      echo "Installing CUDA library";
+      travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA}_amd64.deb
+      travis_retry sudo dpkg -i cuda-repo-ubuntu1604_${CUDA}_amd64.deb
+      sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
+      travis_retry sudo apt update -qq
+      travis_wait 30 sudo apt install -y cuda
+      travis_retry sudo apt clean
+      export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}
+      export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}
+      export USECUDA=ON; else export USECUDA=OFF
+    fi
+
   - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
 
-  - if test "$MACCUDA" != NONE; then export PATH=/Developer/NVIDIA/CUDA-$MACCUDA/bin${PATH:+:${PATH}}; fi
-  - if test "$MACCUDA" != NONE; then export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-$MACCUDA/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}; fi
-  - if test "$MACCUDA" != NONE; then export USECUDA=ON; else export USECUDA=OFF; fi
-  - if test "$MACCUDA" != NONE; then export CUDA_TOOLKIT_ROOT_DIR=/Developer/NVIDIA/CUDA-$MACCUDA; fi
+  - |
+    # Cuda on MacOS
+    if test "$MACCUDA" != NONE; then
+      export PATH=/Developer/NVIDIA/CUDA-$MACCUDA/bin${PATH:+:${PATH}}
+      export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-$MACCUDA/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
+      export USECUDA=ON; else export USECUDA=OFF
+      export CUDA_TOOLKIT_ROOT_DIR=/Developer/NVIDIA/CUDA-$MACCUDA
+    fi
+  # Install dependencies
+  - |
+    # POCL dependencies for Xenial
+    if [[ ${TRAVIS_OS_NAME} == "linux" && ${OPENCL_LIB} == "pocl" ]]; then
+      if [ -z "$(ls -A ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION})" ]; then
+        POCL_LLVM_URL=http://llvm.org/releases/${POCL_LLVM_VERSION}/clang+llvm-${POCL_LLVM_VERSION}-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+        mkdir -p ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}
+        travis_retry wget --no-check-certificate --quiet -O llvm-${POCL_LLVM_VERSION}.tar.xz ${POCL_LLVM_URL}
+        tar xf llvm-${POCL_LLVM_VERSION}.tar.xz -C ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION} --strip-components 1
+      else
+        echo 'Using cached LLVM.'
+      fi
+    # OSX
+    elif [[ ${TRAVIS_OS_NAME} == "osx" ]]; then
+      brew update
+      brew outdated cmake || brew upgrade cmake
+      brew install lcov
+    fi
+  - gem install coveralls-lcov
 
 install:
   - cd ../
+  ############################################################################
+  # Download and install recent CMake
+  ############################################################################
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+      CMAKE_URL=${CMAKE_URL}
+      mkdir -p ${DEPS_DIR}/cmake
+      travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C ${DEPS_DIR}/cmake
+      export PATH=${DEPS_DIR}/cmake/bin:${PATH}
+    fi
+  ############################################################################
+  # Download OpenCL headers (and cl.hpp)
+  ############################################################################
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+      mkdir -p ${OPENCL_ROOT}/include/CL
+      pushd ${OPENCL_ROOT}/include/CL
+      travis_retry git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git
+      mv ./OpenCL-Headers/CL/* .
+      travis_retry wget -w 1 -np -nd -nv -A h,hpp --no-check-certificate ${OPENCL_REGISTRY}/api/2.1/cl.hpp;
+      popd
+    fi
+  ############################################################################
+  # Only ICD
+  ############################################################################
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "linux" && ${OPENCL_LIB} == "khronos-icd" ]]; then
+      mkdir -p ${OPENCL_ROOT}
+      pushd ${OPENCL_ROOT}
+      travis_retry git clone --depth 1 https://github.com/KhronosGroup/OpenCL-ICD-Loader.git icd
+      pushd icd
+      mkdir -p inc/CL
+      cp ${OPENCL_ROOT}/include/CL/* ./inc/CL/
+      make -j2
+      popd
+      popd
+    fi
+  ############################################################################
+  # Build and install POCL https://github.com/pocl/pocl
+  ############################################################################
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "linux" && ${OPENCL_LIB} == "pocl" ]]; then
+      if [ -z "$(ls -A ${POCL_ROOT}/)" ]; then
+        travis_retry git clone --depth 1 https://github.com/pocl/pocl.git -b ${POCL_BRANCH}
+        cd pocl
+        mkdir build
+        cd build
+        cmake -DDIRECT_LINKAGE=ON -DENABLE_ICD=OFF -DCMAKE_C_COMPILER=${POCL_C_COMPILER} -DCMAKE_CXX_COMPILER=${POCL_CXX_COMPILER} -DWITH_LLVM_CONFIG=${POCL_LLVM_CONFIG} -DCMAKE_INSTALL_PREFIX=${POCL_ROOT}/ ..
+        make -j2 install
+        cd ../..
+      else
+        echo 'Using cached POCL lib.'
+      fi
+    fi
+  ############################################################################
+  # Install Intel OpenCL Runtime
+  ############################################################################
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "linux" && ${OPENCL_LIB} == "intel" ]]; then
+      # https://software.intel.com/en-us/articles/opencl-drivers#cpu-section
+      PACKAGE_URL=http://registrationcenter-download.intel.com/akdlm/irc_nas/vcp/13793/l_opencl_p_18.1.0.013.tgz
+      PACKAGE_NAME=l_opencl_p_18.1.0.013
+      wget -q ${PACKAGE_URL} -O /tmp/opencl_runtime.tgz
+      tar -xzf /tmp/opencl_runtime.tgz -C /tmp
+      sed 's/decline/accept/g' -i /tmp/${PACKAGE_NAME}/silent.cfg
+      sudo /tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
+    fi
 
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.13/cmake-3.13.4-Linux-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.13.4-Linux-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/cmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Linux-x86_64/bin/ctest; fi
-
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.1-xenial; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt install -y qt512-meta-full; fi
+  - |
+    # Install Qt
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.1-xenial
+      sudo apt-get update
+      sudo apt install -y qt512-meta-full
+    fi
 
   - if test "$MACCUDA" != NONE; then travis_wait 120 brew cask install nvidia-cuda; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/ctest; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH"; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export DYLD_LIBRARY_PATH="/usr/local/Cellar/libomp/7.0.0/lib:$DYLD_LIBRARY_PATH"; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export USEOMP=OFF; else export USEOMP=ON; fi
