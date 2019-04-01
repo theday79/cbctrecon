@@ -16,6 +16,9 @@ addons:
       - libsqlite3-dev
       - clinfo
       - libomp-dev
+      - gcc-8
+      - g++-8
+      - lcov
   homebrew:
     packages:
       - fftw
@@ -33,23 +36,12 @@ matrix:
       sudo: false
       compiler: gcc-8
       addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages:
-            - gcc-8
-            - g++-8
       env: CC_VER=8 CUDA=NONE MACCUDA=NONE
 
     - os: linux
       dist: xenial
       sudo: false
       compiler: gcc-8
-      addons:
-        apt:
-          packages:
-            - gcc-8
-            - g++-8
-            - lcov
       env: CC_VER=8 CBCTRECON_COVERAGE=ON CUDA=10.1.105-1 MACCUDA=NONE
 
     - os: linux
@@ -118,13 +110,14 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt install -y qt512-meta-full; fi
 
-  - if test "$MACCUDA" != NONE; then travis_wait brew cask install nvidia-cuda; fi
+  - if test "$MACCUDA" != NONE; then travis_wait 30 brew cask install nvidia-cuda; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.13/cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.4-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CTEST=$TRAVIS_BUILD_DIR/../cmake-3.13.4-Darwin-x86_64/CMake.app/Contents/bin/ctest; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH"; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export DYLD_LIBRARY_PATH="/usr/local/Cellar/libomp/7.0.0/lib:$DYLD_LIBRARY_PATH"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export USEOMP=OFF; else export USEOMP=ON; fi
 
   - $CXX --version
   - $CMAKE --version
@@ -136,7 +129,7 @@ install:
 
 before_script:
   - mkdir build/ && cd build/
-  - $CMAKE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
+  - $CMAKE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DUSE_OPENMP=$USEOMP
 
 script:
   - $CMAKE .
