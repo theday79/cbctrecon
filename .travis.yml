@@ -9,16 +9,14 @@ addons:
     packages:
       - libfftw3-3
       - libfftw3-dev
-      - mesa-common-dev
-      - ocl-icd-opencl-dev
-      - ocl-icd-dev
-      - opencl-headers
       - libsqlite3-dev
-      - clinfo
       - libomp-dev
       - gcc-8
       - g++-8
       - lcov
+      - ocl-icd-opencl-dev
+      - pocl-opencl_icd
+      - clinfo
   homebrew:
     packages:
       - fftw
@@ -97,19 +95,6 @@ install:
   - cd ../
 
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
-
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      bash cbctrecon/.travis/amd_sdk.sh;
-      tar -xjf AMD-SDK.tar.bz2;
-      AMDAPPSDK=${HOME}/AMDAPPSDK;
-      export OPENCL_VENDOR_PATH=${AMDAPPSDK}/etc/OpenCL/vendors;
-      mkdir -p ${OPENCL_VENDOR_PATH};
-      sh AMD-APP-SDK*.sh --tar -xf -C ${AMDAPPSDK};
-      echo libamdocl64.so > ${OPENCL_VENDOR_PATH}/amdocl64.icd;
-      export LD_LIBRARY_PATH=${AMDAPPSDK}/lib/x86_64:${LD_LIBRARY_PATH};
-      chmod +x ${AMDAPPSDK}/bin/x86_64/clinfo;
-      ${AMDAPPSDK}/bin/x86_64/clinfo;
-    fi;
 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.13/cmake-3.13.4-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.13.4-Linux-x86_64.tar.gz; fi
