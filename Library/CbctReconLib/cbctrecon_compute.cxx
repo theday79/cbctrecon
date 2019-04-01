@@ -30,11 +30,7 @@
 void ApplyBowtie(FloatImageType::Pointer &projections,
                  const FloatImage2DType::Pointer &bowtie_proj) {
 
-  OpenCL_subtract3Dfrom2DbySlice_InPlace(
-      static_cast<cl_float *>(projections->GetBufferPointer()),
-      static_cast<cl_float *>(bowtie_proj->GetBufferPointer()),
-      projections->GetLargestPossibleRegion().GetSize(),
-      bowtie_proj->GetLargestPossibleRegion().GetSize());
+  OpenCL_subtract2Dfrom3DbySlice_InPlace(projections, bowtie_proj);
 }
 
 double GetMaxAndMinValueOfProjectionImage(

@@ -689,23 +689,27 @@ void OpenCL_fft_convolution(const cl_int4 inputDimension,
 
 #endif // USE_CLFFT
 
-void OpenCL_subtract3Dfrom2DbySlice_InPlace(
-    cl_float *buffer, const cl_float *sub_buffer,
-    const itk::Image<float, 3U>::SizeType &inputSize,
-    const itk::Image<float, 2U>::SizeType &subSize) {
+void OpenCL_subtract2Dfrom3DbySlice_InPlace(
+    FloatImageType::Pointer &projections,
+    const FloatImage2DType::Pointer &filter) {
   auto err = CL_SUCCESS;
 
   cl_program m_Program;
+  const auto inputSize = projections->GetBufferedRegion().GetSize();
+  const auto subSize = filter->GetBufferedRegion().GetSize();
 
-  const auto memorySizeInput =
-      inputSize[0] * inputSize[1] * inputSize[2] * sizeof(cl_float);
-  const auto memorySizeSub = subSize[0] * subSize[1] * sizeof(cl_float);
+  const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2] *
+                               sizeof(FloatImageType::ValueType);
+  const auto memorySizeSub =
+      subSize[0] * subSize[1] * sizeof(FloatImage2DType::ValueType);
 
   const auto ctx_queue_dev = get_constext_queue(memorySizeInput);
   const auto ctx = std::get<0>(ctx_queue_dev);
   const auto queue = std::get<1>(ctx_queue_dev);
   const auto device = std::get<2>(ctx_queue_dev);
 
+  auto *buffer = projections->GetBufferPointer();
+  auto *sub_buffer = filter->GetBufferPointer();
   /* Prepare OpenCL memory objects and place data inside them. */
   auto deviceBuffer =
       clCreateBuffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,

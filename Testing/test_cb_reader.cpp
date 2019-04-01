@@ -81,10 +81,11 @@ int main(const int argc, char *argv[]) {
   auto reader = itk::ImageFileReader<UShortImageType>::New();
   reader->SetFileName(argv[2]);
   reader->Update();
-
+  // Andreas from the past says: You should write m_spProjImgRaw3D to a file and
+  // inspect it by eye vs the test data!
   CheckImageQuality<UShortImageType>(
-      cbctrecon_test->m_cbctrecon->m_spProjImgRaw3D, reader->GetOutput(),
-      1.6e-7, 100, 2.0);
+      cbctrecon_test->m_cbctrecon->m_spProjImgRaw3D, reader->GetOutput(), 1e-8,
+      100, 2.0);
 
   return 0;
 }
