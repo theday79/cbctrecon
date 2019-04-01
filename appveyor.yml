@@ -102,8 +102,8 @@ cache:
   - '%DCMTK_SOURCE_DIR% -> .appveyor_clear_cache'
   - '%DCMTK_BINARY_DIR% -> .appveyor_clear_cache'
   # Caching ITK source and build tree
-  - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache, %ITK_SOURCE_DIR%/Modules/Remote/RTK/CMakeLists.txt'
-  - '%ITK_BINARY_DIR% -> .appveyor_clear_cache, %ITK_BINARY_DIR%/lib/%BUILD_TYPE%/itkRTK-4.13.lib'
+  - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache'
+  - '%ITK_BINARY_DIR% -> .appveyor_clear_cache'
 
 build:
   parallel: true
@@ -161,6 +161,7 @@ before_build:
       cd "%ITK_BINARY_DIR%" &
       cmake ../ITK -DModule_RTK=ON &
       cmake --build . --config %BUILD_TYPE% &
+      echo 1 > "%APPVEYOR_BUILD_FOLDER%/.appveyor_clear_cache"
       exit 1
     )
 
