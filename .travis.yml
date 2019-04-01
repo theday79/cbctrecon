@@ -20,7 +20,7 @@ env:
     - POCL_C_COMPILER=${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}/bin/clang
     - POCL_OPENCL_LIB=${POCL_ROOT}/lib/libOpenCL.so
     # Misc
-    - COVERAGE=false
+    - CBCTRECON_COVERAGE=OFF
     - CC_VER=DEFAULT
     - CUDA=NONE
     - MACCUDA=NONE
@@ -270,7 +270,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export USEOMP=OFF; else export USEOMP=ON; fi
 
   - $CXX --version
-  - $CMAKE --version
+  - cmake --version
   - clinfo
 
   - cd cbctrecon/
@@ -279,12 +279,12 @@ install:
 
 before_script:
   - mkdir build/ && cd build/
-  - $CMAKE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DUSE_OPENMP=$USEOMP
+  - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DUSE_OPENMP=$USEOMP
 
 script:
-  - $CMAKE .
-  - $CMAKE --build .
-  - $CTEST -VV
+  - cmake .
+  - cmake --build .
+  - ctest -VV
 
 before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
