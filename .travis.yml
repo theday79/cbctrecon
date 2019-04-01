@@ -99,7 +99,7 @@ install:
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      bash .travis/amd_sdk.sh;
+      bash cbctrecon/.travis/amd_sdk.sh;
       tar -xjf AMD-SDK.tar.bz2;
       AMDAPPSDK=${HOME}/AMDAPPSDK;
       export OPENCL_VENDOR_PATH=${AMDAPPSDK}/etc/OpenCL/vendors;
