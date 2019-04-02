@@ -32,6 +32,8 @@ cache:
     - ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}
     - ${POCL_ROOT}
 
+sudo: false
+
 addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
@@ -50,7 +52,7 @@ addons:
       - g++-8
       - lcov
       - clinfo
-      - ninja
+      - ninja-build
   homebrew:
     packages:
       - fftw
@@ -67,7 +69,6 @@ matrix:
   include:
     - os: linux
       dist: xenial
-      sudo: false
       compiler: gcc-8
       env:
         - CC_VER=8
@@ -84,7 +85,6 @@ matrix:
 
     - os: linux
       dist: xenial
-      sudo: false
       compiler: gcc-8
       env:
         - CC_VER=8
@@ -96,7 +96,6 @@ matrix:
 
     - os: linux
       dist: xenial
-      sudo: false
       compiler: clang
       env:
         - OPENCL_LIB=pocl
@@ -105,7 +104,6 @@ matrix:
 
     - os: linux
       dist: xenial
-      sudo: false
       compiler: clang
       env:
         - OPENCL_LIB=pocl
@@ -261,6 +259,22 @@ install:
       sudo /tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
     fi
 
+  # Windows: Install OpenCL headers and libraries
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "windows" ]]; then
+      set NUGETDIR=C:\NUGET
+      nuget install opencl-nug -Version 0.777.77 -OutputDirectory %NUGETDIR%
+      dir %NUGETDIR%\opencl-nug.0.777.77\build\native\
+      set OCL_ROOT=%NUGETDIR%\opencl-nug.0.777.77\build\native
+      # Install OpenCL Runtime
+      choco install opencl-intel-cpu-runtime
+      # Check if it's working
+      travis_retry wget "https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform:+x64" -o clinfo.exe
+      .\clinfo.exe
+    else
+      clinfo
+    fi
+
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
   - |
@@ -278,7 +292,6 @@ install:
 
   - $CXX --version
   - cmake --version
-  - clinfo
 
   - cd cbctrecon/
   - git config --global user.email "andreasga22@gmail.com"
@@ -291,7 +304,7 @@ before_script:
 script:
   - cmake .
   - cmake --build .
-  - ctest -VV
+  - travis_wait 30 ctest -VV
 
 before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
