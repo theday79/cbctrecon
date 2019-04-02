@@ -262,15 +262,11 @@ install:
   # Windows: Install OpenCL headers and libraries
   - |
     if [[ ${TRAVIS_OS_NAME} == "windows" ]]; then
-      set NUGETDIR=C:\NUGET
-      nuget install opencl-nug -Version 0.777.77 -OutputDirectory %NUGETDIR%
-      dir %NUGETDIR%\opencl-nug.0.777.77\build\native\
-      set OCL_ROOT=%NUGETDIR%\opencl-nug.0.777.77\build\native
       # Install OpenCL Runtime
       choco install opencl-intel-cpu-runtime
       # Check if it's working
       travis_retry wget "https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform:+x64" -o clinfo.exe
-      .\clinfo.exe
+      ./clinfo.exe
     else
       clinfo
     fi
