@@ -38,16 +38,19 @@ addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
     packages:
+      # For QtOpenGL
+      - mesa-common-dev
       # POCL
       - libltdl-dev
       - libhwloc-dev
       - pkg-config
       - libedit-dev
-      # Misc.
+      # Misc. libs
       - libfftw3-3
       - libfftw3-dev
       - libsqlite3-dev
       - libomp-dev
+      # Build tools
       - gcc-8
       - g++-8
       - lcov
