@@ -50,6 +50,7 @@ addons:
       - g++-8
       - lcov
       - clinfo
+      - ninja
   homebrew:
     packages:
       - fftw
@@ -57,6 +58,9 @@ addons:
       - clinfo
     update: true
 
+
+allow_failures:
+  - os: windows
 
 
 matrix:
@@ -69,7 +73,7 @@ matrix:
         - CC_VER=8
         - OPENCL_LIB=pocl
         - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+        - ENV_CMAKE_OPTIONS="-GNinja -DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
         # - OPENCL_LIB=intel
         # - ENV_CXX_FLAGS="-Wno-unused-local-typedef -DBOOST_COMPUTE_MAX_CL_VERSION=200"
         # - ENV_CMAKE_OPTIONS="-DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
@@ -88,7 +92,7 @@ matrix:
         - CUDA=10.1.105-1
         - OPENCL_LIB=pocl
         - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+        - ENV_CMAKE_OPTIONS="-GNinja -DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: linux
       dist: xenial
@@ -97,7 +101,7 @@ matrix:
       env:
         - OPENCL_LIB=pocl
         - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+        - ENV_CMAKE_OPTIONS="-GNinja -DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: linux
       dist: xenial
@@ -107,27 +111,30 @@ matrix:
         - OPENCL_LIB=pocl
         - CUDA=10.1.105-1
         - ENV_CXX_FLAGS="-Wno-unused-local-typedef"
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+        - ENV_CMAKE_OPTIONS="-GNinja -DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
+
+    # - os: osx
+    #   osx_image: xcode10
+    #   compiler: clang
+    #   addons:
+    #     homebrew:
+    #       packages:
+    #         - fftw
+    #         - qt
+    #         - clinfo
+    #       taps:
+    #         - homebrew/cask-drivers
+    #       update: true
+    #   env:
+    #     - MACCUDA=10.1
 
     - os: osx
       osx_image: xcode10
       compiler: clang
-      addons:
-        homebrew:
-          packages:
-            - fftw
-            - qt
-            - clinfo
-          taps:
-            - homebrew/cask-drivers
-          update: true
+
+    - os: windows
       env:
-        - MACCUDA=10.1
-
-    - os: osx
-      osx_image: xcode10
-      compiler: clang
-
+        - ENV_CMAKE_OPTIONS="-DUSE_SYSTEM_QT=OFF -DUSE_SYSTEM_OPENCL=OFF"
 
 
 before_install:
@@ -152,9 +159,9 @@ before_install:
       export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${CUDA%%-*}
       export PATH=${CUDA_TOOLKIT_ROOT_DIR}/bin:${PATH}
       export USECUDA=ON; else export USECUDA=OFF
+      export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
     fi
 
-  - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
 
   - |
     # Cuda on MacOS
@@ -279,7 +286,7 @@ install:
 
 before_script:
   - mkdir build/ && cd build/
-  - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DUSE_OPENMP=$USEOMP
+  - cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DUSE_OPENMP=$USEOMP
 
 script:
   - cmake .
