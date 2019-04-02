@@ -8,6 +8,11 @@ HunterGate(  # Latest version: 27/01/2019
     SHA1 "a370290a8b32987755a36d64807bf8c7f5b61730"
 )
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #-----------------------------------------------------------------------------

@@ -28,6 +28,8 @@ env:
 
 
 cache:
+    ccache: true
+    apt: true
   directories:
     - $HOME/Library/Caches/Homebrew
     - ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}
@@ -265,9 +267,10 @@ install:
       sudo /tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
     fi
 
-  # Windows: Install OpenCL headers and libraries
+  # Windows: Install OpenCL runtime and ninja
   - |
     if [[ ${TRAVIS_OS_NAME} == "windows" ]]; then
+      choco install ninja
       # Install OpenCL Runtime
       choco install opencl-intel-cpu-runtime
       # Check if it's working
@@ -288,8 +291,13 @@ install:
     fi
 
   - if test "$MACCUDA" != NONE; then travis_wait 120 brew cask install nvidia-cuda; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/qt/bin:$PATH"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export DYLD_LIBRARY_PATH="/usr/local/Cellar/libomp/7.0.0/lib:$DYLD_LIBRARY_PATH"; fi
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      export PATH="/usr/local/opt/qt/bin:$PATH"
+      brew install ccache
+      export PATH="/usr/local/opt/ccache/libexec:$PATH"
+      export DYLD_LIBRARY_PATH="/usr/local/Cellar/libomp/7.0.0/lib:$DYLD_LIBRARY_PATH"
+    fi
 
   - $CXX --version
   - cmake --version
