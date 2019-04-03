@@ -69,6 +69,7 @@ addons:
 
 allow_failures:
   - os: windows
+  - os: osx
 
 
 matrix:
@@ -136,6 +137,7 @@ matrix:
       osx_image: xcode10
       compiler: clang
       env:
+        - CMAKE_OPTIONS=""
         - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF"
 
     - os: windows
@@ -313,7 +315,8 @@ before_script:
 script:
   - cmake .
   - cmake --build .
-  - travis_wait 50 ctest -VV
+  # Because testing takes so long we won't have time for coverage:
+  - if [[ "$CBCTRECON_COVERAGE" != "ON" ]]; then travis_wait 50 ctest -VV; fi
 
 before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
