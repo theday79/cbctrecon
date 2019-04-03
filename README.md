@@ -3,15 +3,15 @@ CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 
 [![pipeline status](https://gitlab.com/agravgaard/cbctrecon/badges/master/pipeline.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/master)
 [![Build status](https://ci.appveyor.com/api/projects/status/ek8g59aguufokj3q?svg=true)](https://ci.appveyor.com/project/agravgaard/cbctrecon)
-[![Coverage Status](https://coveralls.io/repos/gitlab/agravgaard/cbctrecon/badge.svg?branch=master)](https://coveralls.io/gitlab/agravgaard/cbctrecon?branch=master)
+[![coverage report](https://gitlab.com/agravgaard/cbctrecon/badges/master/coverage.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/master)
 [![Build Status](https://travis-ci.com/agravgaard/cbctrecon.svg?branch=master)](https://travis-ci.com/agravgaard/cbctrecon)
+[![Coverage Status](https://coveralls.io/repos/gitlab/agravgaard/cbctrecon/badge.svg?branch=master)](https://coveralls.io/gitlab/agravgaard/cbctrecon?branch=master)
 
 **Proton dose calculation on scatter-corrected CBCT image: Feasibility study for adaptive proton therapy**
 http://dx.doi.org/10.1118/1.4923179
 
 Software will be tested on Linux (Arch, Manjaro and Ubuntu), MacOS (High Sierra), Windows (8.1 , 10 and Server 2012).
 Using GCC (7, 8), Clang (6, 7 and latest xcode), ICC (17, 18), MSVC (2015 and 2017).
-((Currently Clang is unable to compile anything requiring pthread.h or nanosleep on my system and will not be tested until it is fixed))
 
 Some compilers and OSs are not tested as often.
 
@@ -38,12 +38,6 @@ goPMC binary files and a Visual Studio 2013 Debug Compiler is needed for goPMC s
 
 Plastimatch does not yet support ITK 5, but we apply a patch as a workaround until official support.
 
-If you want to use Visual Studio 2015, you must use CUDA 8.0 or above due to compiler incompatibilities.
-
-If you want to use Visual Studio 2017 (v14.11 or **earlier**), you must use CUDA 9.0 or above AND set `CUDA_HOST_COMPILER="C:/Program Files (x86)/Microsoft Visual Studio/[VS edition]/VC/Tools/MSVC/[cl version]/bin/Hostx64/x64/cl.exe"` due to compiler incompatibilities
-
 If you want to use CUDA without nVidia hardware, then use the PGI compiler (pgc, pgcc) with nvcc from the CUDA SDK and copy the cuda dll's from the pgi bin directory to your working directory.
 
 Avoid using Intel TBB when compiling dependencies or deal with the compile linking problems yourself.
-
-For older versions of Qt, ITK, CUDA check the RTK and Plastimatch compilation instructions (Good luck).
