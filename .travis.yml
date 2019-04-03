@@ -29,7 +29,6 @@ env:
 
 cache:
   ccache: true
-  apt: true
   directories:
     - $HOME/Library/Caches/Homebrew
     - ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}
