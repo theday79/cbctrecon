@@ -29,21 +29,16 @@ environment:
   ITK_SOURCE_DIR: "C:/projects/ITK"
   ITK_BINARY_DIR: "C:/projects/ITK-build"
   FFTW_DIR: "C:/projects/cbctrecon/bin/fftw"
-  OPENCL_DIR: "C:/projects/cbctrecon/bin/opencl"
   BUILD_TYPE: Release
   CTEST_CMAKE_GENERATOR: "Visual Studio 14 2015 Win64"
   CTEST_TEST_TIMEOUT: "300"
-  CTEST_BUILD_CONFIGURATION: Release
-  CTEST_CONFIGURATION_TYPE: Release
 
   # Build matrix. (defines different configuration for multiple jobs)
   matrix:
     - GENERATOR: "%CTEST_CMAKE_GENERATOR%"
 
   global:
-    OPENCL_ROOT: "%APPVEYOR_BUILD_FOLDER%\\bin\\opencl"
     FFTW_ROOT: "%APPVEYOR_BUILD_FOLDER%\\bin\\fftw"
-    OPENCL_REGISTRY: "https://www.khronos.org/registry/cl"
 
 
 init:
@@ -55,30 +50,16 @@ init:
 # Vendor based OpenCL packages are hard to use because of download size, registration requirements
 # and unattended installs not well supported
 install:
-  - echo Installing OpenCL
-  - ps: mkdir $env:OPENCL_ROOT
-  - ps: pushd $env:OPENCL_ROOT
-  # { #1: $env:OPENCL_ROOT
-  - ps: $opencl_registry = $env:OPENCL_REGISTRY
-  # This downloads the source to the Khronos ICD library
-  - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-ICD-Loader.git
-  - ps: mv ./OpenCL-ICD-Loader/* .
-  # This downloads all the opencl header files
-  # The cmake build files expect a directory called inc
-  - git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git include
-  - ps: cp -r ./include/* ./inc/
-  - ps: ls ./include/CL
-  # Create the static import lib in a directory called lib, so findopencl() will find it
-  - ps: mkdir lib
-  - ps: pushd lib
-  #   { #2: $env:OPENCL_ROOT/lib
-  - cmake -G "NMake Makefiles" ..
-  - nmake
-  - ps: mkdir x64; cp OpenCL.lib x64\
-  - ps: popd
-  #   } #2 back to $env:OPENCL_ROOT
-  - ps: popd
-  # } #1 back to %APPVEYOR_BUILD_FOLDER%
+  # Install OpenCL headers and libraries
+  - set NUGETDIR=C:\NUGET
+  - nuget install opencl-nug -Version 0.777.77 -OutputDirectory %NUGETDIR%
+  - dir %NUGETDIR%\opencl-nug.0.777.77\build\native\
+  - set OCL_ROOT=%NUGETDIR%\opencl-nug.0.777.77\build\native
+  # Install OpenCL Runtime
+  - choco install opencl-intel-cpu-runtime
+  # Check if it's working
+  - ps: appveyor DownloadFile "https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform:+x64" -FileName clinfo.exe
+  - .\clinfo.exe
 
   - echo Installing FFTW
   - ps: mkdir $env:FFTW_ROOT
@@ -94,42 +75,21 @@ install:
   - ps: cd C:/Qt/5.12.1/
   - ps: ls
 
+  - choco install dcmtk
 
 cache:
-  # Caching DCMTK source and build tree
-  - '%DCMTK_SOURCE_DIR% -> .appveyor_clear_cache'
-  - '%DCMTK_BINARY_DIR% -> .appveyor_clear_cache'
   # Caching ITK source and build tree
   - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR%/lib/%BUILD_TYPE% -> .appveyor_clear_cache'
+  - 'C:\ProgramData\chocolatey\bin -> .appveyor_clear_cache'
+  - 'C:\ProgramData\chocolatey\lib -> .appveyor_clear_cache'
 
 build:
   parallel: true
   verbosity: minimal
 
 before_build:
-  # For CMake to find OpenCL:
-  - ps: $env:AMDAPPSDKROOT = "$env:OPENCL_ROOT"
-  - ps: dir $env:AMDAPPSDKROOT; dir $env:AMDAPPSDKROOT/lib; dir $env:AMDAPPSDKROOT/include;
-  - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
-  ######## DCMTK ########
-  # Checkout DCMTK source tree
-  - if not exist "%DCMTK_SOURCE_DIR%" (
-      cd C:/projects/ &
-      git clone --depth 1 --branch %DCMTK_VERSION% https://github.com/DCMTK/DCMTK.git DCMTK
-    )
-  - if not exist "%DCMTK_BINARY_DIR%" (
-      cd C:/projects/ &
-      mkdir "%DCMTK_BINARY_DIR%"
-    )
-  # Build DCMTK
-  - if not exist "%DCMTK_BINARY_DIR%/lib/%BUILD_TYPE%/dcmimage.lib" (
-      cd "%DCMTK_BINARY_DIR%" &
-      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../DCMTK -DBUILD_EXAMPLES=OFF -DDCMTK_WITH_DOXYGEN=OFF -DDCMTK_ENABLE_CXX11=ON -DDCMTK_ENABLE_STL=ON -DDCMTK_OVERWRITE_WIN32_COMPILER_FLAGS=OFF -DDCMTK_WITH_XML=OFF -DDCMTK_WITH_PNG=OFF -DDCMTK_WITH_TIFF=OFF -DDCMTK_WITH_OPENSSL=OFF -DDCMTK_WITH_SNDFILE=OFF -DDCMTK_WITH_ICONV=OFF &
-      cmake --build . --config %BUILD_TYPE% &
-      exit 1
-    )
   ######## ITK ########
   # Checkout ITK source tree
   - if not exist "%ITK_SOURCE_DIR%" (
@@ -138,42 +98,37 @@ before_build:
     )
 
   # Config ITK and exit to cache the configuration
-  - if not exist "%ITK_BINARY_DIR%" (
+  - set rebuild_itk=false
+  - if not exist "%ITK_BINARY_DIR%" set rebuild_itk=true
+  - if not exist "%ITK_BINARY_DIR%/lib/%BUILD_TYPE%/itkRTK-4.13.lib" set rebuild_itk=true
+  - if "%rebuild_itk%" == "true" (
       cd C:/projects/ &
       mkdir "%ITK_BINARY_DIR%" &
       cd "%ITK_BINARY_DIR%" &
       cp "%APPVEYOR_BUILD_FOLDER%/External/patches/ExternalRTK.remote.cmake" "%ITK_SOURCE_DIR%/Modules/Remote/" &
-      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="%FFTW_DIR%/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="%FFTW_DIR%/libfftw3-3.lib" -DFFTW_INCLUDE_PATH="%FFTW_DIR%" -DFFTW_INCLUDE_DIR="%FFTW_DIR%" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DOPENCL_INCLUDE_DIRS="%OPENCL_DIR%/include" -DOPENCL_LIBRARIES="%OPENCL_DIR%/lib/x64/OpenCL.lib"  -DOPENCL_ROOT_DIR="%OPENCL_DIR%" -DITK_USE_SYSTEM_DCMTK=ON -DDCMTK_DIR="%DCMTK_BINARY_DIR%" -DModule_ITKMathematicalMorphology=ON -DRTK_BUILD_APPLICATIONS=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_USE_CUDA=OFF &
+      cmake -G "%GENERATOR%" -DBUILD_TESTING:BOOL=OFF ../ITK -DBUILD_EXAMPLES=OFF -DModule_ITKReview=ON -DModule_RTK=ON -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DFFTWF_LIB="%FFTW_DIR%/libfftw3f-3.lib" -DITK_USE_FFTWD=ON -DFFTWD_LIB="%FFTW_DIR%/libfftw3-3.lib" -DFFTW_INCLUDE_PATH="%FFTW_DIR%" -DFFTW_INCLUDE_DIR="%FFTW_DIR%" -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DOPENCL_INCLUDE_DIRS="%OPENCL_DIR%/include" -DOPENCL_LIBRARIES="%OPENCL_DIR%/lib/x64/OpenCL.lib"  -DOPENCL_ROOT_DIR="%OPENCL_DIR%" -DITK_USE_SYSTEM_DCMTK=ON -DModule_ITKMathematicalMorphology=ON -DRTK_BUILD_APPLICATIONS=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_USE_CUDA=OFF &
+      cmake ../ITK -DModule_RTK=ON &
+      cmake --build . --config %BUILD_TYPE% &
       exit 1
     )
 
-  # Build ITK again if necessary
-  - if not exist "%ITK_BINARY_DIR%/lib/%BUILD_TYPE%/itkRTK-4.13.lib" (
-      cd "%ITK_BINARY_DIR%" &
-      cmake ../ITK -DModule_RTK=ON &
-      cmake --build . --config %BUILD_TYPE% &
-    )
 
 build_script:
+  - cd "%APPVEYOR_BUILD_FOLDER%" & mkdir build & cd build
   - git config --global user.email "andreasga22@gmail.com"
   - git config --global user.name "Andreas Gravgaard Andersen"
   # Configure CbctRecon and dependencies
   - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.12.1/msvc2015_64/lib/cmake/Qt5" -DITK_DIR="%ITK_BINARY_DIR%" -DDCMTK_DIR="%DCMTK_BINARY_DIR%" -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_DCMTK=ON -DUSE_ITK_GDCM=ON
-  # Build CbctRecon
-  - cmake --build . --config %BUILD_TYPE% --target CbctRecon
-  # - cmake "%APPVEYOR_BUILD_FOLDER%" may be necessary when tinyrefl supports windows
   # Fetch ExternalData. (Retried up to 3 times if network errors occured)
   - echo Downloading data
   - appveyor-retry cmake --build . --config %BUILD_TYPE% --target CbctData
-  - echo Building tests
-  - cmake --build . --config %BUILD_TYPE% --target CbctRecon_test
   # Install executables and libraries to bin before running test:
   - echo Building ALL
   - cmake --build . --config %BUILD_TYPE% --target ALL_BUILD
   - echo Installing
   - cmake --build . --config %BUILD_TYPE% --target INSTALL
   - echo Running CbctRecon_test
-  - ctest -V -C %BUILD_TYPE%
+  - ctest -VV -C %BUILD_TYPE%
   - echo Creating .msi
   - cpack -C %BUILD_TYPE%
   - move CbctRecon-*.msi %APPVEYOR_BUILD_FOLDER%
