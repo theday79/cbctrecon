@@ -274,7 +274,8 @@ install:
       # Install OpenCL Runtime
       choco install opencl-intel-cpu-runtime
       # Check if it's working
-      travis_retry wget "https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform:+x64" -o clinfo.exe
+      travis_retry curl -fSsL -o clinfo.exe https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform%3a+x64
+      chmod 755 clinfo.exe
       ./clinfo.exe
     else
       clinfo

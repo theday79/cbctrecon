@@ -102,7 +102,7 @@ cache:
   # Caching ITK source and build tree
   - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR% -> .appveyor_clear_cache'
-  - '%ITK_BINARY_DIR%/lib/%BUILD_TYPE%/*.lib -> .appveyor_clear_cache'
+  - '%ITK_BINARY_DIR%/lib/%BUILD_TYPE% -> .appveyor_clear_cache'
 
 build:
   parallel: true
@@ -152,7 +152,6 @@ before_build:
       cd "%ITK_BINARY_DIR%" &
       cmake ../ITK -DModule_RTK=ON &
       cmake --build . --config %BUILD_TYPE% &
-      exit 1
     )
 
 build_script:

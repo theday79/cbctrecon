@@ -34,5 +34,5 @@ cmake --build .
 ctest -VV
 
 if [[ "$COVERAGE" = "YES" ]]; then
-    cmake --build . --target CbctReconLib_coverage
+    cmake --build . --target CbctRecon_coverage
 fi
