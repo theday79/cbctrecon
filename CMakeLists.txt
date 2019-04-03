@@ -3,9 +3,9 @@ CMAKE_MINIMUM_REQUIRED (VERSION 3.10) # Yes, less won't do.
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(HunterGate)
-HunterGate(  # Latest version: 27/01/2019
-    URL "https://github.com/ruslo/hunter/archive/v0.23.89.tar.gz"
-    SHA1 "a370290a8b32987755a36d64807bf8c7f5b61730"
+HunterGate(
+    URL "https://github.com/ruslo/hunter/archive/v0.23.148.tar.gz"
+    SHA1 "39855eac4375c6fb1d42fd0f13f03040621cb7b6"
 )
 
 find_program(CCACHE_PROGRAM ccache)
