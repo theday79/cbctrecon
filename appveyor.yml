@@ -52,8 +52,8 @@ install:
   - nuget install opencl-nug -Version 0.777.77 -OutputDirectory %NUGETDIR%
   - dir %NUGETDIR%\opencl-nug.0.777.77\build\native\
   - set OCL_ROOT=%NUGETDIR%\opencl-nug.0.777.77\build\native
-  # Install OpenCL Runtime
-  - choco install opencl-intel-cpu-runtime
+  # Install OpenCL Runtime (force because I don't know how to cache the icd file)
+  - choco install opencl-intel-cpu-runtime --force
   # Check if it's working
   - git clone --depth 1 https://github.com/Oblomov/clinfo.git
   - cd clinfo
