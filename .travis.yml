@@ -46,7 +46,9 @@ addons:
     sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-7']
     packages:
       # For QtOpenGL
-      - mesa-common-dev
+      - libegl1-mesa-dev
+      - libgl1-mesa-dev
+      - libegl1-mesa-drivers
       # POCL
       - libltdl-dev
       - libhwloc-dev
