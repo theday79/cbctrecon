@@ -57,7 +57,6 @@ addons:
       - libfftw3-dev
       - libsqlite3-dev
       - libomp-dev
-      - dcmtk
       # Build tools
       - gcc-8
       - g++-8
@@ -291,6 +290,7 @@ install:
       clinfo
     fi
 
+  - if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then sudo apt install -y dcmtk; fi
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
   #- |
