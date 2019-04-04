@@ -24,7 +24,9 @@ env:
     - CC_VER=DEFAULT
     - CUDA=NONE
     - MACCUDA=NONE
-    - CMAKE_OPTIONS="-GNinja"
+    - RUN_TESTS=ON
+    - CMAKE_OPTIONS="-GNinja -DUSE_SYSTEM_DCMTK=ON"
+    - CACHE_ITK=OFF
 
 
 cache:
@@ -33,6 +35,8 @@ cache:
     - $HOME/Library/Caches/Homebrew
     - ${DEPS_DIR}/llvm-${POCL_LLVM_VERSION}
     - ${POCL_ROOT}
+    - $HOME/ITK
+    - $HOME/ITK-build
 
 sudo: false
 
@@ -52,6 +56,7 @@ addons:
       - libfftw3-dev
       - libsqlite3-dev
       - libomp-dev
+      - dcmtk
       # Build tools
       - gcc-8
       - g++-8
@@ -62,6 +67,7 @@ addons:
     packages:
       - fftw
       - qt
+      - dcmtk
       - clinfo
       - ninja
     update: true
@@ -139,6 +145,7 @@ matrix:
       env:
         - CMAKE_OPTIONS=""
         - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF"
+        - CACHE_ITK=ON
 
     - os: windows
       env:
@@ -272,6 +279,7 @@ install:
   - |
     if [[ ${TRAVIS_OS_NAME} == "windows" ]]; then
       choco install ninja
+      choco install dcmtk
       # Install OpenCL Runtime
       choco install opencl-intel-cpu-runtime
       # Check if it's working
@@ -309,6 +317,23 @@ install:
   - git config --global user.name "Andreas Gravgaard Andersen"
 
 before_script:
+  - |
+    # Build ITK seperate for caching
+    if [[ "$CACHE_ITK" == "ON" ]]; then
+      cd ..
+      if [ ! -d ./ITK ]; then
+        git clone --depth 1 --branch v4.13.1 https://github.com/insightsoftwareconsortium/ITK.git
+        cp ../cbctrecon/External/patches/ExternalRTK.remote.cmake ./ITK/Modules/Remote/
+        export RUN_TESTS=OFF
+      fi
+      mkdir -p ITK-build
+      cd ITK-build
+      cmake ../ITK-build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DModule_ITKReview=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DModule_ITKMathematicalMorphology=ON -DUSE_SYSTEM_FFTW=ON -DModule_RTK=ON -DRTK_BUILD_APPLICATIONS=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_USE_CUDA=$MACCUDA
+      cmake --build .
+      cd ../cbctrecon
+      export CMAKE_OPTIONS="${CMAKE_OPTIONS} -DUSE_SYSTEM_ITK=ON -DITK_DIR=$HOME/ITK-build"
+    fi
+
   - mkdir build/ && cd build/
   - cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
 
@@ -316,10 +341,11 @@ script:
   - cmake .
   - cmake --build .
   # Because testing takes so long we won't have time for coverage:
-  - if [[ "$CBCTRECON_COVERAGE" != "ON" ]]; then travis_wait 50 ctest -VV; fi
+  - if [[ "$CBCTRECON_COVERAGE" != "ON" ]]; then export RUN_TESTS=OFF; fi
+  - if [[ "$RUN_TESTS" == "ON" ]]; then travis_wait 50 ctest -VV; fi
 
 before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
 
 after_script:
-  - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then $CMAKE --build . --target CbctRecon_coverage && cd ../ && coveralls --no-gcov --lcov-file build/CbctRecon_coverage.info.cleaned; fi
+  - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then cmake --build . --target CbctRecon_coverage && cd ../ && coveralls --no-gcov --lcov-file build/CbctRecon_coverage.info.cleaned; fi

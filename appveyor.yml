@@ -22,9 +22,6 @@ shallow_clone: true
 environment:
   # Environment variables
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
-  DCMTK_VERSION: DCMTK-3.6.3
-  DCMTK_SOURCE_DIR: "C:/projects/DCMTK"
-  DCMTK_BINARY_DIR: "C:/projects/DCMTK-build"
   ITK_VERSION: v4.13.1
   ITK_SOURCE_DIR: "C:/projects/ITK"
   ITK_BINARY_DIR: "C:/projects/ITK-build"
@@ -124,7 +121,7 @@ build_script:
   - git config --global user.email "andreasga22@gmail.com"
   - git config --global user.name "Andreas Gravgaard Andersen"
   # Configure CbctRecon and dependencies
-  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.12.1/msvc2015_64/lib/cmake/Qt5" -DITK_DIR="%ITK_BINARY_DIR%" -DDCMTK_DIR="%DCMTK_BINARY_DIR%" -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_DCMTK=ON -DUSE_ITK_GDCM=ON
+  - cmake -G"%CTEST_CMAKE_GENERATOR%" "%APPVEYOR_BUILD_FOLDER%" -DBUILD_TESTING=OFF -DUSE_CUDA=OFF -DCBCTRECON_BUILD_TESTS=ON -DUSE_TINYREFL=OFF -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/build/" -DQt5_DIR="C:/Qt/5.12.1/msvc2015_64/lib/cmake/Qt5" -DITK_DIR="%ITK_BINARY_DIR%" -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_DCMTK=ON -DUSE_ITK_GDCM=ON
   # Fetch ExternalData. (Retried up to 3 times if network errors occured)
   - echo Downloading data
   - appveyor-retry cmake --build . --config %BUILD_TYPE% --target CbctData
