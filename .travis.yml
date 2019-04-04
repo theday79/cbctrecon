@@ -49,7 +49,6 @@ addons:
       - libegl1-mesa-dev
       - libgl1-mesa-dev
       - libegl1-mesa-drivers
-      - libpciaccess-dev
       # POCL
       - libltdl-dev
       - libhwloc-dev
@@ -290,7 +289,12 @@ install:
       clinfo
     fi
 
-  - if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then sudo apt install -y dcmtk; fi
+  - |
+    # Explicitly install dcmtk and libpciaccess
+    if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+      sudo apt install -y dcmtk
+      sudo apt install -y libpciaccess-dev
+    fi
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
   #- |
