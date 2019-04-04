@@ -55,7 +55,7 @@ install:
   # Install OpenCL Runtime
   - choco install opencl-intel-cpu-runtime
   # Check if it's working
-  - ps: appveyor DownloadFile "https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform:+x64" -FileName clinfo.exe
+  - ps: appveyor DownloadFile "https://ci.appveyor.com/api/projects/oblomov/clinfo/artifacts/clinfo.exe?job=platform%3a+x64" -FileName clinfo.exe
   - .\clinfo.exe
 
   - echo Installing FFTW
