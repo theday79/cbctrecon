@@ -89,7 +89,7 @@ matrix:
       env:
         - CC_VER=8
         - OPENCL_LIB=pocl
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include -DUSE_SYSTEM_QT=OFF"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
         # - OPENCL_LIB=intel
         # - ENV_CXX_FLAGS="-Wno-unused-local-typedef -DBOOST_COMPUTE_MAX_CL_VERSION=200"
         # - ENV_CMAKE_OPTIONS="-DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
@@ -106,14 +106,14 @@ matrix:
         - CBCTRECON_COVERAGE=ON
         - CUDA=10.1.105-1
         - OPENCL_LIB=pocl
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include -DUSE_SYSTEM_QT=OFF"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: linux
       dist: xenial
       compiler: clang
       env:
         - OPENCL_LIB=pocl
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include -DUSE_SYSTEM_QT=OFF"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     - os: linux
       dist: xenial
@@ -121,7 +121,7 @@ matrix:
       env:
         - OPENCL_LIB=pocl
         - CUDA=10.1.105-1
-        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include -DUSE_SYSTEM_QT=OFF"
+        - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${POCL_OPENCL_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
 
     # - os: osx
     #   osx_image: xcode10
@@ -148,7 +148,7 @@ matrix:
 
     - os: windows
       env:
-        - ENV_CMAKE_OPTIONS="-DUSE_SYSTEM_QT=OFF -DUSE_SYSTEM_OPENCL=OFF"
+        - ENV_CMAKE_OPTIONS="-DUSE_SYSTEM_OPENCL=OFF"
 
 
 before_install:

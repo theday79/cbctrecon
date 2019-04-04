@@ -81,6 +81,7 @@ cache:
   - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR%/lib/%BUILD_TYPE% -> .appveyor_clear_cache'
+  - 'C:\.hunter -> .appveyor_clear_cache'
 
 build:
   parallel: true
@@ -117,7 +118,7 @@ before_build:
     )
   # Make sure everything is up-to-date (ocl might have changed)
   - cd %ITK_BINARY_DIR%
-  - cmake . -DModule_ITKDCMTK=ON -DModule_RTK=ON -DOPENCL_ROOT_DIR=%OCL_ROOT%
+  - cmake . -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=OFF -DModule_RTK=ON -DOPENCL_ROOT_DIR=%OCL_ROOT%
   - cmake --build .
 
 
