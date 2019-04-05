@@ -118,7 +118,7 @@ before_build:
     )
   # Make sure everything is up-to-date (ocl might have changed)
   - cd %ITK_BINARY_DIR%
-  - cmake . -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=OFF -DModule_RTK=ON -DOPENCL_ROOT_DIR=%OCL_ROOT%
+  - cmake . -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=OFF -DModule_RTK=ON -DOPENCL_ROOT_DIR=%OCL_ROOT% -DOPENCL_INCLUDE_DIRS=%OCL_ROOT%/include
   - cmake --build .
 
 
