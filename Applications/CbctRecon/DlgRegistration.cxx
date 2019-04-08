@@ -14,6 +14,7 @@
 #include "PlmWrapper.h"
 #include "StructureSet.h"
 #include "cbctrecon.h"
+#include "cbctrecon_io.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_mainwidget.h"
 #include "cbctregistration.h"
@@ -2382,6 +2383,31 @@ void DlgRegistration::SLT_Override() const {
     }
   }
   std::cout << i << " pixels were overridden." << std::endl;
+}
+
+void DlgRegistration::SLT_DoEclRegistration(){
+
+  const auto translation_vec = DoubleVector{
+      ui.doubleSpinBox_EclTrlX->value(),
+      ui.doubleSpinBox_EclTrlY->value(),
+      ui.doubleSpinBox_EclTrlZ->value()
+  };
+
+  const auto rotation_vec = DoubleVector{
+      ui.doubleSpinBox_EclRotX->value(),
+      ui.doubleSpinBox_EclRotY->value(),
+      ui.doubleSpinBox_EclRotZ->value()
+  };
+
+  auto& ct_img = this->m_spFixed;
+
+  saveImageAsMHA<UShortImageType>(ct_img, "fixed_bkp.mha");
+  this->m_spFixed = CbctRegistration::MoveByEclRegistration(translation_vec, rotation_vec, ct_img);
+}
+
+void DlgRegistration::SLT_ResetEclRegistration(){
+  const auto filename = std::string("fixed_bkp.mha");
+  this->m_spFixed = loadMHAImageAs<UShortImageType>(filename);
 }
 
 void DlgRegistration::SLT_gPMCrecalc() {

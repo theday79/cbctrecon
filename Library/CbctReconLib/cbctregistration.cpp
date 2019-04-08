@@ -16,6 +16,7 @@
 #include <itkMinimumMaximumImageFilter.h>
 #include <itkMultiplyImageFilter.h>
 #include <itkSubtractImageFilter.h>
+#include <itkEuler3DTransform.h>
 
 // PLM
 #undef TIMEOUT // used in an enum in dlib, and may be defined as 7 in lp of RTK
@@ -678,6 +679,39 @@ void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
                    });
     WEPL_voi->pslist.at(i++) = std::move(WEPL_contour);
   }
+}
+
+constexpr auto deg2rad(double deg) { return deg / 180.0 * itk::Math::pi; }
+
+UShortImageType::Pointer CbctRegistration::MoveByEclRegistration(const DoubleVector& translation_vec, const DoubleVector& rotation_vec, const UShortImageType::Pointer& ct_img){
+  auto resampler =
+      itk::ResampleImageFilter<UShortImageType, UShortImageType>::New();
+
+  auto transform = itk::Euler3DTransform<double>::New();
+  transform->SetRotation(deg2rad(-rotation_vec.x), deg2rad(-rotation_vec.y),
+                         deg2rad(-rotation_vec.z));
+
+  auto translation = itk::Euler3DTransform<double>::InputVectorType();
+  translation.SetElement(
+      0, -translation_vec.x); // -X in eclipse -> X itk
+  translation.SetElement(
+      1, -translation_vec.y); // -Y in eclipse -> Y itk
+  translation.SetElement(
+      2, -translation_vec.z); // -Z in eclipse -> Z itk
+  transform->SetTranslation(translation);
+
+  resampler->SetInput(ct_img);
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<UShortImageType, double>::New();
+  resampler->SetInterpolator(interpolator);
+  resampler->SetSize(ct_img->GetLargestPossibleRegion().GetSize());
+  resampler->SetOutputSpacing(ct_img->GetSpacing());
+  resampler->SetOutputOrigin(ct_img->GetOrigin());
+  resampler->SetOutputDirection(ct_img->GetDirection());
+  resampler->SetTransform(transform);
+  resampler->Update();
+
+  return resampler->GetOutput();
 }
 
 float *CbctRegistration::ManualMoveByDCM() const {

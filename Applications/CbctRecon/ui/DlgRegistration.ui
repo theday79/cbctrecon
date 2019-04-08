@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1530</width>
-    <height>809</height>
+    <width>1483</width>
+    <height>638</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -74,13 +74,339 @@
           <property name="currentIndex">
            <number>0</number>
           </property>
+          <widget class="QWidget" name="page_3">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>406</width>
+             <height>467</height>
+            </rect>
+           </property>
+           <attribute name="label">
+            <string>WEPL and Dose recalculation</string>
+           </attribute>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="21" column="0" colspan="4">
+             <widget class="QPushButton" name="pushButton_recalcDose">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>gPMC - recalc</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1" colspan="2">
+             <widget class="QLabel" name="label_14">
+              <property name="text">
+               <string>Gantry</string>
+              </property>
+             </widget>
+            </item>
+            <item row="17" column="0" colspan="4">
+             <widget class="Line" name="line_6">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="19" column="0" rowspan="2">
+             <widget class="QLabel" name="label_9">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Dose</string>
+              </property>
+             </widget>
+            </item>
+            <item row="13" column="1">
+             <widget class="QLabel" name="label_57">
+              <property name="text">
+               <string>X</string>
+              </property>
+             </widget>
+            </item>
+            <item row="23" column="0">
+             <widget class="QSpinBox" name="spinBox_Nsims">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0" colspan="4">
+             <widget class="Line" name="line">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="18" column="0">
+             <spacer name="verticalSpacer_6">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="13" column="0">
+             <widget class="QLabel" name="label_54">
+              <property name="text">
+               <string>Eclipse v13 coord.:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="13" column="3">
+             <widget class="QLabel" name="label_59">
+              <property name="text">
+               <string>Z</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="3">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotZ"/>
+            </item>
+            <item row="23" column="1" colspan="3">
+             <widget class="QLabel" name="label_2">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string># of Simulations</string>
+              </property>
+             </widget>
+            </item>
+            <item row="13" column="2">
+             <widget class="QLabel" name="label_58">
+              <property name="text">
+               <string>Y</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="3">
+             <widget class="QSpinBox" name="spinBox_CouchAngle">
+              <property name="minimum">
+               <number>-90</number>
+              </property>
+              <property name="maximum">
+               <number>90</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="2">
+             <widget class="QDial" name="dial_GantryAngle">
+              <property name="minimum">
+               <number>-180</number>
+              </property>
+              <property name="maximum">
+               <number>180</number>
+              </property>
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="notchTarget">
+               <double>8.699999999999999</double>
+              </property>
+              <property name="notchesVisible">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QLabel" name="label_15">
+              <property name="text">
+               <string>Couch</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_10">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>WEPL</string>
+              </property>
+             </widget>
+            </item>
+            <item row="22" column="1" colspan="3">
+             <widget class="QLabel" name="label_3">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string># of DCM plans</string>
+              </property>
+             </widget>
+            </item>
+            <item row="16" column="0">
+             <widget class="QPushButton" name="pushButton_ResetEclReg">
+              <property name="text">
+               <string>Reset</string>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="1">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotX"/>
+            </item>
+            <item row="4" column="1" colspan="2">
+             <widget class="QSpinBox" name="spinBox_GantryAngle">
+              <property name="minimum">
+               <number>-180</number>
+              </property>
+              <property name="maximum">
+               <number>180</number>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="3">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlZ"/>
+            </item>
+            <item row="14" column="2">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlY"/>
+            </item>
+            <item row="15" column="0">
+             <widget class="QLabel" name="label_56">
+              <property name="text">
+               <string>Rotation:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="16" column="1" colspan="3">
+             <widget class="QPushButton" name="pushButton_DoEclReg">
+              <property name="text">
+               <string>Apply</string>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="1">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlX"/>
+            </item>
+            <item row="1" column="3">
+             <widget class="QDial" name="dial_CouchAngle">
+              <property name="minimum">
+               <number>-90</number>
+              </property>
+              <property name="maximum">
+               <number>90</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="invertedAppearance">
+               <bool>false</bool>
+              </property>
+              <property name="notchTarget">
+               <double>8.699999999999999</double>
+              </property>
+              <property name="notchesVisible">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="0">
+             <spacer name="verticalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>Angle</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="3">
+             <widget class="QPushButton" name="pushButton_VOIWEPL">
+              <property name="text">
+               <string>Calculate</string>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="0">
+             <widget class="QLabel" name="label_53">
+              <property name="text">
+               <string>Translation:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="22" column="0">
+             <widget class="QSpinBox" name="spinBox_NdcmPlans">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="15" column="2">
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotY"/>
+            </item>
+            <item row="9" column="0" colspan="3">
+             <widget class="QComboBox" name="comboBox_VOI"/>
+            </item>
+            <item row="12" column="0" colspan="4">
+             <widget class="QLabel" name="label_55">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Rigid registration from Eclipse to Fixed Image</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
           <widget class="QWidget" name="page">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>420</width>
-             <height>631</height>
+             <width>406</width>
+             <height>474</height>
             </rect>
            </property>
            <attribute name="label">
@@ -593,8 +919,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>420</width>
-             <height>631</height>
+             <width>406</width>
+             <height>478</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1042,7 +1368,7 @@
              <x>0</x>
              <y>0</y>
              <width>420</width>
-             <height>631</height>
+             <height>460</height>
             </rect>
            </property>
            <attribute name="label">
@@ -1148,225 +1474,6 @@
                </size>
               </property>
              </spacer>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="page_3">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>420</width>
-             <height>631</height>
-            </rect>
-           </property>
-           <attribute name="label">
-            <string>WEPL and Dose recalculation</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout_4">
-            <item row="16" column="1" colspan="3">
-             <widget class="QLabel" name="label_2">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string># of Simulations</string>
-              </property>
-             </widget>
-            </item>
-            <item row="14" column="0" colspan="4">
-             <widget class="QPushButton" name="pushButton_recalcDose">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>gPMC - recalc</string>
-              </property>
-             </widget>
-            </item>
-            <item row="15" column="0">
-             <widget class="QSpinBox" name="spinBox_NdcmPlans">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="16" column="0">
-             <widget class="QSpinBox" name="spinBox_Nsims">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_10">
-              <property name="font">
-               <font>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>WEPL</string>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="0" colspan="3">
-             <widget class="QComboBox" name="comboBox_VOI"/>
-            </item>
-            <item row="9" column="3">
-             <widget class="QPushButton" name="pushButton_VOIWEPL">
-              <property name="text">
-               <string>Calculate</string>
-              </property>
-             </widget>
-            </item>
-            <item row="12" column="0" rowspan="2">
-             <widget class="QLabel" name="label_9">
-              <property name="font">
-               <font>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Dose</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_12">
-              <property name="text">
-               <string>Angle</string>
-              </property>
-             </widget>
-            </item>
-            <item row="15" column="1" colspan="3">
-             <widget class="QLabel" name="label_3">
-              <property name="font">
-               <font>
-                <pointsize>12</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string># of DCM plans</string>
-              </property>
-             </widget>
-            </item>
-            <item row="11" column="0">
-             <spacer name="verticalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="10" column="0" colspan="4">
-             <widget class="Line" name="line">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="3">
-             <widget class="QSpinBox" name="spinBox_CouchAngle">
-              <property name="minimum">
-               <number>-90</number>
-              </property>
-              <property name="maximum">
-               <number>90</number>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1" colspan="2">
-             <widget class="QSpinBox" name="spinBox_GantryAngle">
-              <property name="minimum">
-               <number>-180</number>
-              </property>
-              <property name="maximum">
-               <number>180</number>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="3">
-             <widget class="QLabel" name="label_15">
-              <property name="text">
-               <string>Couch</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="3">
-             <widget class="QDial" name="dial_CouchAngle">
-              <property name="minimum">
-               <number>-90</number>
-              </property>
-              <property name="maximum">
-               <number>90</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="invertedAppearance">
-               <bool>false</bool>
-              </property>
-              <property name="notchTarget">
-               <double>8.699999999999999</double>
-              </property>
-              <property name="notchesVisible">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1" colspan="2">
-             <widget class="QLabel" name="label_14">
-              <property name="text">
-               <string>Gantry</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1" colspan="2">
-             <widget class="QDial" name="dial_GantryAngle">
-              <property name="minimum">
-               <number>-180</number>
-              </property>
-              <property name="maximum">
-               <number>180</number>
-              </property>
-              <property name="wrapping">
-               <bool>true</bool>
-              </property>
-              <property name="notchTarget">
-               <double>8.699999999999999</double>
-              </property>
-              <property name="notchesVisible">
-               <bool>true</bool>
-              </property>
-             </widget>
             </item>
            </layout>
           </widget>
@@ -1551,8 +1658,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>128</width>
-                <height>128</height>
+                <width>64</width>
+                <height>64</height>
                </size>
               </property>
               <property name="font">
@@ -1669,8 +1776,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>128</width>
-                <height>128</height>
+                <width>64</width>
+                <height>64</height>
                </size>
               </property>
               <property name="font">
@@ -1704,8 +1811,8 @@
          </property>
          <property name="minimumSize">
           <size>
-           <width>512</width>
-           <height>512</height>
+           <width>256</width>
+           <height>256</height>
           </size>
          </property>
          <property name="font">
@@ -2436,8 +2543,8 @@
    <slot>SLT_CrntPosGo()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>339</x>
-     <y>452</y>
+     <x>518</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>555</x>
@@ -2484,8 +2591,8 @@
    <slot>SLT_DrawImageWhenSliceChange()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>892</x>
-     <y>290</y>
+     <x>1092</x>
+     <y>370</y>
     </hint>
     <hint type="destinationlabel">
      <x>808</x>
@@ -2500,8 +2607,8 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>778</x>
-     <y>582</y>
+     <x>996</x>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
      <x>423</x>
@@ -2516,8 +2623,8 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>778</x>
-     <y>616</y>
+     <x>996</x>
+     <y>763</y>
     </hint>
     <hint type="destinationlabel">
      <x>420</x>
@@ -2532,12 +2639,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>778</x>
-     <y>582</y>
+     <x>996</x>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
-     <x>866</x>
-     <y>581</y>
+     <x>1074</x>
+     <y>734</y>
     </hint>
    </hints>
   </connection>
@@ -2548,12 +2655,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>778</x>
-     <y>616</y>
+     <x>996</x>
+     <y>763</y>
     </hint>
     <hint type="destinationlabel">
-     <x>866</x>
-     <y>615</y>
+     <x>1074</x>
+     <y>765</y>
     </hint>
    </hints>
   </connection>
@@ -2564,12 +2671,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>866</x>
-     <y>615</y>
+     <x>1074</x>
+     <y>765</y>
     </hint>
     <hint type="destinationlabel">
-     <x>778</x>
-     <y>616</y>
+     <x>996</x>
+     <y>763</y>
     </hint>
    </hints>
   </connection>
@@ -2580,12 +2687,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>866</x>
-     <y>581</y>
+     <x>1074</x>
+     <y>734</y>
     </hint>
     <hint type="destinationlabel">
-     <x>778</x>
-     <y>582</y>
+     <x>996</x>
+     <y>732</y>
     </hint>
    </hints>
   </connection>
@@ -2596,8 +2703,8 @@
    <slot>SLT_ChangeView()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>479</x>
-     <y>377</y>
+     <x>481</x>
+     <y>584</y>
     </hint>
     <hint type="destinationlabel">
      <x>638</x>
@@ -2612,8 +2719,8 @@
    <slot>SLT_DrawImageWhenSliceChange()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>98</x>
-     <y>484</y>
+     <x>100</x>
+     <y>653</y>
     </hint>
     <hint type="destinationlabel">
      <x>256</x>
@@ -2628,8 +2735,8 @@
    <slot>SLT_RestoreImageSingle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>464</x>
-     <y>492</y>
+     <x>631</x>
+     <y>655</y>
     </hint>
     <hint type="destinationlabel">
      <x>541</x>
@@ -2644,8 +2751,8 @@
    <slot>SLT_RestoreImageAll()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>464</x>
-     <y>452</y>
+     <x>631</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
@@ -2660,8 +2767,8 @@
    <slot>SLT_DoRegistrationRigid()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>354</y>
+     <x>1518</x>
+     <y>421</y>
     </hint>
     <hint type="destinationlabel">
      <x>828</x>
@@ -2676,8 +2783,8 @@
    <slot>SLT_BringFocusToEnableArrow(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1028</x>
-     <y>111</y>
+     <x>1244</x>
+     <y>135</y>
     </hint>
     <hint type="destinationlabel">
      <x>1012</x>
@@ -2692,8 +2799,8 @@
    <slot>SLT_KeyMoving(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1028</x>
-     <y>111</y>
+     <x>1244</x>
+     <y>135</y>
     </hint>
     <hint type="destinationlabel">
      <x>1019</x>
@@ -2708,8 +2815,8 @@
    <slot>SLT_MovingImageSelected(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>869</x>
-     <y>550</y>
+     <x>1094</x>
+     <y>702</y>
     </hint>
     <hint type="destinationlabel">
      <x>822</x>
@@ -2724,8 +2831,8 @@
    <slot>SLT_RestoreMovingImg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>194</y>
+     <x>1518</x>
+     <y>201</y>
     </hint>
     <hint type="destinationlabel">
      <x>968</x>
@@ -2740,8 +2847,8 @@
    <slot>SLT_DoRegistrationDeform()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>565</y>
+     <x>1518</x>
+     <y>672</y>
     </hint>
     <hint type="destinationlabel">
      <x>951</x>
@@ -2756,8 +2863,8 @@
    <slot>SLT_PassMovingImgForAnalysis()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>780</x>
-     <y>551</y>
+     <x>996</x>
+     <y>703</y>
     </hint>
     <hint type="destinationlabel">
      <x>667</x>
@@ -2772,8 +2879,8 @@
    <slot>SLT_DoRegistrationGradient()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>960</x>
-     <y>189</y>
+     <x>1244</x>
+     <y>201</y>
     </hint>
     <hint type="destinationlabel">
      <x>1039</x>
@@ -2788,8 +2895,8 @@
    <slot>SLT_ManualMoveByDCMPlan()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1153</x>
-     <y>119</y>
+     <x>1386</x>
+     <y>137</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -2804,8 +2911,8 @@
    <slot>SLT_ConfirmManualRegistration()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>229</y>
+     <x>1518</x>
+     <y>234</y>
     </hint>
     <hint type="destinationlabel">
      <x>1094</x>
@@ -2820,8 +2927,8 @@
    <slot>SLT_IntensityNormCBCT()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>280</y>
+     <x>1518</x>
+     <y>253</y>
     </hint>
     <hint type="destinationlabel">
      <x>1081</x>
@@ -2836,8 +2943,8 @@
    <slot>SLT_DoLowerMaskIntensity()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>245</y>
+     <x>1518</x>
+     <y>276</y>
     </hint>
     <hint type="destinationlabel">
      <x>1064</x>
@@ -2852,8 +2959,8 @@
    <slot>SLT_ManualMoveByDCMPlanOpen()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>119</y>
+     <x>1518</x>
+     <y>137</y>
     </hint>
     <hint type="destinationlabel">
      <x>1108</x>
@@ -2868,12 +2975,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>273</x>
-     <y>582</y>
+     <x>285</x>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
-     <x>436</x>
-     <y>581</y>
+     <x>611</x>
+     <y>734</y>
     </hint>
    </hints>
   </connection>
@@ -2884,8 +2991,8 @@
    <slot>SLT_FixedImageSelected(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>439</x>
-     <y>550</y>
+     <x>631</x>
+     <y>702</y>
     </hint>
     <hint type="destinationlabel">
      <x>387</x>
@@ -2900,12 +3007,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>247</x>
-     <y>616</y>
+     <x>259</x>
+     <y>763</y>
     </hint>
     <hint type="destinationlabel">
-     <x>436</x>
-     <y>615</y>
+     <x>611</x>
+     <y>765</y>
     </hint>
    </hints>
   </connection>
@@ -2916,8 +3023,8 @@
    <slot>SLT_PassFixedImgForAnalysis()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>350</x>
-     <y>551</y>
+     <x>533</x>
+     <y>703</y>
     </hint>
     <hint type="destinationlabel">
      <x>18</x>
@@ -2932,12 +3039,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>436</x>
-     <y>581</y>
+     <x>611</x>
+     <y>734</y>
     </hint>
     <hint type="destinationlabel">
-     <x>259</x>
-     <y>582</y>
+     <x>271</x>
+     <y>732</y>
     </hint>
    </hints>
   </connection>
@@ -2948,12 +3055,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>436</x>
-     <y>615</y>
+     <x>611</x>
+     <y>765</y>
     </hint>
     <hint type="destinationlabel">
-     <x>275</x>
-     <y>616</y>
+     <x>287</x>
+     <y>763</y>
     </hint>
    </hints>
   </connection>
@@ -2964,8 +3071,8 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>65</x>
-     <y>582</y>
+     <x>77</x>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
      <x>16</x>
@@ -2980,8 +3087,8 @@
    <slot>SLT_DrawImageInFixedSlice()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>62</x>
-     <y>616</y>
+     <x>74</x>
+     <y>763</y>
     </hint>
     <hint type="destinationlabel">
      <x>14</x>
@@ -2996,8 +3103,8 @@
    <slot>SLT_gPMCrecalc()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>565</y>
+     <x>1518</x>
+     <y>702</y>
     </hint>
     <hint type="destinationlabel">
      <x>641</x>
@@ -3012,8 +3119,8 @@
    <slot>SLT_PreProcessCT()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>385</y>
+     <x>1518</x>
+     <y>449</y>
     </hint>
     <hint type="destinationlabel">
      <x>1008</x>
@@ -3028,8 +3135,8 @@
    <slot>SLT_Override()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1300</x>
-     <y>531</y>
+     <x>1518</x>
+     <y>639</y>
     </hint>
     <hint type="destinationlabel">
      <x>453</x>
@@ -3044,12 +3151,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1070</x>
-     <y>220</y>
+     <x>1412</x>
+     <y>251</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1047</x>
-     <y>297</y>
+     <x>1412</x>
+     <y>307</y>
     </hint>
    </hints>
   </connection>
@@ -3060,12 +3167,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1146</x>
-     <y>230</y>
+     <x>1518</x>
+     <y>251</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1131</x>
-     <y>304</y>
+     <x>1518</x>
+     <y>307</y>
     </hint>
    </hints>
   </connection>
@@ -3076,12 +3183,44 @@
    <slot>SLT_WEPLcalc()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1244</x>
-     <y>343</y>
+     <x>1518</x>
+     <y>340</y>
     </hint>
     <hint type="destinationlabel">
      <x>654</x>
      <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_DoEclReg</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_DoEclRegistration()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1388</x>
+     <y>539</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>764</x>
+     <y>404</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_ResetEclReg</sender>
+   <signal>released()</signal>
+   <receiver>DlgRegistrationClass</receiver>
+   <slot>SLT_ResetEclRegistration()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1184</x>
+     <y>539</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>764</x>
+     <y>404</y>
     </hint>
    </hints>
   </connection>
@@ -3110,6 +3249,8 @@
   <slot>SLT_Macro()</slot>
   <slot>SLT_ExchangeRawRef()</slot>
   <slot>SLT_DoRegistrationGradient()</slot>
+  <slot>SLT_DoEclRegistration()</slot>
+  <slot>SLT_ResetEclRegistration()</slot>
   <slot>SLT_ManualMoveByDCMPlan()</slot>
   <slot>SLT_ConfirmManualRegistration()</slot>
   <slot>SLT_IntensityNormCBCT()</slot>

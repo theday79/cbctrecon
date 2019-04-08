@@ -117,6 +117,8 @@ public slots:
   void SLT_ManualMoveByDCMPlanOpen();
   void SLT_gPMCrecalc();
   void SLT_WEPLcalc();
+  void SLT_DoEclRegistration();
+  void SLT_ResetEclRegistration();
   void SLT_BringFocusToEnableArrow(bool bChecked) const;
 
   void SLT_KeyMoving(bool bChecked);

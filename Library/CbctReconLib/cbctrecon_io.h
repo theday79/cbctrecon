@@ -47,6 +47,14 @@ void saveImageAsMHA(typename ImageType::Pointer &image,
   writer->Update();
 }
 
+template <typename ImageType>
+auto loadMHAImageAs(const std::string &filename){
+  auto reader = itk::ImageFileReader<ImageType>::New();
+  reader->SetFileName(filename);
+  reader->Update();
+  return reader->GetOutput();
+}
+
 template <int group, int element, typename T>
 auto gdcm_attribute_from(T &parent) {
   // auto attribute = gdcm::Attribute<group, element>();

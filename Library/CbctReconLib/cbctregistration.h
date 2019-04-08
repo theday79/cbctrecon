@@ -75,6 +75,7 @@ public:
                           int couch_angle, UShortImageType::Pointer &spMoving,
                           UShortImageType::Pointer &spFixed);
   float *ManualMoveByDCM() const;
+  static UShortImageType::Pointer MoveByEclRegistration(const DoubleVector& translation_vec, const DoubleVector& rotation_vec, const UShortImageType::Pointer& ct_img);
   void LoadRTPlan(QString &strDCMPath);
 
   static void CallingPLMCommand(std::string &command_filepath);
