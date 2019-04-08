@@ -80,6 +80,7 @@ cache:
   # Caching ITK source and build tree
   - '%ITK_SOURCE_DIR% -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR% -> .appveyor_clear_cache'
+  - '%ITK_BINARY_DIR%/configured.txt -> .appveyor_clear_cache'
   - '%ITK_BINARY_DIR%/lib/%BUILD_TYPE% -> .appveyor_clear_cache'
   - 'C:\.hunter -> .appveyor_clear_cache'
 
