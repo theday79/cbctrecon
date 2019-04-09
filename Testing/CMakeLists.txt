@@ -31,7 +31,11 @@ set(${test_target}_SRC
   cbctrecon_test.hpp
   )
 
-add_library(${test_target} OBJECT
+if (CBCTRECON_BUILD_SHARED_LIBS)
+  set(LIB_FLAG OBJECT)
+endif()
+
+add_library(${test_target} ${LIB_FLAG}
   ${${test_target}_SRC})
 
 # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
