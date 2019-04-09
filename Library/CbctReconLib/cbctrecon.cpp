@@ -844,7 +844,7 @@ void CbctRecon::LoadSelectedProj(const std::vector<int> &exclude_ids,
   }
 
   std::ofstream fout;
-  fout.open("D:/DebugFileNames.txt");
+  fout.open("DebugFileNames.txt");
 
   for (auto &it_idx : exclude_ids) {
     const auto &cur_str = names.at(it_idx);
