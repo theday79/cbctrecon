@@ -53,10 +53,16 @@ function(add_cbctrecon_test)
     ${ARGS_TARGET}.cpp
     )
 
-  add_executable(${ARGS_TARGET} ${SRC_FILES})
-  target_link_libraries(${ARGS_TARGET}
-    PRIVATE cbctrecon_test
-    )
+  add_executable(${ARGS_TARGET} $<TARGET_OBJECTS:cbctrecon_test> ${SRC_FILES})
+  
+  # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
+  set_target_cpu_flags(${ARGS_TARGET})
+
+  # Only sets report flags if Intel Compiler:
+  set_target_vectorizer_report_flags(${ARGS_TARGET})
+
+  # target_link_libraries(${ARGS_TARGET} cbctrecon_test)
+  target_link_libraries(${ARGS_TARGET} CbctReconLib)
 
   target_include_directories(${ARGS_TARGET}
     PUBLIC ${CBCTRECON_INCLUDE_DIRS}

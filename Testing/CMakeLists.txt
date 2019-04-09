@@ -31,8 +31,14 @@ set(${test_target}_SRC
   cbctrecon_test.hpp
   )
 
-add_library(${test_target}
+add_library(${test_target} OBJECT
   ${${test_target}_SRC})
+
+# Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
+set_target_cpu_flags(${test_target})
+
+# Only sets report flags if Intel Compiler:
+set_target_vectorizer_report_flags(${test_target})
 
 if(CBCTRECON_SANITIZE)
   sanitize_build(cbctrecon_test)
