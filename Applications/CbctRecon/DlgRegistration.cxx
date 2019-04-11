@@ -2403,11 +2403,15 @@ void DlgRegistration::SLT_DoEclRegistration(){
 
   saveImageAsMHA<UShortImageType>(ct_img, "fixed_bkp.mha");
   this->m_spFixed = CbctRegistration::MoveByEclRegistration(translation_vec, rotation_vec, ct_img);
+
+  this->SLT_DrawImageWhenSliceChange();
 }
 
 void DlgRegistration::SLT_ResetEclRegistration(){
   const auto filename = std::string("fixed_bkp.mha");
   this->m_spFixed = loadMHAImageAs<UShortImageType>(filename);
+
+  this->SLT_DrawImageWhenSliceChange();
 }
 
 void DlgRegistration::SLT_gPMCrecalc() {

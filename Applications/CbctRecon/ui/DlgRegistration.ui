@@ -79,7 +79,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>406</width>
+             <width>519</width>
              <height>467</height>
             </rect>
            </property>
@@ -186,7 +186,20 @@
              </widget>
             </item>
             <item row="15" column="3">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotZ"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotZ">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>-1000.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
             </item>
             <item row="23" column="1" colspan="3">
              <widget class="QLabel" name="label_2">
@@ -276,7 +289,20 @@
              </widget>
             </item>
             <item row="15" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotX"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotX">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>-1000.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
             </item>
             <item row="4" column="1" colspan="2">
              <widget class="QSpinBox" name="spinBox_GantryAngle">
@@ -289,10 +315,36 @@
              </widget>
             </item>
             <item row="14" column="3">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlZ"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlZ">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>-1000.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
             </item>
             <item row="14" column="2">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlY"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlY">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>-1000.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
             </item>
             <item row="15" column="0">
              <widget class="QLabel" name="label_56">
@@ -309,7 +361,20 @@
              </widget>
             </item>
             <item row="14" column="1">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlX"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclTrlX">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>-1000.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
             </item>
             <item row="1" column="3">
              <widget class="QDial" name="dial_CouchAngle">
@@ -380,7 +445,20 @@
              </widget>
             </item>
             <item row="15" column="2">
-             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotY"/>
+             <widget class="QDoubleSpinBox" name="doubleSpinBox_EclRotY">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>-1000.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
             </item>
             <item row="9" column="0" colspan="3">
              <widget class="QComboBox" name="comboBox_VOI"/>
@@ -1656,6 +1734,12 @@
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>64</width>
@@ -1774,6 +1858,12 @@
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>64</width>
@@ -1808,6 +1898,12 @@
         <widget class="qyklabel" name="labelOverlapWnd1">
          <property name="enabled">
           <bool>true</bool>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
          <property name="minimumSize">
           <size>
