@@ -21,13 +21,14 @@ public:
   // YK16GrayImage(YK16GrayImage &&) = delete;
   // void operator=(YK16GrayImage &&) = delete;
 
+  unsigned short *m_pData; // 0 - 65535
+
   int m_iWidth;
   int m_iHeight;
   // added: 20140206
   double m_fSpacingX; //[mm/px]
   double m_fSpacingY;
 
-  unsigned short *m_pData; // 0 - 65535
 
   QPixmap *m_pPixmap; // Actually, no need!
   QImage m_QImage;
