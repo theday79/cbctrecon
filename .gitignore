@@ -57,3 +57,6 @@
 # JetBrains
 .idea/*
 cmake_build_*
+
+# Potential build dir in source dir
+build*

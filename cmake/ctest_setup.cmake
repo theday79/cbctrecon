@@ -55,8 +55,10 @@ function(add_cbctrecon_test)
 
   if(CBCTRECON_BUILD_SHARED_LIBS)
     add_executable(${ARGS_TARGET} $<TARGET_OBJECTS:cbctrecon_test> ${SRC_FILES})
+    target_link_libraries(${ARGS_TARGET} CbctReconLib)
   else()
     add_executable(${ARGS_TARGET} ${SRC_FILES})
+    target_link_libraries(${ARGS_TARGET} cbctrecon_test)
   endif()
 
   # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
@@ -64,13 +66,6 @@ function(add_cbctrecon_test)
 
   # Only sets report flags if Intel Compiler:
   set_target_vectorizer_report_flags(${ARGS_TARGET})
-
-  # target_link_libraries(${ARGS_TARGET} cbctrecon_test)
-  if(CBCTRECON_BUILD_SHARED_LIBS)
-    target_link_libraries(${ARGS_TARGET} CbctReconLib)
-  else()
-    target_link_libraries(${ARGS_TARGET} cbctrecon_test)
-  endif()
 
   target_include_directories(${ARGS_TARGET}
     PUBLIC ${CBCTRECON_INCLUDE_DIRS}
