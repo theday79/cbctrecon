@@ -92,7 +92,7 @@ function(add_cbctrecon_test)
     )
 
   if(CBCTRECON_COVERAGE)
-    target_link_libraries(${ARGS_TARGET} PRIVATE gcov)
+    target_link_libraries(${ARGS_TARGET} gcov)
   endif()
 
 endfunction()
