@@ -292,7 +292,7 @@ install:
     # Explicitly install dcmtk and libpciaccess
     if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
       sudo apt install -y dcmtk
-      export CMAKE_OPTIONS="${CMAKE_OPTIONS} -DDCMTK_DIR=/var/"
+      export CMAKE_OPTIONS="${CMAKE_OPTIONS} -DDCMTK_DIR=/usr/inlcude/dcmtk"
     fi
   - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then pip install --user cpp-coveralls; fi
 
