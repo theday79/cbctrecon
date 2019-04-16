@@ -58,16 +58,6 @@ target_include_directories(${test_target}
   )
 
 
-if(CBCTRECON_COVERAGE)
-  setup_target_for_coverage(
-    DIRECTORY ${CMAKE_SOURCE_DIR}
-    NAME CbctRecon_coverage
-    SOURCES
-      Library/CbctReconLib/*
-    COLLECT_EXISTING
-    )
-endif()
-
 # Test: Reading Dicom files
 
 set(test_target
