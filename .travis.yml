@@ -295,7 +295,7 @@ install:
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.1-xenial
       sudo apt-get update
-      sudo apt install -y qt512-meta-full
+      travis_wait 20 sudo apt install -y qt512-meta-full
     fi
 
   - if test "$MACCUDA" != NONE; then travis_wait 120 brew cask install nvidia-cuda; fi
