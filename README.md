@@ -2,7 +2,6 @@
 CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 
 [![pipeline status](https://gitlab.com/agravgaard/cbctrecon/badges/master/pipeline.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/master)
-[![Build status](https://ci.appveyor.com/api/projects/status/ek8g59aguufokj3q?svg=true)](https://ci.appveyor.com/project/agravgaard/cbctrecon)
 [![coverage report](https://gitlab.com/agravgaard/cbctrecon/badges/master/coverage.svg)](https://gitlab.com/agravgaard/cbctrecon/commits/master)
 [![Build Status](https://travis-ci.com/agravgaard/cbctrecon.svg?branch=master)](https://travis-ci.com/agravgaard/cbctrecon)
 [![Coverage Status](https://coveralls.io/repos/gitlab/agravgaard/cbctrecon/badge.svg?branch=master)](https://coveralls.io/gitlab/agravgaard/cbctrecon?branch=master)
