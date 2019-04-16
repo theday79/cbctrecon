@@ -347,4 +347,17 @@ before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
 
 after_script:
-  - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then cmake --build . --target CbctRecon_coverage && cd ../ && coveralls --no-gcov --lcov-file build/CbctRecon_coverage.info.cleaned; fi
+  - |
+    # Coveralls
+    if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then
+      cmake --build . --target CbctRecon_coverage
+      cd ../
+      coveralls --no-gcov --lcov-file build/CbctRecon_coverage.info.cleaned
+    fi
+after_success:
+  - |
+    if [[ ${COVERAGE} == "true" ]]; then
+      lcov --directory Testing --base-directory ../Library/CbctReconLib/ --capture --output-file coverage.info
+      lcov --remove coverage.info '/usr*' '*/test/*' '*/deps/*' -o coverage.info
+      cd .. && coveralls-lcov build/coverage.info
+    fi

@@ -62,7 +62,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="page_2">
          <property name="geometry">
@@ -70,7 +70,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>541</height>
+           <height>540</height>
           </rect>
          </property>
          <attribute name="label">
@@ -699,8 +699,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>550</width>
-           <height>541</height>
+           <width>575</width>
+           <height>540</height>
           </rect>
          </property>
          <attribute name="label">
@@ -1254,7 +1254,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>541</height>
+           <height>540</height>
           </rect>
          </property>
          <attribute name="label">
@@ -1455,8 +1455,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>550</width>
-           <height>541</height>
+           <width>575</width>
+           <height>540</height>
           </rect>
          </property>
          <attribute name="label">
@@ -1862,7 +1862,7 @@
            <x>0</x>
            <y>0</y>
            <width>550</width>
-           <height>541</height>
+           <height>540</height>
           </rect>
          </property>
          <attribute name="label">
@@ -2306,6 +2306,12 @@
           </item>
           <item row="1" column="0" rowspan="8" colspan="5">
            <widget class="qyklabel" name="labelReconImage">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>256</width>
@@ -3194,7 +3200,7 @@
      <x>0</x>
      <y>0</y>
      <width>1184</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuSynch">
@@ -3580,11 +3586,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>478</x>
-     <y>690</y>
+     <y>621</y>
     </hint>
     <hint type="destinationlabel">
-     <x>431</x>
-     <y>185</y>
+     <x>398</x>
+     <y>199</y>
     </hint>
    </hints>
   </connection>
@@ -3611,12 +3617,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1080</x>
-     <y>548</y>
+     <x>930</x>
+     <y>426</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1130</x>
-     <y>50</y>
+     <x>992</x>
+     <y>52</y>
     </hint>
    </hints>
   </connection>
@@ -3627,12 +3633,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1130</x>
-     <y>50</y>
+     <x>992</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1080</x>
-     <y>548</y>
+     <x>930</x>
+     <y>426</y>
     </hint>
    </hints>
   </connection>
@@ -3643,12 +3649,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1122</x>
-     <y>548</y>
+     <x>977</x>
+     <y>426</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1395</x>
-     <y>50</y>
+     <x>1180</x>
+     <y>52</y>
     </hint>
    </hints>
   </connection>
@@ -3659,12 +3665,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1395</x>
-     <y>50</y>
+     <x>1180</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1122</x>
-     <y>548</y>
+     <x>977</x>
+     <y>426</y>
     </hint>
    </hints>
   </connection>
@@ -3691,8 +3697,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>719</x>
-     <y>50</y>
+     <x>651</x>
+     <y>52</y>
     </hint>
     <hint type="destinationlabel">
      <x>982</x>
@@ -3707,8 +3713,8 @@
    <slot>SLT_CopyTableToClipBoard()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>982</x>
-     <y>791</y>
+     <x>892</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>977</x>
@@ -3739,8 +3745,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1080</x>
-     <y>548</y>
+     <x>930</x>
+     <y>426</y>
     </hint>
     <hint type="destinationlabel">
      <x>873</x>
@@ -3755,8 +3761,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1122</x>
-     <y>548</y>
+     <x>977</x>
+     <y>426</y>
     </hint>
     <hint type="destinationlabel">
      <x>971</x>
@@ -3771,8 +3777,8 @@
    <slot>SLT_DrawProjImages()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>229</x>
-     <y>185</y>
+     <x>182</x>
+     <y>199</y>
     </hint>
     <hint type="destinationlabel">
      <x>561</x>
@@ -3788,7 +3794,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>478</x>
-     <y>690</y>
+     <y>621</y>
     </hint>
     <hint type="destinationlabel">
      <x>464</x>
@@ -3819,12 +3825,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>431</x>
-     <y>185</y>
+     <x>398</x>
+     <y>199</y>
     </hint>
     <hint type="destinationlabel">
      <x>478</x>
-     <y>690</y>
+     <y>621</y>
     </hint>
    </hints>
   </connection>
@@ -3851,8 +3857,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>699</x>
-     <y>723</y>
+     <x>636</x>
+     <y>642</y>
     </hint>
     <hint type="destinationlabel">
      <x>391</x>
@@ -3867,8 +3873,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>699</x>
-     <y>690</y>
+     <x>636</x>
+     <y>567</y>
     </hint>
     <hint type="destinationlabel">
      <x>434</x>
@@ -3883,8 +3889,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>701</x>
-     <y>654</y>
+     <x>634</x>
+     <y>533</y>
     </hint>
     <hint type="destinationlabel">
      <x>612</x>
@@ -3899,8 +3905,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>701</x>
-     <y>763</y>
+     <x>634</x>
+     <y>693</y>
     </hint>
     <hint type="destinationlabel">
      <x>536</x>
@@ -3915,8 +3921,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>844</x>
-     <y>790</y>
+     <x>757</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>616</x>
@@ -3931,8 +3937,8 @@
    <slot>SLT_DrawGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1140</x>
-     <y>790</y>
+     <x>1026</x>
+     <y>723</y>
     </hint>
     <hint type="destinationlabel">
      <x>1142</x>
@@ -3947,8 +3953,8 @@
    <slot>SLT_InitializeGraphLim()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>699</x>
-     <y>723</y>
+     <x>636</x>
+     <y>642</y>
     </hint>
     <hint type="destinationlabel">
      <x>561</x>
@@ -3963,8 +3969,8 @@
    <slot>SLT_InitializeGraphLim()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>699</x>
-     <y>690</y>
+     <x>636</x>
+     <y>567</y>
     </hint>
     <hint type="destinationlabel">
      <x>311</x>
@@ -3995,8 +4001,8 @@
    <slot>SLT_GoForcedProbePos()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1395</x>
-     <y>236</y>
+     <x>1180</x>
+     <y>171</y>
     </hint>
     <hint type="destinationlabel">
      <x>1165</x>
@@ -4011,8 +4017,8 @@
    <slot>SLT_PostApplyFOVDispParam()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>339</x>
-     <y>296</y>
+     <x>315</x>
+     <y>313</y>
     </hint>
     <hint type="destinationlabel">
      <x>1152</x>
@@ -4027,8 +4033,8 @@
    <slot>SLT_DoPostProcessing()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>458</x>
-     <y>296</y>
+     <x>423</x>
+     <y>313</y>
     </hint>
     <hint type="destinationlabel">
      <x>1257</x>
@@ -4075,8 +4081,8 @@
    <slot>SLT_DrawReconImage()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>298</y>
+     <x>208</x>
+     <y>312</y>
     </hint>
     <hint type="destinationlabel">
      <x>1237</x>
@@ -4092,7 +4098,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>427</x>
-     <y>473</y>
+     <y>367</y>
     </hint>
     <hint type="destinationlabel">
      <x>223</x>
@@ -4171,8 +4177,8 @@
    <slot>SLT_DoScatterCorrection_APRIORI()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>610</x>
-     <y>342</y>
+     <x>541</x>
+     <y>365</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4203,8 +4209,8 @@
    <slot>SLT_CalcAndSaveAngularWEPL()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1383</x>
-     <y>669</y>
+     <x>1170</x>
+     <y>563</y>
     </hint>
     <hint type="destinationlabel">
      <x>1305</x>
@@ -4219,8 +4225,8 @@
    <slot>SLT_DoScatterCorrectionUniform()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>610</x>
-     <y>770</y>
+     <x>541</x>
+     <y>726</y>
     </hint>
     <hint type="destinationlabel">
      <x>1318</x>
@@ -4251,8 +4257,8 @@
    <slot>SLT_AddConstHUToCurImg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1314</x>
-     <y>655</y>
+     <x>1170</x>
+     <y>533</y>
     </hint>
     <hint type="destinationlabel">
      <x>909</x>
@@ -4267,8 +4273,8 @@
    <slot>SLT_SetCBCTSkinRSPath()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>704</y>
+     <x>208</x>
+     <y>656</y>
     </hint>
     <hint type="destinationlabel">
      <x>999</x>
@@ -4283,8 +4289,8 @@
    <slot>SLT_CropSkinUsingRS()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>610</x>
-     <y>737</y>
+     <x>566</x>
+     <y>691</y>
     </hint>
     <hint type="destinationlabel">
      <x>1312</x>
@@ -4299,8 +4305,8 @@
    <slot>SLT_ExportAngularWEPL_byFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1383</x>
-     <y>773</y>
+     <x>1170</x>
+     <y>693</y>
     </hint>
     <hint type="destinationlabel">
      <x>1326</x>
@@ -4427,8 +4433,8 @@
    <slot>SLT_MedianFilterDoNow()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>633</x>
-     <y>220</y>
+     <x>566</x>
+     <y>309</y>
     </hint>
     <hint type="destinationlabel">
      <x>959</x>
@@ -4491,8 +4497,8 @@
    <slot>SLT_PostProcCropInv()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>610</x>
-     <y>296</y>
+     <x>566</x>
+     <y>313</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4555,8 +4561,8 @@
    <slot>SLT_OpenPhaseData()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>563</x>
-     <y>271</y>
+     <x>541</x>
+     <y>304</y>
     </hint>
     <hint type="destinationlabel">
      <x>5</x>
@@ -4571,8 +4577,8 @@
    <slot>SLT_Export4DCBCT()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>563</x>
-     <y>243</y>
+     <x>541</x>
+     <y>269</y>
     </hint>
     <hint type="destinationlabel">
      <x>563</x>
@@ -4635,8 +4641,8 @@
    <slot>SLT_DoCouchCorrection()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1383</x>
-     <y>670</y>
+     <x>1170</x>
+     <y>563</y>
     </hint>
     <hint type="destinationlabel">
      <x>1321</x>
@@ -4716,7 +4722,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>518</x>
-     <y>586</y>
+     <y>570</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -4731,8 +4737,8 @@
    <slot>SLT_CropSupInf()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>610</x>
-     <y>428</y>
+     <x>566</x>
+     <y>421</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4747,8 +4753,8 @@
    <slot>SLT_CropSkinUsingThreshold()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>610</x>
-     <y>589</y>
+     <x>566</x>
+     <y>565</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4764,7 +4770,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>150</x>
-     <y>506</y>
+     <y>402</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4779,8 +4785,8 @@
    <slot>SLT_GeneratePOIData()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1383</x>
-     <y>721</y>
+     <x>1170</x>
+     <y>628</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4827,8 +4833,8 @@
    <slot>SLT_DoReconstruction()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>621</x>
-     <y>326</y>
+     <x>566</x>
+     <y>416</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4843,8 +4849,8 @@
    <slot>SLT_SetOutputPath()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>633</x>
-     <y>654</y>
+     <x>282</x>
+     <y>621</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4860,7 +4866,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>460</x>
-     <y>704</y>
+     <y>656</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4876,7 +4882,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>169</x>
-     <y>614</y>
+     <y>551</y>
     </hint>
     <hint type="destinationlabel">
      <x>148</x>
@@ -4892,7 +4898,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>169</x>
-     <y>647</y>
+     <y>586</y>
     </hint>
     <hint type="destinationlabel">
      <x>193</x>
@@ -4908,7 +4914,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>516</x>
-     <y>548</y>
+     <y>481</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -4924,7 +4930,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>169</x>
-     <y>581</y>
+     <y>516</y>
     </hint>
     <hint type="destinationlabel">
      <x>198</x>
@@ -4939,8 +4945,8 @@
    <slot>SLT_OutPathEdited()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>477</x>
-     <y>655</y>
+     <x>282</x>
+     <y>586</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4955,8 +4961,8 @@
    <slot>SLT_LoadSelectedProjFiles()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>563</x>
-     <y>127</y>
+     <x>541</x>
+     <y>128</y>
     </hint>
     <hint type="destinationlabel">
      <x>573</x>

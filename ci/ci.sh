@@ -34,5 +34,6 @@ cmake --build .
 ctest -VV
 
 if [[ "$COVERAGE" = "YES" ]]; then
-    cmake --build . --target CbctRecon_coverage
+  lcov --directory Testing --base-directory ../Library/CbctReconLib/ --capture --output-file coverage.info
+  cat coverage.info
 fi

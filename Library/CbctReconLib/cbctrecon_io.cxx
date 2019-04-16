@@ -408,7 +408,7 @@ DCM_MODALITY get_dcm_modality(const QString &filename) {
   at_modality.SetFromDataElement(
       ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::GetTag()));
   const auto modality = at_modality.GetValue();
-  if (modality == "RTIMAGE" || modality == "CT") {
+  if (modality == "RTIMAGE" || modality == "CT" || modality == "MR") {
     return RTIMAGE;
   }
   if (modality == "RTDOSE") {

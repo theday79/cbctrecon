@@ -229,15 +229,16 @@ set(CBCTRECON_DEP_LIBS
   ${TBB_LIBRARIES}
   OpenCL::OpenCL
 )
-if(CBCTRECON_COVERAGE)
-  include(CodeCoverage)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif()
 
 add_subdirectory(Library)
 add_subdirectory(Applications)
 
 if(CBCTRECON_BUILD_TESTS)
+  # enable code coverage generation (only with GCC for now)
+  if(${CBCTRECON_COVERAGE} AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    add_definitions(-fprofile-arcs -ftest-coverage)
+  endif()
+
   include(${CbctRecon_SOURCE_DIR}/cmake/ctest_setup.cmake)
   message(STATUS "Configuring CbctRecon tests...")
   add_subdirectory(Testing)
