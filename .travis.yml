@@ -25,7 +25,7 @@ env:
     - CUDA=NONE
     - MACCUDA=NONE
     - RUN_TESTS=ON
-    - CMAKE_OPTIONS="-GNinja -DUSE_SYSTEM_DCMTK=ON"
+    - CMAKE_OPTIONS="-GNinja"
     - CACHE_ITK=ON
 
 
@@ -143,7 +143,7 @@ matrix:
       compiler: clang
       env:
         - CMAKE_OPTIONS=""
-        - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF"
+        - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF -DUSE_SYSTEM_DCMTK=ON"
 
     - os: windows
       env:
