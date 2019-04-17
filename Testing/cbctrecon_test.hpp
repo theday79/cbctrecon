@@ -11,6 +11,7 @@
 #include "cbctregistration.h"
 
 #include "cbctrecon_types.h"
+#include "cbctregistration_test.hpp"
 
 class CbctReconTest {
 public:
@@ -29,6 +30,7 @@ private:
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon = std::make_unique<CbctRecon>();
   std::unique_ptr<CbctRegistration> m_cbctregistration; // just for convienience
+  std::unique_ptr<CbctRegistrationTest> m_dlgRegistration; // just for convienience
   std::unique_ptr<QStandardItemModel> m_pTableModel;
 
   // still public:

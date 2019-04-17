@@ -26,8 +26,10 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_test.hpp"
 #include "cbctregistration.h"
+#include "cbctregistration_test.hpp"
 
 CbctReconTest::CbctReconTest() {
+  m_dlgRegistration = std::make_unique<CbctRegistrationTest>(this);
   m_cbctregistration = std::make_unique<CbctRegistration>(m_cbctrecon.get());
   m_pTableModel = nullptr;
 }

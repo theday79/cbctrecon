@@ -97,6 +97,16 @@ int main(const int argc, char *argv[]) {
             << "\n";
 
   /* Scatter correction algorithm "Batch" style */
+  // Move MovingImage by -7.0, -85.0, -237.0: By emulating DlgRegistration::ImageManualMove
+
+  auto imgOrigin = cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetOrigin();
+
+  imgOrigin[0] = imgOrigin[0] - 7.0; // mm unit
+  imgOrigin[1] = imgOrigin[1] - 85.0;
+  imgOrigin[2] = imgOrigin[2] - 237.0;
+
+  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->SetOrigin(imgOrigin);
+
 
   /* WEPL structure test: */
   auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
