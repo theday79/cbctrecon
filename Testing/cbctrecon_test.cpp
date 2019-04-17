@@ -354,7 +354,7 @@ void CbctReconTest::test_DoReconstruction() {
 #else
   const auto use_cuda = false;
 #endif
-  const auto use_opencl = true;
+  const auto use_opencl = false;
 
   if (use_cuda) {
     this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
