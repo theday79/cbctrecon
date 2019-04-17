@@ -347,10 +347,9 @@ void CbctReconTest::test_DoReconstruction() {
 #ifdef USE_CUDA
   const auto use_cuda = true;
 #else
-  const bool use_cuda = false;
+  const auto use_cuda = false;
 #endif
-  const auto use_opencl =
-      false; // prefer CPU because we usually run tests in dockers without gpu's
+  const auto use_opencl = true;
 
   if (use_cuda) {
     this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,

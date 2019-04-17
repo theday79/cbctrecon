@@ -97,19 +97,19 @@ int main(const int argc, char *argv[]) {
             << "\n";
 
   /* Scatter correction algorithm "Batch" style */
-  // Move MovingImage by -7.0, -85.0, -237.0: By emulating DlgRegistration::ImageManualMove
+  // Move MovingImage by -7.0, -85.0, -237.0: By emulating
+  // DlgRegistration::ImageManualMove
 
-  auto imgOrigin = cbctrecon_test->m_cbctrecon->m_spManualRigidCT->GetOrigin();
+  cbctrecon_test->m_dlgRegistration->SLT_KeyMoving(true);
+  cbctrecon_test->m_dlgRegistration->ImageManualMoveOneShot(-7.0f, -85.0f,
+                                                            -237.0f);
 
-  imgOrigin[0] = imgOrigin[0] - 7.0; // mm unit
-  imgOrigin[1] = imgOrigin[1] - 85.0;
-  imgOrigin[2] = imgOrigin[2] - 237.0;
-
-  cbctrecon_test->m_cbctrecon->m_spManualRigidCT->SetOrigin(imgOrigin);
-
+  cbctrecon_test->m_dlgRegistration->SLT_ConfirmManualRegistration();
+  cbctrecon_test->m_dlgRegistration->SLT_DoRegistrationRigid();
+  cbctrecon_test->m_dlgRegistration->SLT_DoRegistrationDeform();
 
   /* WEPL structure test: */
-  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
   for (auto &structure : ss->slist) {
     std::cerr << structure.name << "\n";
   }
@@ -117,7 +117,7 @@ int main(const int argc, char *argv[]) {
   const auto voi = std::string("CTV1");
   start_time = std::chrono::steady_clock::now();
   cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
-      voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spManualRigidCT,
+      voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spDeformedCT_Final,
       cbctrecon_test->m_cbctrecon->m_spRawReconImg);
   end_time = std::chrono::steady_clock::now();
   std::cerr << "WEPL was calculated in: "

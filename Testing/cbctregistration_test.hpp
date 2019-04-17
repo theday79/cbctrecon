@@ -86,7 +86,6 @@ public:
   void LoadImgFromComboBox(int idx, QString &strSelectedComboTxt);
   void initCbctRegistrationTest(QString &strDCMUID);
 
-private:
   void ImageManualMove(int direction, double resol) const;
   void ImageManualMoveOneShot(float shiftX, float shiftY,
                               float shiftZ) const; // DICOM coordinate
