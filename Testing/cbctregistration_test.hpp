@@ -61,10 +61,10 @@ private: // Just pointers to m_cbctregistration members, for convienience
   QString ui_lineEditArgument1 = "2,2,1,30,0.00001,0.005,5";
   QString ui_lineEditArgument2 = "";
   QString ui_lineEditArgument3 = "";
-  QComboBox *ui_comboBoxImgMoving = nullptr;
-  QComboBox *ui_comboBoxImgFixed = nullptr;
-  QComboBox *ui_comboBox_VOI = nullptr;
-  QComboBox *ui_comboBox_VOItoCropBy = nullptr;
+  std::unique_ptr<QComboBox> ui_comboBoxImgMoving;
+  std::unique_ptr<QComboBox> ui_comboBoxImgFixed;
+  std::unique_ptr<QComboBox> ui_comboBox_VOI;
+  std::unique_ptr<QComboBox> ui_comboBox_VOItoCropBy;
   bool ui_radioButton_mse = true;
   bool ui_radioButton_UseCUDA = false;
   bool ui_radioButton_UseCPU = true;

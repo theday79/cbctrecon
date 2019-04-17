@@ -30,6 +30,8 @@ CbctRegistrationTest::CbctRegistrationTest() {
   m_DoseImgFixed = nullptr;
   m_DoseImgMoving = nullptr;
   m_AGDisp_Overlay = nullptr;
+  ui_comboBoxImgFixed = std::make_unique<QComboBox>();
+  ui_comboBoxImgMoving = std::make_unique<QComboBox>();
 }
 
 CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
@@ -44,6 +46,8 @@ CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
   m_DoseImgFixed = &m_cbctregistration->m_DoseImgFixed[0];
   m_DoseImgMoving = &m_cbctregistration->m_DoseImgMoving[0];
   m_AGDisp_Overlay = &m_cbctregistration->m_AGDisp_Overlay[0];
+  ui_comboBoxImgFixed = std::make_unique<QComboBox>();
+  ui_comboBoxImgMoving = std::make_unique<QComboBox>();
 }
 
 void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
@@ -166,9 +170,9 @@ void CbctRegistrationTest::UpdateListOfComboBox(const int idx) const {
   QComboBox *crntCombo;
 
   if (idx == 0) {
-    crntCombo = this->ui_comboBoxImgFixed;
+    crntCombo = this->ui_comboBoxImgFixed.get();
   } else {
-    crntCombo = this->ui_comboBoxImgMoving;
+    crntCombo = this->ui_comboBoxImgMoving.get();
   }
 
   // remove all the list
@@ -657,9 +661,9 @@ void CbctRegistrationTest::SelectComboExternal(const int idx,
   QComboBox *crntCombo;
 
   if (idx == 0) {
-    crntCombo = this->ui_comboBoxImgFixed;
+    crntCombo = this->ui_comboBoxImgFixed.get();
   } else if (idx == 1) {
-    crntCombo = this->ui_comboBoxImgMoving;
+    crntCombo = this->ui_comboBoxImgMoving.get();
   } else {
     std::cerr << "What did you do to get here?" << std::endl;
     return;

@@ -100,6 +100,8 @@ int main(const int argc, char *argv[]) {
   // Move MovingImage by -7.0, -85.0, -237.0: By emulating
   // DlgRegistration::ImageManualMove
 
+  cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);
+  cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(1);
   cbctrecon_test->m_dlgRegistration->SLT_KeyMoving(true);
   cbctrecon_test->m_dlgRegistration->ImageManualMoveOneShot(-7.0f, -85.0f,
                                                             -237.0f);

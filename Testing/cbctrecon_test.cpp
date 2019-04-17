@@ -32,6 +32,11 @@ CbctReconTest::CbctReconTest() {
   m_dlgRegistration = std::make_unique<CbctRegistrationTest>(this);
   m_cbctregistration = std::make_unique<CbctRegistration>(m_cbctrecon.get());
   m_pTableModel = nullptr;
+
+  QString tmp_folder("tmp");
+  m_dlgRegistration->initCbctRegistrationTest(
+      tmp_folder); // to Setup plastimatch folder. this is
+                   // useful if registration will be only done
 }
 
 /* All of the following corresponds to a SLT_ function in mainwidget
