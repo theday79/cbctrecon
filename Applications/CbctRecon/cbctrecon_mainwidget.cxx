@@ -4190,8 +4190,6 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
   auto strBkDetectCBCT = p_dlgreg_ui.lineEditBubDetectCBCT->text();
   auto strBubFillCBCT = p_dlgreg_ui.lineEditBubFillCBCT->text();
 
-  auto strCropContourName = p_dlgreg_ui.lineEditCropContourName->text();
-
   auto strFOVPos = p_dlgreg_ui.lineEditFOVPos->text();
 
   auto strArgument1 = p_dlgreg_ui.lineEditArgument1->text();
@@ -4239,9 +4237,6 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
        << "\t" << strBkDetectCBCT.toLocal8Bit().constData() << "\n";
   fout << "strBubFillCBCT"
        << "\t" << strBubFillCBCT.toLocal8Bit().constData() << "\n";
-
-  fout << "strCropContourName"
-       << "\t" << strCropContourName.toLocal8Bit().constData() << "\n";
 
   fout << "strFOVPos"
        << "\t" << strFOVPos.toLocal8Bit().constData() << "\n";
@@ -4341,9 +4336,7 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) const {
         p_dlgreg_ui.lineEditBubFillCBCT->setText(strContent);
       }
 
-      if (strHeader == "strCropContourName") {
-        p_dlgreg_ui.lineEditCropContourName->setText(strContent);
-      } else if (strHeader == "strFOVPos") {
+      if (strHeader == "strFOVPos") {
         p_dlgreg_ui.lineEditFOVPos->setText(strContent);
 
       } else if (strHeader == "strArgument1") {

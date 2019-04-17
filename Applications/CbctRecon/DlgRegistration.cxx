@@ -5,6 +5,7 @@
 #include "DlgRegistration.h"
 
 #include <QDialog>
+#include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProcess>
@@ -14,8 +15,8 @@
 #include "PlmWrapper.h"
 #include "StructureSet.h"
 #include "cbctrecon.h"
-#include "cbctrecon_io.h"
 #include "cbctrecon_compute.h"
+#include "cbctrecon_io.h"
 #include "cbctrecon_mainwidget.h"
 #include "cbctregistration.h"
 
@@ -420,13 +421,8 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
                       imgOriginFixed[1], imgOriginFixed[2]);
   this->ui.lineEditOriginFixed->setText(strOriFixed);
 
-  auto imgOriginMoving = m_spFixed->GetOrigin();
-  auto imgSizeMoving = m_spFixed->GetRequestedRegion().GetSize();
-  auto imgSpacingMoving = m_spFixed->GetSpacing();
   if (m_spMoving != nullptr) {
-    imgOriginMoving = m_spMoving->GetOrigin();
-    imgSizeMoving = m_spMoving->GetRequestedRegion().GetSize();
-    imgSpacingMoving = m_spMoving->GetSpacing();
+    const auto imgOriginMoving = m_spMoving->GetOrigin();
     QString strOriMoving;
     strOriMoving.sprintf("%3.4f, %3.4f, %3.4f", imgOriginMoving[0],
                          imgOriginMoving[1], imgOriginMoving[2]);
@@ -1457,6 +1453,11 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
 
   std::cout << "6: Reading is completed" << std::endl;
 
+  const QFile xform_file(filePathXform);
+  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
+      xform_file);
+  std::cout << "7: Contours registered" << std::endl;
+
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
@@ -1810,10 +1811,29 @@ void DlgRegistration::SLT_FixedImageSelected(QString selText) {
       0, selText); // here, m_spMoving and Fixed images are determined
 }
 
+ctType get_ctType(const QString &selText) {
+  if (selText.compare("REF_CT") == 0) {
+    return PLAN_CT;
+  }
+  if (selText.compare("MANUAL_RIGID_CT") == 0 ||
+      selText.compare("AUTO_RIGID_CT") == 0) {
+    return RIGID_CT;
+  }
+  if (selText.compare("DEFORMED_CT1") == 0 ||
+      selText.compare("DEFORMED_CT2") == 0 ||
+      selText.compare("DEFORMED_CT3") == 0 ||
+      selText.compare("DEFORMED_CT_FINAL") == 0) {
+    return DEFORM_CT;
+  }
+  return PLAN_CT;
+}
+
 void DlgRegistration::SLT_MovingImageSelected(QString selText) {
   // QString strCrntText = this->ui.comboBoxImgMoving->currentText();
   // std::cout << "SLT_MovingImageSelected" << std::endl;
   LoadImgFromComboBox(1, selText);
+  const auto cur_ct = get_ctType(selText);
+  UpdateVOICombobox(cur_ct);
 }
 
 void DlgRegistration::UpdateVOICombobox(const ctType ct_type) const {
@@ -1826,8 +1846,10 @@ void DlgRegistration::UpdateVOICombobox(const ctType ct_type) const {
     std::cerr << "Structures not initialized yet" << std::endl;
     return;
   }
+  this->ui.comboBox_VOI->clear();
   for (const auto &voi : struct_set->slist) {
     this->ui.comboBox_VOI->addItem(QString(voi.name.c_str()));
+    this->ui.comboBox_VOItoCropBy->addItem(QString(voi.name.c_str()));
   }
 }
 
@@ -1879,16 +1901,21 @@ void DlgRegistration::SLT_PreProcessCT() {
     return;
   }
 
-  const auto strRSName = this->ui.lineEditCropContourName->text();
+  const auto strRSName = this->ui.comboBox_VOItoCropBy->currentText();
   const auto fill_bubble = this->ui.checkBoxFillBubbleCT->isChecked();
   const auto iBubbleFillingVal =
       this->ui.lineEditBubFillCT->text().toInt(); // 0 = soft tissue
   const auto iAirFillValShort =
       this->ui.lineEditBkFillCT->text().toInt(); //-1024
 
-  if (!m_cbctregistration->PreprocessCT(iAirThresholdShort, strRSName,
-                                        fill_bubble, iBubbleFillingVal,
-                                        iAirFillValShort)) {
+  const auto cur_ct_text = ui.comboBoxImgMoving->currentText();
+  const auto cur_ct = get_ctType(cur_ct_text);
+  const auto &rt_structs =
+      m_cbctregistration->m_pParent->m_structures->get_ss(cur_ct);
+
+  if (!m_cbctregistration->PreprocessCT(iAirThresholdShort, rt_structs,
+                                        strRSName, fill_bubble,
+                                        iBubbleFillingVal, iAirFillValShort)) {
     std::cout
         << "Error in PreprocessCT!!!scatter correction would not work out."
         << std::endl;
@@ -2165,6 +2192,12 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
 
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
+  const QFile xform_file(filePathXform);
+  m_cbctregistration->m_pParent->m_structures->ApplyDeformTransformToRigid(
+      xform_file);
+
+  std::cout << "8: Contours deformed" << std::endl;
+
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
@@ -2280,6 +2313,16 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
                          static_cast<float>(planIso.y),
                          static_cast<float>(planIso.z));
 
+  const auto trn_vec =
+      FloatVector{static_cast<float>(planIso.x), static_cast<float>(planIso.y),
+                  static_cast<float>(planIso.z)};
+  auto &structs = m_cbctregistration->m_pParent->m_structures;
+  if (structs->get_ss(RIGID_CT) != nullptr) {
+    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+  } else {
+    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+  }
+
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
@@ -2385,29 +2428,26 @@ void DlgRegistration::SLT_Override() const {
   std::cout << i << " pixels were overridden." << std::endl;
 }
 
-void DlgRegistration::SLT_DoEclRegistration(){
+void DlgRegistration::SLT_DoEclRegistration() {
 
-  const auto translation_vec = DoubleVector{
-      ui.doubleSpinBox_EclTrlX->value(),
-      ui.doubleSpinBox_EclTrlY->value(),
-      ui.doubleSpinBox_EclTrlZ->value()
-  };
+  const auto translation_vec = DoubleVector{ui.doubleSpinBox_EclTrlX->value(),
+                                            ui.doubleSpinBox_EclTrlY->value(),
+                                            ui.doubleSpinBox_EclTrlZ->value()};
 
-  const auto rotation_vec = DoubleVector{
-      ui.doubleSpinBox_EclRotX->value(),
-      ui.doubleSpinBox_EclRotY->value(),
-      ui.doubleSpinBox_EclRotZ->value()
-  };
+  const auto rotation_vec = DoubleVector{ui.doubleSpinBox_EclRotX->value(),
+                                         ui.doubleSpinBox_EclRotY->value(),
+                                         ui.doubleSpinBox_EclRotZ->value()};
 
-  auto& ct_img = this->m_spFixed;
+  auto &ct_img = this->m_spFixed;
 
   saveImageAsMHA<UShortImageType>(ct_img, "fixed_bkp.mha");
-  this->m_spFixed = CbctRegistration::MoveByEclRegistration(translation_vec, rotation_vec, ct_img);
+  this->m_spFixed = CbctRegistration::MoveByEclRegistration(
+      translation_vec, rotation_vec, ct_img);
 
   this->SLT_DrawImageWhenSliceChange();
 }
 
-void DlgRegistration::SLT_ResetEclRegistration(){
+void DlgRegistration::SLT_ResetEclRegistration() {
   const auto filename = std::string("fixed_bkp.mha");
   this->m_spFixed = loadMHAImageAs<UShortImageType>(filename);
 
@@ -2564,6 +2604,19 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
 
   this->ui.progressBar->setValue(15);
   auto trn = m_cbctregistration->CallingPLMCommandXForm(str_command_filepath);
+  this->ui.progressBar->setValue(80);
+
+  const auto trn_vec =
+      FloatVector{static_cast<float>(-trn[0]), static_cast<float>(-trn[1]),
+                  static_cast<float>(-trn[-2])};
+
+  auto &structs = m_cbctregistration->m_pParent->m_structures;
+  if (structs->get_ss(RIGID_CT) != nullptr) {
+    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+  } else {
+    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+  }
+
   this->ui.progressBar->setValue(99); // good ol' 99%
 
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
@@ -2710,6 +2763,10 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   // fout << "FixedParameters: 0 0 0" << std::endl;
 
   fout.close();
+
+  const QFile xform_file(filePathXform);
+  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
+      xform_file);
 
   std::cout << "Writing manual registration transform info is done."
             << std::endl;

@@ -10,6 +10,7 @@
 #include "cbctrecon_types.h"
 
 class QXmlStreamReader;
+struct Rtss_modern;
 
 CBCTRECON_API QString MakeElektaXML(const QString &filePath_ImageDBF,
                                     const QString &filePath_FrameDBF,
@@ -47,8 +48,7 @@ void saveImageAsMHA(typename ImageType::Pointer &image,
   writer->Update();
 }
 
-template <typename ImageType>
-auto loadMHAImageAs(const std::string &filename){
+template <typename ImageType> auto loadMHAImageAs(const std::string &filename) {
   auto reader = itk::ImageFileReader<ImageType>::New();
   reader->SetFileName(filename);
   reader->Update();
@@ -64,6 +64,10 @@ auto gdcm_attribute_from(T &parent) {
   at.SetFromDataElement(data_element);
   return at;
 }
+
+bool CBCTRECON_API AlterData_RTStructureSetStorage(
+    const QFile &input_file, const Rtss_modern *input_rt_struct,
+    const QFile &output_file);
 
 void CBCTRECON_API ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
                                        ShortImageType::Pointer &spImgShort);

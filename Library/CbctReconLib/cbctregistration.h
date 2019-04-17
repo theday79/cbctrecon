@@ -66,7 +66,8 @@ public:
   static VEC3D GetShiftValueFromGradientXForm(QString &file_path,
                                               bool b_inverse);
 
-  bool PreprocessCT(int iAirThresholdShort, QString strRSName, bool fill_bubble,
+  bool PreprocessCT(int iAirThresholdShort, const Rtss_modern *rt_structs,
+                    const QString &strRSName, bool fill_bubble,
                     int iBubbleFillingVal, int iAirFillValShort);
   static void autoPreprocessCT(int iAirThresholdShort,
                                UShortImageType::Pointer &spFixed,
@@ -75,7 +76,10 @@ public:
                           int couch_angle, UShortImageType::Pointer &spMoving,
                           UShortImageType::Pointer &spFixed);
   float *ManualMoveByDCM() const;
-  static UShortImageType::Pointer MoveByEclRegistration(const DoubleVector& translation_vec, const DoubleVector& rotation_vec, const UShortImageType::Pointer& ct_img);
+  static UShortImageType::Pointer
+  MoveByEclRegistration(const DoubleVector &translation_vec,
+                        const DoubleVector &rotation_vec,
+                        const UShortImageType::Pointer &ct_img);
   void LoadRTPlan(QString &strDCMPath);
 
   static void CallingPLMCommand(std::string &command_filepath);

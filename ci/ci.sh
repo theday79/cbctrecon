@@ -35,6 +35,5 @@ ctest -VV
 
 if [[ "$COVERAGE" = "YES" ]]; then
   lcov --directory Testing --base-directory ../Library/CbctReconLib/ --capture --output-file coverage.info
-  lcov --list coverage.info
   lcov --summary coverage.info
 fi

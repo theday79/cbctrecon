@@ -11,12 +11,12 @@
 
 // ITK
 #include <itkBinaryThresholdImageFilter.h>
+#include <itkEuler3DTransform.h>
 #include <itkGDCMImageIO.h>
 #include <itkImageSeriesWriter.h>
 #include <itkMinimumMaximumImageFilter.h>
 #include <itkMultiplyImageFilter.h>
 #include <itkSubtractImageFilter.h>
-#include <itkEuler3DTransform.h>
 
 // PLM
 #undef TIMEOUT // used in an enum in dlib, and may be defined as 7 in lp of RTK
@@ -347,7 +347,8 @@ void CbctRegistration::autoPreprocessCT(const int iAirThresholdShort,
 }
 
 bool CbctRegistration::PreprocessCT(
-    const int iAirThresholdShort, QString strRSName, const bool fill_bubble,
+    const int iAirThresholdShort, const Rtss_modern *rt_structs,
+    const QString &strRSName, const bool fill_bubble,
     const int iBubbleFillingVal,
     const int iAirFillValShort) // CT preparation + CBCT preparation only,
                                 // then show the registration DLG
@@ -387,6 +388,9 @@ bool CbctRegistration::PreprocessCT(
     return false;
   }
   /* End of [1]Segment air region*/
+  const QFile rs_file(m_strPathPlastimatch + "/rs_altered.dcm");
+
+  AlterData_RTStructureSetStorage(m_pParent->m_strPathRS, rt_structs, rs_file);
 
   // plastimatch convert --input E:\PlastimatchData\DicomEg\OLD\RS.dcm
   // --output-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all2.mha
@@ -403,7 +407,7 @@ bool CbctRegistration::PreprocessCT(
   Warp_parms parms;
   Rt_study rtds;
 
-  parms.input_fn = m_pParent->m_strPathRS.toLocal8Bit().constData();
+  parms.input_fn = rs_file.fileName().toStdString();
   parms.referenced_dicom_dir = ct_path;
   std::cout << ct_path << std::endl;
 
@@ -439,8 +443,6 @@ bool CbctRegistration::PreprocessCT(
 
   QString strLineSkin;
 
-  strRSName = strRSName.trimmed();
-
   while (!fin.eof()) {
     memset(str, 0, MAX_LINE_LENGTH);
     fin.getline(str, MAX_LINE_LENGTH);
@@ -462,7 +464,7 @@ bool CbctRegistration::PreprocessCT(
     //}
 
     // if (organName == strRSName)
-    if (organName.compare(strRSName, Qt::CaseInsensitive) == 0) {
+    if (organName.compare(strRSName.trimmed(), Qt::CaseInsensitive) == 0) {
       strLineSkin = strLine;
       std::cout << "Structure for cropping was found: "
                 << strLineSkin.toLocal8Bit().constData() << std::endl;
@@ -677,13 +679,15 @@ void CbctRegistration::CalculateWEPLtoVOI(const std::string &voi_name,
                      return NewPoint_from_WEPLVector(val, vec_basis,
                                                      wepl_cube_fixed);
                    });
-    WEPL_voi->pslist.at(i++) = std::move(WEPL_contour);
+    WEPL_voi->pslist.at(i++) = *WEPL_contour.release();
   }
 }
 
-constexpr auto deg2rad(double deg) { return deg / 180.0 * itk::Math::pi; }
+constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
-UShortImageType::Pointer CbctRegistration::MoveByEclRegistration(const DoubleVector& translation_vec, const DoubleVector& rotation_vec, const UShortImageType::Pointer& ct_img){
+UShortImageType::Pointer CbctRegistration::MoveByEclRegistration(
+    const DoubleVector &translation_vec, const DoubleVector &rotation_vec,
+    const UShortImageType::Pointer &ct_img) {
   auto resampler =
       itk::ResampleImageFilter<UShortImageType, UShortImageType>::New();
 
@@ -692,16 +696,13 @@ UShortImageType::Pointer CbctRegistration::MoveByEclRegistration(const DoubleVec
                          deg2rad(-rotation_vec.z));
 
   auto translation = itk::Euler3DTransform<double>::InputVectorType();
-  translation.SetElement(
-      0, -translation_vec.x); // -X in eclipse -> X itk
-  translation.SetElement(
-      1, -translation_vec.y); // -Y in eclipse -> Y itk
-  translation.SetElement(
-      2, -translation_vec.z); // -Z in eclipse -> Z itk
+  translation.SetElement(0, -translation_vec.x); // -X in eclipse -> X itk
+  translation.SetElement(1, -translation_vec.y); // -Y in eclipse -> Y itk
+  translation.SetElement(2, -translation_vec.z); // -Z in eclipse -> Z itk
   transform->SetTranslation(translation);
 
   resampler->SetInput(ct_img);
-  auto interpolator =
+  const auto interpolator =
       itk::LinearInterpolateImageFunction<UShortImageType, double>::New();
   resampler->SetInterpolator(interpolator);
   resampler->SetSize(ct_img->GetLargestPossibleRegion().GetSize());

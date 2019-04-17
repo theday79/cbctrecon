@@ -16,28 +16,14 @@ StructureSet::StructureSet() = default;
 
 StructureSet::~StructureSet() = default;
 
-void StructureSet::set_planCT_ss(std::unique_ptr<Rtss> struct_set) {
-  m_plan_ss = std::make_unique<Rtss_modern>(struct_set.release());
-}
 void StructureSet::set_planCT_ss(std::unique_ptr<Rtss_modern> &&struct_set) {
   m_plan_ss = std::move(struct_set);
 }
-void StructureSet::set_rigidCT_ss(std::unique_ptr<Rtss> struct_set) {
-  m_rigid_ss = std::make_unique<Rtss_modern>(struct_set.release());
+void StructureSet::set_rigidCT_ss(std::unique_ptr<Rtss_modern> &&struct_set) {
+  m_rigid_ss = std::move(struct_set);
 }
-void StructureSet::set_deformCT_ss(std::unique_ptr<Rtss> struct_set) {
-  m_deform_ss = std::make_unique<Rtss_modern>(struct_set.release());
-}
-
-void StructureSet::set_planCT_ss(Rtss *struct_set) {
-
-  m_plan_ss = std::make_unique<Rtss_modern>(struct_set);
-}
-void StructureSet::set_rigidCT_ss(Rtss *struct_set) {
-  m_rigid_ss = std::make_unique<Rtss_modern>(struct_set);
-}
-void StructureSet::set_deformCT_ss(Rtss *struct_set) {
-  m_deform_ss = std::make_unique<Rtss_modern>(struct_set);
+void StructureSet::set_deformCT_ss(std::unique_ptr<Rtss_modern> &&struct_set) {
+  m_deform_ss = std::move(struct_set);
 }
 
 Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
@@ -55,7 +41,7 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
 
 std::unique_ptr<Rtss_modern>
 StructureSet::transform_by_vector(const ctType struct_set,
-                                  FloatVector &vec) const {
+                                  const FloatVector &vec) const {
   const auto ss = get_ss(struct_set);
   auto out_ss = std::make_unique<Rtss_modern>(*ss);
 
@@ -126,7 +112,8 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_Lambda(
   return out_ss;
 }
 
-bool StructureSet::ApplyRigidTransformToPlan(QFile& rigid_transform_file) {
+bool StructureSet::ApplyRigidTransformToPlan(
+    const QFile &rigid_transform_file) {
   auto xform = std::make_unique<Xform>();
   xform->load(rigid_transform_file.fileName().toStdString());
 
@@ -184,16 +171,17 @@ bool StructureSet::ApplyRigidTransformToPlan(QFile& rigid_transform_file) {
     return false;
   }
 
-  FloatVector trn_vec{static_cast<float>(params.x()),
-                      static_cast<float>(params.y()),
-                      static_cast<float>(params.z())};
+  const FloatVector trn_vec{static_cast<float>(params.x()),
+                            static_cast<float>(params.y()),
+                            static_cast<float>(params.z())};
 
   m_rigid_ss = transform_by_vector(PLAN_CT, trn_vec);
 
   return true;
 }
 
-bool StructureSet::ApplyDeformTransformToRigid(QFile& deform_transform_file) {
+bool StructureSet::ApplyDeformTransformToRigid(
+    const QFile &deform_transform_file) {
   auto xform = Xform::New();
   xform->load(deform_transform_file.fileName().toStdString());
 
