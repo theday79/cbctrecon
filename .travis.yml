@@ -293,7 +293,7 @@ install:
   - |
     # Install Qt
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.1-xenial
+      sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.2-xenial
       sudo apt-get update
       travis_wait 20 sudo apt install -y qt512-meta-full
     fi
