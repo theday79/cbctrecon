@@ -653,7 +653,8 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
         if (nestedds2.FindDataElement(gdcm::Tag(0x3006, 0x0016))) {
           const auto &contourimagesequence =
               nestedds2.GetDataElement(gdcm::Tag(0x3006, 0x0016));
-          auto contourimagesequence_sqi = contourimagesequence.GetValueAsSQ();
+          const auto contourimagesequence_sqi =
+              contourimagesequence.GetValueAsSQ();
           assert(contourimagesequence_sqi &&
                  contourimagesequence_sqi->GetNumberOfItems() == 1);
 
@@ -668,7 +669,7 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       // assert( at.GetNumberOfValues() % 3 == 0); // FIXME
       const auto pts = at.GetValues();
       const auto npts = at.GetNumberOfValues() / 3;
-      assert(npts == (unsigned int)numcontpoints.GetValue());
+      assert(npts == static_cast<unsigned int>(numcontpoints.GetValue()));
       assert(npts * 3 == at.GetNumberOfValues());
       auto &rt_contour = rt_roi.pslist.at(ii);
       rt_contour.num_vertices = npts;
@@ -828,7 +829,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
 
     auto &rt_roi = input_rt_struct->slist.at(pd);
     assert(rt_roi.name == roiname.GetValue());
-    assert(rt_roi.id == roinumber.GetValue());
+    assert(rt_roi.id == static_cast<size_t>(roinumber.GetValue()));
 
     const auto &nestedds = item.GetNestedDataSet();
     // std::cout << nestedds << std::endl;
@@ -846,7 +847,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
       // "," << color[1] << "," << color[2] << std::endl;
     }
     if (hasColor) {
-      assert(rt_struct->slist.at(pd).color ==
+      assert(input_rt_struct->slist.at(pd).color ==
              QString("%1 %2 %3")
                  .arg(QString::number(color[0]), QString::number(color[1]),
                       QString::number(color[2]))
@@ -917,7 +918,8 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
         if (nestedds2.FindDataElement(gdcm::Tag(0x3006, 0x0016))) {
           const auto &contourimagesequence =
               nestedds2.GetDataElement(gdcm::Tag(0x3006, 0x0016));
-          auto contourimagesequence_sqi = contourimagesequence.GetValueAsSQ();
+          const auto contourimagesequence_sqi =
+              contourimagesequence.GetValueAsSQ();
           assert(contourimagesequence_sqi &&
                  contourimagesequence_sqi->GetNumberOfItems() == 1);
 
@@ -930,7 +932,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
 
       // auto pts = at.GetValues();
       const auto npts = at.GetNumberOfValues() / 3;
-      assert(npts == (unsigned int)numcontpoints.GetValue());
+      assert(npts == static_cast<unsigned int>(numcontpoints.GetValue()));
       assert(npts * 3 == at.GetNumberOfValues());
       auto pts =
           std::valarray<gdcm::Attribute<0x3006, 0x0050>::ArrayType>(npts * 3);
