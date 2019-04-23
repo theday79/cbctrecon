@@ -102,6 +102,10 @@ int main(const int argc, char *argv[]) {
 
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(1);
+  QString raw_str("RAW_CBCT");
+  QString man_str("MANUAL_RIGID_CT");
+  cbctrecon_test->m_dlgRegistration->LoadImgFromComboBox(0, raw_str);
+  cbctrecon_test->m_dlgRegistration->LoadImgFromComboBox(1, man_str);
   cbctrecon_test->m_dlgRegistration->SLT_KeyMoving(true);
   cbctrecon_test->m_dlgRegistration->ImageManualMoveOneShot(-7.0f, -85.0f,
                                                             -237.0f);
