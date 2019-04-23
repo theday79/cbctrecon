@@ -31,6 +31,7 @@ set(${test_target}_SRC
   cbctrecon_test.hpp
   cbctregistration_test.cpp
   cbctregistration_test.hpp
+  MyQComboBox.hxx
   )
 
 if (CBCTRECON_BUILD_SHARED_LIBS)

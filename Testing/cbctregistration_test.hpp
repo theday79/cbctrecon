@@ -6,10 +6,10 @@
 
 #include <itkImage.h>
 
+#include "MyQComboBox.hxx"
 #include "StructureSet.h"
 #include "cbctrecon.h"
 #include "cbctregistration.h"
-#include <QComboBox>
 
 class qyklabel;
 class QDialog;
@@ -61,10 +61,10 @@ private: // Just pointers to m_cbctregistration members, for convienience
   QString ui_lineEditArgument1 = "2,2,1,30,0.00001,0.005,5";
   QString ui_lineEditArgument2 = "";
   QString ui_lineEditArgument3 = "";
-  std::unique_ptr<QComboBox> ui_comboBoxImgMoving;
-  std::unique_ptr<QComboBox> ui_comboBoxImgFixed;
-  std::unique_ptr<QComboBox> ui_comboBox_VOI;
-  std::unique_ptr<QComboBox> ui_comboBox_VOItoCropBy;
+  std::unique_ptr<MyQComboBox> ui_comboBoxImgMoving;
+  std::unique_ptr<MyQComboBox> ui_comboBoxImgFixed;
+  std::unique_ptr<MyQComboBox> ui_comboBox_VOI;
+  std::unique_ptr<MyQComboBox> ui_comboBox_VOItoCropBy;
   bool ui_radioButton_mse = true;
   bool ui_radioButton_UseCUDA = false;
   bool ui_radioButton_UseCPU = true;

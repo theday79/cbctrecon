@@ -30,8 +30,8 @@ CbctRegistrationTest::CbctRegistrationTest() {
   m_DoseImgFixed = nullptr;
   m_DoseImgMoving = nullptr;
   m_AGDisp_Overlay = nullptr;
-  ui_comboBoxImgFixed = std::make_unique<QComboBox>();
-  ui_comboBoxImgMoving = std::make_unique<QComboBox>();
+  ui_comboBoxImgFixed = std::make_unique<MyQComboBox>();
+  ui_comboBoxImgMoving = std::make_unique<MyQComboBox>();
 }
 
 CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
@@ -46,8 +46,8 @@ CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
   m_DoseImgFixed = &m_cbctregistration->m_DoseImgFixed[0];
   m_DoseImgMoving = &m_cbctregistration->m_DoseImgMoving[0];
   m_AGDisp_Overlay = &m_cbctregistration->m_AGDisp_Overlay[0];
-  ui_comboBoxImgFixed = std::make_unique<QComboBox>();
-  ui_comboBoxImgMoving = std::make_unique<QComboBox>();
+  ui_comboBoxImgFixed = std::make_unique<MyQComboBox>();
+  ui_comboBoxImgMoving = std::make_unique<MyQComboBox>();
 }
 
 void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
@@ -167,7 +167,7 @@ void CbctRegistrationTest::LoadVOIFromComboBox(
 // search  for the  main data, if there  is, add  the predefined name to the
 // combobox
 void CbctRegistrationTest::UpdateListOfComboBox(const int idx) const {
-  QComboBox *crntCombo;
+  MyQComboBox *crntCombo;
 
   if (idx == 0) {
     crntCombo = this->ui_comboBoxImgFixed.get();
@@ -658,7 +658,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
 // externally change  combo box value
 void CbctRegistrationTest::SelectComboExternal(const int idx,
                                                const enREGI_IMAGES iImage) {
-  QComboBox *crntCombo;
+  MyQComboBox *crntCombo;
 
   if (idx == 0) {
     crntCombo = this->ui_comboBoxImgFixed.get();
