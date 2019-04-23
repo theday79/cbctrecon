@@ -145,10 +145,10 @@ matrix:
         - CMAKE_OPTIONS=""
         - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF -DUSE_SYSTEM_DCMTK=ON"
 
-    - os: windows
-      env:
-        - ENV_CMAKE_OPTIONS="-DUSE_SYSTEM_OPENCL=OFF"
-        - CACHE_ITK=OFF
+    # - os: windows
+    #  env:
+    #    - ENV_CMAKE_OPTIONS="-DUSE_SYSTEM_OPENCL=OFF"
+    #    - CACHE_ITK=OFF
 
 
 before_install:

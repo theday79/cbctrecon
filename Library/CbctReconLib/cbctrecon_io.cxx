@@ -21,6 +21,7 @@
 #include "gdcmAttribute.h"
 #include "gdcmReader.h"
 #include "gdcmUIDGenerator.h"
+#include "gdcmWriter.h"
 #include "itkGDCMImageIO.h"
 #include "itkGDCMSeriesFileNames.h"
 #include "itkImageDuplicator.h"
@@ -48,7 +49,6 @@
 #include "StructureSet.h"
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
-#include <gdcmWriter.h>
 
 QString MakeElektaXML(const QString &filePath_ImageDBF,
                       const QString &filePath_FrameDBF,
