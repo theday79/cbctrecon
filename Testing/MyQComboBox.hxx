@@ -127,7 +127,7 @@ public:
       }
       ++i_out;
     }
-    return i_out;
+    return -1;
   };
 
   enum InsertPolicy {
