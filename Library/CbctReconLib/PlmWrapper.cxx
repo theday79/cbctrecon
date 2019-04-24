@@ -62,8 +62,20 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   return itk_img;
 }
 
+Rtss_modern::Rtss_modern(const Rtss_modern &old)
+    : m_dim(old.m_dim), m_spacing(old.m_spacing), m_offset(old.m_offset),
+      rast_dim(old.rast_dim), rast_spacing(old.rast_spacing),
+      rast_offset(old.rast_offset), rast_dc(old.rast_dc), slist(old.slist),
+      have_geometry(old.have_geometry), num_structures(old.num_structures),
+      ready(old.ready) { /* thread_obj shouldn't need initialization */
+}
+
 std::unique_ptr<Rtss_roi_modern>
 Rtss_modern::get_roi_by_name(const std::string &name) {
+  if (!ready) {
+    thread_obj.join();
+    ready = true;
+  }
   for (auto &roi : slist) {
     if (roi.name == name) {
       return std::make_unique<Rtss_roi_modern>(roi);
@@ -74,6 +86,10 @@ Rtss_modern::get_roi_by_name(const std::string &name) {
 }
 
 Rtss_roi_modern &Rtss_modern::get_roi_ref_by_name(const std::string &name) {
+  if (!ready) {
+    thread_obj.join();
+    ready = true;
+  }
   for (auto &roi : slist) {
     if (roi.name == name) {
       return roi;
@@ -83,4 +99,12 @@ Rtss_roi_modern &Rtss_modern::get_roi_ref_by_name(const std::string &name) {
   std::cerr << "Warning: Returning " << slist.at(0).name << " instead of "
             << name << "\n";
   return slist.at(0);
+}
+
+bool Rtss_modern::wait() {
+  if (!this->ready || this->thread_obj.joinable()) {
+    this->thread_obj.join();
+    this->ready = true;
+  }
+  return this->ready;
 }

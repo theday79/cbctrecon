@@ -464,6 +464,11 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 
   std::cout << "6: Reading is completed" << std::endl;
 
+  const QFile xform_file(filePathXform);
+  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
+      xform_file);
+  std::cout << "7: Contours registered" << std::endl;
+
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
@@ -763,6 +768,7 @@ void CbctRegistrationTest::UpdateVOICombobox(const ctType ct_type) const {
     std::cerr << "Structures not initialized yet" << std::endl;
     return;
   }
+  this->ui_comboBox_VOI->clear();
   for (const auto &voi : struct_set->slist) {
     this->ui_comboBox_VOI->addItem(QString(voi.name.c_str()));
     this->ui_comboBox_VOItoCropBy->addItem(QString(voi.name.c_str()));
@@ -1101,6 +1107,12 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
 
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
+  const QFile xform_file(filePathXform);
+  m_cbctregistration->m_pParent->m_structures->ApplyDeformTransformToRigid(
+      xform_file);
+
+  std::cout << "8: Contours deformed" << std::endl;
+
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
@@ -1195,6 +1207,16 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
   ImageManualMoveOneShot(static_cast<float>(planIso.x),
                          static_cast<float>(planIso.y),
                          static_cast<float>(planIso.z));
+
+  const auto trn_vec =
+      FloatVector{static_cast<float>(planIso.x), static_cast<float>(planIso.y),
+                  static_cast<float>(planIso.z)};
+  auto &structs = m_cbctregistration->m_pParent->m_structures;
+  if (structs->get_ss(RIGID_CT) != nullptr) {
+    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+  } else {
+    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+  }
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
@@ -1421,6 +1443,17 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
 
   auto trn = m_cbctregistration->CallingPLMCommandXForm(str_command_filepath);
 
+  const auto trn_vec =
+      FloatVector{static_cast<float>(-trn[0]), static_cast<float>(-trn[1]),
+                  static_cast<float>(-trn[-2])};
+
+  auto &structs = m_cbctregistration->m_pParent->m_structures;
+  if (structs->get_ss(RIGID_CT) != nullptr) {
+    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+  } else {
+    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+  }
+
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
                          static_cast<float>(-trn[1]),
                          static_cast<float>(-trn[2]));
@@ -1559,6 +1592,10 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
   // fout << "FixedParameters: 0 0 0" << std::endl;
 
   fout.close();
+
+  const QFile xform_file(filePathXform);
+  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
+      xform_file);
 
   std::cout << "Writing manual registration transform info is done."
             << std::endl;

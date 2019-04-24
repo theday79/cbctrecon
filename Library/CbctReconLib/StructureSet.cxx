@@ -29,10 +29,13 @@ void StructureSet::set_deformCT_ss(std::unique_ptr<Rtss_modern> &&struct_set) {
 Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
   switch (struct_set) {
   case PLAN_CT:
+    m_plan_ss->wait();
     return m_plan_ss.get();
   case RIGID_CT:
+    m_rigid_ss->wait();
     return m_rigid_ss.get();
   case DEFORM_CT:
+    m_deform_ss->wait();
     return m_deform_ss.get();
   }
   std::cerr << "Invalid CT type" << std::endl;
@@ -44,16 +47,22 @@ StructureSet::transform_by_vector(const ctType struct_set,
                                   const FloatVector &vec) const {
   const auto ss = get_ss(struct_set);
   auto out_ss = std::make_unique<Rtss_modern>(*ss);
+  out_ss->ready = false;
 
-  for (auto &roi : out_ss->slist) {
-    for (auto &contour : roi.pslist) {
-      for (auto &coord : contour.coordinates) { // should SIMD
-        coord.x += vec.x;
-        coord.y += vec.y;
-        coord.z += vec.z;
+  const auto trn_by_vec = [&out_ss](const FloatVector &vec) {
+    for (auto &roi : out_ss->slist) {
+      for (auto &contour : roi.pslist) {
+        for (auto &coord : contour.coordinates) { // should SIMD
+          coord.x += vec.x;
+          coord.y += vec.y;
+          coord.z += vec.z;
+        }
       }
     }
-  }
+  };
+
+  out_ss->thread_obj = std::thread(trn_by_vec, vec);
+
   return out_ss;
 }
 
@@ -62,28 +71,32 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_vectorField(
 
   const auto ss = get_ss(struct_set);
   auto out_ss = std::make_unique<Rtss_modern>(*ss);
+  out_ss->ready = false;
 
-  for (auto &roi : out_ss->slist) {
-    for (auto &contour : roi.pslist) {
-      for (auto &coord : contour.coordinates) {
-        VectorFieldType::PointType physIndex;
-        physIndex[0] = coord.x;
-        physIndex[1] = coord.y;
-        physIndex[2] = coord.z;
+  const auto trn_by_vf = [&out_ss, &vf]() {
+    for (auto &roi : out_ss->slist) {
+      for (auto &contour : roi.pslist) {
+        for (auto &coord : contour.coordinates) {
+          VectorFieldType::PointType physIndex;
+          physIndex[0] = coord.x;
+          physIndex[1] = coord.y;
+          physIndex[2] = coord.z;
 
-        VectorFieldType::IndexType index{};
-        if (!vf->TransformPhysicalPointToIndex(physIndex, index)) {
-          std::cerr << "Index: " << index << " out of bounds: " << physIndex
-                    << std::endl;
-          continue;
+          VectorFieldType::IndexType index{};
+          if (!vf->TransformPhysicalPointToIndex(physIndex, index)) {
+            std::cerr << "Index: " << index << " out of bounds: " << physIndex
+                      << std::endl;
+            continue;
+          }
+
+          coord.x += vf->GetPixel(index)[0];
+          coord.y += vf->GetPixel(index)[1];
+          coord.z += vf->GetPixel(index)[2];
         }
-
-        coord.x += vf->GetPixel(index)[0];
-        coord.y += vf->GetPixel(index)[1];
-        coord.z += vf->GetPixel(index)[2];
       }
     }
-  }
+  };
+  out_ss->thread_obj = std::thread(trn_by_vf);
   return out_ss;
 }
 
@@ -92,23 +105,27 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_Lambda(
 
   const auto ss = get_ss(struct_set);
   auto out_ss = std::make_unique<Rtss_modern>(*ss);
+  out_ss->ready = false;
 
-  for (auto &roi : out_ss->slist) {
-    for (auto &contour : roi.pslist) {
-      for (auto &coord : contour.coordinates) {
-        VectorFieldType::PointType physIndex;
-        physIndex[0] = coord.x;
-        physIndex[1] = coord.y;
-        physIndex[2] = coord.z;
+  const auto trn_by_fun = [&out_ss, &transform_function]() {
+    for (auto &roi : out_ss->slist) {
+      for (auto &contour : roi.pslist) {
+        for (auto &coord : contour.coordinates) {
+          VectorFieldType::PointType physIndex;
+          physIndex[0] = coord.x;
+          physIndex[1] = coord.y;
+          physIndex[2] = coord.z;
 
-        auto new_point = transform_function(physIndex);
+          auto new_point = transform_function(physIndex);
 
-        coord.x = new_point[0];
-        coord.y = new_point[1];
-        coord.z = new_point[2];
+          coord.x = new_point[0];
+          coord.y = new_point[1];
+          coord.z = new_point[2];
+        }
       }
     }
-  }
+  };
+  out_ss->thread_obj = std::thread(trn_by_fun);
   return out_ss;
 }
 
@@ -217,7 +234,7 @@ bool StructureSet::ApplyDeformTransformToRigid(
     };
     break;
   case XFORM_ITK_TPS:
-    transform = [&xform](itk::Point<double, 3U> point) {
+    transform = [&xform](const itk::Point<double, 3U> point) {
       return xform->get_itk_tps()->TransformPoint(point);
     };
     break;

@@ -685,6 +685,7 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       // Each Contour Data is in fact a Cell:
     }
   }
+  rt_struct->ready = true;
 
   return rt_struct;
 }

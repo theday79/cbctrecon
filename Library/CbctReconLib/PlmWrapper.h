@@ -35,8 +35,12 @@ struct CBCTRECON_API Rtss_roi_modern { // : public Rtss_roi {
 };
 
 struct CBCTRECON_API Rtss_modern { // : public Rtss {
+  Rtss_modern() = default;
+  ~Rtss_modern() = default;
+  Rtss_modern(const Rtss_modern &old);
   std::unique_ptr<Rtss_roi_modern> get_roi_by_name(const std::string &name);
   Rtss_roi_modern &get_roi_ref_by_name(const std::string &name);
+  bool wait();
   /* Output geometry */
   std::array<plm_long, 3> m_dim{};
   std::array<float, 3> m_spacing{};
@@ -51,6 +55,9 @@ struct CBCTRECON_API Rtss_modern { // : public Rtss {
   /* Plastimatch specific */
   bool have_geometry = false;
   size_t num_structures = 0;
+
+  bool ready = false;
+  std::thread thread_obj;
 };
 
 #endif
