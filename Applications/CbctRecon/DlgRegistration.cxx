@@ -1454,7 +1454,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   std::cout << "6: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
+  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
       xform_file);
   std::cout << "7: Contours registered" << std::endl;
 
@@ -2193,7 +2193,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyDeformTransformToRigid(
+  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<RIGID_CT>(
       xform_file);
 
   std::cout << "8: Contours deformed" << std::endl;
@@ -2318,9 +2318,9 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
                   static_cast<float>(planIso.z)};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
   if (structs->get_ss(RIGID_CT) != nullptr) {
-    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+    structs->ApplyVectorTransformTo<RIGID_CT>(trn_vec);
   } else {
-    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+    structs->ApplyVectorTransformTo<PLAN_CT>(trn_vec);
   }
 
   UpdateListOfComboBox(0); // combo selection signalis called
@@ -2410,7 +2410,7 @@ void DlgRegistration::SLT_Override() const {
     curIdx[0] = centerIdx[0] + curRadiusX;
     for (auto curRadiusY = -radius; curRadiusY <= radius; curRadiusY++) {
       curIdx[1] = centerIdx[1] + curRadiusY;
-      for (auto curRadiusZ = -radius; curRadiusZ <= radius; curRadiusZ++) {
+      for (auto curRadiusZ = -1; curRadiusZ <= 1; curRadiusZ++) {
         curIdx[2] = centerIdx[2] + curRadiusZ;
         if (radius >= sqrt(pow(curRadiusX, 2) + pow(curRadiusY, 2) +
                            pow(curRadiusZ, 2))) {
@@ -2612,9 +2612,9 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
 
   auto &structs = m_cbctregistration->m_pParent->m_structures;
   if (structs->get_ss(RIGID_CT) != nullptr) {
-    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+    structs->ApplyVectorTransformTo<RIGID_CT>(trn_vec);
   } else {
-    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+    structs->ApplyVectorTransformTo<PLAN_CT>(trn_vec);
   }
 
   this->ui.progressBar->setValue(99); // good ol' 99%
@@ -2764,9 +2764,11 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
 
   fout.close();
 
-  const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
-      xform_file);
+  const auto trn_vec =
+      FloatVector{static_cast<float>(fShift[0]), static_cast<float>(fShift[1]),
+                  static_cast<float>(fShift[2])};
+  m_cbctregistration->m_pParent->m_structures->ApplyVectorTransformTo<PLAN_CT>(
+      trn_vec);
 
   std::cout << "Writing manual registration transform info is done."
             << std::endl;

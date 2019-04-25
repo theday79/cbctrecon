@@ -1,8 +1,8 @@
 #ifndef PLMWRAPPER_H
 #define PLMWRAPPER_H
 
-#include <array>
 #include <memory>
+#include <thread>
 
 #undef TIMEOUT
 #undef CUDA_FOUND
@@ -36,20 +36,11 @@ struct CBCTRECON_API Rtss_roi_modern { // : public Rtss_roi {
 
 struct CBCTRECON_API Rtss_modern { // : public Rtss {
   Rtss_modern() = default;
-  ~Rtss_modern() = default;
+  ~Rtss_modern() { this->wait(); };
   Rtss_modern(const Rtss_modern &old);
   std::unique_ptr<Rtss_roi_modern> get_roi_by_name(const std::string &name);
   Rtss_roi_modern &get_roi_ref_by_name(const std::string &name);
   bool wait();
-  /* Output geometry */
-  std::array<plm_long, 3> m_dim{};
-  std::array<float, 3> m_spacing{};
-  std::array<float, 3> m_offset{};
-  /* Rasterization geometry */
-  std::array<plm_long, 3> rast_dim{};
-  std::array<float, 3> rast_spacing{};
-  std::array<float, 3> rast_offset{};
-  Direction_cosines *rast_dc = nullptr;
   /* Structures */
   std::vector<Rtss_roi_modern> slist;
   /* Plastimatch specific */

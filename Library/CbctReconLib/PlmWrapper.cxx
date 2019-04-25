@@ -63,10 +63,8 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
 }
 
 Rtss_modern::Rtss_modern(const Rtss_modern &old)
-    : m_dim(old.m_dim), m_spacing(old.m_spacing), m_offset(old.m_offset),
-      rast_dim(old.rast_dim), rast_spacing(old.rast_spacing),
-      rast_offset(old.rast_offset), rast_dc(old.rast_dc), slist(old.slist),
-      have_geometry(old.have_geometry), num_structures(old.num_structures),
+    : slist(old.slist), have_geometry(old.have_geometry),
+      num_structures(old.num_structures),
       ready(old.ready) { /* thread_obj shouldn't need initialization */
 }
 

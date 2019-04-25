@@ -465,7 +465,7 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
   std::cout << "6: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
+  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
       xform_file);
   std::cout << "7: Contours registered" << std::endl;
 
@@ -1108,7 +1108,7 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyDeformTransformToRigid(
+  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<RIGID_CT>(
       xform_file);
 
   std::cout << "8: Contours deformed" << std::endl;
@@ -1213,9 +1213,9 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
                   static_cast<float>(planIso.z)};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
   if (structs->get_ss(RIGID_CT) != nullptr) {
-    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+    structs->ApplyVectorTransformTo<RIGID_CT>(trn_vec);
   } else {
-    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+    structs->ApplyVectorTransformTo<PLAN_CT>(trn_vec);
   }
 
   UpdateListOfComboBox(0); // combo selection signalis called
@@ -1273,14 +1273,16 @@ void CbctRegistrationTest::SLT_Override(const int sliderPosIdxX,
   const auto value = static_cast<unsigned short>(new_value + 1024);
   size_t i = 0;
   UShortImageType::IndexType curIdx{};
-  for (auto curRadiusX = -radius; curRadiusX <= radius; curRadiusX++) {
+  const auto s_radius = static_cast<int>(radius);
+  for (auto curRadiusX = -s_radius; curRadiusX <= s_radius; curRadiusX++) {
     curIdx[0] = centerIdx[0] + curRadiusX;
-    for (auto curRadiusY = -radius; curRadiusY <= radius; curRadiusY++) {
+    for (auto curRadiusY = -s_radius; curRadiusY <= s_radius; curRadiusY++) {
       curIdx[1] = centerIdx[1] + curRadiusY;
-      for (auto curRadiusZ = -radius; curRadiusZ <= radius; curRadiusZ++) {
+      for (auto curRadiusZ = -1; curRadiusZ <= 1; curRadiusZ++) {
         curIdx[2] = centerIdx[2] + curRadiusZ;
-        if (radius >= sqrt(pow(curRadiusX, 2) + pow(curRadiusY, 2) +
-                           pow(curRadiusZ, 2))) {
+        if (static_cast<double>(radius) >=
+            sqrt(pow(curRadiusX, 2) + pow(curRadiusY, 2) +
+                 pow(curRadiusZ, 2))) {
           if (!isFixed) {
             m_spMoving->SetPixel(curIdx, value);
             i++;
@@ -1449,9 +1451,9 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
 
   auto &structs = m_cbctregistration->m_pParent->m_structures;
   if (structs->get_ss(RIGID_CT) != nullptr) {
-    structs->set_rigidCT_ss(structs->transform_by_vector(RIGID_CT, trn_vec));
+    structs->ApplyVectorTransformTo<RIGID_CT>(trn_vec);
   } else {
-    structs->set_rigidCT_ss(structs->transform_by_vector(PLAN_CT, trn_vec));
+    structs->ApplyVectorTransformTo<PLAN_CT>(trn_vec);
   }
 
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
@@ -1593,9 +1595,11 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
 
   fout.close();
 
-  const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyRigidTransformToPlan(
-      xform_file);
+  const auto trn_vec =
+      FloatVector{static_cast<float>(fShift[0]), static_cast<float>(fShift[1]),
+                  static_cast<float>(fShift[2])};
+  m_cbctregistration->m_pParent->m_structures->ApplyVectorTransformTo<PLAN_CT>(
+      trn_vec);
 
   std::cout << "Writing manual registration transform info is done."
             << std::endl;

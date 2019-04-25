@@ -1,6 +1,10 @@
 #ifndef STRUCTURESET_H
 #define STRUCTURESET_H
 
+#include <QFile>
+
+#include "xform.h"
+
 #include "PlmWrapper.h"
 
 #include "cbctrecon_config.h"
@@ -22,23 +26,59 @@ public:
   void set_rigidCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
   void set_deformCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
 
-  std::unique_ptr<Rtss_modern>
-  transform_by_vector(ctType struct_set, const FloatVector &vec) const;
-
-  std::unique_ptr<Rtss_modern>
-  transform_by_vectorField(ctType struct_set,
-                           const VectorFieldType::Pointer &vf) const;
-
-  std::unique_ptr<Rtss_modern>
-  transform_by_Lambda(ctType struct_set,
-                      const TransformType &transform_function) const;
-
   Rtss_modern *get_ss(ctType struct_set) const;
 
-  bool ApplyRigidTransformToPlan(const QFile &rigid_transform_file);
-  bool ApplyDeformTransformToRigid(const QFile &deform_transform_file);
+  template <ctType CT_TYPE>
+  void ApplyVectorTransformTo(const FloatVector &vec) {
+    transform_by_vector(CT_TYPE, vec, m_rigid_ss);
+  };
+
+  template <ctType CT_TYPE> bool ApplyTransformTo(const QFile &transform_file) {
+    auto xform = Xform::New();
+    xform->load(transform_file.fileName().toStdString());
+
+    auto transform_pair = this->get_transform_function(xform);
+    auto &transform = transform_pair.first;
+    auto &vf = transform_pair.second;
+
+    if (transform != nullptr) {
+      switch (CT_TYPE) {
+      case PLAN_CT:
+        transform_by_Lambda(CT_TYPE, transform, m_rigid_ss);
+        break;
+      case RIGID_CT:
+      case DEFORM_CT:
+        transform_by_Lambda(CT_TYPE, transform, m_deform_ss);
+        break;
+      }
+      return true;
+    }
+    if (vf.IsNotNull()) {
+      transform_by_vectorField(CT_TYPE, vf, m_deform_ss);
+      return true;
+    }
+
+    std::cerr << "\a"
+              << "Transform function were not created and no vector field were "
+                 "applied\n";
+    return false;
+  };
 
 private:
+  std::pair<TransformType, VectorFieldType::Pointer>
+  get_transform_function(const Xform::Pointer &xform) const;
+
+  void transform_by_vector(ctType struct_set, const FloatVector &vec,
+                           std::unique_ptr<Rtss_modern> &out_ss) const;
+
+  void transform_by_Lambda(ctType ct_type,
+                           const TransformType &transform_function,
+                           std::unique_ptr<Rtss_modern> &out_ss) const;
+
+  void transform_by_vectorField(ctType ct_type,
+                                const VectorFieldType::Pointer &vf,
+                                std::unique_ptr<Rtss_modern> &out_ss) const;
+
   std::unique_ptr<Rtss_modern> m_plan_ss;
   std::unique_ptr<Rtss_modern> m_rigid_ss;
   std::unique_ptr<Rtss_modern> m_deform_ss;

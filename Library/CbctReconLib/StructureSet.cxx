@@ -4,13 +4,24 @@
 
 #include <memory>
 
-#include <QFile>
-
 #undef TIMEOUT
+#include "plm_image_header.h"
+#include "volume_header.h"
 #include "xform.h"
-#include "xform_convert.h"
 
 #include "StructureSet.h"
+
+#define USE_THREADING false
+
+class Volume_header_private {
+public:
+  plm_long m_dim[3]{};
+  float m_origin[3]{};
+  float m_spacing[3]{};
+  Direction_cosines m_direction_cosines;
+
+  Volume_header_private() { m_direction_cosines.set_identity(); }
+};
 
 StructureSet::StructureSet() = default;
 
@@ -42,11 +53,11 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
   return nullptr;
 }
 
-std::unique_ptr<Rtss_modern>
-StructureSet::transform_by_vector(const ctType struct_set,
-                                  const FloatVector &vec) const {
+void StructureSet::transform_by_vector(
+    const ctType struct_set, const FloatVector &vec,
+    std::unique_ptr<Rtss_modern> &out_ss) const {
   const auto ss = get_ss(struct_set);
-  auto out_ss = std::make_unique<Rtss_modern>(*ss);
+  out_ss = std::make_unique<Rtss_modern>(*ss);
   out_ss->ready = false;
 
   const auto trn_by_vec = [&out_ss](const FloatVector &vec) {
@@ -61,19 +72,23 @@ StructureSet::transform_by_vector(const ctType struct_set,
     }
   };
 
+#if USE_THREADING
   out_ss->thread_obj = std::thread(trn_by_vec, vec);
-
-  return out_ss;
+#else
+  trn_by_vec(vec);
+  out_ss->ready = true;
+#endif
 }
 
-std::unique_ptr<Rtss_modern> StructureSet::transform_by_vectorField(
-    const ctType struct_set, const VectorFieldType::Pointer &vf) const {
+void StructureSet::transform_by_vectorField(
+    const ctType ct_type, const VectorFieldType::Pointer &vf,
+    std::unique_ptr<Rtss_modern> &out_ss) const {
 
-  const auto ss = get_ss(struct_set);
-  auto out_ss = std::make_unique<Rtss_modern>(*ss);
+  const auto ss = get_ss(ct_type);
+  out_ss = std::make_unique<Rtss_modern>(*ss);
   out_ss->ready = false;
 
-  const auto trn_by_vf = [&out_ss, &vf]() {
+  const auto trn_by_vf = [&out_ss](const VectorFieldType::Pointer &vf) {
     for (auto &roi : out_ss->slist) {
       for (auto &contour : roi.pslist) {
         for (auto &coord : contour.coordinates) {
@@ -96,15 +111,20 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_vectorField(
       }
     }
   };
-  out_ss->thread_obj = std::thread(trn_by_vf);
-  return out_ss;
+#if USE_THREADING
+  out_ss->thread_obj = std::thread(trn_by_vf, vf);
+#else
+  trn_by_vf(vf);
+  out_ss->ready = true;
+#endif
 }
 
-std::unique_ptr<Rtss_modern> StructureSet::transform_by_Lambda(
-    const ctType struct_set, const TransformType &transform_function) const {
+void StructureSet::transform_by_Lambda(
+    const ctType ct_type, const TransformType &transform_function,
+    std::unique_ptr<Rtss_modern> &out_ss) const {
 
-  const auto ss = get_ss(struct_set);
-  auto out_ss = std::make_unique<Rtss_modern>(*ss);
+  const auto ss = get_ss(ct_type);
+  out_ss = std::make_unique<Rtss_modern>(*ss);
   out_ss->ready = false;
 
   const auto trn_by_fun = [&out_ss, &transform_function]() {
@@ -125,83 +145,16 @@ std::unique_ptr<Rtss_modern> StructureSet::transform_by_Lambda(
       }
     }
   };
+#if USE_THREADING
   out_ss->thread_obj = std::thread(trn_by_fun);
-  return out_ss;
+#else
+  trn_by_fun();
+  out_ss->ready = true;
+#endif
 }
 
-bool StructureSet::ApplyRigidTransformToPlan(
-    const QFile &rigid_transform_file) {
-  auto xform = std::make_unique<Xform>();
-  xform->load(rigid_transform_file.fileName().toStdString());
-
-  const auto xform_type = xform->get_type();
-  // First we make sure, it was a rigid-transform.
-  switch (xform_type) {
-  case XFORM_ITK_TRANSLATION:
-  case XFORM_ITK_VERSOR:
-  case XFORM_ITK_QUATERNION:
-  case XFORM_ITK_AFFINE:
-  case XFORM_ITK_SIMILARITY:
-    std::cout << "Warning, rotation (and scaling) not yet implemented"
-              << std::endl;
-    break;
-  default:
-    std::cerr << "\a"
-              << "You are passing the wrong type of transform file to the "
-                 "rigid transform"
-              << std::endl;
-    return false;
-  }
-
-  // Now we get the translation of the transform
-  // params is equivalent to itk::Array<T>
-  itk::TransformBase::ParametersType params;
-
-  switch (xform_type) {
-  case XFORM_ITK_TRANSLATION: {
-    const auto trn = xform->get_trn();
-    params = trn->GetParameters();
-    break;
-  }
-  case XFORM_ITK_VERSOR: {
-    const auto trn = xform->get_vrs();
-    params = trn->GetParameters();
-    break;
-  }
-  case XFORM_ITK_QUATERNION: {
-    const auto trn = xform->get_quat();
-    params = trn->GetParameters();
-    break;
-  }
-  case XFORM_ITK_AFFINE: {
-    const auto trn = xform->get_aff();
-    params = trn->GetParameters();
-    break;
-  }
-  case XFORM_ITK_SIMILARITY: {
-    const auto trn = xform->get_similarity();
-    params = trn->GetParameters();
-    break;
-  }
-  default:
-    std::cerr << "we should never get here" << std::endl;
-    return false;
-  }
-
-  const FloatVector trn_vec{static_cast<float>(params.x()),
-                            static_cast<float>(params.y()),
-                            static_cast<float>(params.z())};
-
-  m_rigid_ss = transform_by_vector(PLAN_CT, trn_vec);
-
-  return true;
-}
-
-bool StructureSet::ApplyDeformTransformToRigid(
-    const QFile &deform_transform_file) {
-  auto xform = Xform::New();
-  xform->load(deform_transform_file.fileName().toStdString());
-
+std::pair<TransformType, VectorFieldType::Pointer>
+StructureSet::get_transform_function(const Xform::Pointer &xform) const {
   const auto xform_type = xform->get_type();
 
   TransformType transform;
@@ -248,12 +201,14 @@ bool StructureSet::ApplyDeformTransformToRigid(
     break;
   }
   case XFORM_GPUIT_BSPLINE: {
-    auto xform_converter = std::make_unique<Xform_convert>();
-    xform_converter->set_input_xform(xform);
-    xform_converter->m_xf_out_type = XFORM_ITK_VECTOR_FIELD;
-    xform_converter->run();
-    const auto out_xform = xform_converter->get_output_xform();
-    vf = out_xform->get_itk_vf();
+    auto plm_header = xform->get_plm_image_header();
+    plm_header.print();
+    const auto xform_itk = xform_to_itk_bsp(xform, &plm_header, nullptr);
+    auto bsp_transform = xform_itk->get_itk_bsp();
+    bsp_transform->GetValidRegion().Print(std::cerr);
+    transform = [&bsp_transform](const itk::Point<double, 3U> point) {
+      return bsp_transform->TransformPoint(point);
+    };
     break;
   }
   case XFORM_GPUIT_VECTOR_FIELD: {
@@ -264,24 +219,9 @@ bool StructureSet::ApplyDeformTransformToRigid(
     vf = plm_img->friend_convert_to_itk(vol);
     break;
   }
-  default:
-    std::cerr << "\a"
-              << "You are passing the wrong type of transform file to the "
-                 "deform transform\n";
-    return false;
+  case XFORM_NONE:
+    break;
   }
 
-  if (transform != nullptr) {
-    m_deform_ss = transform_by_Lambda(RIGID_CT, transform);
-    return true;
-  }
-  if (vf.IsNotNull()) {
-    m_deform_ss = transform_by_vectorField(RIGID_CT, vf);
-    return true;
-  }
-
-  std::cerr << "\a"
-            << "Transform function were not created and no vector field were "
-               "applied\n";
-  return false;
+  return std::make_pair(transform, vf);
 }
