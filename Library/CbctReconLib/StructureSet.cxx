@@ -11,7 +11,7 @@
 
 #include "StructureSet.h"
 
-#define USE_THREADING false
+#define USE_THREADING true
 
 class Volume_header_private {
 public:
@@ -204,9 +204,9 @@ StructureSet::get_transform_function(const Xform::Pointer &xform) const {
     auto plm_header = xform->get_plm_image_header();
     plm_header.print();
     const auto xform_itk = xform_to_itk_bsp(xform, &plm_header, nullptr);
-    auto bsp_transform = xform_itk->get_itk_bsp();
+    const auto bsp_transform = xform_itk->get_itk_bsp();
     bsp_transform->GetValidRegion().Print(std::cerr);
-    transform = [&bsp_transform](const itk::Point<double, 3U> point) {
+    transform = [bsp_transform](const itk::Point<double, 3U> point) {
       return bsp_transform->TransformPoint(point);
     };
     break;
