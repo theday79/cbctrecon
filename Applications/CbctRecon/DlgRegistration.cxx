@@ -1869,7 +1869,7 @@ void DlgRegistration::SLT_PreProcessCT() {
 
   const auto iAirThresholdShort = this->ui.lineEditBkDetectCT->text().toInt();
 
-  if (m_cbctregistration->m_pParent->m_strPathPlanCTDir.length() < 3) {
+  if (this->ui.comboBox_VOItoCropBy->count() < 1) {
     std::cout
         << "Reference CT DIR should be specified for structure based cropping"
         << std::endl;
@@ -1913,8 +1913,8 @@ void DlgRegistration::SLT_PreProcessCT() {
   const auto &rt_structs =
       m_cbctregistration->m_pParent->m_structures->get_ss(cur_ct);
 
-  if (!m_cbctregistration->PreprocessCT(iAirThresholdShort, rt_structs,
-                                        strRSName, fill_bubble,
+  if (!m_cbctregistration->PreprocessCT(m_spMoving, iAirThresholdShort,
+                                        rt_structs, strRSName, fill_bubble,
                                         iBubbleFillingVal, iAirFillValShort)) {
     std::cout
         << "Error in PreprocessCT!!!scatter correction would not work out."

@@ -66,9 +66,10 @@ public:
   static VEC3D GetShiftValueFromGradientXForm(QString &file_path,
                                               bool b_inverse);
 
-  bool PreprocessCT(int iAirThresholdShort, const Rtss_modern *rt_structs,
-                    const QString &strRSName, bool fill_bubble,
-                    int iBubbleFillingVal, int iAirFillValShort);
+  bool PreprocessCT(UShortImageType::Pointer &ct_img, int iAirThresholdShort,
+                    const Rtss_modern *rt_structs, const QString &strRSName,
+                    bool fill_bubble, int iBubbleFillingVal,
+                    int iAirFillValShort);
   static void autoPreprocessCT(int iAirThresholdShort,
                                UShortImageType::Pointer &spFixed,
                                UShortImageType::Pointer &spMoving);

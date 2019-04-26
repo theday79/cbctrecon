@@ -20,6 +20,7 @@
 
 // PLM
 #undef TIMEOUT // used in an enum in dlib, and may be defined as 7 in lp of RTK
+#include "plm_image.h"
 #include "xform.h"
 #include <dcmtk_rt_study.h>
 #include <distance_map.h>
@@ -347,9 +348,9 @@ void CbctRegistration::autoPreprocessCT(const int iAirThresholdShort,
 }
 
 bool CbctRegistration::PreprocessCT(
-    const int iAirThresholdShort, const Rtss_modern *rt_structs,
-    const QString &strRSName, const bool fill_bubble,
-    const int iBubbleFillingVal,
+    UShortImageType::Pointer &ct_img, const int iAirThresholdShort,
+    const Rtss_modern *rt_structs, const QString &strRSName,
+    const bool fill_bubble, const int iBubbleFillingVal,
     const int iAirFillValShort) // CT preparation + CBCT preparation only,
                                 // then show the registration DLG
 {
@@ -367,17 +368,14 @@ bool CbctRegistration::PreprocessCT(
   //  Segment_parms parms;
 
   /* [1]Segment air region*/
-  Plm_image in;
+  auto in = new Plm_image();
+  in->set_itk(ct_img);
   Plm_image out;
   // Segment_body *sb = &parms->sb;
   Segment_body sb;
   sb.m_lower_threshold = static_cast<float>(iAirThresholdShort);
 
-  /* Load the input image */
-  const auto &ct_path = m_pParent->m_strPathPlanCTDir.toLocal8Bit().constData();
-  in.load_native(ct_path);
-
-  sb.img_in = &in;
+  sb.img_in = in;
   sb.img_out = &out;
   /* Do segmentation */
   sb.do_segmentation_air_cavity();
@@ -408,8 +406,10 @@ bool CbctRegistration::PreprocessCT(
   Rt_study rtds;
 
   parms.input_fn = rs_file.fileName().toStdString();
-  parms.referenced_dicom_dir = ct_path;
-  std::cout << ct_path << std::endl;
+  // Just to get meta-data (apparently):
+  parms.referenced_dicom_dir =
+      m_pParent->m_dcm_dir.absolutePath().toStdString();
+  std::cout << parms.referenced_dicom_dir << std::endl;
 
   auto ssimg_path_all = m_strPathPlastimatch + "/ssimg_all.mha";
   auto sslist_path_all = m_strPathPlastimatch + "/sslist_all.txt";
@@ -585,7 +585,7 @@ bool CbctRegistration::PreprocessCT(
 
   // strPathSkinRemovedCT .mha file is ready. this is SHORT image
 
-  LoadShortImageToUshort(strPathSkinRemovedCT, m_pParent->m_spRefCTImg);
+  LoadShortImageToUshort(strPathSkinRemovedCT, ct_img);
   m_pParent->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
   // m_pParent->SLT_ViewRegistration();
 

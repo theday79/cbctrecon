@@ -13,16 +13,6 @@
 
 #define USE_THREADING true
 
-class Volume_header_private {
-public:
-  plm_long m_dim[3]{};
-  float m_origin[3]{};
-  float m_spacing[3]{};
-  Direction_cosines m_direction_cosines;
-
-  Volume_header_private() { m_direction_cosines.set_identity(); }
-};
-
 StructureSet::StructureSet() = default;
 
 StructureSet::~StructureSet() = default;
@@ -43,6 +33,11 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
     m_plan_ss->wait();
     return m_plan_ss.get();
   case RIGID_CT:
+    if (m_rigid_ss == nullptr) {
+      std::cerr << "Rigid reg. structs not ready, falling back to plan CT!\n";
+      m_plan_ss->wait();
+      return m_plan_ss.get();
+    }
     m_rigid_ss->wait();
     return m_rigid_ss.get();
   case DEFORM_CT:
@@ -127,7 +122,7 @@ void StructureSet::transform_by_Lambda(
   out_ss = std::make_unique<Rtss_modern>(*ss);
   out_ss->ready = false;
 
-  const auto trn_by_fun = [&out_ss, &transform_function]() {
+  const auto trn_by_fun = [&out_ss, transform_function]() {
     for (auto &roi : out_ss->slist) {
       for (auto &contour : roi.pslist) {
         for (auto &coord : contour.coordinates) {
@@ -161,52 +156,70 @@ StructureSet::get_transform_function(const Xform::Pointer &xform) const {
   VectorFieldType::Pointer vf;
 
   switch (xform_type) {
-  case XFORM_ITK_TRANSLATION:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_trn()->TransformPoint(point);
+  case XFORM_ITK_TRANSLATION: {
+    const auto &trnsl = xform->get_trn();
+    const auto offset = trnsl->GetOffset();
+    transform = [offset](const PointType point) { return point + offset; };
+    break;
+  }
+  case XFORM_ITK_VERSOR: {
+    const auto &versor = xform->get_vrs();
+    const auto matrix = versor->GetMatrix();
+    const auto offset = versor->GetOffset();
+    transform = [matrix, offset](const PointType point) {
+      return matrix * point + offset;
     };
     break;
-  case XFORM_ITK_VERSOR:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_vrs()->TransformPoint(point);
+  }
+  case XFORM_ITK_QUATERNION: {
+    const auto &quarternion = xform->get_quat();
+    const auto matrix = quarternion->GetMatrix();
+    const auto offset = quarternion->GetOffset();
+    transform = [matrix, offset](const PointType point) {
+      return matrix * point + offset;
     };
     break;
-  case XFORM_ITK_QUATERNION:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_quat()->TransformPoint(point);
+  }
+  case XFORM_ITK_AFFINE: {
+    const auto &affine = xform->get_aff();
+    const auto matrix = affine->GetMatrix();
+    const auto offset = affine->GetOffset();
+    transform = [matrix, offset](const PointType point) {
+      return matrix * point + offset;
     };
     break;
-  case XFORM_ITK_AFFINE:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_aff()->TransformPoint(point);
+  }
+  case XFORM_ITK_BSPLINE: {
+    const auto bspline = xform->get_itk_bsp();
+    transform = [bspline](const PointType point) {
+      return bspline->TransformPoint(point);
     };
     break;
-  case XFORM_ITK_BSPLINE:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_itk_bsp()->TransformPoint(point);
+  }
+  case XFORM_ITK_TPS: {
+    const auto tps = xform->get_itk_tps();
+    transform = [tps](const PointType point) {
+      return tps->TransformPoint(point);
     };
     break;
-  case XFORM_ITK_TPS:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_itk_tps()->TransformPoint(point);
+  }
+  case XFORM_ITK_SIMILARITY: {
+    const auto similarity = xform->get_similarity();
+    transform = [similarity](const PointType point) {
+      return similarity->TransformPoint(point);
     };
     break;
-  case XFORM_ITK_SIMILARITY:
-    transform = [&xform](const itk::Point<double, 3U> point) {
-      return xform->get_similarity()->TransformPoint(point);
-    };
-    break;
+  }
   case XFORM_ITK_VECTOR_FIELD: {
     vf = xform->get_itk_vf();
     break;
   }
   case XFORM_GPUIT_BSPLINE: {
     auto plm_header = xform->get_plm_image_header();
-    plm_header.print();
     const auto xform_itk = xform_to_itk_bsp(xform, &plm_header, nullptr);
     const auto bsp_transform = xform_itk->get_itk_bsp();
     bsp_transform->GetValidRegion().Print(std::cerr);
-    transform = [bsp_transform](const itk::Point<double, 3U> point) {
+    transform = [bsp_transform](const PointType point) {
       return bsp_transform->TransformPoint(point);
     };
     break;

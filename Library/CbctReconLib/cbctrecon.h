@@ -5,6 +5,9 @@
 // std
 #include <memory> // unique_, shared_ and weak_ptr
 
+// Qt
+#include <QDir>
+
 // Local
 #include "AG17RGBAImage.h"
 #include "WEPL.h"
@@ -380,6 +383,8 @@ public:
   QString m_strCur_mAs;           // QString("20,20")
   QString m_strRef_mAs;           // QString("64,40")
   QString m_strError;
+
+  QDir m_dcm_dir;
 
   int m_iFixedOffset_ScatterMap; // fixed! allows negative value of scatter
   double m_fResampleF; // typically 0.5. this is updated during LoadSelectedProj

@@ -1059,6 +1059,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     dcm_reader->SetFileNames(filenamelist);
     dcm_reader->Update();
     spShortImg = dcm_reader->GetOutput();
+    m_dcm_dir = dir;
   }
 
   // Figure out whether this is NKI
