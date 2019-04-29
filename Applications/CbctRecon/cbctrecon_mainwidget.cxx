@@ -4182,13 +4182,9 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
   auto PostFOV_R = this->ui.lineEdit_PostFOV_R->text();
   auto PostTablePosY = this->ui.lineEdit_PostTablePosY->text();
 
-  auto strBkFillCT = p_dlgreg_ui.lineEditBkFillCT->text();
-  auto strBkDetectCT = p_dlgreg_ui.lineEditBkDetectCT->text();
-  auto strBubFillCT = p_dlgreg_ui.lineEditBubFillCT->text();
-
-  auto strBkFillCBCT = p_dlgreg_ui.lineEditBkFillCBCT->text();
-  auto strBkDetectCBCT = p_dlgreg_ui.lineEditBubDetectCBCT->text();
-  auto strBubFillCBCT = p_dlgreg_ui.lineEditBubFillCBCT->text();
+  const auto BkFillCT = p_dlgreg_ui.spinBoxBkFillCT->value();
+  const auto BkDetectCT = p_dlgreg_ui.spinBoxBkDetectCT->value();
+  const auto BubFillCT = p_dlgreg_ui.spinBoxBubFillCT->value();
 
   auto strFOVPos = p_dlgreg_ui.lineEditFOVPos->text();
 
@@ -4205,11 +4201,8 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
 
   // From Registration GUI
   const auto bCropBkgroundCT = p_dlgreg_ui.checkBoxCropBkgroundCT->isChecked();
-  const auto bCropBkgroundCBCT =
-      p_dlgreg_ui.checkBoxCropBkgroundCBCT->isChecked();
 
   const auto bFillBubbleCT = p_dlgreg_ui.checkBoxFillBubbleCT->isChecked();
-  const auto bFillBubbleCBCT = p_dlgreg_ui.checkBoxFillBubbleCBCT->isChecked();
 
   const auto bUseROIForRigid = p_dlgreg_ui.checkBoxUseROIForRigid->isChecked();
   const auto bUseROIForDIR = p_dlgreg_ui.checkBoxUseROIForDIR->isChecked();
@@ -4225,18 +4218,11 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
        << "\t" << PostTablePosY.toLocal8Bit().constData() << "\n";
 
   fout << "strBkFillCT"
-       << "\t" << strBkFillCT.toLocal8Bit().constData() << "\n";
-  fout << "strBkDetectCBCT"
-       << "\t" << strBkDetectCBCT.toLocal8Bit().constData() << "\n";
-  fout << "strBubFillCBCT"
-       << "\t" << strBubFillCBCT.toLocal8Bit().constData() << "\n";
-
-  fout << "strBkFillCBCT"
-       << "\t" << strBkFillCBCT.toLocal8Bit().constData() << "\n";
-  fout << "strBkDetectCBCT"
-       << "\t" << strBkDetectCBCT.toLocal8Bit().constData() << "\n";
-  fout << "strBubFillCBCT"
-       << "\t" << strBubFillCBCT.toLocal8Bit().constData() << "\n";
+       << "\t" << BkFillCT << "\n";
+  fout << "strBkDetectCT"
+       << "\t" << BkDetectCT << "\n";
+  fout << "strBubFillCT"
+       << "\t" << BubFillCT << "\n";
 
   fout << "strFOVPos"
        << "\t" << strFOVPos.toLocal8Bit().constData() << "\n";
@@ -4260,13 +4246,9 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
 
   fout << "bCropBkgroundCT"
        << "\t" << bCropBkgroundCT << "\n";
-  fout << "bCropBkgroundCBCT"
-       << "\t" << bCropBkgroundCBCT << "\n";
 
   fout << "bFillBubbleCT"
        << "\t" << bFillBubbleCT << "\n";
-  fout << "bFillBubbleCBCT"
-       << "\t" << bFillBubbleCBCT << "\n";
 
   fout << "bUseROIForRigid"
        << "\t" << bUseROIForRigid << "\n";
@@ -4322,18 +4304,11 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) const {
         this->ui.lineEdit_PostTablePosY->setText(strContent);
 
       } else if (strHeader == "strBkFillCT") {
-        p_dlgreg_ui.lineEditBkFillCT->setText(strContent);
+        p_dlgreg_ui.spinBoxBkFillCT->setValue(strContent.toInt());
       } else if (strHeader == "strBkDetectCT") {
-        p_dlgreg_ui.lineEditBkDetectCT->setText(strContent);
+        p_dlgreg_ui.spinBoxBkDetectCT->setValue(strContent.toInt());
       } else if (strHeader == "strBubFillCT") {
-        p_dlgreg_ui.lineEditBubFillCT->setText(strContent);
-
-      } else if (strHeader == "strBkFillCBCT") {
-        p_dlgreg_ui.lineEditBkFillCBCT->setText(strContent);
-      } else if (strHeader == "strBkDetectCBCT") {
-        p_dlgreg_ui.lineEditBubDetectCBCT->setText(strContent);
-      } else if (strHeader == "strBubFillCBCT") {
-        p_dlgreg_ui.lineEditBubFillCBCT->setText(strContent);
+        p_dlgreg_ui.spinBoxBubFillCT->setValue(strContent.toInt());
       }
 
       if (strHeader == "strFOVPos") {
@@ -4360,13 +4335,9 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) const {
 
       } else if (strHeader == "bCropBkgroundCT") {
         p_dlgreg_ui.checkBoxCropBkgroundCT->setChecked(bFlagContent);
-      } else if (strHeader == "bCropBkgroundCBCT") {
-        p_dlgreg_ui.checkBoxCropBkgroundCBCT->setChecked(bFlagContent);
 
       } else if (strHeader == "bFillBubbleCT") {
         p_dlgreg_ui.checkBoxFillBubbleCT->setChecked(bFlagContent);
-      } else if (strHeader == "bFillBubbleCBCT") {
-        p_dlgreg_ui.checkBoxFillBubbleCBCT->setChecked(bFlagContent);
 
       } else if (strHeader == "bUseROIForRigid") {
         p_dlgreg_ui.checkBoxUseROIForRigid->setChecked(bFlagContent);

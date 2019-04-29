@@ -69,6 +69,40 @@ CbctRegistration::~CbctRegistration() {
   }
 }
 
+UShortImageType::Pointer &
+CbctRegistration::get_image_from_combotext(const QString &ct_type) const {
+  if (ct_type.compare(QString("RAW_CBCT"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spRawReconImg;
+  }
+  if (ct_type.compare(QString("REF_CT"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spRefCTImg;
+  }
+  if (ct_type.compare(QString("MANUAL_RIGID_CT"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spManualRigidCT;
+  }
+  if (ct_type.compare(QString("AUTO_RIGID_CT"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spAutoRigidCT;
+  }
+  if (ct_type.compare(QString("DEFORMED_CT1"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spDeformedCT1;
+  }
+  if (ct_type.compare(QString("DEFORMED_CT2"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spDeformedCT2;
+  }
+  if (ct_type.compare(QString("DEFORMED_CT3"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spDeformedCT3;
+  }
+  if (ct_type.compare(QString("DEFORMED_CT_FINAL"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spDeformedCT_Final;
+  }
+  if (ct_type.compare(QString("COR_CBCT"), Qt::CaseSensitive) == 0) {
+    return m_pParent->m_spScatCorrReconImg;
+  }
+  std::cerr << "Something went wrong: \"" << ct_type.toStdString()
+            << "\" did not match any of the possible values!\n";
+  return m_pParent->m_spRawReconImg;
+}
+
 void CbctRegistration::GenPlastiRegisterCommandFile(
     const QString &strPathCommandFile, const QString &strPathFixedImg,
     const QString &strPathMovingImg, const QString &strPathOutImg,
@@ -368,14 +402,14 @@ bool CbctRegistration::PreprocessCT(
   //  Segment_parms parms;
 
   /* [1]Segment air region*/
-  auto in = new Plm_image();
+  auto in = Plm_image::New();
   in->set_itk(ct_img);
   Plm_image out;
   // Segment_body *sb = &parms->sb;
   Segment_body sb;
   sb.m_lower_threshold = static_cast<float>(iAirThresholdShort);
 
-  sb.img_in = in;
+  sb.img_in = in.get();
   sb.img_out = &out;
   /* Do segmentation */
   sb.do_segmentation_air_cavity();
@@ -388,7 +422,10 @@ bool CbctRegistration::PreprocessCT(
   /* End of [1]Segment air region*/
   const QFile rs_file(m_strPathPlastimatch + "/rs_altered.dcm");
 
-  AlterData_RTStructureSetStorage(m_pParent->m_strPathRS, rt_structs, rs_file);
+  if (!AlterData_RTStructureSetStorage(m_pParent->m_strPathRS, rt_structs,
+                                       rs_file)) {
+    std::cerr << "Could not write altered dcm file!\n";
+  }
 
   // plastimatch convert --input E:\PlastimatchData\DicomEg\OLD\RS.dcm
   // --output-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all2.mha
@@ -517,17 +554,13 @@ bool CbctRegistration::PreprocessCT(
   /* [5] prepare a contracted skin (5 mm)*/
 
   // Bubble removal procedure
-  const auto str_path_bubble_removed_ct =
-      m_strPathPlastimatch + "/bubble_filled_CT.mha";
   auto str_path_msk_skin_ct_cont =
       m_strPathPlastimatch + "/msk_skin_CT_cont.mha";
   const auto str_path_msk_bubble_ct_fin =
       m_strPathPlastimatch + "/msk_bubbles_CT_fin.mha";
 
   Mask_operation mask_option;
-  QString input_fn;
   QString mask_fn;
-  QString output_fn;
   auto mask_value = 0.0f;
 
   if (fill_bubble) {
@@ -540,9 +573,9 @@ bool CbctRegistration::PreprocessCT(
     /* Check if we're doing fill or mask */
     mask_option = MASK_OPERATION_MASK;
     /* Input files */
-    input_fn = strPathMskBubbleCT;
+    auto input_fn = strPathMskBubbleCT;
     mask_fn = str_path_msk_skin_ct_cont;
-    output_fn = str_path_msk_bubble_ct_fin;
+    auto output_fn = str_path_msk_bubble_ct_fin;
 
     // plm_mask_main(&parms_msk);
     plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
@@ -550,12 +583,11 @@ bool CbctRegistration::PreprocessCT(
     // Mask_parms parms_msk2;
 
     mask_option = MASK_OPERATION_FILL;
-    input_fn = m_pParent->m_strPathPlanCTDir;
-    mask_fn = str_path_msk_bubble_ct_fin;
-    output_fn = str_path_bubble_removed_ct;
     mask_value = static_cast<float>(iBubbleFillingVal);
 
-    plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+    const auto mask =
+        itk_image_load_uchar(output_fn.toLocal8Bit().constData(), nullptr);
+    ct_img = mask_image(ct_img, mask, mask_option, mask_value);
   }
 
   /* - remove outside air*/
@@ -571,34 +603,11 @@ bool CbctRegistration::PreprocessCT(
 
   mask_option = MASK_OPERATION_MASK;
 
-  QFileInfo tmpInfo(str_path_bubble_removed_ct);
-  if (tmpInfo.exists()) {
-    input_fn = str_path_bubble_removed_ct;
-  } else {
-    input_fn = m_pParent->m_strPathPlanCTDir;
-  }
-
   mask_fn = strPath_mskSkinCT;
-  output_fn = strPathSkinRemovedCT;
   mask_value = static_cast<float>(iAirFillValShort);
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-
-  // strPathSkinRemovedCT .mha file is ready. this is SHORT image
-
-  LoadShortImageToUshort(strPathSkinRemovedCT, ct_img);
-  m_pParent->RegisterImgDuplication(REGISTER_REF_CT, REGISTER_MANUAL_RIGID);
-  // m_pParent->SLT_ViewRegistration();
-
-  // Update the recon resolution (for X and Y)?--> doesn't matter, since the
-  // regidbody registration will match the resolution
-
-  // if (m_pDcmStudyPlan != NULL)
-  //{
-  //    Rtplan::Pointer rtplan = m_pDcmStudyPlan->get_rtplan();
-  //    int iCntBeam = rtplan->num_beams;
-  //    //Get Isocenter position for first beam
-
-  //}
+  const auto mask =
+      itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), nullptr);
+  ct_img = mask_image(ct_img, mask, mask_option, mask_value);
 
   return true;
 }
@@ -835,6 +844,17 @@ void CbctRegistration::plm_mask_main(const Mask_operation mask_option,
            input_fn.toLocal8Bit().constData());
     return;
   }
+  plm_mask_img(mask_option, mask_fn, mask_value, img);
+  img->save_image(output_fn.toLocal8Bit().constData());
+}
+
+void CbctRegistration::plm_mask_img(
+    const Mask_operation mask_option, QString &mask_fn, const float mask_value,
+    Plm_image::Pointer /*input image*/ &img) const {
+  if (!img) {
+    std::cerr << "Plm mask input image not valid!\n";
+    return;
+  }
 
   const auto mask =
       itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), nullptr);
@@ -865,33 +885,11 @@ void CbctRegistration::plm_mask_main(const Mask_operation mask_option,
     printf("Unhandled conversion in mask_main\n");
     break;
   }
-
-  const auto output_dicom = false; // default: comes from Mask_param header
-  // const auto output_type =
-  //    PLM_IMG_TYPE_UNDEFINED; // default: comes from Mask_param header
-
-  if (!output_dicom) {
-    // if (output_type != 0) {
-    //  img->convert(output_type);
-    //}
-    img->save_image(output_fn.toLocal8Bit().constData());
-    //} else {
-    //  img->save_short_dicom(output_fn.toLocal8Bit().constData(), nullptr);
-  }
 }
 
 void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
                                                   QString &strPath_msk_exp_cont,
                                                   const double fExpVal) const {
-#if defined(commentout)
-  Dmap_parms parms_dmap; // orignally, Dmap_parms is defined in pcmd_dmap.cxx,
-                         // supposed to be in any .h
-  QString strPath_mskSkinCT_dmap = strPath_msk + "_dmap.mha";
-  parms_dmap.img_in_fn = strPath_msk.toLocal8Bit().constData();
-  parms_dmap.img_out_fn = strPath_mskSkinCT_dmap.toLocal8Bit().constData();
-  plm_dmap_main(&parms_dmap);
-#endif
-
   auto strPath_mskSkinCT_dmap = strPath_msk + "_dmap.mha";
   plm_dmap_main(strPath_msk, strPath_mskSkinCT_dmap);
 
@@ -911,12 +909,148 @@ void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
   plm_threshold_main(range_string, img_in_fn, img_out_fn);
 }
 
+QString CbctRegistration::gen_and_expand_skinmask_plm(
+    const QString &mskSkinCT_manRegi_path, const QString &XFAutoRigid_path,
+    const QString &rawCBCT_path, double skinExp) {
+  Warp_parms parms;
+  Rt_study rtds;
+  const auto plm_path = QDir(m_strPathPlastimatch);
+  auto strPath_mskSkinCT_autoRegi =
+      plm_path.absolutePath() + "/msk_skin_CT_autoRegi.mha";
+
+  parms.input_fn = mskSkinCT_manRegi_path.toLocal8Bit().constData();
+  parms.output_img_fn = strPath_mskSkinCT_autoRegi.toLocal8Bit().constData();
+  parms.xf_in_fn = XFAutoRigid_path.toLocal8Bit().constData();
+  parms.fixed_img_fn = rawCBCT_path.toLocal8Bit()
+                           .constData(); // add this to fit Mask to CBCT image
+
+  parms.prefix_format = "mha";
+  parms.use_itk = 0;
+  parms.interp_lin = 1; // linear
+  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
+  const auto file_type = PLM_FILE_FMT_IMG;
+
+  rt_study_warp(&rtds, file_type, &parms);
+  printf("Skin mask based on auto regi is ready!\n");
+
+  auto strPath_mskSkinCT_autoRegi_exp =
+      plm_path.absolutePath() + "/msk_skin_CT_autoRegi_exp.mha";
+
+  // 3) Expand 10mm skin contour
+  // plastimatch synth-vf --fixed
+  // E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --radial-mag "0 0 0"
+  // --xf-radial --output E:\PlastimatchData\DicomEg\NEW\xf_exp_CB.mha
+  // plastimatch synth-vf --fixed
+  // E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --radial-mag "0.1 0.1
+  // 0.1" --xf-radial --output E:\PlastimatchData\DicomEg\NEW\xf_exp_CB.mha
+
+  if (skinExp < 0.0 || skinExp > 100.0) {
+    skinExp = 0.0;
+  }
+
+  plm_expansion_contract_msk(strPath_mskSkinCT_autoRegi,
+                             strPath_mskSkinCT_autoRegi_exp,
+                             skinExp); // 8 mm expansion for a mask image
+
+  m_strPathCTSkin_autoRegi =
+      strPath_mskSkinCT_autoRegi; // for further use. this is not expanded one!
+
+  return strPath_mskSkinCT_autoRegi_exp;
+}
+
+QString
+CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
+                                      const float bubble_fill,
+                                      const QString &strPathOutputCBCT) {
+  // Bubble filling
+  //- With the latest air-removed image (rawCBCT4), find inside-body-bubbles.
+  // plastimatch segment --input [rawCBCT.mha] --output-img
+  // [msk_bubbles_CBCT.mha] --lower-threshold [air_thre_ushort]  plastimatch
+  // segment --input E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha --output-img
+  // E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT500.mha --lower-threshold
+  // 500
+
+  /*- fill skin regions in bubble mask image
+        plastimatch mask --input
+     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT500.mha --mask-value 0
+     --mask E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_cont.mha --output
+     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha*/
+
+  /*- (optional) fill lung regions
+        plastimatch fill --input
+     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha --mask-value 0
+     --mask E:\PlastimatchData\DicomEg\OLD\msk_lungs_autoRegi_exp.mha --output
+     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha*/
+
+  auto strPathMskBubbleCBCT = m_strPathPlastimatch + "/msk_bubbles_CBCT.mha";
+  const auto strPathMskBubbleCBCT_final =
+      m_strPathPlastimatch + "/msk_bubbles_CBCT_final.mha";
+
+  // int iAirThresholdUShort = 500; //depends on the CBCT image
+
+  Plm_image in;
+  Plm_image out;
+  Segment_body sb;
+  sb.m_lower_threshold = bubble_thresh;
+  in.load_native(strPathOutputCBCT.toLocal8Bit().constData());
+
+  sb.img_in = &in;
+  sb.img_out = &out;
+  /* Do segmentation */
+  sb.do_segmentation_air_cavity();
+  /* Save output file */
+  sb.img_out->save_image(strPathMskBubbleCBCT.toLocal8Bit().constData());
+
+  auto strPath_mskSkinCT_autoRegi_cont =
+      m_strPathPlastimatch + "/msk_skin_CT_autoRegi_cont.mha";
+  plm_expansion_contract_msk(m_strPathCTSkin_autoRegi,
+                             strPath_mskSkinCT_autoRegi_cont,
+                             -10.0); //-10 mm expansion for a mask image
+
+  // Mask_parms parms_msk_bubble;
+  auto mask_option = MASK_OPERATION_MASK;
+  auto input_fn = strPathMskBubbleCBCT;
+  auto mask_fn = strPath_mskSkinCT_autoRegi_cont;
+  auto output_fn = strPathMskBubbleCBCT_final;
+  auto mask_value = 0.0; // unsigned short
+  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+
+  // Fill CBCT bubbles with the above-bubble mask
+  // plastimatch fill --input [air-removed_autoRegistered CBCT] --mask-value
+  // [dummy CBCT soft-tissue value in ushort -->depending on the scan region?]
+  // --mask [segmented air-bubble] --output [CBCT_final.mha --> holes and
+  // outside(with margin) region-removed CBCT. ready for deformable
+  // registration] plastimatch fill --input
+  // E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
+  // --mask-value 700 --mask
+  // E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha --output
+  // E:\PlastimatchData\DicomEg\NEW\rawCBCT_final.mha
+
+  // Mask_parms parms_fill;
+  auto strPathBubbleRemovedCBCT =
+      m_strPathPlastimatch + "/bubble_filled_CBCT.mha"; // tmp
+  // QString strPathBubbleRemovedCBCT = strPathOutputCBCT;  //OVERWRITTING
+
+  mask_option = MASK_OPERATION_FILL;
+  // parms_fill.input_fn = strPathRawCBCT.toLocal8Bit().constData();
+  input_fn = strPathOutputCBCT; // CBCT after air correction
+  mask_fn = strPathMskBubbleCBCT_final;
+  // parms_fill.output_fn = strPathBubbleRemovedCBCT.toLocal8Bit().constData();
+  output_fn = strPathOutputCBCT; // overwriting
+  // parms_fill.mask_value = 700.0; //compromised softtissue value
+  mask_value = static_cast<float>(bubble_fill); // compromised softtissue value
+  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
+
+  return strPathMskBubbleCBCT_final;
+}
+
 // NoBubble filling is included. bubble is only needed to be filled during
 // deformable regi
 void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
     QString &strPathRawCBCT, QString &strPath_mskSkinCT,
     QString &strPathOutputCBCT, double *manualTrans3d,
-    const bool bPrepareMaskOnly, double skinExp, const int bkGroundValUshort) {
+    const bool bPrepareMaskOnly, const double skinExp,
+    const int bkGroundValUshort) {
   // Calc. Origin difference
 
   // 1) Move CT mask according to the manual shift
@@ -957,47 +1091,9 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
   // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha  QString
   // strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
-  auto strPath_mskSkinCT_manRegi =
-      m_strPathPlastimatch + "/msk_skin_CT_manRegi.mha";
 
-  Warp_parms parms;
-  Rt_study rtds;
-
-  parms.input_fn = strPath_mskSkinCT.toLocal8Bit().constData();
-  parms.output_img_fn = strPath_mskSkinCT_manRegi.toLocal8Bit().constData();
-  parms.xf_in_fn = strPath_outputXF_manualTrans.toLocal8Bit().constData();
-  parms.fixed_img_fn = strPathRawCBCT.toLocal8Bit()
-                           .constData(); // add this to fit Mask to CBCT image
-
-  parms.prefix_format = "mha";
-  parms.use_itk = 0;
-  parms.interp_lin = 1; // linear
-  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
-  const auto file_type = PLM_FILE_FMT_IMG;
-
-  std::cout << "Entering plm rt_study_warp..." << std::endl;
-
-  rt_study_warp(&rtds, file_type, &parms);
-  printf("Warping_rigid_trans Finished!\n");
-
-  // 3) Expand 10mm skin contour
-  // plastimatch synth-vf --fixed
-  // E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --radial-mag "0 0 0"
-  // --xf-radial --output E:\PlastimatchData\DicomEg\NEW\xf_exp_CB.mha
-  // plastimatch synth-vf --fixed
-  // E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --radial-mag "0.1 0.1
-  // 0.1" --xf-radial --output E:\PlastimatchData\DicomEg\NEW\xf_exp_CB.mha
-
-  auto strPath_mskSkinCT_manRegi_exp =
-      m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
-
-  if (skinExp < 0.0 || skinExp > 100.0) {
-    skinExp = 0.0;
-  }
-
-  plm_expansion_contract_msk(strPath_mskSkinCT_manRegi,
-                             strPath_mskSkinCT_manRegi_exp,
-                             skinExp); // 10 mm expansion for a mask image
+  auto mask_fn = this->gen_and_expand_skinmask_plm(
+      strPath_mskSkinCT, strPath_outputXF_manualTrans, strPathRawCBCT, skinExp);
 
   // 4) eliminate the air region (temporarily)
   // plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha
@@ -1012,7 +1108,6 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // "/skin_removed_CBCT_tmp.mha";
 
   const auto mask_option = MASK_OPERATION_MASK;
-  auto mask_fn = strPath_mskSkinCT_manRegi_exp;
   // parms_msk.mask_value = 0.0; //unsigned short
   const float mask_value = bkGroundValUshort; // unsigned short
 
@@ -1030,7 +1125,6 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
     strPathOutputCBCT.clear();
   }
 
-  m_strPathCTSkin_manRegi = strPath_mskSkinCT_manRegi; // for further use
   std::cout << "CBCT preprocessing is done! " << std::endl;
 
   // Delete temporary file (~450 MB)
@@ -1042,44 +1136,14 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
 void CbctRegistration::ProcessCBCT_beforeDeformRegi(
     QString &strPathRawCBCT, QString &strPath_mskSkinCT_manRegi,
     QString &strPathOutputCBCT, QString &strPathXFAutoRigid,
-    const bool bBubbleFilling, const bool bPrepareMaskOnly, double skinExp,
-    const int bubbleThresh, const int bubbleFill) {
+    const bool bBubbleFilling, const bool bPrepareMaskOnly,
+    const double skinExp, const int bubbleThresh, const int bubbleFill) {
   if (m_pParent->m_spAutoRigidCT == nullptr) {
     return;
   }
 
-  Warp_parms parms;
-  Rt_study rtds;
-
-  auto strPath_mskSkinCT_autoRegi =
-      m_strPathPlastimatch + "/msk_skin_CT_autoRegi.mha";
-
-  parms.input_fn = strPath_mskSkinCT_manRegi.toLocal8Bit().constData();
-  parms.output_img_fn = strPath_mskSkinCT_autoRegi.toLocal8Bit().constData();
-  parms.xf_in_fn = strPathXFAutoRigid.toLocal8Bit().constData();
-  parms.fixed_img_fn = strPathRawCBCT.toLocal8Bit()
-                           .constData(); // add this to fit Mask to CBCT image
-
-  parms.prefix_format = "mha";
-  parms.use_itk = 0;
-  parms.interp_lin = 1; // linear
-  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
-  const auto file_type = PLM_FILE_FMT_IMG;
-
-  rt_study_warp(&rtds, file_type, &parms);
-  printf("Skin mask based on auto regi is ready!\n");
-
-  auto strPath_mskSkinCT_autoRegi_exp =
-      m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
-
-  if (skinExp < 0.0 || skinExp > 100.0) {
-    skinExp = 0.0;
-  }
-
-  plm_expansion_contract_msk(strPath_mskSkinCT_autoRegi,
-                             strPath_mskSkinCT_autoRegi_exp,
-                             skinExp); // 8 mm expansion for a mask image
-
+  auto mask_fn = this->gen_and_expand_skinmask_plm(
+      strPath_mskSkinCT_manRegi, strPathXFAutoRigid, strPathRawCBCT, skinExp);
   // 4) eliminate the air region (temporarily)
   // plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha
   // --mask-value 0 --mask
@@ -1090,11 +1154,10 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   // QString strPath_CBCT_skinRemovedTemp = m_strPathPlastimatch +
   // "/skin_removed_CBCT_tmp.mha";
 
-  auto mask_option = MASK_OPERATION_MASK;
+  const auto mask_option = MASK_OPERATION_MASK;
   auto input_fn = strPathRawCBCT;
-  auto mask_fn = strPath_mskSkinCT_autoRegi_exp;
   auto output_fn = strPathOutputCBCT;
-  float mask_value = 0.0; // unsigned short
+  const auto mask_value = 0.0f; // unsigned short
 
   if (!bPrepareMaskOnly) {
     plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
@@ -1102,96 +1165,11 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
     strPathOutputCBCT = strPathRawCBCT;
   }
 
-  m_strPathCTSkin_autoRegi =
-      strPath_mskSkinCT_autoRegi; // for further use. this is not expanded one!
-
   //****************OPTIONAL
-  if (!bBubbleFilling) {
-    return; // exit
-  }
-
-  // Bubble filling
-  //- With the latest air-removed image (rawCBCT4), find inside-body-bubbles.
-  // plastimatch segment --input [rawCBCT.mha] --output-img
-  // [msk_bubbles_CBCT.mha] --lower-threshold [air_thre_ushort]  plastimatch
-  // segment --input E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha --output-img
-  // E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT500.mha --lower-threshold
-  // 500
-
-  /*- fill skin regions in bubble mask image
-        plastimatch mask --input
-     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT500.mha --mask-value 0
-     --mask E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_cont.mha --output
-     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha*/
-
-  /*- (optional) fill lung regions
-        plastimatch fill --input
-     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha --mask-value 0
-     --mask E:\PlastimatchData\DicomEg\OLD\msk_lungs_autoRegi_exp.mha --output
-     E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha*/
-
-  auto strPathMskBubbleCBCT = m_strPathPlastimatch + "/msk_bubbles_CBCT.mha";
-  const auto strPathMskBubbleCBCT_final =
-      m_strPathPlastimatch + "/msk_bubbles_CBCT_final.mha";
-
-  // int iAirThresholdUShort = 500; //depends on the CBCT image
-
-  Plm_image in;
-  Plm_image out;
-  Segment_body sb;
-  sb.m_lower_threshold = bubbleThresh;
-  in.load_native(strPathOutputCBCT.toLocal8Bit().constData());
-
-  sb.img_in = &in;
-  sb.img_out = &out;
-  /* Do segmentation */
-  sb.do_segmentation_air_cavity();
-  /* Save output file */
-  sb.img_out->save_image(strPathMskBubbleCBCT.toLocal8Bit().constData());
-
-  auto strPath_mskSkinCT_autoRegi_cont =
-      m_strPathPlastimatch + "/msk_skin_CT_autoRegi_cont.mha";
-  plm_expansion_contract_msk(strPath_mskSkinCT_autoRegi,
-                             strPath_mskSkinCT_autoRegi_cont,
-                             -10.0); //-10 mm expansion for a mask image
-
-  // Mask_parms parms_msk_bubble;
-  mask_option = MASK_OPERATION_MASK;
-  input_fn = strPathMskBubbleCBCT;
-  mask_fn = strPath_mskSkinCT_autoRegi_cont;
-  output_fn = strPathMskBubbleCBCT_final;
-  mask_value = 0.0; // unsigned short
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-
-  // Fill CBCT bubbles with the above-bubble mask
-  // plastimatch fill --input [air-removed_autoRegistered CBCT] --mask-value
-  // [dummy CBCT soft-tissue value in ushort -->depending on the scan region?]
-  // --mask [segmented air-bubble] --output [CBCT_final.mha --> holes and
-  // outside(with margin) region-removed CBCT. ready for deformable
-  // registration] plastimatch fill --input
-  // E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
-  // --mask-value 700 --mask
-  // E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha --output
-  // E:\PlastimatchData\DicomEg\NEW\rawCBCT_final.mha
-
-  // Mask_parms parms_fill;
-  auto strPathBubbleRemovedCBCT =
-      m_strPathPlastimatch + "/bubble_filled_CBCT.mha"; // tmp
-  // QString strPathBubbleRemovedCBCT = strPathOutputCBCT;  //OVERWRITTING
-
-  mask_option = MASK_OPERATION_FILL;
-  // parms_fill.input_fn = strPathRawCBCT.toLocal8Bit().constData();
-  input_fn = strPathOutputCBCT; // CBCT after air correction
-  mask_fn = strPathMskBubbleCBCT_final;
-  // parms_fill.output_fn = strPathBubbleRemovedCBCT.toLocal8Bit().constData();
-  output_fn = strPathOutputCBCT; // overwriting
-  // parms_fill.mask_value = 700.0; //compromised softtissue value
-  mask_value = static_cast<float>(bubbleFill); // compromised softtissue value
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-
   if (bBubbleFilling) { // if bubble was segmented
     m_strPathMskCBCTBubble =
-        strPathMskBubbleCBCT_final; // save this for further use
+        gen_bubble_mask_plm(bubbleThresh, bubbleFill, strPathOutputCBCT);
+    // save this for further use
   }
 }
 
@@ -1628,8 +1606,8 @@ void CbctRegistration::GenShellMask(
     return;
   }
 
-  auto strPathTmpExp = fInfoInput.absolutePath() + "/" + "/msk_temp_exp.mha";
-  auto strPathTmpCont = fInfoInput.absolutePath() + "/" + "/msk_temp_cont.mha";
+  auto strPathTmpExp = fInfoInput.absolutePath() + "/msk_temp_exp.mha";
+  auto strPathTmpCont = fInfoInput.absolutePath() + "/msk_temp_cont.mha";
   plm_expansion_contract_msk(strPathInputMask, strPathTmpExp,
                              fOuterMargin); // 8 mm expansion for a mask image
   plm_expansion_contract_msk(strPathInputMask, strPathTmpCont,

@@ -937,7 +937,7 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
             << std::endl;
   // std::cout << "Air region and bubble will be removed" << std::endl;
 
-  QFileInfo info1(m_cbctregistration->m_strPathCTSkin_manRegi);
+  QFileInfo info1(m_cbctregistration->m_strPathCTSkin_autoRegi);
   QFileInfo info2(m_cbctregistration->m_strPathXFAutoRigid);
 
   if (!info1.exists() || !info2.exists()) {
@@ -955,7 +955,7 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
     const auto iBubFillUshort = this->ui_lineEditBubFillCBCT.toInt(); // 700
 
     m_cbctregistration->ProcessCBCT_beforeDeformRegi(
-        filePathFixed, m_cbctregistration->m_strPathCTSkin_manRegi,
+        filePathFixed, m_cbctregistration->m_strPathCTSkin_autoRegi,
         filePathFixed_proc, m_cbctregistration->m_strPathXFAutoRigid,
         bBubbleRemoval, bPrepareMaskOnly, skinExp, iBubThresholdUshort,
         iBubFillUshort); // bubble filling yes

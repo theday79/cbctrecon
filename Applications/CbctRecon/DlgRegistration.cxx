@@ -1247,7 +1247,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf
   E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
-  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCBCT->isChecked();
+  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCT->isChecked();
 
   std::cout << "1: writing temporary files" << std::endl;
 
@@ -1354,8 +1354,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
     //&& this->ui.checkBoxCropBkgroundCBCT->isChecked()
     const auto skinExp =
         this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-    const auto bkGroundValUshort =
-        this->ui.lineEditBkFillCBCT->text().toInt(); // 0
+    const auto bkGroundValUshort = this->ui.spinBoxBkFillCT->value(); // 0
 
     if (finfoSkinFile1.exists()) {
       strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
@@ -1867,7 +1866,7 @@ void DlgRegistration::SLT_PreProcessCT() {
     return;
   }
 
-  const auto iAirThresholdShort = this->ui.lineEditBkDetectCT->text().toInt();
+  const auto iAirThresholdShort = this->ui.spinBoxBkDetectCT->value();
 
   if (this->ui.comboBox_VOItoCropBy->count() < 1) {
     std::cout
@@ -1904,17 +1903,25 @@ void DlgRegistration::SLT_PreProcessCT() {
   const auto strRSName = this->ui.comboBox_VOItoCropBy->currentText();
   const auto fill_bubble = this->ui.checkBoxFillBubbleCT->isChecked();
   const auto iBubbleFillingVal =
-      this->ui.lineEditBubFillCT->text().toInt(); // 0 = soft tissue
-  const auto iAirFillValShort =
-      this->ui.lineEditBkFillCT->text().toInt(); //-1024
+      this->ui.spinBoxBubFillCT->value(); // 1000 = soft tissue
+  const auto iAirFillValShort = this->ui.spinBoxBkFillCT->value(); // 0 = air
 
   const auto cur_ct_text = ui.comboBoxImgMoving->currentText();
   const auto cur_ct = get_ctType(cur_ct_text);
   const auto &rt_structs =
       m_cbctregistration->m_pParent->m_structures->get_ss(cur_ct);
 
-  if (!m_cbctregistration->PreprocessCT(m_spMoving, iAirThresholdShort,
-                                        rt_structs, strRSName, fill_bubble,
+  QString image_str;
+  if (ui.comboBoxImToCropFill->currentText().compare("Moving")) {
+    image_str = ui.comboBoxImgMoving->currentText();
+  } else {
+    image_str = ui.comboBoxImgFixed->currentText();
+  }
+
+  auto &image = m_cbctregistration->get_image_from_combotext(image_str);
+
+  if (!m_cbctregistration->PreprocessCT(image, iAirThresholdShort, rt_structs,
+                                        strRSName, fill_bubble,
                                         iBubbleFillingVal, iAirFillValShort)) {
     std::cout
         << "Error in PreprocessCT!!!scatter correction would not work out."
@@ -1929,6 +1936,7 @@ void DlgRegistration::SLT_PreProcessCT() {
   // if not found, just skip
   SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SLT_DrawImageWhenSliceChange();
 
   std::cout << "FINISHED!: Pre-processing of CT image" << std::endl;
 
@@ -1947,7 +1955,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     return;
   }
 
-  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCBCT->isChecked();
+  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCT->isChecked();
 
   std::cout << "0: DoRegistrationDeform: writing temporary files" << std::endl;
 
@@ -2020,7 +2028,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
             << std::endl;
   // std::cout << "Air region and bubble will be removed" << std::endl;
 
-  QFileInfo info1(m_cbctregistration->m_strPathCTSkin_manRegi);
+  QFileInfo info1(m_cbctregistration->m_strPathCTSkin_autoRegi);
   QFileInfo info2(m_cbctregistration->m_strPathXFAutoRigid);
 
   if (!info1.exists() || !info2.exists()) {
@@ -2031,16 +2039,15 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     filePathFixed_proc = m_cbctregistration->m_strPathPlastimatch + "/" +
                          "fixed_deform_proc.mha";
     // skin removal and bubble filling : output file = filePathFixed_proc
-    const auto bBubbleRemoval = this->ui.checkBoxFillBubbleCBCT->isChecked();
+    const auto bBubbleRemoval = this->ui.checkBoxFillBubbleCT->isChecked();
     const auto skinExp = this->ui.lineEditCBCTSkinCropBfDIR->text().toDouble();
 
-    const auto iBubThresholdUshort =
-        this->ui.lineEditBubDetectCBCT->text().toInt();
+    const auto iBubThresholdUshort = this->ui.spinBoxBkDetectCT->value(); // 500
     const auto iBubFillUshort =
-        this->ui.lineEditBubFillCBCT->text().toInt(); // 700
+        this->ui.spinBoxBubFillCT->text().toInt(); // 1000
 
     m_cbctregistration->ProcessCBCT_beforeDeformRegi(
-        filePathFixed, m_cbctregistration->m_strPathCTSkin_manRegi,
+        filePathFixed, m_cbctregistration->m_strPathCTSkin_autoRegi,
         filePathFixed_proc, m_cbctregistration->m_strPathXFAutoRigid,
         bBubbleRemoval, bPrepareMaskOnly, skinExp, iBubThresholdUshort,
         iBubFillUshort); // bubble filling yes
@@ -2148,7 +2155,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
 
   QFileInfo tmpBubFileInfo(m_cbctregistration->m_strPathMskCBCTBubble);
 
-  if (this->ui.checkBoxFillBubbleCBCT->isChecked() && tmpBubFileInfo.exists()) {
+  if (this->ui.checkBoxFillBubbleCT->isChecked() && tmpBubFileInfo.exists()) {
     std::cout << "6B: final puncturing according to the CBCT bubble"
               << std::endl;
 
@@ -2660,7 +2667,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   // Apply post processing for raw CBCT image and generate
   std::cout << "Preprocessing for CBCT" << std::endl;
 
-  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCBCT->isChecked();
+  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCT->isChecked();
 
   auto originBefore = p_parent->m_spRefCTImg->GetOrigin();
   auto originAfter = p_parent->m_spManualRigidCT->GetOrigin();
@@ -2696,8 +2703,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   QString strPathOriginalCTSkinMask;
 
   const auto skinExp = this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-  const auto bkGroundValUshort =
-      this->ui.lineEditBkFillCBCT->text().toInt(); // 0
+  const auto bkGroundValUshort = this->ui.spinBoxBkFillCT->value(); // 0
 
   if (finfoSkinFile1.exists()) {
     strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;

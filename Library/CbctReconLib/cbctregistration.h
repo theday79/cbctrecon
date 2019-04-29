@@ -54,6 +54,8 @@ public:
   CbctRegistration(CbctRegistration &&) = delete;
   void operator=(CbctRegistration &&) = delete;
 
+  UShortImageType::Pointer &
+  get_image_from_combotext(const QString &ct_type) const;
   void GenPlastiRegisterCommandFile(
       const QString &strPathCommandFile, const QString &strPathFixedImg,
       const QString &strPathMovingImg, const QString &strPathOutImg,
@@ -105,12 +107,23 @@ public:
                      QString &mask_fn, QString &output_fn,
                      float mask_value) const;
 
+  void plm_mask_img(Mask_operation mask_option, QString &mask_fn,
+                    float mask_value, Plm_image::Pointer &img) const;
+
   void plm_expansion_contract_msk(QString &strPath_msk,
                                   QString &strPath_msk_exp_cont,
                                   double fExpVal) const;
 
   void plm_synth_trans_xf(QString &strPath_fixed, QString &strPath_out_xf,
                           double transX, double transY, double transZ) const;
+
+  QString gen_and_expand_skinmask_plm(const QString &mskSkinCT_manRegi_path,
+                                      const QString &XFAutoRigid_path,
+                                      const QString &rawCBCT_path,
+                                      double skinExp);
+  QString gen_bubble_mask_plm(float bubble_thresh, float bubble_fill,
+                              const QString &strPathOutputCBCT);
+
   void ProcessCBCT_beforeAutoRigidRegi(QString &strPathRawCBCT,
                                        QString &strPath_mskSkinCT,
                                        QString &strPathOutputCBCT,
@@ -176,8 +189,6 @@ public:
 
   QString m_strPathPlastimatch;     // full path
   QString m_strPathCTSkin;          // shared data among functions
-  QString m_strPathCTSkin_manRegi;  // shared data among functions, manually
-                                    // registered to CBCT, w/ margin ( 10mm)
   QString m_strPathCTSkin_autoRegi; // shared data among functions w/ margin (10
                                     // mm), registered to CBCT
   QString m_strPathCTSkin_deformRegi; // this is for WEPL calculation
