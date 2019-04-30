@@ -9,8 +9,8 @@ CBCT Reconstruction toolkit for Elekta and Varian type cone beam projections
 **Proton dose calculation on scatter-corrected CBCT image: Feasibility study for adaptive proton therapy**
 http://dx.doi.org/10.1118/1.4923179
 
-Software will be tested on Linux (Arch, Manjaro and Ubuntu), MacOS (High Sierra), Windows (8.1 , 10 and Server 2012).
-Using GCC (7, 8), Clang (6, 7 and latest xcode), ICC (17, 18), MSVC (2015 and 2017).
+Software will be tested on Linux (Arch, Manjaro and Ubuntu), MacOS (High Sierra), Windows (8.1 and 10).
+Using GCC (7, 8), Clang (6, 7 and latest xcode), ICC (19), MSVC (2017).
 
 Some compilers and OSs are not tested as often.
 
@@ -18,16 +18,17 @@ In order to compile the software, you must have installed the following prerequi
 
 **Prerequisites**
  - Git
- - Cmake - Latest
- - Qt 5.X - On Windows Set `Qt5_DIR="[Qt install dir]/5.[X.Y]/msvc20[ZZ]_64/lib/cmake/Qt5"`
+ - Cmake >3.11
+ - Qt 5.X - On Windows Set `CMAKE_PREFIX_PATH="[Qt install dir]/5.[X.Y]/msvc20[ZZ]_64/"`
  - FFTW (optional but recommended) - Add directory to PATH
- - CUDA and/or an OpenCL SDK
+ - CUDA >8.0 (Optional but recommended)
+ - OpenCL
 
 **Below is downloaded and compiled automatically:**
- - DCMTK - Latest: https://github.com/commontk/DCMTK
+ - DCMTK - Latest: https://github.com/DCMTK/DCMTK
  - ITK - 4.13.1: https://github.com/InsightSoftwareConsortium/ITK
  - RTK - Latest: https://github.com/SimonRit/RTK
- - Plastimatch - latest - https://gitlab.com/plastimatch/plastimatch
+ - Plastimatch - 1.7.4: https://gitlab.com/plastimatch/plastimatch
 
 **Optional dependencies (downloaded and compiled automatically):**
  - tinyrefl - Latest: https://gitlab.com/Manu343726/tinyrefl
