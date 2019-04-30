@@ -148,9 +148,9 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
 
   // QString strOptim = ui.comboBoxDeformOption->currentText();
   QString strOptim;
-  if (optim_mse) { // ui.radioButton_mse->isChecked()) {
+  if (optim_mse) {
     strOptim = "mse";
-  } else { // if (ui.radioButton_mi->isChecked()) {
+  } else {
     strOptim = "mi";
   }
 
@@ -391,21 +391,14 @@ bool CbctRegistration::PreprocessCT(
   // All files will be saved in m_strPathPlastimatch
 
   // 1) CT preparation
-  // string strCTDir = m_pParent->m_strPathPlanCTDir.toStdString();
-  // string strPathMaskBubbleCT =
-  // m_strPathPlastimatch.append("/msk_bubbles_CT.mha").toStdString();
   auto strPathMskBubbleCT = m_strPathPlastimatch + "/msk_bubbles_CT.mha";
 
-  // char* strTest = (char*)(strCTDir.c_str());
-  // const char* strTest2 = (strCTDir.c_str());
-  // int iAirThresholdShort = -600;
   //  Segment_parms parms;
 
   /* [1]Segment air region*/
   auto in = Plm_image::New();
   in->set_itk(ct_img);
   Plm_image out;
-  // Segment_body *sb = &parms->sb;
   Segment_body sb;
   sb.m_lower_threshold = static_cast<float>(iAirThresholdShort);
 
@@ -494,13 +487,7 @@ bool CbctRegistration::PreprocessCT(
     auto organName = strList.at(2);
 
     organName = organName.trimmed();
-    // YKTEMP20150922
-    // if (organName == "Skin" || organName == "skin" || organName == "SKIN")
-    //{
-    //  strLineSkin = strLine;
-    //}
 
-    // if (organName == strRSName)
     if (organName.compare(strRSName.trimmed(), Qt::CaseInsensitive) == 0) {
       strLineSkin = strLine;
       std::cout << "Structure for cropping was found: "
@@ -543,7 +530,6 @@ bool CbctRegistration::PreprocessCT(
   parms2.prefix_format = "mha";
   parms2.use_itk = 0;
   parms2.interp_lin = 1;
-  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
   const auto file_type2 = PLM_FILE_FMT_NO_FILE;
   /* Process warp */
   rt_study_warp(&rtds2, file_type2, &parms2);
@@ -598,8 +584,6 @@ bool CbctRegistration::PreprocessCT(
 
   // Mask_parms parms_msk3;
   auto strPathSkinRemovedCT = m_strPathPlastimatch + "/skin_removed_CT.mha";
-
-  // parms_msk3.mask_operation = MASK_OPERATION_MASK;
 
   mask_option = MASK_OPERATION_MASK;
 
@@ -816,20 +800,6 @@ void CbctRegistration::plm_threshold_main(QString &strRange, QString &img_in_fn,
   Plm_image pli(img_out);
   pli.save_image(img_out_fn.toLocal8Bit().constData());
 
-  // bool output_dicom = false;
-  // enum output_type = PLM_IMG_TYPE_UNDEFINED; //
-
-  // if (output_dicom) {
-  // itk_image_save_short_dicom (
-  //  img_out, img_out_fn.toLocal8Bit().constData(), 0);
-  // } else {
-  // Plm_image pli (img_out);
-
-  // if (output_type) {
-  //           pli.convert(output_type);
-  //}
-  // pli.save_image (img_out_fn);
-  // }
   std::cout << "contracted skin mask is ready" << std::endl;
 }
 
@@ -893,19 +863,11 @@ void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
   auto strPath_mskSkinCT_dmap = strPath_msk + "_dmap.mha";
   plm_dmap_main(strPath_msk, strPath_mskSkinCT_dmap);
 
-  // Thresholding
-  /* Pcmd_threshold parms_thre;
-
-   parms_thre.range_string = string_format ("-inf,%f", fExpVal);
-   parms_thre.img_in_fn = strPath_mskSkinCT_dmap.toLocal8Bit().constData();
-   parms_thre.img_out_fn = strPath_mskSkinCT_mod.toLocal8Bit().constData();   */
-
   const auto &strPath_mskSkinCT_mod = strPath_msk_exp_cont;
   auto range_string = QString(string_format("-inf,%f", fExpVal).c_str());
   auto img_in_fn = strPath_mskSkinCT_dmap;
   auto img_out_fn = strPath_mskSkinCT_mod;
 
-  // plm_threshold_main(&parms_thre);
   plm_threshold_main(range_string, img_in_fn, img_out_fn);
 }
 
@@ -927,7 +889,6 @@ QString CbctRegistration::gen_and_expand_skinmask_plm(
   parms.prefix_format = "mha";
   parms.use_itk = 0;
   parms.interp_lin = 1; // linear
-  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
   const auto file_type = PLM_FILE_FMT_IMG;
 
   rt_study_warp(&rtds, file_type, &parms);
@@ -986,8 +947,6 @@ CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
   const auto strPathMskBubbleCBCT_final =
       m_strPathPlastimatch + "/msk_bubbles_CBCT_final.mha";
 
-  // int iAirThresholdUShort = 500; //depends on the CBCT image
-
   Plm_image in;
   Plm_image out;
   Segment_body sb;
@@ -1029,15 +988,11 @@ CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
   // Mask_parms parms_fill;
   auto strPathBubbleRemovedCBCT =
       m_strPathPlastimatch + "/bubble_filled_CBCT.mha"; // tmp
-  // QString strPathBubbleRemovedCBCT = strPathOutputCBCT;  //OVERWRITTING
 
   mask_option = MASK_OPERATION_FILL;
-  // parms_fill.input_fn = strPathRawCBCT.toLocal8Bit().constData();
   input_fn = strPathOutputCBCT; // CBCT after air correction
   mask_fn = strPathMskBubbleCBCT_final;
-  // parms_fill.output_fn = strPathBubbleRemovedCBCT.toLocal8Bit().constData();
-  output_fn = strPathOutputCBCT; // overwriting
-  // parms_fill.mask_value = 700.0; //compromised softtissue value
+  output_fn = strPathOutputCBCT;                // overwriting
   mask_value = static_cast<float>(bubble_fill); // compromised softtissue value
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
 
@@ -1051,8 +1006,6 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
     QString &strPathOutputCBCT, double *manualTrans3d,
     const bool bPrepareMaskOnly, const double skinExp,
     const int bkGroundValUshort) {
-  // Calc. Origin difference
-
   // 1) Move CT mask according to the manual shift
   // plastimatch synth-vf --fixed [msk_skin.mha] --output [xf_manual_trans.mha]
   // --xf-trans "[origin diff (raw - regi)]"
@@ -1060,18 +1013,8 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
     return;
   }
 
-  // QString strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
   auto strPath_outputXF_manualTrans =
       m_strPathPlastimatch + "/xf_manual_trans.mha";
-
-  // USHORT_ImageType::PointType rawOrigin =
-  // m_pParent->m_spReconImg->GetOrigin();  USHORT_ImageType::PointType
-  // rigidMovedOrigin = m_pParent->m_spManualRigidCT->GetOrigin();
-  //
-  // double trans[3];
-  // trans[0] = (double)(rawOrigin[0] - rigidMovedOrigin[0]);
-  // trans[1] = (double)(rawOrigin[1] - rigidMovedOrigin[1]);
-  // trans[2] = (double)(rawOrigin[2] - rigidMovedOrigin[2]);
 
   plm_synth_trans_xf(strPath_mskSkinCT, strPath_outputXF_manualTrans,
                      manualTrans3d[0], manualTrans3d[1], manualTrans3d[2]);
@@ -1083,9 +1026,6 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   E:\PlastimatchData\DicomEg\OLD\msk_skin.mha --output-img
   E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf
   E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
-
-  // parms->output_img_fn = parser->get_string("output-img").c_str();
-  // parms->xf_in_fn = parser->get_string("xf").c_str();
 
   // convert --input-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all.mha
   // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
@@ -1101,14 +1041,7 @@ void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
   // E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_exp.mha --output
   // E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
 
-  // std::cout << "bPrepareMaskOnly=" << bPrepareMaskOnly << std::endl;
-
-  // Mask_parms parms_msk;
-  // QString strPath_CBCT_skinRemovedTemp = m_strPathPlastimatch +
-  // "/skin_removed_CBCT_tmp.mha";
-
   const auto mask_option = MASK_OPERATION_MASK;
-  // parms_msk.mask_value = 0.0; //unsigned short
   const float mask_value = bkGroundValUshort; // unsigned short
 
   if (!bPrepareMaskOnly) // actual cropping is controled by
@@ -1182,8 +1115,6 @@ void CbctRegistration::CallingPLMCommand(std::string &command_filepath) {
     printf("Error.  could not load %s as command file.\n",
            command_filepath.c_str());
   }
-  // std::cout << "command file path is set= " <<
-  // pathCmdRegister.toLocal8Bit().constData() << std::endl;
 
   if (command_filepath.length() < 3) {
     std::cout << "ERROR! pathCmdRegister is too short!" << std::endl;
@@ -1202,26 +1133,20 @@ void CbctRegistration::CallingPLMCommand(std::string &command_filepath) {
     strMoving = it.second.moving_fn;
   }
 
-  // std::string strFixed = reg.get_registration_parms()->get_fixed_fn(); //
-  // return d_ptr->rparms;  std::string strMoving =
-  // reg.get_registration_parms()->get_moving_fn();
-
   if (strFixed.length() < 1) {
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << "ERROR! no fixed image" << std::endl;
-    // return;
   }
   if (strMoving.length() < 1) {
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << "ERROR!no moving image" << std::endl;
-    // return;
   }
 
-  reg.do_registration(); // error occurs here
+  reg.do_registration();
 
   std::cout << "4: Registration is done" << std::endl;
 }
@@ -1457,9 +1382,6 @@ void CbctRegistration::PostSkinRemovingCBCT(
     }
   }
 
-  // std::cout << "Plastimatch Path " <<
-  // m_strPathPlastimatch.toLocal8Bit().constData() << std::endl;
-
   if (m_strPathPlastimatch.length() < 1) {
     std::cout << "NO plastimatch Dir was defined. CorrCBCT will not be saved "
                  "automatically"
@@ -1500,9 +1422,6 @@ void CbctRegistration::PostSkinRemovingCBCT(
   QString output_fn = filePathCBCT_noSkin.toLocal8Bit().constData();
   const float mask_value = 0.0; // unsigned short
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-
-  // m_strPathCTSkin_autoRegi = strPath_mskSkinCT_autoRegi; //for further use.
-  // this is not expanded one!
 
   using readerType = itk::ImageFileReader<UShortImageType>;
   auto readerCBCT = readerType::New();
@@ -1667,12 +1586,7 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   parms.use_itk = 0;
   parms.interp_lin = 1;
 
-  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
   const auto file_type = PLM_FILE_FMT_DICOM_RTSS;
-  /*if (file_type == PLM_FILE_FMT_POINTSET) {
-  warp_pointset_main (&parms);
-  return;
-  }*/
   /* Process warp */
   rt_study_warp(&rtds, file_type, &parms);
   printf("Warping Finished!\n");
@@ -1707,14 +1621,6 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
     if (organName == "Skin" || organName == "skin" || organName == "SKIN") {
       strLineSkin = strLine;
     }
-    /*if (organName == "LeftLung")
-    {
-    strLineLungLt = strLine;
-    }
-    if (organName == "RightLung")
-    {
-    strLineLungRt = strLine;
-    }*/
   }
   fin.close();
 
@@ -1752,7 +1658,6 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
   parms2.prefix_format = "mha";
   parms2.use_itk = 0;
   parms2.interp_lin = 1;
-  // file_type = plm_file_format_deduce ((const char*) parms.input_fn);
   const auto file_type2 = PLM_FILE_FMT_NO_FILE;
   /* Process warp */
   rt_study_warp(&rtds2, file_type2, &parms2);
@@ -1787,8 +1692,6 @@ void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
     reader->Update();
 
     spImgUshort = reader->GetOutput();
-    // std::cout << "fixed Image Path = " <<
-    // filePathFixed_proc.toLocal8Bit().constData() << std::endl;
   } else {
     std::cout << "No strPathSkinRemovedCT is available. Exit the function"
               << std::endl;
@@ -1808,7 +1711,6 @@ VEC3D CbctRegistration::GetShiftValueFromGradientXForm(QString &file_path,
   }
 
   char str[MAX_LINE_LENGTH];
-  // memset(str, 0, MAX_LINE_LENGTH);
 
   QString tmp_str;
   while (!fin.eof()) {

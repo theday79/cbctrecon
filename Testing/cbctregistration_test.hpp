@@ -1,9 +1,6 @@
 #ifndef CbctRegistrationTest_H
 #define CbctRegistrationTest_H
 
-// #include <QDialog>
-// #include <QString>
-
 #include <itkImage.h>
 
 #include "MyQComboBox.hxx"
@@ -41,7 +38,6 @@ private: // Just pointers to m_cbctregistration members, for convienience
 
   /*UI simulation:*/
   bool ui_checkBoxKeyMoving = false;
-  bool ui_checkBoxCropBkgroundCBCT = false;
   bool ui_checkBoxCropBkgroundCT = true;
   bool ui_checkBoxUseROIForRigid = true;
   bool ui_checkBoxUseROIForDIR = true;
@@ -51,13 +47,10 @@ private: // Just pointers to m_cbctregistration members, for convienience
   QString ui_lineEditGradOption = "0.7,0.7,0.7";
   QString ui_lineEditCBCTSkinCropBfRegid = "10.0";
   QString ui_lineEditCBCTSkinCropBfDIR = "8.0";
-  QString ui_lineEditBkFillCBCT = "0";
-  QString ui_lineEditBkFillCT = "-1024";
-  QString ui_lineEditBubFillCT = "0";
-  QString ui_lineEditBubFillCBCT = "700";
-  QString ui_lineEditBkDetectCT = "-600";
-  QString ui_lineEditBkDetectCBCT = "500";
-  QString ui_lineEditBubDetectCBCT = "-600";
+  int ui_spinBoxBkFillCT = 0;
+  int ui_spinBoxBubFillCT = 1000;
+  int ui_spinBoxBkDetectCT = 500;
+  QString ui_comboBoxImToCropFill = "Moving";
   QString ui_lineEditArgument1 = "2,2,1,30,0.00001,0.005,5";
   QString ui_lineEditArgument2 = "";
   QString ui_lineEditArgument3 = "";

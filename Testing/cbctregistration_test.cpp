@@ -263,7 +263,7 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
   E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf
   E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
-  const auto bPrepareMaskOnly = !this->ui_checkBoxCropBkgroundCBCT;
+  const auto bPrepareMaskOnly = !this->ui_checkBoxCropBkgroundCT;
 
   std::cout << "1: writing temporary files" << std::endl;
 
@@ -369,7 +369,7 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 
     //&& this->ui_checkBoxCropBkgroundCBCT->isChecked()
     const auto skinExp = this->ui_lineEditCBCTSkinCropBfRegid.toDouble();
-    const auto bkGroundValUshort = this->ui_lineEditBkFillCBCT.toInt(); // 0
+    const auto bkGroundValUshort = this->ui_spinBoxBkFillCT; // 0
 
     if (finfoSkinFile1.exists()) {
       strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
@@ -514,9 +514,6 @@ void CbctRegistrationTest::ImageManualMove(const int direction,
   strDelta.sprintf(
       "delta(mm): %3.1f, %3.1f, %3.1f", imgOrigin[0] - imgOriginRef[0],
       imgOrigin[1] - imgOriginRef[1], imgOrigin[2] - imgOriginRef[2]);
-
-  // std::cout << "direction  " << direction << std::endl;
-  // std::cout << "resolution " << resol << std::endl;
 }
 
 // change origin of moving image by shift value acqui_ed from gradient
@@ -530,11 +527,8 @@ void CbctRegistrationTest::ImageManualMoveOneShot(const float shiftX,
     return;
   }
 
-  // USHORT_ImageType::SizeType imgSize =
-  // m_spMoving->GetRequestedRegion().GetSize(); //1016x1016 x z
   using USPointType = UShortImageType::PointType;
   auto imgOrigin = m_spMoving->GetOrigin();
-  // USHORT_ImageType::SpacingType imgSpacing = m_spFixed->GetSpacing();
   imgOrigin[0] = imgOrigin[0] - static_cast<USPointType::ValueType>(shiftX);
   imgOrigin[1] = imgOrigin[1] - static_cast<USPointType::ValueType>(shiftY);
   imgOrigin[2] = imgOrigin[2] - static_cast<USPointType::ValueType>(shiftZ);
@@ -787,9 +781,9 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
     return;
   }
 
-  const auto iAirThresholdShort = this->ui_lineEditBkDetectCT.toInt();
+  const auto iAirThresholdShort = this->ui_spinBoxBkDetectCT;
 
-  if (m_cbctregistration->m_pParent->m_strPathPlanCTDir.length() < 3) {
+  if (this->ui_comboBox_VOItoCropBy->count() < 1) {
     std::cout
         << "Reference CT DIR should be specified for structure based cropping"
         << std::endl;
@@ -824,16 +818,25 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
   const auto strRSName = this->ui_comboBox_VOItoCropBy->currentText();
   const auto fill_bubble = this->ui_checkBoxFillBubbleCT;
   const auto iBubbleFillingVal =
-      this->ui_lineEditBubFillCT.toInt(); // 0 = soft tissue
-  const auto iAirFillValShort = this->ui_lineEditBkFillCT.toInt(); //-1024
+      this->ui_spinBoxBubFillCT;                          // 1000 = soft tissue
+  const auto iAirFillValShort = this->ui_spinBoxBkFillCT; // 0 = air
 
   const auto cur_ct_text = ui_comboBoxImgMoving->currentText();
   const auto cur_ct = get_ctType(cur_ct_text);
   const auto &rt_structs =
       m_cbctregistration->m_pParent->m_structures->get_ss(cur_ct);
 
-  if (!m_cbctregistration->PreprocessCT(m_spMoving, iAirThresholdShort,
-                                        rt_structs, strRSName, fill_bubble,
+  QString image_str;
+  if (ui_comboBoxImToCropFill.compare("Moving")) {
+    image_str = ui_comboBoxImgMoving->currentText();
+  } else {
+    image_str = ui_comboBoxImgFixed->currentText();
+  }
+
+  auto &image = m_cbctregistration->get_image_from_combotext(image_str);
+
+  if (!m_cbctregistration->PreprocessCT(image, iAirThresholdShort, rt_structs,
+                                        strRSName, fill_bubble,
                                         iBubbleFillingVal, iAirFillValShort)) {
     std::cout
         << "Error in PreprocessCT!!!scatter correction would not work out."
@@ -864,7 +867,7 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
     return;
   }
 
-  const auto bPrepareMaskOnly = !this->ui_checkBoxCropBkgroundCBCT;
+  const auto bPrepareMaskOnly = !this->ui_checkBoxCropBkgroundCT;
 
   std::cout << "0: DoRegistrationDeform: writing temporary files" << std::endl;
 
@@ -951,8 +954,8 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
     const auto bBubbleRemoval = this->ui_checkBoxFillBubbleCBCT;
     const auto skinExp = this->ui_lineEditCBCTSkinCropBfDIR.toDouble();
 
-    const auto iBubThresholdUshort = this->ui_lineEditBubDetectCBCT.toInt();
-    const auto iBubFillUshort = this->ui_lineEditBubFillCBCT.toInt(); // 700
+    const auto iBubThresholdUshort = this->ui_spinBoxBkDetectCT; // 500
+    const auto iBubFillUshort = this->ui_spinBoxBubFillCT;       // 1000
 
     m_cbctregistration->ProcessCBCT_beforeDeformRegi(
         filePathFixed, m_cbctregistration->m_strPathCTSkin_autoRegi,
@@ -1328,13 +1331,6 @@ void CbctRegistrationTest::SLT_gPMCrecalc(std::vector<QString> &dcm_plans,
     }
   }
 
-  /* Below MUST be done externally, through command line - due to
-   * incompatibilities with compilers and library versions.. Pytrip-style but
-   * with somewhat better control.. (hacks to private members might be possible
-   * as well:
-   * http://stackoverflow.com/questions/424104/can-i-access-private-members-from-outside-the-class-without-using-friends)
-   */
-
   // Create gPMC command line
 
 #ifdef USE_CUDA
@@ -1435,11 +1431,6 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
       filePathXform, PLAST_GRADIENT, dummyStr, dummyStr, dummyStr, dummyStr,
       mse, cuda, GradOptionStr);
 
-  /*void CbctRegistrationTest::GenPlastiRegisterCommandFile(QString
-  strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg, QString
-  strPathOutImg, QString strPathXformOut, enRegisterOption regiOption, QString
-  strStageOption1, , QString strStageOption2, QString strStageOption3)*/
-
   // const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
@@ -1459,14 +1450,7 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
                          static_cast<float>(-trn[1]),
                          static_cast<float>(-trn[2]));
-  /*
-std::cout << "5: Load shift values" << std::endl;
 
-VEC3D shiftVal = GetShiftValueFromGradientXForm(filePathXform, true); //true:
-inverse trans should be applied if CBCT was moving image //in mm
-
-ImageManualMoveOneShot(shiftVal.x, shiftVal.y, shiftVal.z);
-  */
   std::cout << "6: Reading is completed" << std::endl;
 
   UpdateListOfComboBox(0); // combo selection signalis called
@@ -1494,7 +1478,7 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
   // Apply post processing for raw CBCT image and generate
   std::cout << "Preprocessing for CBCT" << std::endl;
 
-  const auto bPrepareMaskOnly = !this->ui_checkBoxCropBkgroundCBCT;
+  const auto bPrepareMaskOnly = !this->ui_checkBoxCropBkgroundCT;
 
   auto originBefore = p_parent->m_spRefCTImg->GetOrigin();
   auto originAfter = p_parent->m_spManualRigidCT->GetOrigin();
@@ -1530,7 +1514,7 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
   QString strPathOriginalCTSkinMask;
 
   const auto skinExp = this->ui_lineEditCBCTSkinCropBfRegid.toDouble();
-  const auto bkGroundValUshort = this->ui_lineEditBkFillCBCT.toInt(); // 0
+  const auto bkGroundValUshort = this->ui_spinBoxBkFillCT; // 0
 
   if (finfoSkinFile1.exists()) {
     strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;

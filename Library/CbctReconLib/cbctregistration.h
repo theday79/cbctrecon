@@ -40,10 +40,6 @@ enum enRegisterOption {
   PLAST_BSPLINE,
 };
 
-// #define DEFAULT_LABEL_SIZE1 512
-// #define DEFAULT_LABEL_SIZE2 256
-// #define DEFAULT_LABEL_SIZE3 256
-
 class CBCTRECON_API CbctRegistration {
 
 public:
@@ -95,14 +91,9 @@ public:
                           UShortImageType::Pointer &spFixedDose,
                           UShortImageType::Pointer &spMovingDose);
 
-  // void plm_dmap_main (Dmap_parms* parms);
   void plm_dmap_main(QString &img_in_fn, QString &img_out_fn) const;
-  // void plm_threshold_main (Pcmd_threshold* parms);
-  // void plm_threshold_main (Pcmd_threshold* parms);
-  // plm_threshold_main(range_string, img_in_fn, img_out_fn);
   void plm_threshold_main(QString &strRange, QString &img_in_fn,
                           QString &img_out_fn) const;
-  // void plm_mask_main (Mask_parms* parms);
   void plm_mask_main(Mask_operation mask_option, QString &input_fn,
                      QString &mask_fn, QString &output_fn,
                      float mask_value) const;
@@ -131,8 +122,6 @@ public:
                                        bool bPrepareMaskOnly, double skinExp,
                                        int bkGroundValUshort);
 
-  // void ProcessCBCT_beforeDeformRegi(QString& strPathRawCBCT, QString&
-  // strPath_mskSkinCT_, QString& strPathOutputCBCT, double* manualTrans3d);
   void ProcessCBCT_beforeDeformRegi(
       QString &strPathRawCBCT, QString &strPath_mskSkinCT_manRegi,
       QString &strPathOutputCBCT, QString &strPathXFAutoRigid,
@@ -149,9 +138,6 @@ public:
   void CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
                        QString &strPathRS, double cropMargin) const;
 
-  // void ThermoMaskRemovingCBCT(USHORT_ImageType::Pointer& spCBCTraw,
-  // USHORT_ImageType::Pointer& spCBCTcor, int threshold);
-
   void ThermoMaskRemovingCBCT(UShortImageType::Pointer &spCBCTraw,
                               UShortImageType::Pointer &spCBCTcor,
                               int diffThreshold,
@@ -162,12 +148,6 @@ public:
                     double fInnerMargin, double fOuterMargin) const;
 
   VEC3D GetIsocenterDCM_FromRTPlan(QString &strFilePath) const;
-
-  // void keyPressEvent ( QKeyEvent * e );
-  // void Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction,
-  // double pos, YK16GrayImage* pOutput2D);  void
-  // Draw2DFrom3D(USHORT_ImageType::Pointer& pImg, enPLANE direction, double
-  // pos, YK16GrayImage& Output2D);
 
   // still public:
   CbctRecon *m_pParent{};            // to pull 3D images
@@ -180,12 +160,6 @@ public:
   std::unique_ptr<Rtss_roi_modern> WEPL_voi;
   std::unique_ptr<Rtss_roi_modern> cur_voi;
   bool dose_loaded = false;
-
-  // UShortImageType::Pointer m_spFixed;  // pointer only, for display
-  // UShortImageType::Pointer m_spMoving; // pointer only, for display
-
-  // UShortImageType::Pointer m_spFixedDose;  // pointer only, for display
-  // UShortImageType::Pointer m_spMovingDose; // pointer only, for display
 
   QString m_strPathPlastimatch;     // full path
   QString m_strPathCTSkin;          // shared data among functions

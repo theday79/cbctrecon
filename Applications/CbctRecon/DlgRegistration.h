@@ -1,9 +1,6 @@
 #ifndef DLGREGISTRATION_H
 #define DLGREGISTRATION_H
 
-// #include <QDialog>
-// #include <QString>
-
 #include <itkImage.h>
 
 #include "StructureSet.h"
@@ -56,9 +53,10 @@ public:
   void initDlgRegistration(QString &strDCMUID);
 
 private:
+  QComboBox *&get_combo_box_FixMov(int comboIdx);
   void whenFixedImgLoaded() const; // should be called by comboBox
-  void whenMovingImgLoaded();
-  void initOverlapWndSize() const;
+  static void whenMovingImgLoaded();
+  static void initOverlapWndSize();
   void shiftSliceSlider() const;
   void updateSliceLabel() const;
   void UpdateSplit(int viewIdx, qyklabel *pOverlapWnd);
@@ -70,9 +68,8 @@ private:
   void ImageManualMove(int direction, double resol);
   void ImageManualMoveOneShot(float shiftX, float shiftY,
                               float shiftZ); // DICOM coordinate
-  void
-  AddImageToCombo(int comboIdx,
-                  enREGI_IMAGES option) const; // comboIdx 0: fixed, 1: moving
+  void AddImageToCombo(int comboIdx,
+                       enREGI_IMAGES option); // comboIdx 0: fixed, 1: moving
   void LoadVOIFromComboBox(int idx, QString &strSelectedComboTxt);
 
 public slots:
