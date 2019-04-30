@@ -827,7 +827,7 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
       m_cbctregistration->m_pParent->m_structures->get_ss(cur_ct);
 
   QString image_str;
-  if (ui_comboBoxImToCropFill.compare("Moving")) {
+  if (ui_comboBoxImToCropFill.compare("Moving") == 0) {
     image_str = ui_comboBoxImgMoving->currentText();
   } else {
     image_str = ui_comboBoxImgFixed->currentText();
