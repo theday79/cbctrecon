@@ -6,9 +6,6 @@
 
 #include <qprocess.h> // for calling gPMC from commandline
 
-// configs
-#include <itkConfigure.h>
-
 // ITK
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkEuler3DTransform.h>
@@ -109,8 +106,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
     const QString &strPathXformOut, const enRegisterOption regiOption,
     const QString &strStageOption1, const QString &strStageOption2,
     const QString &strStageOption3, const QString &strPathFixedMask,
-    const bool optim_mse, const bool use_cuda,
-    QString & /*GradOptionStr*/) const {
+    const bool optim_mse, const bool use_cuda, QString &GradOptionStr) const {
   // optionStr = ui.lineEditGradOption->text();
   std::ofstream fout;
   fout.open(strPathCommandFile.toLocal8Bit().constData());
@@ -162,9 +158,6 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
   auto strListOption2 = strStageOption2.split(",");
   auto strListOption3 = strStageOption3.split(",");
 
-  QString optionStr;
-  QStringList optionList;
-
   std::string treading_opt = "openmp";
   if (use_cuda) { // m_pParent->ui.radioButton_UseCUDA->isChecked()) {
     treading_opt = "cuda";
@@ -191,11 +184,12 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
             "max_its=70\n";
 
     break;
-  case PLAST_GRADIENT:
+  case PLAST_GRADIENT: {
+
     fout << "#For gradient-based searching, moving image should be smaller "
             "than fixed image. So, CBCT image might move rather than CT\n";
 
-    optionList = optionStr.split(",");
+    const auto optionList = GradOptionStr.split(",");
 
     fout << "[PROCESS]\n"
             "action=adjust\n"
@@ -214,7 +208,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
     fout << "debug_dir=" << m_strPathPlastimatch.toLocal8Bit().constData()
          << "\n";
     break;
-
+  }
   case PLAST_BSPLINE:
     if (strListOption1.count() == 8) {
       fout << "[STAGE]\n"
@@ -313,7 +307,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
               << std::endl;
     break;
   }
-
+  fout << std::endl;
   fout.close();
   // Sleep(1000); //Just in case.. it seems it helped to avoid random crash!
 }

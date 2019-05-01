@@ -24,6 +24,7 @@ set(CbctReconExe_SOURCES
   cbctrecon_mainwidget.cxx
   DlgRegistration.cxx
   DlgExternalCommand.cxx
+  DlgHistogram.cxx
   qt-utils/qyklabel.cpp
   qt-utils/qcustomplot.cpp
   CMakeSetup.rc
@@ -35,6 +36,7 @@ SET(CbctRecon_HEADERS
   qt-utils/qyklabel.h
   qt-utils/qcustomplot.h
   DlgExternalCommand.h
+  DlgHistogram.h
 )
 SET(CbctRecon_FORMS
   ui/cbctrecon.ui

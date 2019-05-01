@@ -13,6 +13,7 @@
 #include "cbctregistration.h"
 
 #include "DlgExternalCommand.h"
+#include "DlgHistogram.h"
 #include "DlgRegistration.h"
 
 #include "ui_cbctrecon.h"
@@ -48,6 +49,7 @@ public:
   std::unique_ptr<DlgRegistration> m_dlgRegistration;
   CbctRegistration *m_cbctregistration; // just for convienience
   std::unique_ptr<DlgExternalCommand> m_dlgExternalCommand;
+  std::unique_ptr<DlgHistogram> m_dlgHistogram;
   std::unique_ptr<QTimer> m_Timer;
   std::unique_ptr<QStandardItemModel> m_pTableModel;
   bool m_busyTimer;
@@ -117,7 +119,7 @@ public slots:
   void SLT_Export2DDose_TIF();
   void SLTM_Export2DDoseMapAsMHA();
   void SLT_ViewRegistration() const;
-  void SLT_ViewHistogram();
+  void SLT_ViewHistogram() const;
   void SLT_DoScatterCorrection_APRIORI();
   void SLT_TempAudit() const;
   void SLT_CalcAndSaveAngularWEPL();

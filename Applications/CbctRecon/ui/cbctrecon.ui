@@ -3467,7 +3467,7 @@
   </action>
   <action name="actionHistograms">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Histograms</string>
@@ -3482,18 +3482,18 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>QCustomPlot</class>
-   <extends>QWidget</extends>
-   <header>qcustomplot.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>qyklabel</class>
    <extends>QLabel</extends>
    <header>qyklabel.h</header>
    <slots>
     <slot>SetDrawPointToggle(bool)</slot>
    </slots>
+  </customwidget>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header>qcustomplot.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

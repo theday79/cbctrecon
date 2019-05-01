@@ -87,8 +87,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
   feldkampOCL->SetInput(1, castFilter->GetOutput());
   feldkampOCL->SetGeometry(m_spCustomGeometry);
   auto p_rampfilter = feldkampOCL->GetRampFilter().GetPointer();
-  p_rampfilter->SetTruncationCorrection(
-      fdk_options.TruncCorFactor);
+  p_rampfilter->SetTruncationCorrection(fdk_options.TruncCorFactor);
   p_rampfilter->SetHannCutFrequency(fdk_options.HannCutX);
   p_rampfilter->SetHannCutFrequencyY(fdk_options.HannCutY);
   p_rampfilter->SetCosineCutFrequency(fdk_options.CosCut);
@@ -106,7 +105,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
 
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
-                                    const FDK_options& fdk_options) {
+                                    const FDK_options &fdk_options) {
   if (Tdev == CUDA_DEVT) {
 #if USE_CUDA
     using CUDAFloatImageType = itk::CudaImage<float, 3U>;
@@ -128,7 +127,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 template <enDeviceType Tdev, typename ImageType, typename DDFType,
           typename PSSFType, typename FDKType>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
-                                    const FDK_options& fdk_options) {
+                                    const FDK_options &fdk_options) {
 
   using castToImageType = itk::CastImageFilter<FloatImageType, ImageType>;
   typename castToImageType::Pointer castfilter = castToImageType::New();
@@ -480,7 +479,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     m_spCrntReconImg = m_spRawReconImg;
     break;
   case REGISTER_COR_CBCT:
-    m_spScatCorrReconImg = std::move(tmpReconImg); // Checked.. successfully alive.
+    m_spScatCorrReconImg =
+        std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spScatCorrReconImg;
     break;
   default:
@@ -731,14 +731,14 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     castFilter->SetInput(resampler->GetOutput());
 
     // Default value
-    const auto calibF_A = 1.0;
+    const auto calibF_A = 1.0 / std::numeric_limits<unsigned short>::max();
 
     using MultiplyImageFilterType =
         itk::MultiplyImageFilter<FloatImageType, FloatImageType,
                                  DevFloatImageType>;
     auto multiplyImageFilter = MultiplyImageFilterType::New();
     multiplyImageFilter->SetInput(castFilter->GetOutput());
-    multiplyImageFilter->SetConstant(calibF_A / 65535.0);
+    multiplyImageFilter->SetConstant(calibF_A);
     multiplyImageFilter->Update(); // will generate map of real_mu (att.coeff)
 
     const auto spCTImg_mu = multiplyImageFilter->GetOutput();
@@ -844,14 +844,15 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
 
   // Convert line integral to intensity value (I0/I = exp(mu_t)) --> I =
   // I0/exp(mu_t)
+  const auto ushort_max = std::numeric_limits<unsigned short>::max();
   while (!itSrc.IsAtEnd() && !itTarg.IsAtEnd()) {
-    const auto fProjVal = itSrc.Get();               // mu_t //63.5 --> 6.35
-    const auto tmpConvVal = 65535.0 / exp(fProjVal); // physically true
+    const auto fProjVal = itSrc.Get();                  // mu_t //63.5 --> 6.35
+    const auto tmpConvVal = ushort_max / exp(fProjVal); // physically true
 
     if (tmpConvVal <= 0.0) {
       itTarg.Set(0);
-    } else if (tmpConvVal > 65535.0) {
-      itTarg.Set(65535);
+    } else if (tmpConvVal > ushort_max) {
+      itTarg.Set(ushort_max);
     } else {
       itTarg.Set(static_cast<unsigned short>(tmpConvVal));
     }

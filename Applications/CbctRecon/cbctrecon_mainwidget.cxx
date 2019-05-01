@@ -81,6 +81,10 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
   this->ui.radioButton_UseOpenCL->setDisabled(false);
 #endif
 
+#ifndef LOWPASS_FFT
+  this->ui.lineEdit_scaGaussian->setText("1.5");
+#endif
+
   this->m_cbctrecon = std::make_unique<CbctRecon>();
   m_pTableModel = nullptr;
   m_dlgRegistration = std::make_unique<DlgRegistration>(this);
@@ -91,6 +95,7 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
                                     // useful if registration will be only done
   // m_pDlgHistogram = new DlgHistogram(this);
   this->m_dlgExternalCommand = std::make_unique<DlgExternalCommand>(this);
+  this->m_dlgHistogram = std::make_unique<DlgHistogram>(this);
 
   // 20141017 QTIMER for sync
   m_Timer = std::make_unique<QTimer>(this);
@@ -1077,7 +1082,7 @@ void CbctReconWidget::SLT_DrawGraph() const
 
   this->ui.customPlot->addGraph();
   auto p_graph = this->ui.customPlot->graph(0);
-  p_graph->setData(vAxisX, vAxisY);
+  p_graph->setData(vAxisX, vAxisY, true);
   p_graph->setPen(QPen(Qt::blue));
   p_graph->setName("Image profile");
 
@@ -1096,10 +1101,7 @@ void CbctReconWidget::SLT_DrawGraph() const
 
   this->ui.customPlot->xAxis->setLabel("mm");
   this->ui.customPlot->yAxis->setLabel("Intensity");
-  this->ui.customPlot->setTitle("Image Profile");
-  auto titleFont = font();
-  titleFont.setPointSize(10);
-  this->ui.customPlot->setTitleFont(titleFont);
+  this->ui.customPlot->setWindowTitle("Image Profile");
 
   // std::cout << "check graph 4" << std::endl;
 
@@ -1107,11 +1109,10 @@ void CbctReconWidget::SLT_DrawGraph() const
   auto legendFont = font();   // start out with MainWindow's font..
   legendFont.setPointSize(9); // and make a bit smaller for legend
   this->ui.customPlot->legend->setFont(legendFont);
-  this->ui.customPlot->legend->setPositionStyle(QCPLegend::psTopRight);
   this->ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
 
   // std::cout << "check graph 5" << std::endl;
-  this->ui.customPlot->replot();
+  this->ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
 
   // SLT_UpdateTable();
 }
@@ -1260,9 +1261,9 @@ void CbctReconWidget::SLT_CalculateROI_Recon() {
   // These are displayed data (just index data)
 
   const auto dataX = qRound(this->ui.labelReconImage->x /
-                            static_cast<double>(dspWidth * dataWidth));
+                            static_cast<double>(dspWidth) * dataWidth);
   const auto dataY = qRound(this->ui.labelReconImage->y /
-                            static_cast<double>(dspHeight * dataHeight));
+                            static_cast<double>(dspHeight) * dataHeight);
   const auto dataZ = this->ui.spinBoxReconImgSliceNo->value();
 
   const auto originX = static_cast<double>(CrntReconImg->GetOrigin()[0]);
@@ -1340,9 +1341,9 @@ void CbctReconWidget::SLT_CalculateROI_Proj() {
   // int crntIdx = this->ui.spinBoxImgIdx->value();
   // These are displayed data (just index data)
   const auto dataX = qRound(this->ui.labelImageRaw->x /
-                            static_cast<double>(dspWidth * dataWidth));
+                            static_cast<double>(dspWidth) * dataWidth);
   const auto dataY = qRound(this->ui.labelImageRaw->y /
-                            static_cast<double>(dspHeight * dataHeight));
+                            static_cast<double>(dspHeight) * dataHeight);
   const auto dataZ = this->ui.spinBoxImgIdx->value();
 
   const auto originX = 0.0; // 0
@@ -1732,18 +1733,31 @@ void CbctReconWidget::SLT_ViewRegistration() const
   m_dlgRegistration->show();
 }
 
-void CbctReconWidget::SLT_ViewHistogram() // default showing function
+void CbctReconWidget::SLT_ViewHistogram() const
+// default showing function
 {
-  /*
-  m_pDlgHistogram->show();
+  if (!m_dlgRegistration->m_spMoving) {
+    std::cerr << "Moving image not ready -> can't produce histogram!\n";
+    return;
+  }
+  m_dlgHistogram->show();
 
-  if (m_pDlgRegistration->m_spMoving) {
-          ForwardProjection(m_pDlgRegistration->m_spMoving, m_spCustomGeometry,
-  m_spProjImgCT3D, false); //final moving image
+  if (m_dlgRegistration->m_spMoving) {
+#if USE_CUDA
+    if (ui.radioButton_UseCUDA->isChecked()) {
+      m_cbctrecon->ForwardProjection<CUDAFloatImageType>(
+          m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
+          m_cbctrecon->m_spProjImgCT3D); // final moving image
+    } else
+#endif
+    {
+      m_cbctrecon->ForwardProjection<FloatImageType>(
+          m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
+          m_cbctrecon->m_spProjImgCT3D); // final moving image
+    }
   }
 
-  m_pDlgHistogram->SLT_DrawGraph();
-  */
+  m_dlgHistogram->SLT_DrawGraph();
 }
 
 void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {

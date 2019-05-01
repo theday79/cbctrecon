@@ -6,9 +6,6 @@
 
 #include <QDialog>
 #include <QFile>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QProcess>
 #include <QString>
 #include <qcombobox.h>
 

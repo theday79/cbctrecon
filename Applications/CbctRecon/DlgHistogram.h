@@ -1,33 +1,29 @@
-#pragma once
-#include "cbctrecon.h"
+#ifndef DLGHISTOGRAM_H
+#define DLGHISTOGRAM_H
+
 #include "ui_DlgHistogram.h"
 #include <QDialog>
-#include <QString>
 
+class CbctReconWidget;
 
-
-class DlgHistogram : public QDialog,
-	public Ui::DlgHistogramClass
-{
-    Q_OBJECT
+class DlgHistogram : public QDialog, public Ui::DlgHistogramClass {
+  Q_OBJECT
 
 public slots:
-	void SLT_DrawGraph();
-	void SLT_ReDrawGraph_dial();
-	void SLT_ReDrawGraph_limits();
-	void SLT_ReturnCF();
+  void SLT_DrawGraph() const;
+  void SLT_ReDrawGraph_dial() const;
+  void SLT_ReDrawGraph_limits() const;
+  void SLT_ReturnCF() const;
 
 public:
-	DlgHistogram();
-	DlgHistogram(QWidget *parent);
-	~DlgHistogram() override;
+  DlgHistogram();
+  explicit DlgHistogram(CbctReconWidget *parent);
+  ~DlgHistogram() = default;
 
-
-public: 
-    CbctRecon* m_pParent; //to pull 3D images 
-
+  CbctReconWidget *m_pParent{}; // to pull 3D images
 
 private:
-    Ui::DlgHistogramClass ui;
-	
+  Ui::DlgHistogramClass ui{};
 };
+
+#endif

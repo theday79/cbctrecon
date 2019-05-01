@@ -63,7 +63,7 @@
 #include <rtkFieldOfViewImageFilter.h>
 #include <rtkProjectionsReader.h>
 #include <rtkThreeDCircularProjectionGeometry.h>
-#include <rtkThreeDCircularProjectionGeometryXMLFile.h>
+#include <rtkThreeDCircularProjectionGeometryXMLFileWriter.h>
 #include <rtkVarianObiGeometryReader.h>
 #include <rtkVarianProBeamGeometryReader.h>
 
@@ -2665,7 +2665,7 @@ public:
 void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
                                       UShortImageType::Pointer &spProjCT3D,
                                       UShortImageType::Pointer &spProjScat3D,
-                                      double /*medianRadius*/,
+                                      double medianRadius,
                                       const double gaussianSigma,
                                       const int nonNegativeScatOffset,
                                       const bool bSave) {
@@ -2732,11 +2732,11 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
   const auto scaling =
       CalculateIntensityScaleFactorFromMeans(spProjRaw3D, spProjCT3D);
 
-  m_strCur_mAs = QString("%1,20").arg(64.0 * 40.0 / 20.0 / scaling);
+  m_strCur_mAs = QString("%1,20").arg((64.0 * 40.0 / 20.0) / scaling);
 
   m_strRef_mAs = QString("64,40");
 
-  const auto mAs_correctionFactor =
+  const auto mAs_correctionFactor = //  = 1 / scaling
       GetRawIntensityScaleFactor(m_strRef_mAs, m_strCur_mAs);
   for (auto i = 0; i < iSizeZ; i++) {
     FloatImage2DType::Pointer spImg2DRaw;
@@ -2791,7 +2791,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
     SmoothingFilterType::Pointer gaussianFilter = SmoothingFilterType::New();
     // gaussianFilter->SetInput(medianFilter->GetOutput());
     gaussianFilter->SetInput(spImg2DScat);
-    if (hisIsUsed) {
+    if (this->m_projFormat == HIS_FORMAT) {
       gaussianFilter->SetSigma(
           gaussianSigma); // filter specific setting for 512x 512 image
     } else {

@@ -1,261 +1,205 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
+
+#if USE_OPENMP
+#include <omp.h>
+#endif
+
 #include "DlgHistogram.h"
-#include "cbctrecon.h"
+#include "cbctrecon_mainwidget.h"
+#include "qcustomplot.h"
 
-#define MAX_USHORT 65535U
-
-DlgHistogram::DlgHistogram() : QDialog()
-{
-    /* Sets up the GUI */
-    ui.setupUi (this);
+DlgHistogram::DlgHistogram() {
+  /* Sets up the GUI */
+  ui.setupUi(this);
 }
 
-DlgHistogram::DlgHistogram(QWidget *parent) : QDialog(parent)
-{
-    /* Sets up the GUI */
-    ui.setupUi (this);
-    m_pParent = (CbctRecon*)(parent);
+DlgHistogram::DlgHistogram(CbctReconWidget *parent) : QDialog(parent) {
+  /* Sets up the GUI */
+  ui.setupUi(this);
+  m_pParent = parent;
 }
 
-DlgHistogram::~DlgHistogram()
-{
+struct HistogramType {
+  HistogramType(const size_t n_bins) {
+    hist_data = std::valarray<unsigned int>(n_bins);
+    bin_size =
+        static_cast<float>(std::numeric_limits<unsigned short>::max()) / n_bins;
+  }
+  std::valarray<unsigned int> hist_data;
+  float bin_size = 0.0f;
+};
+
+void threaded_calculate_histogram(
+    HistogramType &histogram_out,
+    const std::valarray<unsigned short> &raw_data) {
+  const auto bin_scaling = 1.f / histogram_out.bin_size;
+
+  for (auto &val : raw_data) {
+    ++histogram_out.hist_data[std::lroundf(val * bin_scaling)];
+  }
 }
 
-void threaded_calculate_histogram(unsigned int* histogram_out, const int n_bins, const size_t bin_size,
-	const unsigned short* raw_data, const size_t size_raw_data) {
-	assert(n_bins > 0);
+void DlgHistogram::SLT_DrawGraph() const {
+  auto &raw_img = m_pParent->m_cbctrecon->m_spProjImgRaw3D;
+  auto &ct_img = m_pParent->m_cbctrecon->m_spProjImgCT3D;
+  if (!raw_img || !ct_img) {
+    return;
+  }
 
-	size_t n_threads = 16U;
-	while ((size_raw_data % n_threads != 0U) && (n_threads >= 1U))
-		n_threads /= 2U;
+  const auto &raw_size = raw_img->GetLargestPossibleRegion().GetSize();
+  const auto size_raw_data = raw_size[0] * raw_size[1] * raw_size[2];
+  const std::valarray<unsigned short> raw_data(raw_img->GetBufferPointer(),
+                                               size_raw_data);
 
-#pragma omp parallel for shared(histogram_out)
-	for (int i = 0; i < (int)n_threads; i++) {
+  const auto &ct_size = raw_img->GetLargestPossibleRegion().GetSize();
+  const auto size_ct_data = ct_size[0] * ct_size[1] * ct_size[2];
+  const std::valarray<unsigned short> ct_data(ct_img->GetBufferPointer(),
+                                              size_ct_data);
 
-		unsigned int* histogram_local = new unsigned int[(size_t)n_bins];
+  const auto n_bins = static_cast<size_t>(ui.spinBox_nBins->value());
 
-#pragma omp parallel for // initialize to 0
-		for (int j = 0; j < n_bins; j++)
-			histogram_local[j] = 0;
-
-		for (size_t j = (i*size_raw_data / n_threads); j < ((i + 1)*size_raw_data / n_threads); j++)
-			histogram_local[(size_t)(raw_data[j]) / bin_size]++;
-
-#pragma omp critical
-		{
-#pragma omp parallel for // initialize to 0
-			for (int j = 0; j < n_bins; j++)
-				histogram_out[j] += histogram_local[j];
-		}
-
-		delete[] histogram_local;
-	}
-
-}
-
-void DlgHistogram::SLT_DrawGraph() //based on profile
-{
-	if (!m_pParent->m_spProjImgRaw3D || !m_pParent->m_spProjImgCT3D)
-		return;
-
-	const unsigned short* raw_data = m_pParent->m_spProjImgRaw3D->GetBufferPointer();
-	const size_t size_raw_data = 
-		m_pParent->m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize()[0] *
-		m_pParent->m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize()[1] *
-		m_pParent->m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize()[2];
-
-	const unsigned short* ct_data = m_pParent->m_spProjImgCT3D->GetBufferPointer();
-	const size_t size_ct_data =
-		m_pParent->m_spProjImgCT3D->GetLargestPossibleRegion().GetSize()[0] *
-		m_pParent->m_spProjImgCT3D->GetLargestPossibleRegion().GetSize()[1] *
-		m_pParent->m_spProjImgCT3D->GetLargestPossibleRegion().GetSize()[2];
-
-	const size_t n_bins = (size_t) ui.spinBox_nBins->value();
-	const size_t bin_size = MAX_USHORT / n_bins;
-
-	unsigned int* histogram_raw = new unsigned int[n_bins];
-	unsigned int* histogram_ct = new unsigned int[n_bins]; // same size should be enough, because raw projections are normalised at read time.
-
-	// initialize to 0
-#pragma omp parallel sections
-	{
-#pragma omp section
-		{
-			for (size_t i = 0; i < n_bins; i++)
-				histogram_raw[i] = 0;
-		}
-#pragma omp section
-		{
-			for (size_t i = 0; i < n_bins; i++)
-				histogram_ct[i] = 0;
-		}
-	}
+  HistogramType histogram_raw(n_bins);
+  HistogramType histogram_ct(n_bins);
+  // same size should be enough, because raw
+  // projections are normalised at read time.
 
 #pragma omp parallel sections
-	{
+  {
 #pragma omp section
-		{
-			threaded_calculate_histogram(histogram_raw, (int)n_bins, bin_size, raw_data, size_raw_data);
-		}
+    { threaded_calculate_histogram(histogram_raw, raw_data); }
 #pragma omp section
-		{
-			threaded_calculate_histogram(histogram_ct, (int)n_bins, bin_size, ct_data, size_raw_data);
-		}
-	}
+    { threaded_calculate_histogram(histogram_ct, ct_data); }
+  }
 
-	QVector<double> vAxisX; //can be rows or columns
-	QVector<double> vAxisY_raw;
-	QVector<double> vAxisY_ct;
+  QVector<double> vAxisX(n_bins);
+  auto i = 0U;
+  const auto bin_size = histogram_raw.bin_size;
+  std::generate(vAxisX.begin(), vAxisX.end(),
+                [&i, bin_size]() { return i * bin_size; });
+  QVector<double> vAxisY_raw;
+  std::copy(std::begin(histogram_raw.hist_data),
+            std::end(histogram_raw.hist_data), std::back_inserter(vAxisY_raw));
 
-	ui.customPlot->clearGraphs();
+  ui.customPlot->clearGraphs();
 
-	const double minX = 0.0;
-	double maxX = 0.0;
-	const double minY = 0.0;
-	double maxY = 0.0;
+  ui.customPlot->addGraph();
+  ui.customPlot->graph(0)->setData(vAxisX, vAxisY_raw);
+  ui.customPlot->graph(0)->setPen(QPen(Qt::red));
+  ui.customPlot->graph(0)->setName("Raw proj. histogram");
 
-	for (int i = 0; i< (int)n_bins; i++)
-	{
-		if (maxY < histogram_raw[i])
-			maxY = histogram_raw[i];
-		if (histogram_raw[i] > 0)
-			maxX = i * bin_size;
-		vAxisX.push_back(bin_size * i);
-		vAxisY_raw.push_back(histogram_raw[i]);
-		vAxisY_ct.push_back(histogram_ct[i]);
-	}
+  QVector<double> vAxisY_ct;
+  std::copy(std::begin(histogram_ct.hist_data),
+            std::end(histogram_ct.hist_data), std::back_inserter(vAxisY_ct));
+  ui.customPlot->addGraph();
+  ui.customPlot->graph(1)->setData(vAxisX, vAxisY_ct);
+  ui.customPlot->graph(1)->setPen(QPen(Qt::blue));
+  ui.customPlot->graph(1)->setName("CT fwd. proj. histogram");
 
-	ui.customPlot->addGraph();
-	ui.customPlot->graph(0)->setData(vAxisX, vAxisY_raw);
-	ui.customPlot->graph(0)->setPen(QPen(Qt::red));
-	ui.customPlot->graph(0)->setName("Raw proj. histogram");
+  // Set limits of graph
+  const auto minX = 0.0;
+  ui.lineEditXMin->setText(QString("%1").arg(minX));
 
-	ui.customPlot->addGraph();
-	ui.customPlot->graph(1)->setData(vAxisX, vAxisY_ct);
-	ui.customPlot->graph(1)->setPen(QPen(Qt::blue));
-	ui.customPlot->graph(1)->setName("CT fwd. proj. histogram");
+  auto maxX = 0.0;
+  size_t index = 0;
+  for (auto &val : histogram_raw.hist_data) {
+    if (val > 0) {
+      maxX = index * bin_size;
+    }
+    ++index;
+  }
+  ui.lineEditXMax->setText(QString("%1").arg(maxX));
 
-	ui.lineEditXMin->setText(QString("%1").arg(minX));
-	ui.lineEditXMax->setText(QString("%1").arg(maxX));
-	ui.lineEditYMin->setText(QString("%1").arg(minY));
-	ui.lineEditYMax->setText(QString("%1").arg(maxY));
+  const auto minY = 0.0;
+  ui.lineEditYMin->setText(QString("%1").arg(minY));
 
-	ui.customPlot->xAxis->setRange(minX, maxX);
-	ui.customPlot->yAxis->setRange(minY, maxY);
+  const auto maxY = histogram_raw.hist_data.max();
+  ui.lineEditYMax->setText(QString("%1").arg(maxY));
 
-	ui.customPlot->xAxis->setLabel("value");
-	ui.customPlot->yAxis->setLabel("N");
-	ui.customPlot->setTitle("Intensity histograms");
-	QFont titleFont = font();
-	titleFont.setPointSize(10);
-	ui.customPlot->setTitleFont(titleFont);
+  ui.customPlot->xAxis->setRange(minX, maxX);
+  ui.customPlot->yAxis->setRange(minY, maxY);
 
-	ui.customPlot->legend->setVisible(true);
-	QFont legendFont = font();  // start out with MainWindow's font..
-	legendFont.setPointSize(9); // and make a bit smaller for legend
-	ui.customPlot->legend->setFont(legendFont);
-	ui.customPlot->legend->setPositionStyle(QCPLegend::psTopRight);
-	ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
+  // Set labels
+  ui.customPlot->xAxis->setLabel("value");
+  ui.customPlot->yAxis->setLabel("N");
+  ui.customPlot->setWindowTitle("Intensity histograms");
 
-	ui.customPlot->replot();
-	
-	delete[] histogram_raw;
-	delete[] histogram_ct;
+  ui.customPlot->legend->setVisible(true);
+  auto legendFont = font();   // start out with MainWindow's font..
+  legendFont.setPointSize(9); // and make a bit smaller for legend
+  ui.customPlot->legend->setFont(legendFont);
+  ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
+
+  ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
 }
 
+void DlgHistogram::SLT_ReDrawGraph_limits() const {
 
-void DlgHistogram::SLT_ReDrawGraph_limits() //based on profile
-{
+  const auto tmpXMin = ui.lineEditXMin->text().toDouble();
+  const auto tmpXMax = ui.lineEditXMax->text().toDouble();
+  const auto tmpYMin = ui.lineEditYMin->text().toDouble();
+  const auto tmpYMax = ui.lineEditYMax->text().toDouble();
 
-	double tmpXMin = ui.lineEditXMin->text().toDouble();
-	double tmpXMax = ui.lineEditXMax->text().toDouble();
-	double tmpYMin = ui.lineEditYMin->text().toDouble();
-	double tmpYMax = ui.lineEditYMax->text().toDouble();
+  ui.customPlot->xAxis->setRange(tmpXMin, tmpXMax);
+  ui.customPlot->yAxis->setRange(tmpYMin, tmpYMax);
 
-	ui.customPlot->xAxis->setRange(tmpXMin, tmpXMax);
-	ui.customPlot->yAxis->setRange(tmpYMin, tmpYMax);
-
-	ui.customPlot->replot();
+  ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
 }
 
-void threaded_calculate_histogram_with_scaling(unsigned int* histogram_out, const int n_bins, const size_t bin_size, const float scaling, 
-	const unsigned short* raw_data, const size_t size_raw_data) {
+void threaded_calculate_histogram_with_scaling(
+    HistogramType &histogram_out, const float scaling,
+    const std::valarray<unsigned short> &raw_data) {
 
-	size_t n_threads = 16U;
-	while ((size_raw_data % n_threads != 0U) && (n_threads >= 1U))
-		n_threads /= 2U;
-
-	// 8 threads is probably ok for most systems
-#pragma omp parallel for
-	for (int i = 0; i < (int)n_threads; i++) {
-
-		unsigned int* histogram_local = new unsigned int[(size_t)n_bins];
-#pragma omp parallel for // initialize to 0
-		for (int j = 0; j < n_bins; j++)
-			histogram_local[j] = 0;
-
-		for (size_t j = (i*size_raw_data / n_threads); j < ((i + 1)*size_raw_data / n_threads); j++)
-			histogram_local[(size_t)(raw_data[j] * scaling) / bin_size] += 1;
-
-#pragma omp critical
-		{
-#pragma omp parallel for // initialize to 0
-			for (int j = 0; j < n_bins; j++)
-				histogram_out[j] += histogram_local[j];
-		}
-
-		delete[] histogram_local;
-	}
-
+  const auto bin_scaling = scaling / histogram_out.bin_size;
+  for (auto &val : raw_data) {
+    ++histogram_out.hist_data[std::lroundf(val * bin_scaling)];
+  }
 }
 
+void DlgHistogram::SLT_ReDrawGraph_dial() const {
+  auto &raw_img = m_pParent->m_cbctrecon->m_spProjImgRaw3D;
+  if (!raw_img) {
+    return;
+  }
 
-void DlgHistogram::SLT_ReDrawGraph_dial() //based on profile
-{
-	if (!m_pParent->m_spProjImgRaw3D || !m_pParent->m_spProjImgCT3D)
-		return;
+  const auto scaling =
+      (ui.dial->value() * 20.0f) / ui.dial->maximum(); // 0 to 20
 
-	float scaling = (ui.dial->value() * 20.0f) / 1023.0f; // 0 to 20
-	// psudo code for histogram
-	const unsigned short* raw_data = m_pParent->m_spProjImgRaw3D->GetBufferPointer();
-	const size_t size_raw_data =
-		m_pParent->m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize()[0] *
-		m_pParent->m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize()[1] *
-		m_pParent->m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize()[2];
+  const auto &raw_size = raw_img->GetLargestPossibleRegion().GetSize();
+  const auto size_raw_data = raw_size[0] * raw_size[1] * raw_size[2];
+  const std::valarray<unsigned short> raw_data(raw_img->GetBufferPointer(),
+                                               size_raw_data);
 
-	const int n_bins = ui.spinBox_nBins->value();
-	const size_t bin_size = MAX_USHORT / n_bins;
+  const auto n_bins = ui.spinBox_nBins->value();
 
-	unsigned int* histogram_raw = new unsigned int[(size_t)n_bins];
-#pragma omp parallel for // initialize to 0
-	for (int i = 0; i < n_bins; i++)
-		histogram_raw[i] = 0;
+  HistogramType histogram_raw(n_bins);
 
-	threaded_calculate_histogram_with_scaling(histogram_raw, n_bins, bin_size, scaling, raw_data, size_raw_data);
+  threaded_calculate_histogram_with_scaling(histogram_raw, scaling, raw_data);
 
-	QVector<double> vAxisX; //can be rows or columns
-	QVector<double> vAxisY_raw;
+  QVector<double> vAxisX(n_bins);
+  const auto bin_size = histogram_raw.bin_size;
+  auto i = 0U;
+  std::generate(vAxisX.begin(), vAxisX.end(),
+                [&i, bin_size]() { return i * bin_size; });
 
-	for (int i = 0; i< n_bins; i++)
-	{
-		vAxisX.push_back(bin_size * i);
-		vAxisY_raw.push_back(histogram_raw[i]);
-	}
+  QVector<double> vAxisY_raw(histogram_raw.hist_data.size());
+  std::copy(std::begin(histogram_raw.hist_data),
+            std::end(histogram_raw.hist_data), vAxisY_raw.begin());
 
-	ui.customPlot->graph(0)->setData(vAxisX, vAxisY_raw);
+  ui.customPlot->graph(0)->setData(vAxisX, vAxisY_raw);
 
-	ui.customPlot->replot();
+  ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
 
-	ui.lcdNumber->display(scaling);
-
-	delete[] histogram_raw;
+  ui.lcdNumber->display(scaling);
 }
 
 // CF = mAs_ref / mAs (ref = CT)
-void DlgHistogram::SLT_ReturnCF()
-{
-	float scaling = (ui.dial->value() * 20.0f) / 1023.0f; // 0 to 20
+void DlgHistogram::SLT_ReturnCF() const {
+  const auto scaling = ui.dial->value() * 20.0f / 1023.0f; // 0 to 20
 
-	m_pParent->ui.lineEdit_CurmAs->setText(QString("%1,20").arg((64 * 40 / 20) / scaling));
+  m_pParent->ui.lineEdit_CurmAs->setText(
+      QString("%1,20").arg((64.0 * 40.0 / 20.0) / scaling));
 
-	m_pParent->ui.lineEdit_RefmAs->setText(QString("64,40"));
+  m_pParent->ui.lineEdit_RefmAs->setText(QString("64,40"));
 }
