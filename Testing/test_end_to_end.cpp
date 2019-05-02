@@ -107,6 +107,7 @@ int main(const int argc, char *argv[]) {
   cbctrecon_test->m_dlgRegistration->LoadImgFromComboBox(0, raw_str);
   cbctrecon_test->m_dlgRegistration->LoadImgFromComboBox(1, man_str);
 
+  cbctrecon_test->m_dlgRegistration->SLT_MovingImageSelected("MANUAL_RIGID_CT");
   cbctrecon_test->m_dlgRegistration
       ->SLT_PreProcessCT(); // BODY should be selected
 

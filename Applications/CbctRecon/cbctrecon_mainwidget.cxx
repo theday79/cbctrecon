@@ -951,9 +951,9 @@ void CbctReconWidget::SLT_DataProbeProj() const {
     const auto dataHeight = p_ykproj->m_iHeight;
 
     const auto dataX = qRound(this->ui.labelImageRaw->x /
-                              static_cast<double>(dspWidth * dataWidth));
+                              static_cast<double>(dspWidth) * dataWidth);
     const auto dataY = qRound(this->ui.labelImageRaw->y /
-                              static_cast<double>(dspHeight * dataHeight));
+                              static_cast<double>(dspHeight) * dataHeight);
     const auto dataZ = this->ui.spinBoxImgIdx->value();
     const auto fProbeValue =
         static_cast<double>(p_ykproj->m_pData[dataWidth * dataY + dataX]);
