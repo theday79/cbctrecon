@@ -73,14 +73,13 @@ void DlgHistogram::SLT_DrawGraph() const {
     { threaded_calculate_histogram(histogram_ct, ct_data); }
   }
 
-  QVector<double> vAxisX(n_bins);
-  auto i = 0U;
-  const auto bin_size = histogram_raw.bin_size;
-  std::generate(vAxisX.begin(), vAxisX.end(),
-                [&i, bin_size]() { return i * bin_size; });
-  QVector<double> vAxisY_raw;
+  QVector<double> vAxisX(n_bins, histogram_raw.bin_size);
+  std::transform(vAxisX.begin(), vAxisX.end(), vAxisX.begin(),
+                 [i = 0](const double val) mutable { return val * i++; });
+
+  QVector<double> vAxisY_raw(n_bins);
   std::copy(std::begin(histogram_raw.hist_data),
-            std::end(histogram_raw.hist_data), std::back_inserter(vAxisY_raw));
+            std::end(histogram_raw.hist_data), std::begin(vAxisY_raw));
 
   ui.customPlot->clearGraphs();
 
@@ -105,7 +104,7 @@ void DlgHistogram::SLT_DrawGraph() const {
   size_t index = 0;
   for (auto &val : histogram_raw.hist_data) {
     if (val > 0) {
-      maxX = index * bin_size;
+      maxX = index * histogram_raw.bin_size;
     }
     ++index;
   }
@@ -131,7 +130,7 @@ void DlgHistogram::SLT_DrawGraph() const {
   ui.customPlot->legend->setFont(legendFont);
   ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
 
-  ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
+  ui.customPlot->replot();
 }
 
 void DlgHistogram::SLT_ReDrawGraph_limits() const {
@@ -144,7 +143,7 @@ void DlgHistogram::SLT_ReDrawGraph_limits() const {
   ui.customPlot->xAxis->setRange(tmpXMin, tmpXMax);
   ui.customPlot->yAxis->setRange(tmpYMin, tmpYMax);
 
-  ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
+  ui.customPlot->replot();
 }
 
 void threaded_calculate_histogram_with_scaling(
@@ -177,11 +176,9 @@ void DlgHistogram::SLT_ReDrawGraph_dial() const {
 
   threaded_calculate_histogram_with_scaling(histogram_raw, scaling, raw_data);
 
-  QVector<double> vAxisX(n_bins);
-  const auto bin_size = histogram_raw.bin_size;
-  auto i = 0U;
-  std::generate(vAxisX.begin(), vAxisX.end(),
-                [&i, bin_size]() { return i * bin_size; });
+  QVector<double> vAxisX(n_bins, histogram_raw.bin_size);
+  std::transform(vAxisX.begin(), vAxisX.end(), vAxisX.begin(),
+                 [i = 0](const double val) mutable { return val * i++; });
 
   QVector<double> vAxisY_raw(histogram_raw.hist_data.size());
   std::copy(std::begin(histogram_raw.hist_data),
@@ -189,7 +186,7 @@ void DlgHistogram::SLT_ReDrawGraph_dial() const {
 
   ui.customPlot->graph(0)->setData(vAxisX, vAxisY_raw);
 
-  ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
+  ui.customPlot->replot();
 
   ui.lcdNumber->display(scaling);
 }

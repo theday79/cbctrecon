@@ -1112,7 +1112,7 @@ void CbctReconWidget::SLT_DrawGraph() const
   this->ui.customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 200)));
 
   // std::cout << "check graph 5" << std::endl;
-  this->ui.customPlot->replot(QCustomPlot::RefreshPriority::rpQueuedRefresh);
+  this->ui.customPlot->replot();
 
   // SLT_UpdateTable();
 }

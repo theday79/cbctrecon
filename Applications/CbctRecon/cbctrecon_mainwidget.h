@@ -132,7 +132,7 @@ public slots:
   void SLT_ExportAngularWEPL_byFile();
   void SLT_GeneratePOIData() const;
   void SLT_LoadPOIData();
-  void SLT_StartSyncFromSharedMem();
+  static void SLT_StartSyncFromSharedMem();
   static void SLT_StopSyncFromSharedMem();
   void SLT_TimerEvent();
   void SLTM_ViewExternalCommand() const;
