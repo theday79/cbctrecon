@@ -21,20 +21,7 @@
 
 #include "cbctrecon_test.hpp"
 
-int main(const int argc, char *argv[]) {
-
-  if (argc < 3) {
-    std::cerr << "Usage:\n"
-              << argv[0]
-              << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
-    return -1;
-  }
-
-  std::cerr << "Running cbctrecon_test!\n";
-  auto cbctrecon_test = std::make_unique<CbctReconTest>();
-
-  const auto dcm_dir_str =
-      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+int load_dcm(CbctReconTest *cbctrecon_test, const QString &dcm_dir_str) {
 
   auto dcm_dir = QDir(dcm_dir_str);
   auto dcm_path = dcm_dir.absolutePath();
@@ -53,10 +40,12 @@ int main(const int argc, char *argv[]) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
     return -4;
   }
+  return 0;
+}
 
+int load_and_recon_cb(CbctReconTest *cbctrecon_test,
+                      const QString &cbct_dir_str) {
   /* Load projections (Needs to be uploaded to girder first) */
-  const auto cbct_dir_str =
-      QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
   auto cbct_dir = QDir(cbct_dir_str);
   auto cbct_path = cbct_dir.absolutePath();
   if (!cbct_dir.exists()) {
@@ -78,7 +67,7 @@ int main(const int argc, char *argv[]) {
   auto proj_path = proj_dir.absolutePath();
   cbctrecon_test->test_SetHisDir(proj_path);
 
-  auto start_time = std::chrono::steady_clock::now();
+  const auto start_time = std::chrono::steady_clock::now();
   if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path, true)) {
     std::cerr << "Could not load or reconstruct CB projections!"
               << "\n";
@@ -88,18 +77,17 @@ int main(const int argc, char *argv[]) {
     std::cerr << "Raw reconstruction was Null!\n";
     return -5;
   }
-  auto end_time = std::chrono::steady_clock::now();
+  const auto end_time = std::chrono::steady_clock::now();
   std::cerr << "Proj. was loaded and reconstructed in: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                      start_time)
                    .count()
             << " ms"
             << "\n";
+  return 0;
+}
 
-  /* Scatter correction algorithm "Batch" style */
-  // Move MovingImage by -7.0, -85.0, -237.0: By emulating
-  // DlgRegistration::ImageManualMove
-
+int do_all_registrations(CbctReconTest *cbctrecon_test) {
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(1);
   QString raw_str("RAW_CBCT");
@@ -111,6 +99,8 @@ int main(const int argc, char *argv[]) {
   cbctrecon_test->m_dlgRegistration
       ->SLT_PreProcessCT(); // BODY should be selected
 
+  // Move MovingImage by -7.0, -85.0, -237.0: By emulating
+  // DlgRegistration::ImageManualMove
   cbctrecon_test->m_dlgRegistration->SLT_KeyMoving(true);
   cbctrecon_test->m_dlgRegistration->ImageManualMoveOneShot(7.0f, 85.0f,
                                                             237.0f);
@@ -118,25 +108,68 @@ int main(const int argc, char *argv[]) {
 
   cbctrecon_test->m_dlgRegistration->SLT_DoRegistrationRigid();
   cbctrecon_test->m_dlgRegistration->SLT_DoRegistrationDeform();
+  return 0;
+}
 
-  /* WEPL structure test: */
+int calculate_wepl(CbctReconTest *cbctrecon_test) {
   auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
   for (auto &structure : ss->slist) {
     std::cerr << structure.name << "\n";
   }
 
   const auto voi = std::string("CTV1");
-  start_time = std::chrono::steady_clock::now();
+  const auto start_time = std::chrono::steady_clock::now();
   cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
       voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spDeformedCT_Final,
       cbctrecon_test->m_cbctrecon->m_spRawReconImg);
-  end_time = std::chrono::steady_clock::now();
+  const auto end_time = std::chrono::steady_clock::now();
   std::cerr << "WEPL was calculated in: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                      start_time)
                    .count()
             << " ms"
             << "\n";
+  return 0;
+}
+
+int main(const int argc, char *argv[]) {
+
+  if (argc < 3) {
+    std::cerr << "Usage:\n"
+              << argv[0]
+              << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
+    return -1;
+  }
+
+  std::cerr << "Running cbctrecon_test!\n";
+  auto cbctrecon_test = std::make_unique<CbctReconTest>();
+
+  const auto dcm_dir_str =
+      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+  auto ret_code = load_dcm(cbctrecon_test.get(), dcm_dir_str);
+  if (ret_code < 0) {
+    return ret_code;
+  }
+
+  const auto cbct_dir_str =
+      QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
+  ret_code = load_and_recon_cb(cbctrecon_test.get(), cbct_dir_str);
+  if (ret_code < 0) {
+    return ret_code;
+  }
+
+  ret_code = do_all_registrations(cbctrecon_test.get());
+  if (ret_code < 0) {
+    return ret_code;
+  }
+
+  /* Scatter correction algorithm "Batch" style */
+
+  /* WEPL structure test: */
+  ret_code = calculate_wepl(cbctrecon_test.get());
+  if (ret_code < 0) {
+    return ret_code;
+  }
 
   /* Some verification of the WEPL results should go here */
 

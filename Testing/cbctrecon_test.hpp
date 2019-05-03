@@ -16,7 +16,7 @@
 class CbctReconTest {
 public:
   CbctReconTest();
-  //~CbctReconTest() = default;
+  ~CbctReconTest() = default;
 
   static FDK_options getFDKoptions() {
     return FDK_options{}; // Uses default options
@@ -30,7 +30,8 @@ private:
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon = std::make_unique<CbctRecon>();
   std::unique_ptr<CbctRegistration> m_cbctregistration; // just for convienience
-  std::unique_ptr<CbctRegistrationTest> m_dlgRegistration; // just for convienience
+  std::unique_ptr<CbctRegistrationTest>
+      m_dlgRegistration; // just for convienience
   std::unique_ptr<QStandardItemModel> m_pTableModel;
 
   // still public:

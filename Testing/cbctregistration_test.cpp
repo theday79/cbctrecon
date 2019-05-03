@@ -32,6 +32,8 @@ CbctRegistrationTest::CbctRegistrationTest() {
   m_AGDisp_Overlay = nullptr;
   ui_comboBoxImgFixed = std::make_unique<MyQComboBox>();
   ui_comboBoxImgMoving = std::make_unique<MyQComboBox>();
+  ui_comboBox_VOI = std::make_unique<MyQComboBox>();
+  ui_comboBox_VOItoCropBy = std::make_unique<MyQComboBox>();
 }
 
 CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
@@ -48,6 +50,8 @@ CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
   m_AGDisp_Overlay = &m_cbctregistration->m_AGDisp_Overlay[0];
   ui_comboBoxImgFixed = std::make_unique<MyQComboBox>();
   ui_comboBoxImgMoving = std::make_unique<MyQComboBox>();
+  ui_comboBox_VOI = std::make_unique<MyQComboBox>();
+  ui_comboBox_VOItoCropBy = std::make_unique<MyQComboBox>();
 }
 
 void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
