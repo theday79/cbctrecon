@@ -69,8 +69,9 @@ bool CBCTRECON_API AlterData_RTStructureSetStorage(
     const QFile &input_file, const Rtss_modern *input_rt_struct,
     const QFile &output_file);
 
-void CBCTRECON_API ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
-                                       ShortImageType::Pointer &spImgShort);
+void CBCTRECON_API
+ConvertUshort2Short(const UShortImageType::Pointer &spImgUshort,
+                    ShortImageType::Pointer &spImgShort);
 
 void CBCTRECON_API
 ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,

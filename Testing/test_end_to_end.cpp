@@ -118,9 +118,10 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
   }
 
   const auto voi = std::string("CTV1");
+  auto orig_voi = ss->get_roi_by_name(voi);
   const auto start_time = std::chrono::steady_clock::now();
-  cbctrecon_test->m_cbctregistration->CalculateWEPLtoVOI(
-      voi, 45, 45, cbctrecon_test->m_cbctrecon->m_spDeformedCT_Final,
+  auto wepl_voi = CalculateWEPLtoVOI(
+      orig_voi.get(), 45, 45, cbctrecon_test->m_cbctrecon->m_spDeformedCT_Final,
       cbctrecon_test->m_cbctrecon->m_spRawReconImg);
   const auto end_time = std::chrono::steady_clock::now();
   std::cerr << "WEPL was calculated in: "
@@ -132,27 +133,15 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
   return 0;
 }
 
-int main(const int argc, char *argv[]) {
+int end_to_end_test(const QString &dcm_dir_str, const QString &cbct_dir_str) {
 
-  if (argc < 3) {
-    std::cerr << "Usage:\n"
-              << argv[0]
-              << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
-    return -1;
-  }
-
-  std::cerr << "Running cbctrecon_test!\n";
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
-  const auto dcm_dir_str =
-      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
   auto ret_code = load_dcm(cbctrecon_test.get(), dcm_dir_str);
   if (ret_code < 0) {
     return ret_code;
   }
 
-  const auto cbct_dir_str =
-      QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
   ret_code = load_and_recon_cb(cbctrecon_test.get(), cbct_dir_str);
   if (ret_code < 0) {
     return ret_code;
@@ -172,6 +161,29 @@ int main(const int argc, char *argv[]) {
   }
 
   /* Some verification of the WEPL results should go here */
+
+  return 0;
+}
+
+int main(const int argc, char *argv[]) {
+
+  if (argc < 3) {
+    std::cerr << "Usage:\n"
+              << argv[0]
+              << " ./dicom/directory.tar.gz ./CB_proj/directory.tar.gz\n";
+    return -1;
+  }
+
+  const auto dcm_dir_str =
+      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+  const auto cbct_dir_str =
+      QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
+
+  std::cerr << "Running cbctrecon_test!\n";
+  const auto ret_code = end_to_end_test(dcm_dir_str, cbct_dir_str);
+  if (ret_code < 0) {
+    return ret_code;
+  }
 
   return 0;
 }

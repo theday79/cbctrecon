@@ -1362,12 +1362,18 @@ void CbctRegistrationTest::SLT_gPMCrecalc(std::vector<QString> &dcm_plans,
 }
 
 void CbctRegistrationTest::SLT_WEPLcalc(const int gantry_angle,
-                                        const int couch_angle) {
+                                        const int couch_angle) const {
   // Get VOI
   const auto voi_name = this->ui_comboBox_VOI->currentText().toStdString();
 
-  m_cbctregistration->CalculateWEPLtoVOI(voi_name, gantry_angle, couch_angle,
-                                         m_spMoving, m_spFixed);
+  const auto ct_type = get_ctType(ui_comboBoxImgMoving->currentText());
+  const auto ss = m_pParent->m_cbctrecon->m_structures->get_ss(ct_type);
+  m_cbctregistration->cur_voi = ss->get_roi_by_name(voi_name);
+
+  const auto wepl_voi =
+      CalculateWEPLtoVOI(m_cbctregistration->cur_voi.get(), gantry_angle,
+                         couch_angle, m_spMoving, m_spFixed);
+  m_cbctregistration->WEPL_voi = std::make_unique<Rtss_roi_modern>(*wepl_voi);
   // Draw WEPL
 }
 

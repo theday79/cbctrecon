@@ -96,7 +96,7 @@ public:
   void SLT_ManualMoveByDCMPlan();
   void SLT_ManualMoveByDCMPlanOpen(QString &filePath);
   void SLT_gPMCrecalc(std::vector<QString> &dcm_plans, size_t n_sims);
-  void SLT_WEPLcalc(int gantry_angle, int couch_angle);
+  void SLT_WEPLcalc(int gantry_angle, int couch_angle) const;
   void SLT_DoEclRegistration(const DoubleVector &translation_vec,
                              const DoubleVector &rotation_vec);
   void SLT_ResetEclRegistration();

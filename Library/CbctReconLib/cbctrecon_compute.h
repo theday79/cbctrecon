@@ -112,8 +112,8 @@ GetFOVRadius(const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
   auto r_inf = -1.0;
   bool hasOverlap = FOVfilter->ComputeFOVRadius(
       FOVfilterType::FOVRadiusType::RADIUSINF, x, z, r_inf);
-  // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems to
-  // work for fullfan, so we'll use that.
+  // halffan gives r(BOTH)~25, r(SUP)~25, r(INF)~232 -> RADIUSINF also seems
+  // to work for fullfan, so we'll use that.
 
   if (hasOverlap) {
     std::cout << "FOV (inf) radius was found: r=" << r_inf << std::endl;

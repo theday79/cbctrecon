@@ -134,7 +134,7 @@ public slots:
   void SLT_PassFixedImgForAnalysis();
   void SLT_PassMovingImgForAnalysis();
 
-  void SLT_ExchangeRawRef();
+  static void SLT_ExchangeRawRef();
 
   /* After manual move: this will trigger skin cropping and uncheck the key
    * moving*/

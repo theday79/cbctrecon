@@ -1103,7 +1103,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
 
 // From DlgRegistration
 
-void ConvertUshort2Short(UShortImageType::Pointer &spImgUshort,
+void ConvertUshort2Short(const UShortImageType::Pointer &spImgUshort,
                          ShortImageType::Pointer &spImgShort) {
   using ThresholdImageFilterType = itk::ThresholdImageFilter<UShortImageType>;
   auto thresholdFilter = ThresholdImageFilterType::New();

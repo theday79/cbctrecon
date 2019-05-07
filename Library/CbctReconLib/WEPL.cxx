@@ -13,6 +13,7 @@
 #include <itkFixedArray.h> // for FixedArray
 #include <itkImage.h> // for Image<>::Pointer, Image, Image<>::IndexType, Image<>::PointType
 #include <itkImageFileWriter.h> // for ImageFileWriter
+#include <itkLinearInterpolateImageFunction.h>
 #include <itkMacro.h> // for CastImageFilter::New, ImageFileWriter::New
 #include <itkUnaryFunctorImageFilter.h>
 #include <vnl_vector_fixed.h> // for vnl_vector_fixed
@@ -308,7 +309,7 @@ FloatImageType::PointType point_from_WEPL(
   }
 
   const auto point_idx_vec = element_product(point, inv_pixel_size);
-  auto point_idx = itk::ContinuousIndex<double, 3>(&point_idx_vec[0]);
+  const auto point_idx = itk::ContinuousIndex<double, 3>(&point_idx_vec[0]);
 
   auto out_point = FloatImageType::PointType();
 
@@ -480,7 +481,7 @@ public:
 };
 
 FloatImageType::Pointer
-ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
+ConvertUshort2WeplFloat(const UShortImageType::Pointer &spImgUshort) {
   ShortImageType::Pointer hu_image_tmp;
   ConvertUshort2Short(spImgUshort, hu_image_tmp);
 
@@ -492,4 +493,51 @@ ConvertUshort2WeplFloat(UShortImageType::Pointer &spImgUshort) {
   const auto wepl_image = hu_to_dedx_filter->GetOutput();
 
   return wepl_image;
+}
+
+Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
+                                    const double gantry_angle,
+                                    const double couch_angle,
+                                    const UShortImageType::Pointer &spMoving,
+                                    const UShortImageType::Pointer &spFixed) {
+
+  // Get basis from angles
+  const auto vec_basis = get_basis_from_angles(gantry_angle, couch_angle);
+
+  // Get Fixed and Moving
+  // Tranlate fixed and moving to dEdx
+  const auto wepl_cube = ConvertUshort2WeplFloat(spMoving);
+  const auto wepl_cube_fixed = ConvertUshort2WeplFloat(spFixed);
+
+  // Initialize WEPL contour
+  auto WEPL_voi = std::make_unique<Rtss_roi_modern>();
+  WEPL_voi->name = "WEPL" + voi->name;
+  WEPL_voi->color = "255 0 0";
+  WEPL_voi->id = voi->id;   /* Used for import/export (must be >= 1) */
+  WEPL_voi->bit = voi->bit; /* Used for ss-img (-1 for no bit) */
+  WEPL_voi->num_contours = voi->num_contours;
+  WEPL_voi->pslist.resize(WEPL_voi->num_contours);
+
+  auto i = 0U;
+  // Calculate WEPL
+  for (const auto &contour : voi->pslist) {
+    auto WEPL_contour = std::make_unique<Rtss_contour_modern>(contour);
+    WEPL_contour->ct_slice_uid = contour.ct_slice_uid;
+    WEPL_contour->slice_no = contour.slice_no;
+    WEPL_contour->num_vertices = contour.num_vertices;
+    // Actually calculate WEPL on spMoving
+    auto WEPL_points =
+        WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
+
+    // Inversely calc WEPL on spFixed
+    // And put WEPL point in contour
+    std::transform(std::begin(WEPL_points), std::end(WEPL_points),
+                   std::begin(WEPL_contour->coordinates),
+                   [&vec_basis, &wepl_cube_fixed](const WEPLVector &val) {
+                     return NewPoint_from_WEPLVector(val, vec_basis,
+                                                     wepl_cube_fixed);
+                   });
+    WEPL_voi->pslist.at(i++) = *WEPL_contour.release();
+  }
+  return WEPL_voi.release();
 }

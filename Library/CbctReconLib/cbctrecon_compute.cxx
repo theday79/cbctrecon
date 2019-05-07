@@ -6,10 +6,6 @@
 #include "cbctrecon_compute.h"
 #include "cbctrecon.h"
 
-#ifdef USE_OPENMP
-#include <omp.h> // Resharper lies, omp is used
-#endif
-
 // Qt
 #include <qxmlstream.h>
 
