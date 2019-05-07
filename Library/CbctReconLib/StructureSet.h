@@ -32,6 +32,20 @@ public:
   void ApplyVectorTransformTo(const FloatVector &vec) {
     transform_by_vector(CT_TYPE, vec, m_rigid_ss);
   };
+  template <ctType CT_TYPE>
+  void ApplyVectorTransformOn(const FloatVector &vec) {
+    switch (CT_TYPE) {
+    case PLAN_CT:
+      transform_by_vector(CT_TYPE, vec, m_plan_ss);
+      break;
+    case RIGID_CT:
+      transform_by_vector(CT_TYPE, vec, m_rigid_ss);
+      break;
+    case DEFORM_CT:
+      transform_by_vector(CT_TYPE, vec, m_deform_ss);
+      break;
+    }
+  };
 
   template <ctType CT_TYPE> bool ApplyTransformTo(const QFile &transform_file) {
     auto xform = Xform::New();

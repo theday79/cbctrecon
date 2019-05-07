@@ -20,6 +20,7 @@ public:
   std::unique_ptr<CbctRegistration> m_cbctregistration;
   UShortImageType::Pointer m_spFixed;  // pointer only, for display
   UShortImageType::Pointer m_spMoving; // pointer only, for display
+  std::unique_ptr<MyQComboBox> ui_comboBox_VOItoCropBy;
 
 private: // Just pointers to m_cbctregistration members, for convienience
   YK16GrayImage *m_YKImgFixed;
@@ -57,7 +58,6 @@ private: // Just pointers to m_cbctregistration members, for convienience
   std::unique_ptr<MyQComboBox> ui_comboBoxImgMoving;
   std::unique_ptr<MyQComboBox> ui_comboBoxImgFixed;
   std::unique_ptr<MyQComboBox> ui_comboBox_VOI;
-  std::unique_ptr<MyQComboBox> ui_comboBox_VOItoCropBy;
   bool ui_radioButton_mse = true;
   bool ui_radioButton_UseCUDA = false;
   bool ui_radioButton_UseCPU = true;

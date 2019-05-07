@@ -36,7 +36,7 @@ get_image_from_dicom(const QString &dir, const DoubleVector &translation_vec,
 
   cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
   cbctrecon_test->test_LoadDICOMdir();
-  auto &ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+  auto ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
 
   if (ct_img.IsNull()) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
@@ -164,12 +164,17 @@ int main(const int argc, char *argv[]) {
   cbctrecon_test->m_dlgRegistration->LoadImgFromComboBox(1, man_str);
 
   cbctrecon_test->m_dlgRegistration->SLT_MovingImageSelected("MANUAL_RIGID_CT");
+  const auto body_index =
+      cbctrecon_test->m_dlgRegistration->ui_comboBox_VOItoCropBy->findText(
+          "BODY", Qt::MatchStartsWith | Qt::MatchCaseSensitive);
+  cbctrecon_test->m_dlgRegistration->ui_comboBox_VOItoCropBy->setCurrentIndex(
+      body_index);
   cbctrecon_test->m_dlgRegistration
       ->SLT_PreProcessCT(); // BODY should be selected
 
   cbctrecon_test->m_dlgRegistration->SLT_KeyMoving(true);
   cbctrecon_test->m_dlgRegistration->ImageManualMoveOneShot(
-      -translation.x, -translation.y, -translation.z);
+      translation.x, translation.y, translation.z);
   cbctrecon_test->m_dlgRegistration->SLT_ConfirmManualRegistration();
   cbctrecon_test->m_dlgRegistration->SLT_DoRegistrationRigid();
 

@@ -548,6 +548,7 @@ void CbctRegistrationTest::ImageManualMoveOneShot(const float shiftX,
   strDelta.sprintf(
       "delta(mm): %3.1f, %3.1f, %3.1f", imgOrigin[0] - imgOriginRef[0],
       imgOrigin[1] - imgOriginRef[1], imgOrigin[2] - imgOriginRef[2]);
+  std::cerr << strDelta.toStdString() << "\n";
 }
 
 void CbctRegistrationTest::SLT_KeyMoving(
@@ -1215,15 +1216,11 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
                          static_cast<float>(planIso.y),
                          static_cast<float>(planIso.z));
 
-  const auto trn_vec =
-      FloatVector{static_cast<float>(planIso.x), static_cast<float>(planIso.y),
-                  static_cast<float>(planIso.z)};
+  const auto trn_vec = FloatVector{static_cast<float>(-planIso.x),
+                                   static_cast<float>(-planIso.y),
+                                   static_cast<float>(-planIso.z)};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  if (structs->get_ss(RIGID_CT) != nullptr) {
-    structs->ApplyVectorTransformTo<RIGID_CT>(trn_vec);
-  } else {
-    structs->ApplyVectorTransformTo<PLAN_CT>(trn_vec);
-  }
+  structs->ApplyVectorTransformOn<PLAN_CT>(trn_vec);
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
@@ -1451,11 +1448,7 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
                   static_cast<float>(-trn[-2])};
 
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  if (structs->get_ss(RIGID_CT) != nullptr) {
-    structs->ApplyVectorTransformTo<RIGID_CT>(trn_vec);
-  } else {
-    structs->ApplyVectorTransformTo<PLAN_CT>(trn_vec);
-  }
+  structs->ApplyVectorTransformOn<PLAN_CT>(trn_vec);
 
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
                          static_cast<float>(-trn[1]),
@@ -1589,10 +1582,10 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
 
   fout.close();
 
-  const auto trn_vec =
-      FloatVector{static_cast<float>(fShift[0]), static_cast<float>(fShift[1]),
-                  static_cast<float>(fShift[2])};
-  m_cbctregistration->m_pParent->m_structures->ApplyVectorTransformTo<PLAN_CT>(
+  const auto trn_vec = FloatVector{static_cast<float>(-fShift[0]),
+                                   static_cast<float>(-fShift[1]),
+                                   static_cast<float>(-fShift[2])};
+  m_cbctregistration->m_pParent->m_structures->ApplyVectorTransformOn<PLAN_CT>(
       trn_vec);
 
   std::cout << "Writing manual registration transform info is done."
