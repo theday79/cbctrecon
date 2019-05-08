@@ -428,6 +428,68 @@ DCM_MODALITY get_dcm_modality(const QString &filename) {
   return RTUNKNOWN;
 }
 
+bool check_rtss_dicom_integrity(const gdcm::DataSet &ds) {
+  const auto trefframerefsq = gdcm::Tag(0x3006, 0x0010);
+  if (!ds.FindDataElement(trefframerefsq)) {
+    return false;
+  }
+  const auto &refframerefsq = ds.GetDataElement(trefframerefsq);
+  auto sqi0 = refframerefsq.GetValueAsSQ();
+  if (!sqi0 || !sqi0->GetNumberOfItems()) {
+    return false;
+  }
+  for (unsigned int pd = 0; pd < sqi0->GetNumberOfItems(); ++pd) {
+    const auto &item0 = sqi0->GetItem(pd + 1); // Item start at #1
+    const auto &nestedds0 = item0.GetNestedDataSet();
+    // RTReferencedStudySequence
+
+    gdcm::Tag trtrefstudysq(0x3006, 0x0012);
+    if (!nestedds0.FindDataElement(trtrefstudysq)) {
+      return false;
+    }
+    const auto &rtrefstudysq = nestedds0.GetDataElement(trtrefstudysq);
+    auto sqi00 = rtrefstudysq.GetValueAsSQ();
+    if (!sqi00 || !sqi00->GetNumberOfItems()) {
+      return false;
+    }
+    assert(sqi00->GetNumberOfItems() == 1);
+    for (unsigned int pd0 = 0; pd0 < sqi00->GetNumberOfItems(); ++pd0) {
+      const auto &item00 = sqi00->GetItem(pd0 + 1); // Item start at #1
+      const auto &nestedds00 = item00.GetNestedDataSet();
+
+      // RTReferencedSeriesSequence
+      auto trtrefseriessq = gdcm::Tag(0x3006, 0x0014);
+      if (!nestedds00.FindDataElement(trtrefseriessq)) {
+        return false;
+      }
+      const auto &rtrefseriessq = nestedds00.GetDataElement(trtrefseriessq);
+
+      auto sqi000 = rtrefseriessq.GetValueAsSQ();
+      if (!sqi000 || !sqi000->GetNumberOfItems()) {
+        return false;
+      }
+      assert(sqi000->GetNumberOfItems() == 1);
+      for (unsigned int pd00 = 0; pd00 < sqi000->GetNumberOfItems(); ++pd00) {
+        const auto &item000 = sqi000->GetItem(pd00 + 1); // Item start at #1
+        const auto &nestedds000 = item000.GetNestedDataSet();
+
+        // ContourImageSequence
+        gdcm::Tag tcontourimageseq(0x3006, 0x0016);
+        if (!nestedds000.FindDataElement(tcontourimageseq)) {
+          return false;
+        }
+        const auto &contourimageseq =
+            nestedds000.GetDataElement(tcontourimageseq);
+        const auto sqi0000 = contourimageseq.GetValueAsSQ();
+        if (!sqi0000 || !sqi0000->GetNumberOfItems()) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 // From GDCM vtkGDCMPolyDataReader, with modification:
 std::unique_ptr<Rtss_modern>
 RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
@@ -447,67 +509,11 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
   if (!ds.FindDataElement(tssroisq)) {
     return nullptr;
   }
-  const auto trefframerefsq = gdcm::Tag(0x3006, 0x0010);
-  if (!ds.FindDataElement(trefframerefsq)) {
+
+  const auto input_good = check_rtss_dicom_integrity(ds);
+  if (!input_good) {
+    std::cerr << "Rtss dicom input does not contain required fields\n";
     return nullptr;
-  }
-  const auto &refframerefsq = ds.GetDataElement(trefframerefsq);
-  auto sqi0 = refframerefsq.GetValueAsSQ();
-  if (!sqi0 || !sqi0->GetNumberOfItems()) {
-    return nullptr;
-  }
-  // assert( sqi0->GetNumberOfItems() == 1 );
-  for (unsigned int pd = 0; pd < sqi0->GetNumberOfItems(); ++pd) {
-    const auto &item0 = sqi0->GetItem(pd + 1); // Item start at #1
-    const auto &nestedds0 = item0.GetNestedDataSet();
-    // (3006,0012) SQ (Sequence with undefined length #=1)     # u/l, 1
-    // RTReferencedStudySequence
-
-    gdcm::Tag trtrefstudysq(0x3006, 0x0012);
-    if (!nestedds0.FindDataElement(trtrefstudysq)) {
-      return nullptr;
-    }
-    const auto &rtrefstudysq = nestedds0.GetDataElement(trtrefstudysq);
-    auto sqi00 = rtrefstudysq.GetValueAsSQ();
-    if (!sqi00 || !sqi00->GetNumberOfItems()) {
-      return nullptr;
-    }
-    assert(sqi00->GetNumberOfItems() == 1);
-    for (unsigned int pd0 = 0; pd0 < sqi00->GetNumberOfItems(); ++pd0) {
-      const auto &item00 = sqi00->GetItem(pd0 + 1); // Item start at #1
-      const auto &nestedds00 = item00.GetNestedDataSet();
-
-      // (3006,0014) SQ (Sequence with undefined length #=1)     # u/l, 1
-      // RTReferencedSeriesSequence
-      auto trtrefseriessq = gdcm::Tag(0x3006, 0x0014);
-      if (!nestedds00.FindDataElement(trtrefseriessq)) {
-        return nullptr;
-      }
-      const auto &rtrefseriessq = nestedds00.GetDataElement(trtrefseriessq);
-
-      auto sqi000 = rtrefseriessq.GetValueAsSQ();
-      if (!sqi000 || !sqi000->GetNumberOfItems()) {
-        return nullptr;
-      }
-      assert(sqi000->GetNumberOfItems() == 1);
-      for (unsigned int pd00 = 0; pd00 < sqi000->GetNumberOfItems(); ++pd00) {
-        const auto &item000 = sqi000->GetItem(pd00 + 1); // Item start at #1
-        const auto &nestedds000 = item000.GetNestedDataSet();
-
-        // (3006,0016) SQ (Sequence with undefined length #=162)   # u/l, 1
-        // ContourImageSequence
-        gdcm::Tag tcontourimageseq(0x3006, 0x0016);
-        if (!nestedds000.FindDataElement(tcontourimageseq)) {
-          return nullptr;
-        }
-        const auto &contourimageseq =
-            nestedds000.GetDataElement(tcontourimageseq);
-        const auto sqi0000 = contourimageseq.GetValueAsSQ();
-        if (!sqi0000 || !sqi0000->GetNumberOfItems()) {
-          return nullptr;
-        }
-      }
-    }
   }
 
   const auto &roicsq = ds.GetDataElement(troicsq);
@@ -547,19 +553,9 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
     // structuresetroi.ROIName = s;
     auto roinumber = gdcm::Attribute<0x3006, 0x0022>();
     roinumber.SetFromDataSet(snestedds);
-    // structuresetroi.ROINumber = roinumber.GetValue();
-    gdcm::Attribute<0x3006, 0x0024> refframeuid;
-    refframeuid.SetFromDataSet(snestedds);
-    // structuresetroi.RefFrameRefUID = refframeuid.GetValue();
     gdcm::Attribute<0x3006, 0x0026> roiname;
     roiname.SetFromDataSet(snestedds);
-    gdcm::Attribute<0x3006, 0x0028> roidesc;
-    roidesc.SetFromDataSet(snestedds);
     assert(s == roiname.GetValue());
-    gdcm::Attribute<0x3006, 0x0036> roigenalg;
-    roigenalg.SetFromDataSet(snestedds);
-    // structuresetroi.ROIGenerationAlgorithm = roigenalg.GetValue();
-    // structuresetrois.push_back( structuresetroi );
 
     auto &rt_roi = rt_struct->slist.at(pd);
     rt_roi.name = roiname.GetValue();
@@ -702,91 +698,29 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
     return false;
   }
 
-  const auto &ds = reader.GetFile().GetDataSet();
-  // (3006,0010) SQ (Sequence with undefined length #=1)     # u/l, 1
-  // ReferencedFrameOfReferenceSequence (3006,0020) SQ (Sequence with explicit
-  // length #=4)      # 370, 1 StructureSetROISequence (3006,0039) SQ (Sequence
-  // with explicit length #=4)      # 24216, 1 ROIContourSequence
+  auto &file = reader.GetFile();
+  auto &ds = file.GetDataSet();
+
+  const auto input_good = check_rtss_dicom_integrity(ds);
+  if (!input_good) {
+    std::cerr << "Rtss dicom input does not contain required fields\n";
+    return false;
+  }
+
   const auto troicsq = gdcm::Tag(0x3006, 0x0039);
   if (!ds.FindDataElement(troicsq)) {
+    return false;
+  }
+  auto &roicsq = ds.GetDataElement(troicsq);
+  auto sqi = roicsq.GetValueAsSQ();
+  if (!sqi || !sqi->GetNumberOfItems()) {
     return false;
   }
   const auto tssroisq = gdcm::Tag(0x3006, 0x0020);
   if (!ds.FindDataElement(tssroisq)) {
     return false;
   }
-  const auto trefframerefsq = gdcm::Tag(0x3006, 0x0010);
-  if (!ds.FindDataElement(trefframerefsq)) {
-    return false;
-  }
-  const auto &refframerefsq = ds.GetDataElement(trefframerefsq);
-  auto sqi0 = refframerefsq.GetValueAsSQ();
-  if (!sqi0 || !sqi0->GetNumberOfItems()) {
-    return false;
-  }
-  // assert( sqi0->GetNumberOfItems() == 1 );
-  for (unsigned int pd = 0; pd < sqi0->GetNumberOfItems(); ++pd) {
-    const auto &item0 = sqi0->GetItem(pd + 1); // Item start at #1
-    const auto &nestedds0 = item0.GetNestedDataSet();
-    // (3006,0012) SQ (Sequence with undefined length #=1)     # u/l, 1
-    // RTReferencedStudySequence
-
-    gdcm::Tag trtrefstudysq(0x3006, 0x0012);
-    if (!nestedds0.FindDataElement(trtrefstudysq)) {
-      return false;
-    }
-    const auto &rtrefstudysq = nestedds0.GetDataElement(trtrefstudysq);
-    auto sqi00 = rtrefstudysq.GetValueAsSQ();
-    if (!sqi00 || !sqi00->GetNumberOfItems()) {
-      return false;
-    }
-    assert(sqi00->GetNumberOfItems() == 1);
-    for (unsigned int pd0 = 0; pd0 < sqi00->GetNumberOfItems(); ++pd0) {
-      const auto &item00 = sqi00->GetItem(pd0 + 1); // Item start at #1
-      const auto &nestedds00 = item00.GetNestedDataSet();
-
-      // (3006,0014) SQ (Sequence with undefined length #=1)     # u/l, 1
-      // RTReferencedSeriesSequence
-      auto trtrefseriessq = gdcm::Tag(0x3006, 0x0014);
-      if (!nestedds00.FindDataElement(trtrefseriessq)) {
-        return false;
-      }
-      const auto &rtrefseriessq = nestedds00.GetDataElement(trtrefseriessq);
-
-      auto sqi000 = rtrefseriessq.GetValueAsSQ();
-      if (!sqi000 || !sqi000->GetNumberOfItems()) {
-        return false;
-      }
-      assert(sqi000->GetNumberOfItems() == 1);
-      for (unsigned int pd00 = 0; pd00 < sqi000->GetNumberOfItems(); ++pd00) {
-        const auto &item000 = sqi000->GetItem(pd00 + 1); // Item start at #1
-        const auto &nestedds000 = item000.GetNestedDataSet();
-
-        // (3006,0016) SQ (Sequence with undefined length #=162)   # u/l, 1
-        // ContourImageSequence
-        gdcm::Tag tcontourimageseq(0x3006, 0x0016);
-        if (!nestedds000.FindDataElement(tcontourimageseq)) {
-          return false;
-        }
-        const auto &contourimageseq =
-            nestedds000.GetDataElement(tcontourimageseq);
-        const auto sqi0000 = contourimageseq.GetValueAsSQ();
-        if (!sqi0000 || !sqi0000->GetNumberOfItems()) {
-          return false;
-        }
-      }
-    }
-  }
-
-  const auto &roicsq = ds.GetDataElement(troicsq);
-  // std::cout << roicsq << std::endl;
-  // const gdcm::SequenceOfItems *sqi_debug = roicsq.GetSequenceOfItems();
-  auto sqi = roicsq.GetValueAsSQ();
-  if (!sqi || !sqi->GetNumberOfItems()) {
-    return false;
-  }
-  const auto &ssroisq = ds.GetDataElement(tssroisq);
-  // const gdcm::SequenceOfItems *ssqi = ssroisq.GetSequenceOfItems();
+  auto &ssroisq = ds.GetDataElement(tssroisq);
   auto ssqi = ssroisq.GetValueAsSQ();
   if (!ssqi || !ssqi->GetNumberOfItems()) {
     return false;
@@ -798,86 +732,38 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
   for (unsigned int pd = 0; pd < sqi->GetNumberOfItems(); ++pd) {
     // StructureSetROI structuresetroi;
 
-    const auto &item = sqi->GetItem(pd + 1); // Item start at #1
-    // std::cout << item << std::endl;
-    const auto &sitem = ssqi->GetItem(pd + 1); // Item start at #1
-    const auto &snestedds = sitem.GetNestedDataSet();
-    // (3006,0026) ?? (LO) [date]                                    # 4,1 ROI
+    auto &item = sqi->GetItem(pd + 1);   // Item start at #1
+    auto &sitem = ssqi->GetItem(pd + 1); // Item start at #1
+    auto &snestedds = sitem.GetNestedDataSet();
+
     // Name
-    gdcm::Tag stcsq(0x3006, 0x0026);
-    if (!snestedds.FindDataElement(stcsq)) {
-      continue;
-    }
-    const auto &sde = snestedds.GetDataElement(stcsq);
-    std::string s(sde.GetByteValue()->GetPointer(),
-                  sde.GetByteValue()->GetLength());
-    // structuresetroi.ROIName = s;
-    auto roinumber = gdcm::Attribute<0x3006, 0x0022>();
-    roinumber.SetFromDataSet(snestedds);
-    // structuresetroi.ROINumber = roinumber.GetValue();
-    gdcm::Attribute<0x3006, 0x0024> refframeuid;
-    refframeuid.SetFromDataSet(snestedds);
-    // structuresetroi.RefFrameRefUID = refframeuid.GetValue();
     gdcm::Attribute<0x3006, 0x0026> roiname;
     roiname.SetFromDataSet(snestedds);
-    gdcm::Attribute<0x3006, 0x0028> roidesc;
-    roidesc.SetFromDataSet(snestedds);
-    assert(s == roiname.GetValue());
-    gdcm::Attribute<0x3006, 0x0036> roigenalg;
-    roigenalg.SetFromDataSet(snestedds);
-    // structuresetroi.ROIGenerationAlgorithm = roigenalg.GetValue();
-    // structuresetrois.push_back( structuresetroi );
+    auto oldname = roiname.GetValue();
 
     auto &rt_roi = input_rt_struct->slist.at(pd);
-    assert(rt_roi.name == roiname.GetValue());
-    assert(rt_roi.id == static_cast<size_t>(roinumber.GetValue()));
+    if (oldname == rt_roi.name) {
+      continue;
+    }
 
-    const auto &nestedds = item.GetNestedDataSet();
-    // std::cout << nestedds << std::endl;
-    //(3006,002a) IS [255\192\96]                              # 10,3 ROI
-    // Display Color
-    gdcm::Tag troidc(0x3006, 0x002a);
-    auto color = gdcm::Attribute<0x3006, 0x002a>();
-    auto hasColor =
-        false; // so that color[0] isn't referenced if the color isn't present.
-    if (nestedds.FindDataElement(troidc)) {
-      const auto &decolor = nestedds.GetDataElement(troidc);
-      color.SetFromDataElement(decolor);
-      hasColor = true;
-      // std::cout << "color: " << roinumber.GetValue() << " -> " << color[0] <<
-      // "," << color[1] << "," << color[2] << std::endl;
-    }
-    if (hasColor) {
-      assert(input_rt_struct->slist.at(pd).color ==
-             QString("%1 %2 %3")
-                 .arg(QString::number(color[0]), QString::number(color[1]),
-                      QString::number(color[2]))
-                 .toStdString());
-    } else {
-      assert(rt_roi.color == "255 0 0");
-    }
-    //(3006,0040) SQ (Sequence with explicit length #=8)      # 4326, 1
+    std::cerr << "Writing " << rt_roi.name << " to new dcm file\n";
+    roiname.SetValue(rt_roi.name);
+    snestedds.Replace(roiname.GetAsDataElement());
+
+    auto &nestedds = item.GetNestedDataSet();
     // ContourSequence
     gdcm::Tag tcsq(0x3006, 0x0040);
     if (!nestedds.FindDataElement(tcsq)) {
-      // FIXME: What if a contour sequence is empty but the color is set to
-      // -say- 0/255/0 Since we are skipping entirely the contour sequence (no
-      // vtkCellArray) we will not save the color.  which means it will be
-      // reported as 0/0/0 in the output DICOM file.
       continue;
     }
-    const auto &csq = nestedds.GetDataElement(tcsq);
-    // std::cout << csq << std::endl;
+    auto &csq = nestedds.GetDataElement(tcsq);
 
-    // const gdcm::SequenceOfItems *sqi2 = csq.GetSequenceOfItems();
     auto sqi2 = csq.GetValueAsSQ();
     if (!sqi2) //|| !sqi2->GetNumberOfItems() )
     {
       continue;
     }
     const auto nitems = sqi2->GetNumberOfItems();
-    // std::cout << nitems << std::endl;
-    // this->SetNumberOfOutputPorts(nitems);
 
     if (nitems == 0) {
       continue;
@@ -885,18 +771,12 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
     assert(rt_roi.num_contours == nitems);
 
     for (unsigned int ii = 0; ii < nitems; ++ii) {
-      const auto &item2 = sqi2->GetItem(ii + 1); // Item start at #1
+      auto &item2 = sqi2->GetItem(ii + 1); // Item start at #1
 
-      const auto &nestedds2 = item2.GetNestedDataSet();
-      // std::cout << nestedds2 << std::endl;
-      // (3006,0050) DS
-      // [43.57636\65.52504\-10.0\46.043102\62.564945\-10.0\49.126537\60.714...
-      // # 398,48 ContourData
+      auto &nestedds2 = item2.GetNestedDataSet();
       gdcm::Tag tcontourdata(0x3006, 0x0050);
-      const auto &contourdata = nestedds2.GetDataElement(tcontourdata);
-      // std::cout << contourdata << std::endl;
+      auto contourdata = nestedds2.GetDataElement(tcontourdata);
 
-      // const gdcm::ByteValue *bv = contourdata.GetByteValue();
       gdcm::Attribute<0x3006, 0x0042> contgeotype;
       contgeotype.SetFromDataSet(nestedds2);
       assert(contgeotype.GetValue() == "CLOSED_PLANAR " ||
@@ -923,20 +803,14 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
               contourimagesequence.GetValueAsSQ();
           assert(contourimagesequence_sqi &&
                  contourimagesequence_sqi->GetNumberOfItems() == 1);
-
-          /*gdcm::Attribute<0x0008, 0x1150> classat;
-          classat.SetFromDataSet(thenestedds);
-          gdcm::Attribute<0x0008, 0x1155> instat;
-          instat.SetFromDataSet(thenestedds);*/
         }
       }
 
-      // auto pts = at.GetValues();
       const auto npts = at.GetNumberOfValues() / 3;
       assert(npts == static_cast<unsigned int>(numcontpoints.GetValue()));
       assert(npts * 3 == at.GetNumberOfValues());
-      auto pts =
-          std::valarray<gdcm::Attribute<0x3006, 0x0050>::ArrayType>(npts * 3);
+      using point_type = gdcm::Attribute<0x3006, 0x0050>::ArrayType;
+      auto pts = std::valarray<point_type>(npts * 3);
       auto &rt_contour = rt_roi.pslist.at(ii);
       assert(rt_contour.num_vertices == npts);
 
@@ -949,15 +823,18 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
                       pts[index + 2] = vec.z;
                       index += 3;
                     });
+
       at.SetValues(&pts[0], npts * 3);
-      // Each Contour Data is in fact a Cell:
+
+      std::cerr << "Replacing contour data\n";
+      nestedds2.Replace(at.GetAsDataElement());
     }
   }
 
   gdcm::Writer writer;
   writer.CheckFileMetaInformationOff();
   writer.SetFileName(output_file.fileName().toLocal8Bit().constData());
-  writer.SetFile(reader.GetFile());
+  writer.SetFile(file);
   if (!writer.Write()) {
     std::cerr << "Could not write: " << output_file.fileName().toStdString()
               << "!\n";
