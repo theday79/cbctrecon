@@ -4,7 +4,7 @@
 #   set_target_vectorizer_report_flags
 #   print_target_compiler_options
 
-
+cmake_policy(SET CMP0054 NEW)
 # set processor speicif compilation options, based either on
 # externally defined ENABLE_SSE42/ENABLE_AVX2 options or
 # based on detected host processor featured (HAVE_SSE/HAVE_AVX2)

@@ -351,6 +351,10 @@ if(HAVE_CPUID_INFO_)
         endif()
     endforeach(FEATURE)
 
+	set(ENABLE_AVX512F ${HAVE_AVX512F} CACHE BOOL "Compile with AVX-512 optimization")
+	set(ENABLE_AVX2 ${HAVE_AVX2} CACHE BOOL "Compile with AVX-2 optimization")
+	set(ENABLE_SSE42 ${HAVE_SSE42} CACHE BOOL "Compile with SSE-4.2 optimization")
+
     unset(_FEATURE_FOUND)
     unset(_CPUID_INFO)
     unset(_FEATURES)
