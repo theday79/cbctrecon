@@ -22,36 +22,45 @@ set(DCMTK_GIT_REPOSITORY "${git_protocol}hub.com/DCMTK/DCMTK.git")
 set(DCMTK_GIT_TAG master)
 
 set(ITK_GIT_REPOSITORY "${git_protocol}hub.com/InsightSoftwareConsortium/ITK.git")
-set(ITK_GIT_TAG release-4.13) #"d92873e33e8a54e933e445b92151191f02feab42") #"v4.13.0"
+set(ITK_GIT_TAG master)
 
 # set(DLIB_GIT_REPOSITORY "${git_protocol}hub.com/davisking/dlib.git")
 # set(DLIB_GIT_TAG master)
 
 set(plm Plastimatch)
 set(${plm}_GIT_REPOSITORY "${git_protocol}lab.com/plastimatch/plastimatch.git")
-set(${plm}_GIT_TAG 1.7.4) #master) #"b9b6c7f59b98d52a93d58288af9d5bc25d00f24b")
+set(${plm}_GIT_TAG master)
 
 set(TINYREFL_GIT_REPOSITORY "${git_protocol}lab.com/Manu343726/tinyrefl.git")
 set(TINYREFL_GIT_TAG master)
 
 if(WIN32 AND NOT (USE_ITK_GDCM OR USE_SYSTEM_ITK))
   external_proj(GDCM)
-  set(GDCM_DIR ${GDCM_BUILD_DIR})
+  if (NOT USE_SYSTEM_GDCM)
+    set(GDCM_DIR ${GDCM_BUILD_DIR} CACHE PATH "")
+  endif()
 endif()
 
 # DCMTK
 if(USE_DCMTK)
   external_proj(DCMTK)
+  if(NOT USE_SYSTEM_DCMTK)
+    set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
+    set(DCMTK_TARGETS_IMPORTED 1)
+    include_directories("${DCMTK_BINARY_DIR}/config/include/")
+  endif()
 endif()
 
 # ITK/RTK
 external_proj(ITK)
 if (NOT USE_SYSTEM_ITK)
-  configure_file(
-    ${CbctRecon_SOURCE_DIR}/External/patches/ExternalRTK.remote.cmake
-    ${ITK_SOURCE_DIR}/Modules/Remote/
-    COPYONLY
-  )
+    if (${ITK_GIT_TAG} STREQUAL "release-4.13")
+    configure_file(
+      ${CbctRecon_SOURCE_DIR}/External/patches/ExternalRTK.remote.cmake
+      ${ITK_SOURCE_DIR}/Modules/Remote/
+      COPYONLY
+    )
+  endif()
 else()
   include(${ITK_USE_FILE})
 endif()

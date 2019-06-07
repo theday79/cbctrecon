@@ -18,8 +18,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 #-----------------------------------------------------------------------------
 # BASIC CMAKE
 set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
-set(CbctRecon_VERSION_MINOR "4") # bump at functionality change
-set(CbctRecon_VERSION_PATCH "2") # bump at minor change
+set(CbctRecon_VERSION_MINOR "5") # bump at functionality change
+set(CbctRecon_VERSION_PATCH "0") # bump at minor change
 
 project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
@@ -175,11 +175,14 @@ set(EXECUTEABLE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "")
 
 add_subdirectory(External)
 
-if(NOT DCMTK_FOUND)
-  if(NOT USE_SYSTEM_DCMTK)
-    set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
+if(USE_DCMTK)
+  if(NOT DCMTK_FOUND AND USE_SYSTEM_DCMTK)
+    find_package(DCMTK_wrap)
+  else()
+    include_directories("${DCMTK_BINARY_DIR}/config/include/")
+    include_directories("${DCMTK_SOURCE_DIR}/dcmdata/include/")
+    include_directories("${DCMTK_SOURCE_DIR}/ofstd/include/")
   endif()
-  find_package(DCMTK_wrap)
 endif()
 
 if(NOT ITK_FOUND)

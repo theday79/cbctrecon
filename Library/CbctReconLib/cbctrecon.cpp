@@ -35,6 +35,7 @@
 #include <itkBinaryDilateImageFilter.h>
 #include <itkBinaryErodeImageFilter.h>
 #include <itkBinaryFillholeImageFilter.h>
+#include <itkBinaryFunctorImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkImageDuplicator.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
@@ -553,13 +554,13 @@ CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
   std::string regexp;
   switch (m_projFormat) {
   case HIS_FORMAT:
-    regexp = ".[0-9a-fA-F].his";
+    regexp = "(.[0-9a-fA-F]).his";
     break;
   case HND_FORMAT:
-    regexp = "Proj_.*.hnd";
+    regexp = "Proj_(.*).hnd";
     break;
   case XIM_FORMAT:
-    regexp = "Proj_.*.xim";
+    regexp = "Proj_(.*).xim";
     break;
   }
   auto regexpnames = itk::RegularExpressionSeriesFileNames::New();
@@ -569,8 +570,9 @@ CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
                                      // [true/false] doesn't mean ascending or
                                      // descending
   regexpnames->SetRegularExpression(regexp);
+  const auto submatch = 1;
   regexpnames->SetSubMatch(
-      1); // SetSubMatch(0) led to sorting from last digit of the name
+      submatch); // SetSubMatch(0) led to sorting from last digit of the name
 
   auto names = regexpnames->GetFileNames();
 

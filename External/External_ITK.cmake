@@ -1,3 +1,10 @@
+# Download Eigen
+if (NOT USE_SYSTEM_EIGEN)
+  hunter_add_package(Eigen)
+  find_package(Eigen3 CONFIG REQUIRED)
+  set(ITK_USE_SYSTEM_EIGEN ON CACHE BOOL "Use Eigen from hunter (to avoid export error)")
+endif()
+
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 # Sorry, but apparently ITK cannot figure out how to download test data.
@@ -13,6 +20,8 @@ set(Module_ITKVtkGlue OFF CACHE BOOL "" FORCE)
 if(USE_DCMTK)
   set(ITK_USE_SYSTEM_DCMTK ON CACHE BOOL "" FORCE)
   set(DCMTK_DIR "${DCMTK_BINARY_DIR}/../" CACHE PATH "" FORCE)
+elseif(USE_ITK_DCMTK)
+    set(ITK_USE_SYSTEM_DCMTK OFF CACHE BOOL "" FORCE)
 endif()
 
 # ZLIB
@@ -23,16 +32,24 @@ else()
 endif()
 
 # GDCM
-if(NOT WIN32)
+if((NOT WIN32) OR USE_ITK_GDCM)
   set(ITK_USE_SYSTEM_GDCM OFF CACHE BOOL "" FORCE)
 else()
   set(ITK_USE_SYSTEM_GDCM ON CACHE BOOL "" FORCE)
+  if (NOT USE_SYSTEM_GDCM)
+    set(GDCM_DIR ${GDCM_BINARY_DIR})
+  endif()
 endif()
 
 # RTK and DCMTK
 # set(Module_ITKIODCMTK ON CACHE BOOL "" FORCE)
 set(Module_RTK ON CACHE BOOL "" FORCE)
 set(RTK_BUILD_APPLICATIONS OFF CACHE BOOL "")
+set(RTK_USE_CUDA ${USE_CUDA} CACHE BOOL "")
+set(Module_ITKCudaCommon ${USE_CUDA} CACHE BOOL "")
+
+# Plastimatch needs itkVectorResampleImageFilter:
+set(Module_ITKDeprecated ON CACHE BOOL "")
 
 # FFTW
 set(ITK_USE_FFTWF ${FFTW_FOUND} CACHE BOOL "" FORCE)

@@ -42,6 +42,8 @@
 #undef TIMEOUT
 #undef CUDA_FOUND
 #include "dcmtk_rt_study.h"
+#include "dicom_util.h"
+#include "itk_image_save.h"
 #include "plm_image.h"
 #include <rt_study_metadata.h>
 
@@ -1061,7 +1063,8 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
-  Plm_image plm_img(spShortImg);
+  Plm_image::Pointer plm_img;
+  plm_img->set_itk(spShortImg);
 
   auto newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
   // QString newDirPath =
@@ -1075,11 +1078,11 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
     }
   }
 
-  Rt_study_metadata rsm;
-  rsm.set_patient_id(strPatientID.toLocal8Bit().constData());
-  rsm.set_patient_name(strPatientName.toLocal8Bit().constData());
+  Rt_study_metadata::Pointer rsm;
+  rsm->set_patient_id(strPatientID.toLocal8Bit().constData());
+  rsm->set_patient_name(strPatientName.toLocal8Bit().constData());
 
-  plm_img.save_short_dicom(newDirPath.toLocal8Bit().constData(), &rsm);
+  dicom_save_short(newDirPath.toStdString(), plm_img, rsm);
 
   return newDirPath.toLocal8Bit().constData();
 }

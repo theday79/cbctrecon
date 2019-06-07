@@ -40,8 +40,8 @@ elseif (${ITK_VERSION_MAJOR} VERSION_EQUAL "4")
       "Fatal Error. ITK 4 must be 4.1 or greater")
   endif ()
 else ()
-  message (FATAL_ERROR 
-    "Fatal Error. ITK version should be either 3.X or 4.X")
+  message (AUTHOR_WARNING
+    "Warning. ITK version greater than 4.X is not tested")
 endif ()
 message (STATUS "ITK_VERSION = ${ITK_VERSION} found")
 
