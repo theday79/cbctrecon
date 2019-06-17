@@ -28,15 +28,18 @@ set(ExternalData_BINARY_ROOT ${CMAKE_BINARY_DIR}/ExternalData)
 
 set(ExternalData_URL_ALGO_MD5_lower md5)
 set(ExternalData_URL_TEMPLATES
+  # Local:
+  "file://$ENV{HOME}/assets/%(algo)/%(hash)"
   # Data published on Girder
-  "ExternalDataCustomScript://silent_download/https://data.kitware.com/api/v1/file/hashsum/%(algo)/%(hash)/download"
+  #"ExternalDataCustomScript://silent_download/https://data.kitware.com/api/v1/file/hashsum/%(algo)/%(hash)/download"
+  "https://data.kitware.com/api/v1/file/hashsum/%(algo)/%(hash)/download"
   )
 
 set(ExternalData_LINK_CONTENT MD5)
 set(ExternalData_NO_SYMLINKS 1)
 set(ExternalData_TIMEOUT_ABSOLUTE 1000)
 
-set(ExternalData_CUSTOM_SCRIPT_silent_download ${CMAKE_SOURCE_DIR}/cmake/ExternalData_Custom_Script.cmake)
+# set(ExternalData_CUSTOM_SCRIPT_silent_download ${CMAKE_SOURCE_DIR}/cmake/ExternalData_Custom_Script.cmake)
 ##### EXTERNAL DATA END #####
 
 
