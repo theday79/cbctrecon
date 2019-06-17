@@ -42,7 +42,7 @@ if(WIN32 AND NOT (USE_ITK_GDCM OR USE_SYSTEM_ITK))
 endif()
 
 # DCMTK
-if(USE_DCMTK)
+if(NOT USE_ITK_DCMTK)
   external_proj(DCMTK)
   if(NOT USE_SYSTEM_DCMTK)
     set(DCMTK_DIR "${CMAKE_BINARY_DIR}")
@@ -63,6 +63,11 @@ if (NOT USE_SYSTEM_ITK)
   endif()
 else()
   include(${ITK_USE_FILE})
+endif()
+
+if(USE_ITK_DCMTK)
+  set(DCMTK_DIR "${ITK_BINARY_DIR}/Modules/ThirdParty/DCMTK/ITKDCMTK_ExtProject-build")
+  set(DCMTK_TARGETS_IMPORTED 1)
 endif()
 
 # dlib because the one in Plastimatch is two years old

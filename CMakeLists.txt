@@ -4,8 +4,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(HunterGate)
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.148.tar.gz"
-    SHA1 "39855eac4375c6fb1d42fd0f13f03040621cb7b6"
+    URL "https://github.com/ruslo/hunter/archive/v0.23.189.tar.gz"
+    SHA1 "7380b4754741ccb60b7229dfeda461c3f68a0ffe"
 )
 
 find_program(CCACHE_PROGRAM ccache)
@@ -39,7 +39,8 @@ option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs.
 option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs. Zlib" OFF)
 OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
-OPTION(USE_DCMTK "Toggle DCMTK on or off" ON) # ON by default because PLM can't figure out what to do by itself.
+OPTION(USE_ITK_DCMTK "Toggle DCMTK on or off" ON)
+OPTION(USE_ITK_GDCM "Toggle GDCM on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 option(USE_ITK_GDCM OFF "Use the ITK implementation instead of downloading (Windows only)")
@@ -175,7 +176,7 @@ set(EXECUTEABLE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "")
 
 add_subdirectory(External)
 
-if(USE_DCMTK)
+if(NOT USE_ITK_DCMTK)
   if(NOT DCMTK_FOUND AND USE_SYSTEM_DCMTK)
     find_package(DCMTK_wrap)
   else()
