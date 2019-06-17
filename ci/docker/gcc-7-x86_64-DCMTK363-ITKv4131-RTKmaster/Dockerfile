@@ -22,7 +22,8 @@ RUN cd /home/user/ \
     && cmake -GNinja ../ITK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
       -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
       -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
-      -DUSE_SYSTEM_DCMTK=ON -DDCMTK_DIR=/home/user/DCMTK-build -DITK_USE_SYSTEM_HDF5=ON \
+      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON -DDCMTK_DIR=/home/user/DCMTK-build \
+      -DITK_USE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON \
       -DModule_ITKMathematicalMorphology=ON -DModule_ITKConvolution=ON -DModule_ITKIOCSV=ON -DModule_ITKImageNoise=ON \
     && cmake --build . -- -j13
 

@@ -8,40 +8,39 @@ mkdir -p build && cd build
 
 echo Test building: $BUILD_TESTING
 
+export COMMON_FLAGS=".. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON"
 # HDF5 is just to reduce complilation time:
+export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON"
+
 if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
     if [ -d /home/user/RTK-build ]; then
-        cmake .. -GNinja -DUSE_CUDA=OFF \
-            -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=ON \
-            -DCBCTRECON_BUILD_TESTS=ON \
+        cmake $COMMON_FLAGS \
+            -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
             -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_RTK=ON \
             -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build -DRTK_DIR=/home/user/RTK-build
     else
-        cmake .. -GNinja -DUSE_CUDA=OFF \
-            -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=ON \
+        cmake $COMMON_FLAGS \
+            -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
             -DCBCTRECON_BUILD_TESTS=ON -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON \
             -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build
     fi
 else
     if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
         if [[ "$COVERAGE" = "YES" ]]; then
-            cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug \
+            cmake $COMMON_FLAGS \
                 -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" \
-                -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF \
-                -DCBCTRECON_BUILD_TESTS=ON -DCBCTRECON_COVERAGE=ON \
-                -DITK_USE_SYSTEM_HDF5=ON -DUSE_SYSTEM_ZLIB=ON
+                -DCBCTRECON_COVERAGE=ON \
+                $COMMON_SYSTEM_LIBS
         else
-            cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug \
+            cmake $COMMON_FLAGS
                 -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" \
-                -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF \
-                -DCBCTRECON_BUILD_TESTS=ON -DCBCTRECON_COVERAGE=OFF \
-                -DITK_USE_SYSTEM_HDF5=ON -DUSE_SYSTEM_ZLIB=ON
+                -DCBCTRECON_COVERAGE=OFF \
+                $COMMON_SYSTEM_LIBS
         fi
     else
-        cmake .. -GNinja -DUSE_CUDA=OFF \
-            -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF \
-            -DCBCTRECON_BUILD_TESTS=ON -DCBCTRECON_COVERAGE=OFF \
-            -DITK_USE_SYSTEM_HDF5=ON -DUSE_SYSTEM_ZLIB=ON
+        cmake $COMMON_FLAGS \
+            -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
+            $COMMON_SYSTEM_LIBS
     fi
 fi
 

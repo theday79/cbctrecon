@@ -6,9 +6,9 @@ USER root
 # Useful for debugging docker: bash sudo vim \
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja gcc g++ git cmake qt5-default \
+    && apt install -y ninja-build gcc g++ git cmake qt5-default \
         libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev libtinfo-dev libhdf5-dev \
-        zlib valgrind wget pocl-opencl-icd clinfo \ 
+        zlib1g-dev valgrind wget pocl-opencl-icd clinfo \ 
     && groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
     && groupadd 2000 -g 2000 \

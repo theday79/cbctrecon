@@ -23,9 +23,9 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
     && apt install -y --no-install-recommends \
-        make gcc g++ git wget qt5-default libqt5opengl5-dev \
+        ninja-build gcc g++ git wget qt5-default libqt5opengl5-dev \
         libfftw3-dev libsqlite3-dev libtinfo-dev libhdf5-dev \
-        valgrind python lcov \
+        zlib1g-dev valgrind python lcov \
     && rm -rf /var/lib/apt/lists/*
 
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
