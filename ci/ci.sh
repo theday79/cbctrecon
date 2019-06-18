@@ -10,7 +10,7 @@ echo Test building: $BUILD_TESTING
 
 export COMMON_FLAGS=".. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON"
 # HDF5 is just to reduce complilation time:
-export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON"
+export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON -DHUNTER_ENABLED=OFF"
 
 if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
     if [ -d /home/user/RTK-build ]; then
