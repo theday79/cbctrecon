@@ -9,8 +9,8 @@ mkdir -p build && cd build
 echo Test building: $BUILD_TESTING
 
 export COMMON_FLAGS=".. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON"
-# HDF5 is just to reduce complilation time:
-export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON -DHUNTER_ENABLED=OFF"
+# HDF5 is just to reduce complilation time, Eigen should be included in ITK if necessary:
+export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON -DHUNTER_ENABLED=OFF -DUSE_SYSTEM_EIGEN=ON"
 
 if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
     if [ -d /home/user/RTK-build ]; then
