@@ -31,11 +31,11 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
 # Reference: https://github.com/clab/dynet/issues/1457
 RUN mkdir /opt/cmake && cd /opt/cmake \
-    && wget -nv https://cmake.org/files/v3.12/cmake-3.12.4-Linux-x86_64.sh \
-    && sh cmake-3.12.4-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && wget -nv https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.sh \
+    && sh cmake-3.14.5-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
-    && rm cmake-3.12.4-Linux-x86_64.sh \
+    && rm cmake-3.14.5-Linux-x86_64.sh \
     && cmake --version
 
 RUN groupadd 1001 -g 1001 \

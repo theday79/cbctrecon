@@ -17,12 +17,14 @@ if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
         cmake $COMMON_FLAGS \
             -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
             -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_RTK=ON \
-            -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build -DRTK_DIR=/home/user/RTK-build
+            -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build -DRTK_DIR=/home/user/RTK-build \
+            $COMMON_SYSTEM_LIBS
     else
         cmake $COMMON_FLAGS \
             -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
             -DCBCTRECON_BUILD_TESTS=ON -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON \
-            -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build
+            -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build \
+            $COMMON_SYSTEM_LIBS
     fi
 else
     if [[ "$CUDA_AVAILABLE" = "YES" ]]; then

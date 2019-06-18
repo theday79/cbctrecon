@@ -12,7 +12,7 @@ RUN cd /home/user/ \
       -DDCMTK_WITH_DOXYGEN=OFF -DDCMTK_ENABLE_CXX11=ON -DDCMTK_ENABLE_STL=ON \
       -DDCMTK_OVERWRITE_WIN32_COMPILER_FLAGS=OFF -DDCMTK_WITH_XML=OFF -DDCMTK_WITH_PNG=OFF \
       -DDCMTK_WITH_TIFF=OFF -DDCMTK_WITH_OPENSSL=OFF -DDCMTK_WITH_SNDFILE=OFF -DDCMTK_WITH_ICONV=OFF \
-    && cmake --build . -- -j13
+    && cmake --build .
 
 # ITK
 RUN cd /home/user/ \
@@ -25,7 +25,7 @@ RUN cd /home/user/ \
       -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON -DDCMTK_DIR=/home/user/DCMTK-build \
       -DITK_USE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON \
       -DModule_ITKMathematicalMorphology=ON -DModule_ITKConvolution=ON -DModule_ITKIOCSV=ON -DModule_ITKImageNoise=ON \
-    && cmake --build . -- -j13
+    && cmake --build .
 
 # RTK
 RUN cd /home/user/ \
@@ -35,7 +35,7 @@ RUN cd /home/user/ \
     && cmake -GNinja ../RTK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
       -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
       -DITK_DIR=/home/user/ITK-build \
-    && cmake --build . -- -j13
+    && cmake --build .
 
 
 WORKDIR /home/user/
