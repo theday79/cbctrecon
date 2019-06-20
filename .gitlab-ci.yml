@@ -34,11 +34,11 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:gcc-7-x86_64-DCMTK363-ITKv4131-RTKmaster
+    image: andreasga/cbctrecon:gcc-7-x86_64-libDCMTK-ITKv5-RTK
     script:
       - ./ci/ci.sh
 
-#test-x86_64-linux-ubuntu-clang6:
+#Ubuntu-clang6:
 #    stage: test
 #    tags:
 #      - linux
@@ -47,20 +47,12 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
 #    script:
 #      - ./ci/ci.sh
 
-#test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK:
+#Ubuntu-clang6-prebuild-DCM-I-RTK:
 #    stage: test
 #    tags:
 #      - linux
 #      - docker
-#    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-RTKmaster
+#    image: andreasga/cbctrecon:clang-6-x86_64-libDCMTK-ITKv5-RTK
 #    script:
 #      - ./ci/ci.sh
 
-#test-x86_64-linux-ubuntu-clang6-prebuild-DCM-I-RTK-integrated:
-#    stage: test
-#    tags:
-#      - linux
-#      - docker
-#    image: andreasga/cbctrecon:clang-6-x86_64-DCMTK363-ITKv4131-integrated-RTKmaster
-#    script:
-#      - ./ci/ci.sh
