@@ -339,9 +339,11 @@ before_script:
 
   - cd cbctrecon/
   - mkdir build/ && cd build/
-  - travis_wait 40 cmake ../ ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE \
-        -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
+  # The cmake command below should use YAML flow-style, which makes new-lines into spaces, ignoring extra indentation on not-the-first-line
+  - travis_wait 40 cmake ../ ${CMAKE_OPTIONS}
+      -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE
+      -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
 
 script:
   - cmake .
