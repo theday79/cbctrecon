@@ -10,7 +10,7 @@ echo Test building: $BUILD_TESTING
 
 export COMMON_FLAGS=".. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON"
 # Eigen should be included in ITK if necessary:
-export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DHUNTER_ENABLED=OFF -DUSE_SYSTEM_EIGEN=ON"
+export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DHUNTER_ENABLED=OFF"
 
 if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
     if [ -d /home/user/RTK-build ]; then
@@ -27,22 +27,23 @@ if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
             $COMMON_SYSTEM_LIBS
     fi
 else
+    export COMMON_NONSYSTEM_ITK="-DITK_USE_SYSTEM_DCMTK=ON -DUSE_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_SYSTEM_EIGEN=ON"
     if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
         if [[ "$COVERAGE" = "YES" ]]; then
             cmake $COMMON_FLAGS \
                 -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" \
                 -DCBCTRECON_COVERAGE=ON \
-                $COMMON_SYSTEM_LIBS
+                $COMMON_SYSTEM_LIBS $COMMON_NONSYSTEM_ITK
         else
             cmake $COMMON_FLAGS
                 -DUSE_CUDA=ON -DEXACT_GCC="/usr/bin/gcc-7" \
                 -DCBCTRECON_COVERAGE=OFF \
-                $COMMON_SYSTEM_LIBS
+                $COMMON_SYSTEM_LIBS $COMMON_NONSYSTEM_ITK
         fi
     else
         cmake $COMMON_FLAGS \
             -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
-            $COMMON_SYSTEM_LIBS
+            $COMMON_SYSTEM_LIBS $COMMON_NONSYSTEM_ITK
     fi
 fi
 
