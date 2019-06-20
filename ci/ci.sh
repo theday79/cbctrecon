@@ -10,25 +10,17 @@ echo Test building: $BUILD_TESTING
 
 export COMMON_FLAGS=".. -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON"
 # Eigen should be included in ITK if necessary:
-export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DHUNTER_ENABLED=OFF"
+export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DUSE_SYSTEM_DCMTK=ON -DHUNTER_ENABLED=OFF"
 
-if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
-    if [ -d /home/user/RTK-build ]; then
-        ls -l /home/user/RTK-build
+if [ -d /home/user/ITK-build ]; then # Use system ITK and RTK
         cmake $COMMON_FLAGS \
             -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
-            -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_RTK=ON \
-            -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build -DRTK_DIR=/home/user/RTK-build \
+            -DCBCTRECON_BUILD_TESTS=ON -DUSE_SYSTEM_ITK=ON \
+            -DITK_DIR=/home/user/ITK-build \
             $COMMON_SYSTEM_LIBS
-    else
-        cmake $COMMON_FLAGS \
-            -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
-            -DCBCTRECON_BUILD_TESTS=ON -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON \
-            -DDCMTK_DIR=/home/user/DCMTK-build -DITK_DIR=/home/user/ITK-build \
-            $COMMON_SYSTEM_LIBS
-    fi
 else
-    export COMMON_NONSYSTEM_ITK="-DITK_USE_SYSTEM_DCMTK=ON -DUSE_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_SYSTEM_EIGEN=ON"
+    # USE_SYSTEM_EIGEN = OFF with hunter disabled actually triggers the use of system eigen (will be corrected eventually)
+    export COMMON_NONSYSTEM_ITK="-DITK_USE_SYSTEM_DCMTK=ON -DUSE_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_SYSTEM_EIGEN=OFF"
     if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
         if [[ "$COVERAGE" = "YES" ]]; then
             cmake $COMMON_FLAGS \

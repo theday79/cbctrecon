@@ -8,7 +8,7 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
     && apt update \
     && apt install -y ninja-build gcc g++ git cmake qt5-default \
         libfftw3-dev libsqlite3-dev ocl-icd-opencl-dev libtinfo-dev libhdf5-dev \
-        zlib1g-dev valgrind wget pocl-opencl-icd clinfo \
+        zlib1g-dev libdcmtk-dev libeigen3-dev valgrind wget pocl-opencl-icd clinfo \
     && groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
     && groupadd 2000 -g 2000 \
