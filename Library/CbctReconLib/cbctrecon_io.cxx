@@ -1063,8 +1063,7 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
-  Plm_image::Pointer plm_img;
-  plm_img->set_itk(spShortImg);
+  auto plm_img = Plm_image::New(spShortImg);
 
   auto newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
   // QString newDirPath =

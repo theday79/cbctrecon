@@ -769,8 +769,8 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     // iNumOfProjections = size[2];
 
     // b) spacing
-    spacing[0] = m_fProjSpacingX / m_fResampleF; // typical HIS file
-    spacing[1] = m_fProjSpacingY / m_fResampleF;
+    spacing[0] = m_spProjImg3DFloat->GetSpacing()[0]; // m_fProjSpacingX / m_fResampleF; // typical HIS file
+    spacing[1] = m_spProjImg3DFloat->GetSpacing()[1]; // m_fProjSpacingY / m_fResampleF;
     spacing[2] = 1.0;
 
     // c) Origin: can center be the image center? or should be related to the CT

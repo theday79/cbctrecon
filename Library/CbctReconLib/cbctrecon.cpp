@@ -120,8 +120,8 @@ CbctRecon::CbctRecon() {
   m_iFixedOffset_ScatterMap = 10000; // fixed! allows negative value of scatter
   // m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter
   m_fResampleF = 1.0;
-  m_fProjSpacingX = 0.4; // DEFAULT, will be updated during Load Proj selected
-  m_fProjSpacingY = 0.4;
+  // m_fProjSpacingX = 0.4; // DEFAULT, will be updated during Load Proj selected
+  // m_fProjSpacingY = 0.4;
 
   m_strPathDirDefault = QDir::currentPath();
   std::cout << "Current Default Dir: "
@@ -925,8 +925,8 @@ bool CbctRecon::ResampleProjections(double &resample_factor) {
   std::cout << "ProjectionReader Get Spacing : "
             << m_spProjImg3DFloat->GetSpacing() << std::endl;
 
-  m_fProjSpacingX = m_spProjImg3DFloat->GetSpacing()[0];
-  m_fProjSpacingY = m_spProjImg3DFloat->GetSpacing()[1];
+  // m_fProjSpacingX = m_spProjImg3DFloat->GetSpacing()[0];
+  // m_fProjSpacingY = m_spProjImg3DFloat->GetSpacing()[1];
 
   if (resample_factor > 1 || resample_factor <= 0) {
     std::cout << "wrong resample factor. reset to 1.0" << std::endl;

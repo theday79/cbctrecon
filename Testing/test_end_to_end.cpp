@@ -111,6 +111,12 @@ int do_all_registrations(CbctReconTest *cbctrecon_test) {
   return 0;
 }
 
+int do_scatter_correction(CbctReconTest *cbctrecon_test) {
+  cbctrecon_test->test_DoScatterCorrection_APRIORI();
+
+  return 0;
+}
+
 int calculate_wepl(CbctReconTest *cbctrecon_test) {
   auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
   for (auto &structure : ss->slist) {
@@ -153,6 +159,10 @@ int end_to_end_test(const QString &dcm_dir_str, const QString &cbct_dir_str) {
   }
 
   /* Scatter correction algorithm "Batch" style */
+  ret_code = do_scatter_correction(cbctrecon_test.get());
+  if (ret_code < 0) {
+    return ret_code;
+  }
 
   /* WEPL structure test: */
   ret_code = calculate_wepl(cbctrecon_test.get());

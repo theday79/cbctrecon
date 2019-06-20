@@ -390,8 +390,8 @@ public:
   double m_fResampleF; // typically 0.5. this is updated during LoadSelectedProj
                        // image and ui.lineEdit_DownResolFactor.//also affects
                        // all other scatter correction method
-  double m_fProjSpacingX; // updated from SelectedProjLoad
-  double m_fProjSpacingY; // updated from SelectedProjLoad
+  // double m_fProjSpacingX; // updated from SelectedProjLoad
+  // double m_fProjSpacingY; // updated from SelectedProjLoad
 
   std::vector<VEC3D> m_vPOI_DCM{}; // initialized by file Load
 

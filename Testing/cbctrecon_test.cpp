@@ -265,7 +265,84 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   return true;
 }
 
-void CbctReconTest::test_ReloadProjections() {}
+void CbctReconTest::test_ReloadProjections() {
+
+  QFile projFile("Projections.mha");
+  if (!projFile.exists()) {
+    std::cerr
+        << "Projections were never saved! i.e. Projections.mha doesn't exist."
+        << std::endl;
+    return;
+  }
+  std::cout << "Reading: " << projFile.fileName().toStdString() << std::endl;
+  using ImageReaderType = itk::ImageFileReader<FloatImageType>;
+  auto ImageReader = ImageReaderType::New();
+  ImageReader->SetFileName(projFile.fileName().toStdString());
+  ImageReader->Update();
+  this->m_cbctrecon->m_spProjImg3DFloat = ImageReader->GetOutput();
+  auto &p_projimg = this->m_cbctrecon->m_spProjImg3DFloat;
+  // Copied from SLT_LoadSelectedFiles:
+
+  if (this->m_cbctrecon->m_fResampleF != 1.0) {
+    this->m_cbctrecon->ResampleItkImage(
+        p_projimg, p_projimg,
+        this->m_cbctrecon
+            ->m_fResampleF); // was! BROKEN AF for .his where input size
+                             // != 1024 (tested with 1016) -> outputs
+                             // offset -inputoffset/refactor^2 and 4
+                             // pixels too few in x and y
+  }
+
+  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
+    std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
+    test_DoBowtieCorrection();
+  }
+
+  this->m_cbctrecon->m_spProjImgRaw3D =
+      this->m_cbctrecon->ConvertLineInt2Intensity(p_projimg);
+  // if X not 1024 == input size: out_offset =
+  // in_offset + (1024*res_f -
+  // X*res_f)*out_spacing     <- will still
+  // break down at fw_projection
+
+  const auto p_projimgfloat = p_projimg;
+  auto originPt = p_projimgfloat->GetOrigin();
+  auto FloatImgSize = p_projimgfloat->GetBufferedRegion().GetSize();
+  auto FloatImgSpacing = p_projimgfloat->GetSpacing();
+
+  std::cout << "YKDEBUG: Origin" << originPt[0] << ", " << originPt[1] << ", "
+            << originPt[2] << std::endl;
+  std::cout << "YKDEBUG: Size" << FloatImgSize[0] << ", " << FloatImgSize[1]
+            << ", " << FloatImgSize[2] << std::endl;
+  std::cout << "YKDEBUG: Spacing" << FloatImgSpacing[0] << ", "
+            << FloatImgSpacing[1] << ", " << FloatImgSpacing[2] << std::endl;
+
+  std::cout
+      << "Raw3DProj dimension "
+      << this->m_cbctrecon->m_spProjImgRaw3D->GetRequestedRegion().GetSize()
+      << std::endl;
+
+  // m_spProjImgRaw3D is Ushort
+
+  std::cout << "Projection reading succeeded."
+            << this->m_cbctrecon->m_vSelectedFileNames.size()
+            << " files were read" << std::endl;
+
+  // Because you can load projections from previous run:
+  //this->ui.pushButton_DoRecon->setEnabled(true);
+
+  //this->ui.spinBoxImgIdx->setMinimum(0);
+  //this->ui.spinBoxImgIdx->setMaximum(
+  //    this->m_cbctrecon->m_vSelectedFileNames.size() - 1);
+  //this->ui.spinBoxImgIdx->setValue(0);
+
+  this->m_cbctrecon
+      ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
+  // SLT_InitializeGraphLim();
+
+  // this->SLT_DrawProjImages(); // Update Table is called
+}
+
 void CbctReconTest::test_ExportHis() {}
 void CbctReconTest::test_LoadImageFloat3D() {}
 
@@ -390,12 +467,154 @@ void CbctReconTest::test_ExportReconUSHORT() {}
 void CbctReconTest::test_ExportReconSHORT_HU() {}
 void CbctReconTest::test_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {}
 void CbctReconTest::test_DoBHC() {}
-void CbctReconTest::test_DoBowtieCorrection() {}
+void CbctReconTest::test_DoBowtieCorrection() {
+  std::cerr << "HND BOWTIE CORRECTION TRIGGERED, BUT TESTS ONLY WRITTEN FOR XIM\n";
+}
 void CbctReconTest::test_Export2DDose_TIF() {}
 void CbctReconTest::test_Export2DDoseMapAsMHA() {}
 void CbctReconTest::test_ViewRegistration() const {}
 void CbctReconTest::test_ViewHistogram() {}
-void CbctReconTest::test_DoScatterCorrection_APRIORI() {}
+
+void CbctReconTest::test_DoScatterCorrection_APRIORI() {
+
+  const auto bExportProj_Fwd = false; // this->ui.checkBox_ExportFwd->isChecked();
+  const auto bExportProj_Scat = false; // this->ui.checkBox_ExportScat->isChecked();
+  const auto bExportProj_Cor = false; // this->ui.checkBox_ExportCor->isChecked();
+
+  // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
+  // false); //final moving image
+  if (bExportProj_Fwd) {
+    this->m_cbctrecon->m_strPathPatientDir = "";
+  }
+  auto &p_projimg = this->m_cbctrecon->m_spProjImgCT3D;
+
+#ifdef USE_CUDA
+  const auto use_cuda = true;
+#else
+  const auto use_cuda = false;
+#endif
+
+  if (m_dlgRegistration->m_spMoving != nullptr) {
+    this->m_cbctrecon
+        ->ForwardProjection_master<UShortImageType, UShortImageType>(
+            m_dlgRegistration->m_spMoving,
+            this->m_cbctrecon->m_spCustomGeometry,
+            p_projimg, bExportProj_Fwd, use_cuda);
+  } else if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
+    std::cerr << "No Moving image in Registration is found. Ref CT image will "
+                 "be used instead"
+              << "\n";
+    this->m_cbctrecon
+        ->ForwardProjection_master<UShortImageType, UShortImageType>(
+            this->m_cbctrecon->m_spRefCTImg,
+            this->m_cbctrecon->m_spCustomGeometry,
+            p_projimg, bExportProj_Fwd, use_cuda);
+  } else {
+    std::cerr << "Error!: No ref image for forward projection is found."
+              << "\n";
+    return;
+  }
+
+  // double scaResam = this->ui.lineEdit_scaResam->text().toDouble();
+  const auto scaMedian = 12.0; // this->ui.lineEdit_scaMedian->text().toDouble();
+  const auto scaGaussian = 0.05; // this->ui.lineEdit_scaGaussian->text().toDouble();
+
+  std::cout << "Generating scatter map is ongoing..." << std::endl;
+
+  this->m_cbctrecon->GenScatterMap_PriorCT(
+      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgCT3D,
+      this->m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
+      this->m_cbctrecon->m_iFixedOffset_ScatterMap,
+      bExportProj_Scat); // void GenScatterMap2D_PriorCT()
+
+  std::cout << "To account for the mAs values, the intensity scale factor of "
+            << GetRawIntensityScaleFactor(this->m_cbctrecon->m_strRef_mAs,
+                                          this->m_cbctrecon->m_strCur_mAs)
+            << "was multiplied during scatter correction to avoid negative "
+               "scatter"
+            << std::endl;
+
+  // this->ui.lineEdit_CurmAs->setText(this->m_cbctrecon->m_strCur_mAs);
+  // this->ui.lineEdit_RefmAs->setText(this->m_cbctrecon->m_strRef_mAs);
+
+  p_projimg->Initialize(); // memory saving
+
+  std::cout << "Scatter correction is in progress..." << std::endl;
+
+  const auto postScatMedianSize = 3.0; // this->ui.lineEdit_scaPostMedian->text().toInt();
+  this->m_cbctrecon->ScatterCorr_PrioriCT(
+      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgScat3D,
+      this->m_cbctrecon->m_spProjImgCorr3D,
+      this->m_cbctrecon->m_iFixedOffset_ScatterMap, postScatMedianSize,
+      bExportProj_Cor);
+  this->m_cbctrecon->m_spProjImgScat3D->Initialize(); // memory saving
+
+  std::cout << "AfterCorrectionMacro is ongoing..." << std::endl;
+
+  // Update UI
+  // this->ui.pushButton_DoRecon->setEnabled(true);
+  // this->ui.spinBoxImgIdx->setMinimum(0);
+  const auto iSizeZ =
+      this->m_cbctrecon->m_spProjImg3DFloat->GetRequestedRegion().GetSize()[2];
+  // this->ui.spinBoxImgIdx->setMaximum(iSizeZ - 1);
+  // this->ui.spinBoxImgIdx->setValue(0);
+  this->m_cbctrecon
+      ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
+  // SLT_InitializeGraphLim();
+  // SLT_DrawProjImages(); // Update Table is called
+
+  auto fdk_options = getFDKoptions();
+
+  this->m_cbctrecon->AfterScatCorrectionMacro(
+#ifdef USE_CUDA
+            true,
+#else
+            false,
+#endif
+      true, // this->ui.radioButton_UseOpenCL->isChecked(),
+      true, //this->ui.checkBox_ExportVolDICOM->isChecked(),
+      fdk_options);
+
+  // Skin removal (using CT contour w/ big margin)
+  std::cout
+      << "Post  FDK reconstruction is done. Moving on to post skin removal"
+      << std::endl;
+
+  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg);
+  m_cbctregistration->PostSkinRemovingCBCT(
+      this->m_cbctrecon->m_spScatCorrReconImg);
+
+  // 20151208 Removal of high intensity skin mask
+  // Main issue: raw CBCT projection includes mask, deformed CT doesn't include
+  // mask. In case of weight loss, mask signal is independent from skin contour,
+  // but deformed CT cannot have that signal.  Therefore, after the subtraction
+  // (CBCTcor projections), there is always a big peak. DIR quality doesn't
+  // matter because it cannot 'create' mask signal anyway.  Assumption: near the
+  // skin contour, this kind of discrepancy is not expected.
+  // m_pDlgRegistration->ThermoMaskRemovingCBCT(m_spRawReconImg,
+  // m_spScatCorrReconImg, threshold_HU);
+
+  m_dlgRegistration->UpdateListOfComboBox(0); // combo selection signalis
+                                              // called
+  m_dlgRegistration->UpdateListOfComboBox(1);
+  m_dlgRegistration->SelectComboExternal(
+      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+
+  m_dlgRegistration
+      ->SLT_DoLowerMaskIntensity(); // it will check the check button.
+
+  // SLT_DrawProjImages();
+
+  std::cout << "Updating ReconImage..";
+  auto updated_text = QString("Scatter corrected CBCT");
+  // UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg,
+  //                  updated_text); // main GUI update
+
+  std::cout << "FINISHED!Scatter correction: CBCT DICOM files are saved"
+            << std::endl;
+}
+
 void CbctReconTest::test_TempAudit() const {}
 void CbctReconTest::test_CalcAndSaveAngularWEPL() {}
 void CbctReconTest::test_DoScatterCorrectionUniform() {}
