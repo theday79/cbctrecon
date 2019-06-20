@@ -59,6 +59,7 @@ addons:
       - libfftw3-dev
       - libsqlite3-dev
       - libomp-dev
+      - libdcmtk-dev
       # Build tools
       - gcc-8
       - g++-8
@@ -324,7 +325,11 @@ before_script:
       fi
       mkdir -p ITK-build
       cd ITK-build
-      cmake ../ITK -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DModule_ITKReview=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DModule_ITKMathematicalMorphology=ON -DUSE_SYSTEM_FFTW=ON -DModule_RTK=ON -DRTK_BUILD_APPLICATIONS=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_USE_CUDA=$USE_CUDA -DCMAKE_CXX_STANDARD=14
+      cmake ../ITK -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF \
+        -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON \
+        -DModule_ITKReview=ON -DITK_BUILD_DEFAULT_MODULES=OFF -DModule_ITKMathematicalMorphology=ON \
+        -DUSE_SYSTEM_FFTW=ON -DModule_RTK=ON -DRTK_BUILD_APPLICATIONS=OFF -DRTK_TIME_EACH_FILTER=ON \
+        -DRTK_USE_CUDA=$USE_CUDA -DCMAKE_CXX_STANDARD=14
       cmake --build .
       pwd
       echo $HOME
@@ -334,7 +339,9 @@ before_script:
 
   - cd cbctrecon/
   - mkdir build/ && cd build/
-  - travis_wait 40 cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF ../ -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
+  - travis_wait 40 cmake ../ ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE \
+        -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
 
 script:
   - cmake .
