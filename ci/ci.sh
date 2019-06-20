@@ -14,6 +14,7 @@ export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DHUNTER_ENABLED=OFF"
 
 if [ -d /home/user/ITK-build ]; then # Use system DCMTK, ITK and RTK
     if [ -d /home/user/RTK-build ]; then
+        ls -l /home/user/RTK-build
         cmake $COMMON_FLAGS \
             -DUSE_CUDA=OFF -DCBCTRECON_COVERAGE=OFF \
             -DUSE_SYSTEM_DCMTK=ON -DUSE_SYSTEM_ITK=ON -DUSE_SYSTEM_RTK=ON \
