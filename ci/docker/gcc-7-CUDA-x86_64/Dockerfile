@@ -53,4 +53,18 @@ USER user
 RUN git config --global user.email "andreasga22@gmail.com" \
     && git config --global user.name "Andreas Gravgaard Andersen"
 
+# Build ITK and RTK by themselves with CUDA support
+RUN cd /home/user/ \
+    && git clone --depth 1 --branch "v5.0.0" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    && mkdir -p /home/user/ITK-build \
+    && cd ITK-build \
+    && cmake -GNinja ../ITK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
+      -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
+      -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
+      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON -DModule_ITKDeprecated=ON \
+      -DITK_USE_SYSTEM_ZLIB=ON -DModule_RTK=ON -DModule_ITKCudaCommon=ON \
+      -DRTK_USE_CUDA=ON -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
+      -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
+    && cmake --build .
+
 WORKDIR /home/user/
