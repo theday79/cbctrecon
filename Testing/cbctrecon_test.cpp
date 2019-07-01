@@ -431,7 +431,7 @@ void CbctReconTest::test_DoReconstruction() {
 #else
   const auto use_cuda = false;
 #endif
-  const auto use_opencl = false; // CI OpenCL device doesn't support clImage
+  const auto use_opencl = true; //false; // CI OpenCL device doesn't support clImage
 
   if (use_cuda) {
     this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,

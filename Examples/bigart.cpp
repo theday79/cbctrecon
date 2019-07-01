@@ -13,6 +13,8 @@
 #include <QDir>
 
 #include "itkEuler3DTransform.h"
+#include "itkMinimumMaximumImageCalculator.h"
+#include "itkRescaleIntensityImageFilter.h"
 
 #include "WEPL.h"
 #include "cbctrecon_io.h"
@@ -21,9 +23,13 @@
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
 UShortImageType::Pointer
-get_image_from_dicom(const QString &dir, const DoubleVector &translation_vec,
+get_image_from_dicom(const QString &dir, const UShortImageType::SpacingType &new_spacing,
+    const UShortImageType::SizeType &new_size,
+    const UShortImageType::PointType &new_origin,
+    const UShortImageType::DirectionType &new_direction,
+ const DoubleVector &translation_vec,
                      const DoubleVector &rotation_vec) {
-  auto cbctrecon_test = std::make_unique<CbctReconTest>();
+  // auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   auto dcm_dir = QDir(dir);
   auto dcm_path = dcm_dir.absolutePath();
@@ -34,11 +40,76 @@ get_image_from_dicom(const QString &dir, const DoubleVector &translation_vec,
     std::cerr << "Directory was empty: " << dcm_path.toStdString() << "\n";
   }
 
-  cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
-  cbctrecon_test->test_LoadDICOMdir();
-  auto ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+  // cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
+  // cbctrecon_test->test_LoadDICOMdir();
+  // auto ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+  auto mha_reader = itk::ImageFileReader<ShortImageType>::New();
+  mha_reader->SetFileName(dcm_path.toStdString() + "/recalc_in.mha");
+  mha_reader->Update();
 
-  if (ct_img.IsNull()) {
+  using ImageCalculatorFilterType =
+      itk::MinimumMaximumImageCalculator<ShortImageType>;
+  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
+  imageCalculatorFilter->SetImage(mha_reader->GetOutput());
+  imageCalculatorFilter->Compute();
+
+  const auto minVal0 = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal0 = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  std::cout << "Original Min and Max Values are	" << minVal0 << "	"
+            << maxVal0 << std::endl;
+
+  auto bNKI = false;
+  if (minVal0 > -600) // impossible for normal Short image. IN NKI, always -512.
+                      // don't know why
+  {
+    bNKI = true;
+  }
+
+  // Thresholding
+  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
+  auto thresholdFilter = ThresholdImageFilterType::New();
+
+  if (!bNKI) {
+    thresholdFilter->SetInput(mha_reader->GetOutput());
+    thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
+    thresholdFilter->SetOutsideValue(-1024);
+    thresholdFilter->Update();
+  } else {
+    thresholdFilter->SetInput(mha_reader->GetOutput());
+    thresholdFilter->ThresholdOutside(0, 4095); //--> 0 ~ 4095
+    thresholdFilter->SetOutsideValue(0);
+    thresholdFilter->Update();
+  }
+
+  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
+  imageCalculatorFilter->Compute();
+
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  std::cout << "Current Min and Max Values are	" << minVal << "	"
+            << maxVal << std::endl;
+
+  USHORT_PixelType outputMinVal, outputMaxVal;
+  if (!bNKI) {
+    outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
+    outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
+  } else {
+    outputMinVal = static_cast<USHORT_PixelType>(minVal);
+    outputMaxVal = static_cast<USHORT_PixelType>(maxVal);
+  }
+
+  using RescaleFilterType =
+      itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
+  auto spRescaleFilter = RescaleFilterType::New();
+  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+  auto ct_img = spRescaleFilter->GetOutput();
+
+  if (!ct_img) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
   }
   /* Some debug info: */
@@ -63,33 +134,53 @@ get_image_from_dicom(const QString &dir, const DoubleVector &translation_vec,
   auto transform = itk::Euler3DTransform<double>::New();
   transform->SetRotation(deg2rad(-rotation_vec.x), deg2rad(-rotation_vec.y),
                          deg2rad(-rotation_vec.z));
-  // transform->SetRotation(deg2rad(-0.8843), deg2rad(1.6274),
-  // deg2rad(-0.3450));
 
-  return ct_img;
+  auto translation = itk::Euler3DTransform<double>::InputVectorType();
+  translation.SetElement(
+      0, -translation_vec.x); // 5.5185);  // -X in eclipse -> X itk
+  translation.SetElement(
+      1, -translation_vec.y); // -2.6872); // -Y in eclipse -> Y itk
+  translation.SetElement(
+      2, -translation_vec.z); // -6.4281); // -Z in eclipse -> Z itk
+  transform->SetTranslation(translation);
+
+  resampler->SetInput(ct_img);
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<UShortImageType, double>::New();
+  resampler->SetInterpolator(interpolator);
+  resampler->SetSize(new_size);
+  resampler->SetOutputSpacing(new_spacing);
+  resampler->SetOutputOrigin(new_origin);
+  resampler->SetOutputDirection(new_direction);
+  resampler->SetTransform(transform);
+  resampler->Update();
+
+  return resampler->GetOutput();
+
 }
 
 auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
                            const Rtss_roi_modern *orig_voi,
                            const std::array<double, 3> basis) {
 
-  auto output = std::vector<std::vector<float>>(orig_voi->pslist.size());
+  auto output = std::vector<std::vector<QString>>(orig_voi->pslist.size());
 
   std::transform(
       std::begin(wepl_voi->pslist), std::end(wepl_voi->pslist),
       std::begin(orig_voi->pslist), std::begin(output),
       [&basis](const Rtss_contour_modern &wepl_contour,
                const Rtss_contour_modern &orig_contour) {
-        auto out_contour = std::vector<float>(orig_contour.coordinates.size());
+        auto out_contour = std::vector<QString>(orig_contour.coordinates.size());
         std::transform(std::begin(wepl_contour.coordinates),
                        std::end(wepl_contour.coordinates),
                        std::begin(orig_contour.coordinates),
                        std::begin(out_contour),
                        [&basis](const FloatVector &wepl_coord,
                                 const FloatVector &orig_coord) {
-                         return basis.at(0) * (orig_coord.x - wepl_coord.x) +
+                       return QString("%1,%2,%3\n").arg(wepl_coord.x).arg(wepl_coord.y).arg(wepl_coord.z);
+                         /*return basis.at(0) * (orig_coord.x - wepl_coord.x) +
                                 basis.at(1) * (orig_coord.y - wepl_coord.y) +
-                                basis.at(2) * (orig_coord.z - wepl_coord.z);
+                                basis.at(2) * (orig_coord.z - wepl_coord.z);*/
                        });
         return out_contour;
       });
@@ -153,7 +244,10 @@ int main(const int argc, char *argv[]) {
   const auto recalc_dcm_path = recalc_dcm_dir.absolutePath();
 
   auto recalc_img =
-      get_image_from_dicom(recalc_dcm_path, translation, rotation);
+      get_image_from_dicom(recalc_dcm_path, ct_img->GetSpacing(),
+      ct_img->GetLargestPossibleRegion().GetSize(), ct_img->GetOrigin(),
+      ct_img->GetDirection(),
+ translation, rotation);
 
   cbctrecon_test->m_cbctrecon->m_spRawReconImg = recalc_img;
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);
@@ -167,23 +261,13 @@ int main(const int argc, char *argv[]) {
   const auto body_index =
       cbctrecon_test->m_dlgRegistration->ui_comboBox_VOItoCropBy->findText(
           "BODY", Qt::MatchStartsWith | Qt::MatchCaseSensitive);
-  cbctrecon_test->m_dlgRegistration->ui_comboBox_VOItoCropBy->setCurrentIndex(
-      body_index);
-  cbctrecon_test->m_dlgRegistration
-      ->SLT_PreProcessCT(); // BODY should be selected
-
-  cbctrecon_test->m_dlgRegistration->SLT_KeyMoving(true);
-  cbctrecon_test->m_dlgRegistration->ImageManualMoveOneShot(
-      translation.x, translation.y, translation.z);
-  cbctrecon_test->m_dlgRegistration->SLT_ConfirmManualRegistration();
-  cbctrecon_test->m_dlgRegistration->SLT_DoRegistrationRigid();
 
   saveImageAsMHA<UShortImageType>(cbctrecon_test->m_cbctrecon->m_spRawReconImg,
                                   recalc_dcm_path.toStdString() +
                                       "/recalc.mha");
-  saveImageAsMHA<UShortImageType>(cbctrecon_test->m_cbctrecon->m_spAutoRigidCT,
+  saveImageAsMHA<UShortImageType>(cbctrecon_test->m_cbctrecon->m_spManualRigidCT,
                                   dcm_path.toStdString() + "/orig.mha");
-  ct_img = cbctrecon_test->m_cbctrecon->m_spAutoRigidCT;
+  ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
   recalc_img = cbctrecon_test->m_cbctrecon->m_spRawReconImg;
   std::cout << "Images saved" << std::endl;
 
@@ -193,9 +277,16 @@ int main(const int argc, char *argv[]) {
   auto voi = std::string();
 
   for (auto &structure : ss->slist) {
-    if (structure.name == argv[3]) { // "GTV 74/37 LB") == 0) {
+    if (structure.name == argv[3]) {
       voi = structure.name;
     }
+  }
+  if (voi.empty()) {
+  for (auto &structure : ss->slist) {
+    if (structure.name.find(argv[3]) != std::string::npos) {
+      voi = structure.name;
+    }
+  }
   }
   if (voi.empty()) {
     std::cerr << "Couldn't find: \"" << argv[3] << "\"\n";
@@ -231,7 +322,7 @@ int main(const int argc, char *argv[]) {
   const auto output = get_signed_difference(wepl_voi, orig_voi.get(), basis);
 
   for (auto &cur_voi : ss->slist) {
-    if (cur_voi.name == argv[3]) {
+    if (cur_voi.name.find(argv[3]) != std::string::npos) {
       cur_voi = *wepl_voi;
     }
   }
@@ -240,6 +331,7 @@ int main(const int argc, char *argv[]) {
   const QFile out_dcm_file((out_dcm + argv[3]) + "_" +
                            recalc_dcm_dir.dirName() + "_G" + argv[4] + "_C" +
                            argv[5] + ".dcm");
+  std::cerr << "Writing WEPL struct to dicom...\n";
   if (!AlterData_RTStructureSetStorage(cbctrecon_test->m_cbctrecon->m_strPathRS,
                                        ss, out_dcm_file)) {
     std::cerr << "\a"
@@ -251,20 +343,21 @@ int main(const int argc, char *argv[]) {
   std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
   std::replace(std::begin(better_name), std::end(better_name), '/', '-');
   const auto output_filename =
-      "SignedDist_" + better_name + "_" + dcm_dir.dirName().toStdString() +
-      "_to_" + recalc_dcm_dir.dirName().toStdString() + "_at_G" +
-      std::to_string(gantry_angle) + "C" + std::to_string(couch_angle) + ".txt";
+      "WEPLstruct_" + better_name + "_" + dcm_dir.dirName().toStdString() +
+      "_to_" + recalc_dcm_dir.dirName().toStdString() + ".txt";
+  // + "_at_G" + std::to_string(gantry_angle) + "C" + std::to_string(couch_angle) + ".txt";
 
+  std::cerr << "Writing WEPL struct to txt...\n";
   std::ofstream f_stream;
   f_stream.open(output_filename);
   if (f_stream.is_open()) {
-    f_stream << std::fixed << std::setprecision(5);
+    //f_stream << std::fixed << std::setprecision(5);
 
     std::for_each(std::begin(output), std::end(output),
-                  [&f_stream](const std::vector<float> out_vec) {
+                  [&f_stream](const std::vector<QString> out_vec) {
                     std::for_each(std::begin(out_vec), std::end(out_vec),
-                                  [&f_stream](const float val) {
-                                    f_stream << val << "\n";
+                                  [&f_stream](const QString &val) {
+                                    f_stream << val.toStdString();
                                   });
                   });
 
@@ -272,6 +365,8 @@ int main(const int argc, char *argv[]) {
   } else {
     std::cerr << "Could not open file: " << output_filename << "\n";
   }
+
+  std::cerr << "Done!\n";
 
   return 0;
 }
