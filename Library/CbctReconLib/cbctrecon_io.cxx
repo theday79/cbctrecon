@@ -47,6 +47,10 @@
 #include "plm_image.h"
 #include <rt_study_metadata.h>
 
+// DCMTK
+#undef NEUTRAL
+#include "dcmtk/dcmrt/drtstrct.h"
+
 // local
 #include "StructureSet.h"
 #include "cbctrecon_io.h"
@@ -692,155 +696,74 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
                                      const Rtss_modern *input_rt_struct,
                                      const QFile &output_file) {
 
-  auto reader = gdcm::Reader();
-  reader.SetFileName(input_file.fileName().toLocal8Bit().constData());
-  if (!reader.Read()) {
-    std::cerr << "Reading dicom rtstruct: "
-              << input_file.fileName().toStdString() << " failed!\n";
-    return false;
+  DRTStructureSetIOD rtstruct;
+  DcmFileFormat fileformat;
+  auto status = fileformat.loadFile(input_file.fileName().toLocal8Bit().constData());
+  if (!status.good()){
+      std::cerr << "Could not open RT struct dcm file: " << input_file.fileName().toStdString() << "\n";
+      return false;
   }
-
-  auto &file = reader.GetFile();
-  auto &ds = file.GetDataSet();
-
-  const auto input_good = check_rtss_dicom_integrity(ds);
-  if (!input_good) {
-    std::cerr << "Rtss dicom input does not contain required fields\n";
-    return false;
+  status = rtstruct.read(*fileformat.getDataset());
+  if (!status.good()){
+      std::cerr << "Could not read RT struct dcm file: " << input_file.fileName().toStdString() << "\n";
+      return false;
   }
-
-  const auto troicsq = gdcm::Tag(0x3006, 0x0039);
-  if (!ds.FindDataElement(troicsq)) {
-    return false;
-  }
-  auto &roicsq = ds.GetDataElement(troicsq);
-  auto sqi = roicsq.GetValueAsSQ();
-  if (!sqi || !sqi->GetNumberOfItems()) {
-    return false;
-  }
-  const auto tssroisq = gdcm::Tag(0x3006, 0x0020);
-  if (!ds.FindDataElement(tssroisq)) {
-    return false;
-  }
-  auto &ssroisq = ds.GetDataElement(tssroisq);
-  auto ssqi = ssroisq.GetValueAsSQ();
-  if (!ssqi || !ssqi->GetNumberOfItems()) {
-    return false;
-  }
-
-  assert(input_rt_struct->num_structures == sqi->GetNumberOfItems());
-
-  // For each Item in the DataSet create a vtkPolyData
-  for (unsigned int pd = 0; pd < sqi->GetNumberOfItems(); ++pd) {
-    // StructureSetROI structuresetroi;
-
-    auto &item = sqi->GetItem(pd + 1);   // Item start at #1
-    auto &sitem = ssqi->GetItem(pd + 1); // Item start at #1
-    auto &snestedds = sitem.GetNestedDataSet();
-
-    // Name
-    gdcm::Attribute<0x3006, 0x0026> roiname;
-    roiname.SetFromDataSet(snestedds);
-    auto oldname = roiname.GetValue();
-
-    auto &rt_roi = input_rt_struct->slist.at(pd);
-    if (oldname == rt_roi.name) {
-      continue;
-    }
-
-    std::cerr << "Writing " << rt_roi.name << " to new dcm file\n";
-    roiname.SetValue(rt_roi.name);
-    snestedds.Replace(roiname.GetAsDataElement());
-
-    auto &nestedds = item.GetNestedDataSet();
-    // ContourSequence
-    gdcm::Tag tcsq(0x3006, 0x0040);
-    if (!nestedds.FindDataElement(tcsq)) {
-      continue;
-    }
-    auto &csq = nestedds.GetDataElement(tcsq);
-
-    auto sqi2 = csq.GetValueAsSQ();
-    if (!sqi2) //|| !sqi2->GetNumberOfItems() )
-    {
-      continue;
-    }
-    const auto nitems = sqi2->GetNumberOfItems();
-
-    if (nitems == 0) {
-      continue;
-    }
-    assert(rt_roi.num_contours == nitems);
-
-    for (unsigned int ii = 0; ii < nitems; ++ii) {
-      auto &item2 = sqi2->GetItem(ii + 1); // Item start at #1
-
-      auto &nestedds2 = item2.GetNestedDataSet();
-      gdcm::Tag tcontourdata(0x3006, 0x0050);
-      auto contourdata = nestedds2.GetDataElement(tcontourdata);
-
-      gdcm::Attribute<0x3006, 0x0042> contgeotype;
-      contgeotype.SetFromDataSet(nestedds2);
-      assert(contgeotype.GetValue() == "CLOSED_PLANAR " ||
-             contgeotype.GetValue() == "POINT " ||
-             contgeotype.GetValue() == "OPEN_NONPLANAR");
-
-      auto numcontpoints = gdcm::Attribute<0x3006, 0x0046>();
-      numcontpoints.SetFromDataSet(nestedds2);
-
-      if (contgeotype.GetValue() == "POINT ") {
-        assert(numcontpoints.GetValue() == 1);
+  fileformat.clear();
+  //  Change data in rtstruct
+  //  ROI contour seq: 3006, 0039
+  auto &ss_seq = rtstruct.getStructureSetROISequence();
+  ss_seq.gotoFirstItem();
+  // ROI Structure Set Seq: 3006, 0020
+  auto &roi_seq = rtstruct.getROIContourSequence();
+  roi_seq.gotoFirstItem();
+  for (auto &rt_roi : input_rt_struct->slist){
+      auto &item = roi_seq.getCurrentItem();
+      auto &ss_item = ss_seq.getCurrentItem();
+      OFString roi_name;
+      // ROI name: 3006, 0026
+      ss_item.getROIName(roi_name);
+      const auto trimmed_roi_name = QString(rt_roi.name.c_str()).trimmed();
+      const auto trimmed_roi_name_dcm = QString(roi_name.c_str()).trimmed();
+      if (!trimmed_roi_name.contains("WEPL", Qt::CaseSensitive)){
+          roi_seq.gotoNextItem();
+          ss_seq.gotoNextItem();
+          continue;
       }
+      std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
+      ss_item.setROIName(rt_roi.name.c_str());
+      // Contour Seq: 3006, 0040
+      auto &contour_seq = item.getContourSequence();
+      contour_seq.gotoFirstItem();
+      for (auto &rt_contour : rt_roi.pslist) {
+          auto &contour = contour_seq.getCurrentItem();
 
-      gdcm::Attribute<0x3006, 0x0050> at;
-      at.SetFromDataElement(contourdata);
-
-      if (contgeotype.GetValue() == "CLOSED_PLANAR " ||
-          contgeotype.GetValue() == "OPEN_NONPLANAR") {
-        // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.8.6.html
-        if (nestedds2.FindDataElement(gdcm::Tag(0x3006, 0x0016))) {
-          const auto &contourimagesequence =
-              nestedds2.GetDataElement(gdcm::Tag(0x3006, 0x0016));
-          const auto contourimagesequence_sqi =
-              contourimagesequence.GetValueAsSQ();
-          assert(contourimagesequence_sqi &&
-                 contourimagesequence_sqi->GetNumberOfItems() == 1);
-        }
+          auto data_str = std::string("");
+          for (auto &coord : rt_contour.coordinates){
+              data_str += std::to_string(coord.x) + "\\" +
+                          std::to_string(coord.y) + "\\" +
+                          std::to_string(coord.z) + "\\";
+          }
+          data_str.pop_back();
+          // Contour data: 3006, 0050
+          status = contour.setContourData(OFString(data_str.c_str()), true);
+          if (!status.good()){
+              std:: cerr << "Could not set contour data: " << status.text() << "\n";
+          }
+          contour_seq.gotoNextItem();
       }
-
-      const auto npts = at.GetNumberOfValues() / 3;
-      assert(npts == static_cast<unsigned int>(numcontpoints.GetValue()));
-      assert(npts * 3 == at.GetNumberOfValues());
-      using point_type = gdcm::Attribute<0x3006, 0x0050>::ArrayType;
-      auto pts = std::valarray<point_type>(npts * 3);
-      auto &rt_contour = rt_roi.pslist.at(ii);
-      assert(rt_contour.num_vertices == npts);
-
-      auto index = 0;
-      std::for_each(std::begin(rt_contour.coordinates),
-                    std::end(rt_contour.coordinates),
-                    [&pts, &index](const FloatVector vec) {
-                      pts[index] = vec.x;
-                      pts[index + 1] = vec.y;
-                      pts[index + 2] = vec.z;
-                      index += 3;
-                    });
-
-      at.SetValues(&pts[0], npts * 3);
-
-      std::cerr << "Replacing contour data\n";
-      nestedds2.Replace(at.GetAsDataElement());
-    }
+      roi_seq.gotoNextItem();
+      ss_seq.gotoNextItem();
   }
-
-  gdcm::Writer writer;
-  writer.CheckFileMetaInformationOff();
-  writer.SetFileName(output_file.fileName().toLocal8Bit().constData());
-  writer.SetFile(file);
-  if (!writer.Write()) {
-    std::cerr << "Could not write: " << output_file.fileName().toStdString()
-              << "!\n";
-    return false;
+  //
+  status = rtstruct.write(*fileformat.getDataset());
+  if (!status.good()){
+      std::cerr << "Could not write RT struct dcm file: " << input_file.fileName().toStdString() << "\n";
+      return false;
+  }
+  status = fileformat.saveFile(output_file.fileName().toLocal8Bit().constData());
+  if (!status.good()){
+      std::cerr << "Could not save RT struct dcm file: " << output_file.fileName().toStdString() << "\n";
+      return false;
   }
   return true;
 }
