@@ -194,10 +194,11 @@ struct FDK_options {
 };
 
 using ItkVectorType = itk::Vector<float, 3U>;
+using VnlVectorType = vnl_vector_fixed<double, 3U>;
 using VectorFieldType = itk::Image<ItkVectorType, 3U>;
 using PointType = itk::Point<double, 3U>;
 // Sorry, I can't control myself, I just love std::function
-using TransformType = std::function<PointType(PointType)>;
+using TransformType = std::function<VnlVectorType(const VnlVectorType&)>;
 
 struct FloatVector {
   float x;

@@ -126,12 +126,9 @@ void StructureSet::transform_by_Lambda(
     for (auto &roi : out_ss->slist) {
       for (auto &contour : roi.pslist) {
         for (auto &coord : contour.coordinates) {
-          VectorFieldType::PointType physIndex;
-          physIndex[0] = coord.x;
-          physIndex[1] = coord.y;
-          physIndex[2] = coord.z;
+          const auto tmp_point = VnlVectorType(coord.x, coord.y, coord.z);
 
-          auto new_point = transform_function(physIndex);
+          const auto new_point = transform_function(tmp_point);
 
           coord.x = new_point[0];
           coord.y = new_point[1];
@@ -158,55 +155,55 @@ StructureSet::get_transform_function(const Xform::Pointer &xform) const {
   switch (xform_type) {
   case XFORM_ITK_TRANSLATION: {
     const auto &trnsl = xform->get_trn();
-    const auto offset = trnsl->GetOffset();
-    transform = [offset](const PointType point) { return point + offset; };
+    const auto offset = -(trnsl->GetOffset().GetVnlVector());
+    transform = [offset](const VnlVectorType& point) { return point + offset; };
     break;
   }
   case XFORM_ITK_VERSOR: {
     const auto &versor = xform->get_vrs();
-    const auto matrix = versor->GetMatrix();
-    const auto offset = versor->GetOffset();
-    transform = [matrix, offset](const PointType point) {
+    const auto matrix = -(versor->GetMatrix().GetVnlMatrix());
+    const auto offset = -(versor->GetOffset().GetVnlVector());
+    transform = [matrix, offset](const VnlVectorType& point) {
       return matrix * point + offset;
     };
     break;
   }
   case XFORM_ITK_QUATERNION: {
     const auto &quarternion = xform->get_quat();
-    const auto matrix = quarternion->GetMatrix();
-    const auto offset = quarternion->GetOffset();
-    transform = [matrix, offset](const PointType point) {
+    const auto matrix = -(quarternion->GetMatrix().GetVnlMatrix());
+    const auto offset = -(quarternion->GetOffset().GetVnlVector());
+    transform = [matrix, offset](const VnlVectorType& point) {
       return matrix * point + offset;
     };
     break;
   }
   case XFORM_ITK_AFFINE: {
     const auto &affine = xform->get_aff();
-    const auto matrix = affine->GetMatrix();
-    const auto offset = affine->GetOffset();
-    transform = [matrix, offset](const PointType point) {
+    const auto matrix = -(affine->GetMatrix().GetVnlMatrix());
+    const auto offset = -(affine->GetOffset().GetVnlVector());
+    transform = [matrix, offset](const VnlVectorType& point) {
       return matrix * point + offset;
     };
     break;
   }
   case XFORM_ITK_BSPLINE: {
     const auto bspline = xform->get_itk_bsp();
-    transform = [bspline](const PointType point) {
-      return bspline->TransformPoint(point);
+    transform = [bspline](const VnlVectorType& point) {
+      return bspline->TransformPoint(&point[0]).GetVnlVector();
     };
     break;
   }
   case XFORM_ITK_TPS: {
     const auto tps = xform->get_itk_tps();
-    transform = [tps](const PointType point) {
-      return tps->TransformPoint(point);
+    transform = [tps](const VnlVectorType& point) {
+      return tps->TransformPoint(&point[0]).GetVnlVector();
     };
     break;
   }
   case XFORM_ITK_SIMILARITY: {
     const auto similarity = xform->get_similarity();
-    transform = [similarity](const PointType point) {
-      return similarity->TransformPoint(point);
+    transform = [similarity](const VnlVectorType& point) {
+      return similarity->TransformPoint(&point[0]).GetVnlVector();
     };
     break;
   }
@@ -219,8 +216,8 @@ StructureSet::get_transform_function(const Xform::Pointer &xform) const {
     const auto xform_itk = xform_to_itk_bsp(xform, &plm_header, nullptr);
     const auto bsp_transform = xform_itk->get_itk_bsp();
     bsp_transform->GetValidRegion().Print(std::cerr);
-    transform = [bsp_transform](const PointType point) {
-      return bsp_transform->TransformPoint(point);
+    transform = [bsp_transform](const VnlVectorType& point) {
+      return bsp_transform->TransformPoint(&point[0]).GetVnlVector();
     };
     break;
   }
