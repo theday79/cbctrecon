@@ -37,7 +37,7 @@ set(ExternalData_URL_TEMPLATES
 
 set(ExternalData_LINK_CONTENT MD5)
 set(ExternalData_NO_SYMLINKS 1)
-set(ExternalData_TIMEOUT_ABSOLUTE 1000)
+set(ExternalData_TIMEOUT_ABSOLUTE 5000)
 
 # set(ExternalData_CUSTOM_SCRIPT_silent_download ${CMAKE_SOURCE_DIR}/cmake/ExternalData_Custom_Script.cmake)
 ##### EXTERNAL DATA END #####
@@ -93,7 +93,7 @@ function(add_cbctrecon_test)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 	)
 
-  set_tests_properties(${ARGS_TARGET} PROPERTIES TIMEOUT 6000)
+  set_tests_properties(${ARGS_TARGET} PROPERTIES TIMEOUT 12000)
 
   install(TARGETS ${ARGS_TARGET}
     RUNTIME DESTINATION bin
