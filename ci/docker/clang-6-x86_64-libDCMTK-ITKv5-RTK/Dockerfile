@@ -17,8 +17,7 @@ USER user
 
 # ITK
 RUN cd /home/user/ \
-    && git clone --depth 1 --branch "v4.13.2" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
-    && echo "itk_fetch_module(RTK \"RTK external module for ITK\" GIT_REPOSITORY \"https://github.com/SimonRit/RTK.git\" GIT_TAG master)" > ITK/Modules/Remote/ExternalRTK.remote.cmake \
+    && git clone --depth 1 --branch "v5.0.0" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
     && export CC=clang && export CXX=clang++ \
@@ -26,8 +25,7 @@ RUN cd /home/user/ \
       -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
       -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
       -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON \
-      -DITK_USE_SYSTEM_ZLIB=ON -DITK_USE_SYSTEM_HDF5=ON \
-      -DModule_ITKMathematicalMorphology=ON -DModule_ITKConvolution=ON -DModule_ITKIOCSV=ON -DModule_ITKImageNoise=ON \
+      -DITK_USE_SYSTEM_ZLIB=ON -DModule_ITKDeprecated=ON \
       -DModule_RTK=ON -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
     && cmake --build .
 
