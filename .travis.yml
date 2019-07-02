@@ -348,9 +348,7 @@ before_script:
 script:
   - cmake .
   - cmake --build .
-  # Because testing takes so long we won't have time for coverage:
-  - if [[ "$CBCTRECON_COVERAGE" == "ON" ]]; then export RUN_TESTS=OFF; fi
-  - if [[ "$RUN_TESTS" == "ON" ]]; then travis_wait 50 ctest -VV; fi
+  - if [[ ${RUN_TESTS} == "ON" ]]; then travis_wait 50 ctest -VV; fi
 
 before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
