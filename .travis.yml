@@ -24,7 +24,6 @@ env:
     - CC_VER=DEFAULT
     - CUDA=NONE
     - MACCUDA=NONE
-    - RUN_TESTS=ON
     - CMAKE_OPTIONS="-GNinja"
     - CACHE_ITK=ON
 
@@ -95,7 +94,6 @@ matrix:
         # - ENV_CXX_FLAGS="-Wno-unused-local-typedef -DBOOST_COMPUTE_MAX_CL_VERSION=200"
         # - ENV_CMAKE_OPTIONS="-DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include"
         # - OPENCL_LIB=khronos-icd
-        # - RUN_TESTS=false
         # - ENV_CXX_FLAGS="-Wno-unused-local-typedef -DBOOST_COMPUTE_MAX_CL_VERSION=202"
         # - ENV_CMAKE_OPTIONS="-DOpenCL_LIBRARY=${OPENCL_ICD_LIB} -DOpenCL_INCLUDE_DIR=${OPENCL_ROOT}/include -DBOOST_COMPUTE_USE_CPP11=ON"
 
@@ -321,7 +319,6 @@ before_script:
       if [ ! -d ./ITK ]; then
         git clone --depth 1 --branch v4.13.1 https://github.com/insightsoftwareconsortium/ITK.git
         cp ./cbctrecon/External/patches/ExternalRTK.remote.cmake ./ITK/Modules/Remote/
-        export RUN_TESTS=OFF
       fi
       mkdir -p ITK-build
       cd ITK-build
@@ -348,7 +345,7 @@ before_script:
 script:
   - cmake .
   - cmake --build .
-  - if [[ ${RUN_TESTS} == "ON" ]]; then travis_wait 50 ctest -VV; fi
+  - travis_wait 50 ctest -VV
 
 before_cache:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cleanup; fi
