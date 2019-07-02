@@ -571,7 +571,7 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
 #else
             false,
 #endif
-      true, // this->ui.radioButton_UseOpenCL->isChecked(),
+      false, // this->ui.radioButton_UseOpenCL->isChecked(), CI doesn't support clImage
       true, //this->ui.checkBox_ExportVolDICOM->isChecked(),
       fdk_options);
 
