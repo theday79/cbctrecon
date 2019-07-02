@@ -80,7 +80,8 @@ endif()
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)
 
-set(PLASTIMATCH_INCLUDE_DIRS
+if(NOT USE_SYSTEM_Plastimatch)
+  set(PLASTIMATCH_INCLUDE_DIRS
     ${PLASTIMATCH_INCLUDE_DIRS}
     "${Plastimatch_SRC}/src/"
     "${Plastimatch_SRC}/src/plastimatch/"
@@ -93,6 +94,7 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_SRC}/src/plastimatch/opencl"
     "${Plastimatch_SRC}/src/plastimatch/segment"
     "${Plastimatch_BUILD_DIR}/")
+endif()
 
 #this is for "C++ General-> Add below to Additional Include Directories"
 set(CBCTRECON_DEP_INCLUDES
@@ -114,6 +116,24 @@ target_link_libraries(CbctReconLib
   PUBLIC ${PLM_TARGETS}
   PUBLIC ${CBCTRECON_DEP_LIBS}
 )
+
+if(USE_SYSTEM_Plastimatch)
+  find_package(Plastimatch REQUIRED)
+
+  message(STATUS "${PLASTIMATCH_LIBRARIES}")
+  message(STATUS "${Plastimatch_LIBRARIES}")
+
+  target_link_libraries(CbctReconLib
+    PUBLIC ${Plastimatch_LIBRARIES}
+    )
+  get_target_property(plmbase_includes plmbase INTERFACE_INCLUDE_DIRECTORIES)
+  foreach(i_dir ${plmbase_includes})
+    target_include_directories(CbctReconLib
+      PUBLIC "${i_dir}/../"
+      )
+  endforeach()
+endif()
+
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
   tinyrefl_tool(
