@@ -3,6 +3,8 @@
 
 #include <QFile>
 
+#undef TIMEOUT
+#undef CUDA_FOUND
 #include "xform.h"
 
 #include "PlmWrapper.h"
