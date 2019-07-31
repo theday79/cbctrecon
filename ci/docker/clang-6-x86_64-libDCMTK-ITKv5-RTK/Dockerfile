@@ -27,6 +27,7 @@ RUN cd /home/user/ \
       -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON \
       -DITK_USE_SYSTEM_ZLIB=ON -DModule_ITKDeprecated=ON \
       -DModule_RTK=ON -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
+      -DREMOTE_GIT_TAG_RTK="master" \
     && cmake --build .
 
 
