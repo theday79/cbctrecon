@@ -34,9 +34,14 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(feature_defs OPTIONAL)
 include(Sanitize)
 
+option(HUNTER_ENABLED "Enable hunter for dependency management" OFF)
 option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
 option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)
-option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs. Zlib" OFF)
+option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs." ON)
+option(USE_SYSTEM_ITK "ON=Use local ITK, OFF=cmake downloads and configs." ON)
+option(USE_SYSTEM_DCMTK "ON=Use local DCMTK, OFF=cmake downloads and configs." ON)
+option(USE_SYSTEM_Plastimatch "ON=Use local Plastimatch, OFF=cmake downloads and configs." ON)
+
 OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
 OPTION(USE_ITK_DCMTK "Toggle DCMTK on or off" ON)
