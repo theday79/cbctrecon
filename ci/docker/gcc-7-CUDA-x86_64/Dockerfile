@@ -83,6 +83,8 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 
 # Build ITK and RTK by themselves with CUDA support
 RUN cd /home/user/ \
+    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/stubs/ \
+    && export LD_LIBRARY_PATH \
     && git clone --depth 1 --branch "v5.0.0" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
