@@ -58,6 +58,7 @@ addons:
       - libfftw3-dev
       - libsqlite3-dev
       - libomp-dev
+      - zlib1g-dev
       - libdcmtk-dev
       # Build tools
       - gcc-8
@@ -142,7 +143,7 @@ matrix:
       compiler: clang
       env:
         - CMAKE_OPTIONS=""
-        - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF -DUSE_SYSTEM_DCMTK=ON"
+        - ENV_CMAKE_OPTIONS="-DUSE_OPENMP=OFF -DUSE_SYSTEM_DCMTK=ON -DHUNTER_ENABLED=ON -DUSE_SYSTEM_ZLIB=OFF"
 
     # - os: windows
     #  env:
@@ -340,7 +341,7 @@ before_script:
   - travis_wait 40 cmake ../ ${CMAKE_OPTIONS}
       -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DCBCTRECON_COVERAGE=$CBCTRECON_COVERAGE
-      -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR
+      -DUSE_CUDA=$USECUDA -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DUSE_SYSTEM_Plastimatch=OFF
 
 script:
   - cmake .
