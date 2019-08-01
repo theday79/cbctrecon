@@ -12,7 +12,11 @@ RUN apt-get update \
         clinfo
 
 RUN mkdir -p /etc/OpenCL/vendors \
-    && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
+    && echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd \
+    && ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 \
+    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/stubs/ \
+    && export LD_LIBRARY_PATH \
+    && ldconfig
 
 # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES all
@@ -83,8 +87,6 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 
 # Build ITK and RTK by themselves with CUDA support
 RUN cd /home/user/ \
-    && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/stubs/ \
-    && export LD_LIBRARY_PATH \
     && git clone --depth 1 --branch "v5.0.0" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
