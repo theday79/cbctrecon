@@ -21,6 +21,7 @@ fi
 
 if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
     export CUDA_FLAGS="-DUSE_CUDA=ON -DEXACT_GCC=/usr/bin/gcc-7"
+    nvidia-smi
 else
     export CUDA_FLAGS="-DUSE_CUDA=OFF"
 fi

@@ -14,6 +14,10 @@
 
 #include "cbctrecon_types.h"
 
+// If this function fails, something is probably wrong with the local OpenCL ICD
+std::tuple<cl_platform_id, cl_device_id>
+getPlatformAndDeviceID(const size_t required_mem_alloc_size);
+
 void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
                     const cl_uint4 &inputSize, const float *hostVolume,
                     float *hostPaddedVolume,

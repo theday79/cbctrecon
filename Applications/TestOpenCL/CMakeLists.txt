@@ -1,7 +1,7 @@
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-function(add_cbctrecon_example)
+function(add_cbctrecon_app)
   cmake_parse_arguments(
     ARGS
     ""
@@ -22,6 +22,11 @@ function(add_cbctrecon_example)
     target_link_libraries(${ARGS_TARGET} cbctrecon_test)
   endif()
 
+  # link with coverage library
+  if(${CBCTRECON_COVERAGE} AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+      target_link_libraries(${ARGS_TARGET} -fprofile-arcs -ftest-coverage)
+  endif()
+
   # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
   set_target_cpu_flags(${ARGS_TARGET})
 
@@ -37,14 +42,8 @@ function(add_cbctrecon_example)
   install(TARGETS ${ARGS_TARGET}
     RUNTIME DESTINATION bin
     )
-
-
 endfunction()
 
-add_cbctrecon_example(
-  TARGET bigart
-  )
-
-add_cbctrecon_example(
-  TARGET apply_affine
+add_cbctrecon_app(
+  TARGET opencl_tester
   )
