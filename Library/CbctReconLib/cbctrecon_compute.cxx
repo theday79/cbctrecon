@@ -21,7 +21,7 @@
 #include "itkSmartPointer.h" // for SmartPointer
 #include "itkStatisticsImageFilter.h"
 
-#include "OpenCLFFTFilter.h"
+#include "OpenCL/ImageFilters.h"
 
 void ApplyBowtie(FloatImageType::Pointer &projections,
                  const FloatImage2DType::Pointer &bowtie_proj) {

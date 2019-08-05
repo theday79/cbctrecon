@@ -129,3 +129,7 @@ add_cbctrecon_test(
   DATA_ARGS ${${test_target}_DATA}
   )
 
+add_cbctrecon_test(
+  TARGET test_opencl_filter
+  DATA_ARGS add_const_filter
+  )

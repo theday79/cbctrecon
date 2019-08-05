@@ -233,7 +233,7 @@ __kernel void subtract_kernel2D(
 	input[idx] = out_val;
 }
 
-// Actually is divide ln(65535/X) by ln(65535/Y) 
+// Actually is divide ln(65535/X) by ln(65535/Y)
 __kernel void divide_kernel3D_Ushort(
 	__global ushort *input,
 	__global ushort *divImg,
@@ -247,8 +247,19 @@ __kernel void divide_kernel3D_Ushort(
 	output[idx] = mu_in / mu_div;
 }
 
-// Adds value to input or assigns to 0 or ln(65535) if outside bounds.
+// Adds value to input
 __kernel void add_const_kernel(
+        __global float *input,
+        float value)
+{
+        const unsigned int idx = get_global_id(0);
+        const float out_val = input[idx] + value;
+
+        input[idx] = out_val;
+}
+
+// Adds value to input or assigns to 0 or ln(65535) if outside bounds.
+__kernel void add_consti_with_thresh_kernel(
 	__global float *input,
 	float value)
 {
@@ -315,7 +326,7 @@ __kernel void min_max_kernel2(
 	const uint idx = get_global_id(0);
 
 	const uint first_idx_in = idx * divider;
-	
+
 	if ((first_idx_in + divider) > end_idx)
 			divider = end_idx - first_idx_in;
 	float min_val = 65535.0f;

@@ -86,7 +86,7 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 
 // Local
 #include "AG17RGBAImage.h"
-#include "OpenCLFFTFilter.h"
+#include "OpenCL/ImageFilters.h"
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"

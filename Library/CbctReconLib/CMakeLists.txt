@@ -27,7 +27,7 @@ SET(CbctReconLib_SOURCES
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
-  OpenCLFFTFilter.cxx
+  OpenCL/ImageFilters.cxx
 )
 
 SET(CbctReconLib_HEADERS
@@ -49,7 +49,9 @@ SET(CbctReconLib_HEADERS
   rtkExtension/itkOpenCLImageToImageFilter.h
   rtkExtension/itkOpenCLImageToImageFilter.hxx
   rtkExtension/rtkOpenCLUtilities.h
-  OpenCLFFTFilter.h
+  OpenCL/ImageFilters.h
+  OpenCL/device_picker.hpp
+  OpenCL/err_code.h
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 
