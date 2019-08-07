@@ -16,6 +16,8 @@
 // If this function fails, something is probably wrong with the local OpenCL ICD
 const auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size);
 
+void OpenCL_initialize(const size_t required_mem_alloc_size);
+
 void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
                     const cl_uint4 &inputSize, const float *hostVolume,
                     float *hostPaddedVolume,
@@ -47,18 +49,18 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
                                 const FloatImage2DType::SizeType &inputSize,
                                 cl_float constant);
 
-cl_float2 OpenCL_min_max(const cl_float *buffer,
+cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput);
+
+cl_float2 OpenCL_min_max_3D(cl_float *buffer,
                          const FloatImageType::SizeType &inputSize);
 
-cl_float2 OpenCL_min_max_2D(const cl_float *buffer,
+cl_float2 OpenCL_min_max_2D(cl_float *buffer,
                             const FloatImage2DType::SizeType &inputSize);
 
-cl_float2 OpenCL_min_max_recurse(const cl_float2 *buffer,
+cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer,
                                  const cl_uint inputSize,
                                  cl::Buffer &deviceBuffer,
-                                 cl::Context &ctx,
                                  cl::CommandQueue &queue,
-                                 cl::Program &program,
                                  cl::NDRange nd_local_work_size);
 
 #endif // IMAGEFILTERS_H

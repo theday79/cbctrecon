@@ -113,6 +113,39 @@ unpack_ext_data(
   TAR_SUBOUTPUT ${TAR_SUBOUTPUT}
   )
 
+# Test: OpenCL filters
+
+set(test_target
+    test_opencl_filter
+    )
+add_cbctrecon_test(
+  TARGET ${test_target}
+  DATA_ARGS add_const_filter
+  )
+
+add_test(
+  NAME ${test_target}_add_2d
+  COMMAND $<TARGET_FILE:${test_target}> add_const_2d_filter
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+
+add_test(
+  NAME ${test_target}_add_mul
+  COMMAND $<TARGET_FILE:${test_target}> add_mul_const_filter
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+add_test(
+  NAME ${test_target}_min_max
+  COMMAND $<TARGET_FILE:${test_target}> min_max_filter
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+add_test(
+  NAME ${test_target}_min_max_2d
+  COMMAND $<TARGET_FILE:${test_target}> min_max_2d_filter
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+
+
 # Test: End 2 End
 
 set(test_target
@@ -129,7 +162,4 @@ add_cbctrecon_test(
   DATA_ARGS ${${test_target}_DATA}
   )
 
-add_cbctrecon_test(
-  TARGET test_opencl_filter
-  DATA_ARGS add_const_filter
-  )
+
