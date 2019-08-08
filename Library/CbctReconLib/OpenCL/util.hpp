@@ -7,6 +7,9 @@
  * Contributors include Simon McIntosh-Smith, James Price, Tom Deakin and Mike O'Connor.
  *
  */
+/*
+ * Modified by A. Gravgaard
+ */
 
 #ifndef __UTIL_HDR
 #define __UTIL_HDR
@@ -22,8 +25,10 @@ typedef unsigned __int64 uint64_t;
 #endif
 
 #include <iostream>
+#include <iterator>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include <cstdlib>
 
@@ -43,6 +48,24 @@ inline std::string loadProgram(std::string input)
      return std::string(
         std::istreambuf_iterator<char>(stream),
         (std::istreambuf_iterator<char>()));
+}
+
+inline std::vector<char> loadProgramIL(std::string input)
+{
+    std::ifstream stream(input.c_str());
+    if (!stream.is_open()) {
+        std::cout << "Cannot open file: " << input << std::endl;
+#if defined(_WIN32) && !defined(__MINGW32__)
+        system("pause");
+#endif
+        exit(1);
+    }
+
+    stream >> std::noskipws;
+    auto output = std::vector<char>();
+    std::copy(std::istream_iterator<char>(stream), std::istream_iterator<char>(),
+            std::back_inserter(output));
+    return output;
 }
 
 #if 1

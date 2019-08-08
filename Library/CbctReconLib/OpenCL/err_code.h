@@ -1,5 +1,5 @@
-
-#pragma once
+#ifndef ERR_CODE_H
+#define ERR_CODE_H
 /*----------------------------------------------------------------------------
  *
  * Name:     err_code()
@@ -44,7 +44,7 @@
 
 #include "OpenCL/cl.hpp"
 
-const char *err_code (cl_int err_in)
+const char *ocl_err_code (cl_int err_in)
 {
     switch (err_in) {
         case CL_SUCCESS:
@@ -154,14 +154,14 @@ const char *err_code (cl_int err_in)
 }
 
 
-void check_error(cl_int err, const char *operation,
+void check_ocl_error(cl_int err, const char *operation,
                  const char *filename, int line)
 {
     if (err != CL_SUCCESS)
     {
         fprintf(stderr, "Error during operation '%s', ", operation);
         fprintf(stderr, "in '%s' on line %d\n", filename, line);
-        fprintf(stderr, "Error code was \"%s\" (%d)\n", err_code(err), err);
+        fprintf(stderr, "Error code was \"%s\" (%d)\n", ocl_err_code(err), err);
 #if defined(_WIN32) && !defined(__MINGW32__)
         system("pause");
 #endif
@@ -170,4 +170,6 @@ void check_error(cl_int err, const char *operation,
 }
 
 
-#define checkError(E, S) check_error(E,S,__FILE__,__LINE__)
+#define checkError(E, S) check_ocl_error(E,S,__FILE__,__LINE__)
+
+#endif

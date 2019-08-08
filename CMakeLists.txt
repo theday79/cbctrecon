@@ -55,6 +55,9 @@ OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
 OPTION(CBCTRECON_BUILD_EXAMPLES "Build examples for CbctRecon" ON)
 option(CBCTRECON_SANITIZE "Sanitize build of CbctRecon" OFF)
 
+set(CBCTRECON_OPENCL_VERSION 120 CACHE STRING "Version of OpenCL to use, 1.2->120 etc.")
+add_definitions(-DCBCTRECON_OPENCL_VERSION=${CBCTRECON_OPENCL_VERSION})
+
 if(CMAKE_COMPILER_IS_GNUCXX AND ${CBCTRECON_BUILD_TESTS} AND ${USE_CUDA})
   set(TMP_COVERAGE ON)  # gcov requires gcc and tests to be build.
   # CUDA is to only do this on private GitLab runners and to enable most routes

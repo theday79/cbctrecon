@@ -4,8 +4,13 @@
 #include <complex>
 #include <vector>
 
+#if CBCTRECON_OPENCL_VERSION >= 210
+#define CL_HPP_MINIMUM_OPENCL_VERSION 200
+#define CL_HPP_TARGET_OPENCL_VERSION 210
+#else
 #define CL_HPP_MINIMUM_OPENCL_VERSION 120
 #define CL_HPP_TARGET_OPENCL_VERSION 120
+#endif
 
 #include "OpenCL/cl2.hpp"
 
@@ -17,6 +22,7 @@
 const auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size);
 
 void OpenCL_initialize(const size_t required_mem_alloc_size);
+void OpenCL_initialize(cl::Device &dev);
 
 void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
                     const cl_uint4 &inputSize, const float *hostVolume,

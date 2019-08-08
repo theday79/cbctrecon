@@ -36,7 +36,12 @@ private:
   std::vector<cl::Kernel> m_kernel_list;
 
   cl::Program build_ocl_program(cl::Context &ctx){
+#if CL_HPP_TARGET_OPENCL_VERSION >= 210 || (CL_HPP_TARGET_OPENCL_VERSION==200 && defined(CL_HPP_USE_IL_KHR))
+    //const auto cl_source = util::loadProgramIL("kernels_cl20.spv");
     const auto cl_source = util::loadProgram("fdk_opencl.cl");
+#else
+    const auto cl_source = util::loadProgram("fdk_opencl.cl");
+#endif
     auto err = CL_SUCCESS;
 #ifdef DEBUG_OPENCL
     auto program = cl::Program(ctx, cl_source, /* build? */ false, &err);
@@ -85,7 +90,7 @@ static KernelMan kernel_man;
 const auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size) {
 
   auto devices = std::vector<cl::Device>();
-  getDeviceList(devices);
+  OpenCL_getDeviceList(devices);
 
   auto default_id = 0;
   // Maybe read device number from file?
@@ -109,6 +114,10 @@ const auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size) {
 
 void OpenCL_initialize(const size_t required_mem_alloc_size){
   auto dev = getDeviceByReqAllocSize(required_mem_alloc_size);
+  kernel_man.initialize(dev);
+}
+
+void OpenCL_initialize(cl::Device &dev){
   kernel_man.initialize(dev);
 }
 

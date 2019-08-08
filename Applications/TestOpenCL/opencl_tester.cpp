@@ -26,7 +26,7 @@ int main(int argc, char** argv){
   }
 
   auto devices = std::vector<cl::Device>();
-  getDeviceList(devices);
+  OpenCL_getDeviceList(devices);
 
   i = 0U;
   for (auto &dev : devices) {
@@ -38,6 +38,15 @@ int main(int argc, char** argv){
       return -2;
     }
     std::cerr << "Device #" << ++i << ": " << device_name << "\n";
+
+    // OpenCL version?
+    std::string device_opencl_version;
+    cl_err = dev.getInfo(CL_DEVICE_VERSION, &device_opencl_version);
+    if (cl_err != CL_SUCCESS){
+      std::cerr << "Could not get device version, CL_ERR: " << cl_err << "\n";
+      return -3;
+    }
+    std::cerr << "Device version: " << device_opencl_version << "\n";
 
     // Image support?
     cl_bool device_image_support = false;

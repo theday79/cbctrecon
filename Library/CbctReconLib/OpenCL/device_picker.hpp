@@ -25,9 +25,11 @@
  * Modified by A. Gravgaard
  */
 
-#pragma once
+#ifndef DEVICE_PICKER_HPP
+#define DEVICE_PICKER_HPP
 
 #include <vector>
+#include <string>
 #include <iostream>
 
 #include "OpenCL/err_code.h"
@@ -39,7 +41,7 @@
 #define MAX_INFO_STRING 256
 
 
-unsigned getDeviceList(std::vector<cl::Device>& devices)
+unsigned OpenCL_getDeviceList(std::vector<cl::Device>& devices)
 {
   // Get list of platforms
   std::vector<cl::Platform> platforms;
@@ -56,7 +58,7 @@ unsigned getDeviceList(std::vector<cl::Device>& devices)
   return devices.size();
 }
 
-std::string getDeviceName(const cl::Device& device)
+std::string OpenCL_getDeviceName(const cl::Device& device)
 {
   std::string name;
   cl_device_info info = CL_DEVICE_NAME;
@@ -72,15 +74,25 @@ std::string getDeviceName(const cl::Device& device)
   return name;
 }
 
+template<typename T>
+T string_to(const char* str, char* next);
 
-int parseUInt(const char *str, cl_uint *output)
+template<>
+cl_uint string_to<cl_uint>(const char* str, char* next){
+  auto output = std::strtoul(str, &next, 10);
+  return static_cast<cl_uint>(output);
+}
+
+
+template<typename T>
+int OpenCL_parse(const char *str, T *output)
 {
   char *next;
-  *output = strtoul(str, &next, 10);
+  *output = string_to<T>(str, next);
   return !strlen(next);
 }
 
-void parseArguments(int argc, char *argv[], cl_uint *deviceIndex)
+void OpenCL_parseArguments(int argc, char *argv[], cl_uint *deviceIndex)
 {
   for (int i = 1; i < argc; i++)
   {
@@ -88,7 +100,7 @@ void parseArguments(int argc, char *argv[], cl_uint *deviceIndex)
     {
       // Get list of devices
       std::vector<cl::Device> devices;
-      unsigned numDevices = getDeviceList(devices);
+      unsigned numDevices = OpenCL_getDeviceList(devices);
 
       // Print device names
       if (numDevices == 0)
@@ -100,7 +112,7 @@ void parseArguments(int argc, char *argv[], cl_uint *deviceIndex)
         std::cout << "\nDevices:\n";
         for (unsigned int i = 0; i < numDevices; i++)
         {
-          std::cout << i << ": " << getDeviceName(devices[i]) << "\n";
+          std::cout << i << ": " << OpenCL_getDeviceName(devices[i]) << "\n";
         }
         std::cout << "\n";
       }
@@ -108,7 +120,7 @@ void parseArguments(int argc, char *argv[], cl_uint *deviceIndex)
     }
     else if (!strcmp(argv[i], "--device"))
     {
-      if (++i >= argc || !parseUInt(argv[i], deviceIndex))
+      if (++i >= argc || !OpenCL_parse<cl_uint>(argv[i], deviceIndex))
       {
         std::cout << "Invalid device index\n";
         exit(1);
@@ -128,3 +140,4 @@ void parseArguments(int argc, char *argv[], cl_uint *deviceIndex)
   }
 }
 
+#endif

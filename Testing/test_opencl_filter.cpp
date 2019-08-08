@@ -12,6 +12,11 @@
 #include "itkStatisticsImageFilter.h"
 #include "itkDivideImageFilter.h"
 
+#ifndef CBCTRECON_OPENCL_VERSION
+#define CBCTRECON_OPENCL_VERSION 120
+#endif
+#define REQ_OPENCL_VER static_cast<cl_uint>(CBCTRECON_OPENCL_VERSION)
+
 template<typename T, size_t DIM>
 auto GenerateImage(){
   using ImageType = itk::Image<T, DIM>;
@@ -99,6 +104,38 @@ auto CheckImage(typename ImageType::Pointer image_test, typename ImageType::Poin
   return 0;
 }
 
+// Extracts version number so 1.2 -> 120 etc.
+cl_uint getOpenCLVersion(const std::string &versionInfo)
+{
+    int highVersion = 0;
+    int lowVersion = 0;
+    int index = 7;
+    while(versionInfo[index] != '.' ) {
+        highVersion *= 10;
+        highVersion += versionInfo[index]-'0';
+        ++index;
+    }
+    ++index;
+    while(versionInfo[index] != ' ' &&  versionInfo[index] != '\0') {
+        lowVersion *= 10;
+        lowVersion += versionInfo[index]-'0';
+        ++index;
+    }
+    // Add a zero after lowVersion if necessary
+    if (lowVersion < 10){
+      lowVersion *= 10;
+    }
+    // Assume lowVersion only contains two digits
+    return highVersion * 100 + lowVersion;
+}
+
+cl_uint getPlatformOpenCLVersion(cl::Platform &platform)
+{
+    std::string versionInfo;
+    platform.getInfo(CL_PLATFORM_VERSION, &versionInfo);
+
+    return getOpenCLVersion(versionInfo);
+}
 
 int main(int argc, char** argv){
 
@@ -111,8 +148,30 @@ int main(int argc, char** argv){
   const auto filter_str = std::string(argv[1]);
   std::cerr << filter_str << "\n";
 
+  auto platforms = std::vector<cl::Platform>();
+  cl::Platform::get(&platforms);
+  for (auto &plat : platforms){
+  std::string plat_name;
+  plat.getInfo(CL_PLATFORM_NAME, &plat_name);
+
+  cl_uint supported_ocl_version = getPlatformOpenCLVersion(plat);
+  if (supported_ocl_version < REQ_OPENCL_VER){
+    std::cerr << plat_name << " does not support OpenCL version "
+        << REQ_OPENCL_VER
+        << ", only " << supported_ocl_version
+        << " and will be skipped\n";
+    continue;
+  }
+
+  auto devices = std::vector<cl::Device>();
+  plat.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+  for (auto &dev : devices){
+  std::string dev_name;
+  dev.getInfo(CL_DEVICE_NAME, &dev_name);
+  std::cerr << plat_name << " :: " << dev_name << "\n";
   // Cuts off about 150 ms per filter:
-  OpenCL_initialize(512*512*200*sizeof(cl_float));
+  OpenCL_initialize(dev);
 
   if (filter_str == "add_const_filter"){
 
@@ -141,8 +200,9 @@ int main(int argc, char** argv){
         << std::chrono::duration_cast<std::chrono::milliseconds>(end_itk_time - start_itk_time).count()
         << " ms\n";
 
-    return CheckImage<itk::Image<float, 3U>>(
+    const auto result = CheckImage<itk::Image<float, 3U>>(
             image_ocl, image_cpu);
+    if (result != 0){return result;}
 
   }
   else if (filter_str == "add_const_2d_filter"){
@@ -172,8 +232,9 @@ int main(int argc, char** argv){
         << std::chrono::duration_cast<std::chrono::milliseconds>(end_itk_time - start_itk_time).count()
         << " ms\n";
 
-    return CheckImage<itk::Image<float, 2U>>(
+    const auto result = CheckImage<itk::Image<float, 2U>>(
             image_ocl, image_cpu);
+    if (result != 0){return result;}
   }
   else if (filter_str == "add_mul_const_filter"){
 
@@ -206,8 +267,9 @@ int main(int argc, char** argv){
         << std::chrono::duration_cast<std::chrono::milliseconds>(end_itk_time - start_itk_time).count()
         << " ms\n";
 
-    return CheckImage<itk::Image<float, 3U>>(
+    const auto result = CheckImage<itk::Image<float, 3U>>(
             image_ocl, image_cpu);
+    if (result != 0){return result;}
   }
   else if (filter_str == "min_max_filter"){
 
@@ -271,7 +333,6 @@ int main(int argc, char** argv){
         return -3;
     }
 
-    return 0;
   }
   else if (filter_str == "min_max_2d_filter"){
 
@@ -308,7 +369,6 @@ int main(int argc, char** argv){
         return -3;
     }
 
-    return 0;
 
   }
   else if (filter_str == "divide_3Dby3D_filter"){
@@ -342,12 +402,18 @@ int main(int argc, char** argv){
         << std::chrono::duration_cast<std::chrono::milliseconds>(end_itk_time - start_itk_time).count()
         << " ms\n";
 
-    return CheckImage<itk::Image<float, 3U>>(image_ocl, image_itk);
+    auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_itk);
+    if (result != 0) { return result;}
   }
   else if (filter_str == "padding_filter"){}
   else if (filter_str == "subtract_2Dfrom3D_filter"){}
-  else { std::cerr << "This filter does not exists: " << filter_str << "\n"; }
+  else {
+    std::cerr << "This filter does not exists: " << filter_str << "\n";
+    return -1;
+  }
 
+  }
+  }
 
   return 0;
 }
