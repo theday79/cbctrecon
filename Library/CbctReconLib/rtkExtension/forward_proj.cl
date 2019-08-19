@@ -55,14 +55,11 @@ __constant float3 c_spacing = (float3){C_SPACING};
 __constant int3 c_volSize = (int3){C_VOL_SIZE};
 __constant float c_tStep = C_TSTEP;
 
-__constant float c_translatedProjectionIndexTransformMatrices[SLAB_SIZE * 12] =
-    {C_TRANS_PROJ_IDX_TRN_MAT};
 #if !C_RADIUS_ZERO
 __constant float c_radius = C_RADIUS;
 __constant float c_translatedVolumeTransformMatrices[SLAB_SIZE * 12] = {
     C_TRANS_VOL_TRN_MAT};
 #endif
-__constant float c_sourcePos[SLAB_SIZE * 3] = {C_SOURCE_POS};
 
 __constant sampler_t projectionSampler =
     CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_LINEAR;
@@ -71,10 +68,12 @@ __constant sampler_t projectionSampler =
 // VECTOR_LENGTH must be compiled in
 
 // KERNEL kernel_forwardProject
-__kernel void kernel_forwardProject(const __global float *dev_proj_in,
-                                    __global float *dev_proj_out,
-                                    const __global float *dev_vol,
-                                    __read_only image3d_t tex_vol) {
+__kernel void kernel_forwardProject(
+    __global float *dev_proj_out, __global float *dev_proj_in,
+    __global float *dev_vol, __read_only image3d_t tex_vol,
+    __constant float
+        *c_translatedProjectionIndexTransformMatrices, // SLAB_SIZE * 12
+    __constant float *c_sourcePos) {                   // SLAB_SIZE * 3
   unsigned int i = get_global_id(0);
   unsigned int j = get_global_id(1);
   unsigned int numThread = j * c_projSize.x + i;

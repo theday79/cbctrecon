@@ -89,9 +89,11 @@ std::string make_OpenCL_defines_str(OpenCL_forwardProject_options &fwd_opts) {
   cl_defines += std::string("-DSLAB_SIZE=") +
                 std::to_string(fwd_opts.projSize.at(2)) + " ";
 
+  /*
   cl_defines += std::string("-DC_TRANS_PROJ_IDX_TRN_MAT=") +
                 stringify_array<float>(
                     fwd_opts.translatedProjectionIndexTransformMatrices);
+                    */
 
   if (fwd_opts.radiusCylindricalDetector > 0.00001) {
     cl_defines += std::string("-DC_RADIUS=") +
@@ -104,8 +106,10 @@ std::string make_OpenCL_defines_str(OpenCL_forwardProject_options &fwd_opts) {
     cl_defines += std::string("-DC_RADIUS_ZERO=true ");
   }
 
+  /*
   cl_defines += std::string("-DC_SOURCE_POS=") +
                 stringify_array<float>(fwd_opts.source_positions);
+                */
 
   switch (fwd_opts.vectorLength) {
   case 1:
@@ -167,30 +171,42 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   err = program.build(cl_defines.c_str());
   checkError(err, "Build forward_proj.cl");
 
+  /*
+   * __kernel void kernel_forwardProject(
+   *  __global float *dev_proj_out,
+   *  __global float *dev_proj_in,
+   *  __global float *dev_vol,
+   *  __read_only image3d_t tex_vol,
+   *  __constant float *c_translatedProjectionIndexTransformMatrices,
+   *  __constant float *c_sourcePos)
+   */
   auto kernel_forwardProject =
-      cl::Kernel( // Functor<cl::Buffer, cl::Buffer, cl::Buffer, cl::Image3D>(
-          program, "kernel_forwardProject", &err);
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl::Image3D,
+                        cl::Buffer, cl::Buffer>(program,
+                                                "kernel_forwardProject", &err);
   checkError(err, "Create kernel  functor");
 
-  // Input projection (add to this)
-  cl::Buffer dev_proj_in(ctx, h_proj_in, h_proj_in + tot_proj_size, true, true,
-                         &err);
-  checkError(err, "Alloc proj_in on device");
-  err = kernel_forwardProject.setArg(0, dev_proj_in);
-  checkError(err, "Forward kernel, arg 0");
+  auto req_dev_alloc = tot_proj_size * sizeof(float);
+  auto avail_dev_alloc = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+  if (avail_dev_alloc < req_dev_alloc) {
+    std::cerr << "Oh no, device doesn't have enough memory!\n"
+              << "It has: " << avail_dev_alloc / 1024 / 1024 << "MB\n"
+              << "But: " << req_dev_alloc / 1024 / 1024 << "MB was required!\n";
+  }
 
   // Output projection = input + forward proj
   cl::Buffer dev_proj_out(ctx, CL_MEM_WRITE_ONLY, sizeof(float) * tot_proj_size,
                           nullptr, &err);
   checkError(err, "Alloc proj_out on device");
-  err = kernel_forwardProject.setArg(1, dev_proj_out);
-  checkError(err, "Forward kernel, arg 1");
+
+  // Input projection (add to this)
+  cl::Buffer dev_proj_in =
+      cl::Buffer(ctx, h_proj_in, h_proj_in + tot_proj_size, true, true, &err);
+  checkError(err, "Alloc proj_in on device");
 
   // Volume to forward project
   cl::Buffer dev_vol(ctx, h_vol, h_vol + tot_vol_size, true, true, &err);
   checkError(err, "Alloc vol on device");
-  err = kernel_forwardProject.setArg(2, dev_vol);
-  checkError(err, "Forward kernel, arg 2");
 
   // Create an array of textures
   auto dev_tex_vol = cl::Image3D(
@@ -207,20 +223,26 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   err = queue.enqueueWriteImage(dev_tex_vol, CL_TRUE, origin, region, 0, 0,
                                 h_vol);
   checkError(err, "Copy 3D Image to device");
-  err = kernel_forwardProject.setArg(3, dev_tex_vol);
-  checkError(err, "Forward kernel, arg 3");
-  /*
-  kernel_forwardProject(
-      cl::EnqueueArgs(queue, global_workgroup_size, local_workgroup_size),
-      dev_proj_in, dev_proj_out, dev_vol, dev_tex_vol, err);
-      */
+
+  auto dev_trn_prj_idx_trf_mats = cl::Buffer(
+      ctx, fwd_opts.translatedProjectionIndexTransformMatrices.begin(),
+      fwd_opts.translatedProjectionIndexTransformMatrices.end(), true, true,
+      &err);
+  checkError(err, "Copy trnslProjIndexMats to device");
+
+  auto dev_source_positions =
+      cl::Buffer(ctx, fwd_opts.source_positions.begin(),
+                 fwd_opts.source_positions.end(), true, true, &err);
+  checkError(err, "Copy source_positions to device");
 
   auto local_workgroup_size = cl::NDRange(16, 16);
   auto global_workgroup_size =
       cl::NDRange(fwd_opts.projSize[0], fwd_opts.projSize[1]);
 
-  err = queue.enqueueNDRangeKernel(kernel_forwardProject, cl::NullRange,
-                                   global_workgroup_size, local_workgroup_size);
+  kernel_forwardProject(
+      cl::EnqueueArgs(queue, global_workgroup_size, local_workgroup_size),
+      dev_proj_out, dev_proj_in, dev_vol, dev_tex_vol, dev_trn_prj_idx_trf_mats,
+      dev_source_positions, err);
   checkError(err, "Forward kernel, enqueue");
 
   err = queue.finish();
