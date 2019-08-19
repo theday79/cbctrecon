@@ -45,9 +45,9 @@ struct CBCTRECON_API OpenCL_forwardProject_options {
   std::array<float, 3> spacing{};
 };
 
-void CBCTRECON_API
-OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
-                       OpenCL_forwardProject_options &fwd_opts);
+void CBCTRECON_API OpenCL_forward_project(
+    const float *h_proj_in, float *h_proj_out, const float *h_vol,
+    OpenCL_forwardProject_options &fwd_opts);
 
 namespace rtk {
 
