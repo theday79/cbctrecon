@@ -136,7 +136,7 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
 
   auto err = CL_SUCCESS;
   // Attempt first device if none with image_support
-  auto device = devices.at(5);
+  auto device = devices.at(2);
   /*
   for (auto &dev : devices) {
     auto device_image_support = dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(&err);

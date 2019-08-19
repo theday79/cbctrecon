@@ -734,7 +734,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
       continue;
     }
     std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
-    ss_item.setROIName(rt_roi.name);
+    ss_item.setROIName(rt_roi.name.c_str());
     // Contour Seq: 3006, 0040
     auto &contour_seq = item.getContourSequence();
     contour_seq.gotoFirstItem();
@@ -748,7 +748,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
       }
       data_str.pop_back();
       // Contour data: 3006, 0050
-      status = contour.setContourData(OFString(data_str), true);
+      status = contour.setContourData(OFString(data_str.c_str()), true);
       if (!status.good()) {
         std::cerr << "Could not set contour data: " << status.text() << "\n";
       }
