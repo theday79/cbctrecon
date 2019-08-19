@@ -19,6 +19,8 @@
 #ifndef RTKOPENCLUTILITIES_H
 #define RTKOPENCLUTILITIES_H
 
+#ifdef RTK_USE_OPENCL
+
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
@@ -70,4 +72,5 @@ void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
                                                const cl_context &context,
                                                cl_program &program);
 
+#endif
 #endif

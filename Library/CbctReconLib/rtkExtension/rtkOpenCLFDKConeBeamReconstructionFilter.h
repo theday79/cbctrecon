@@ -22,9 +22,9 @@
 #include "rtkFDKConeBeamReconstructionFilter.h"
 // #include "rtkOpenCLFDKWeightProjectionFilter.h" <- hard, because cpu is not
 // bad and cuda is full of textures
-#if USE_CLFFT
-#include "rtkOpenCLFFTRampImageFilter.h"
-#endif
+
+#ifdef RTK_USE_OPENCL
+
 #include "rtkOpenCLFDKBackProjectionImageFilter.h"
 
 namespace rtk {
@@ -57,9 +57,6 @@ public:
 
   /** Typedefs of subfilters which have been implemented with OpenCL */
   // typedef rtk::OpenCLFDKWeightProjectionFilter    WeightFilterType;
-#if USE_CLFFT
-  using RampFilterType = rtk::OpenCLFFTRampImageFilter;
-#endif
   using BackProjectionFilterType = OpenCLFDKBackProjectionImageFilter;
 
   /** Standard New method. */
@@ -68,20 +65,11 @@ public:
   /** Runtime information support. */
   itkTypeMacro(OpenCLFDKConeBeamReconstructionFilter, ImageToImageFilter);
 
-#if USE_CLFFT
-  /** Get pointer to the ramp filter used by the feldkamp reconstruction */
-  typename RampFilterType::Pointer GetRampFilter() { return m_RampFilter; }
-#endif
-
 protected:
   OpenCLFDKConeBeamReconstructionFilter();
   ~OpenCLFDKConeBeamReconstructionFilter() override = default;
 
   void GenerateData() override;
-
-#if USE_CLFFT
-  typename RampFilterType::Pointer m_RampFilter;
-#endif
 
 public:
   // purposely not implemented
@@ -97,4 +85,5 @@ public:
 //#include "rtkOpenCLFDKConeBeamReconstructionFilter.hxx"
 //#endif
 
+#endif
 #endif

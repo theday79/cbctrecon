@@ -20,6 +20,9 @@
 #define rtkOpenCLFFTConvolutionImageFilter_h
 
 #include <itkImage.h>
+
+#ifdef RTK_USE_OPENCL
+
 #include <itkOpenCLImageToImageFilter.h>
 
 namespace rtk {
@@ -101,4 +104,5 @@ private:
 #include "rtkOpenCLFFTConvolutionImageFilter.hxx"
 #endif
 
+#endif
 #endif

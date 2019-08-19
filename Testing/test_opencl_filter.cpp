@@ -22,16 +22,16 @@ auto GenerateImage(){
   using ImageType = itk::Image<T, DIM>;
   auto image = ImageType::New();
   typename ImageType::IndexType origin;
-  origin[0] = -256.0;
-  origin[1] = -256.0;
+  origin[0] = 0.0;
+  origin[1] = 0.0;
   if (DIM == 3){
-    origin[2] = -100.0;
+    origin[2] = 0.0;
   }
   typename ImageType::SizeType size;
-  size[0] = 512;
-  size[1] = 512;
+  size[0] = 1024;
+  size[1] = 512 + 256;
   if (DIM == 3){
-    size[2] = 200;
+    size[2] = 600;
   }
   typename ImageType::RegionType region;
   region.SetIndex(origin);
@@ -54,16 +54,16 @@ auto GenerateRandImage(){
   using ImageType = itk::Image<T, DIM>;
   auto image = ImageType::New();
   typename ImageType::IndexType origin;
-  origin[0] = -256.0;
-  origin[1] = -256.0;
+  origin[0] = 0.0;
+  origin[1] = 0.0;
   if (DIM == 3){
-    origin[2] = -100.0;
+    origin[2] = 0.0;
   }
   typename ImageType::SizeType size;
-  size[0] = 512;
-  size[1] = 512;
+  size[0] = 1024;
+  size[1] = 512 + 256;
   if (DIM == 3){
-    size[2] = 200;
+    size[2] = 600;
   }
   typename ImageType::RegionType region;
   region.SetIndex(origin);

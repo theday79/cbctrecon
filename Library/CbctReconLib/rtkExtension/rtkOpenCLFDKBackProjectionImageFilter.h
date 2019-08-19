@@ -21,6 +21,8 @@
 
 #include "rtkFDKBackProjectionImageFilter.h"
 
+#ifdef RTK_USE_OPENCL
+
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
@@ -93,5 +95,7 @@ private:
 };
 
 } // end namespace rtk
+
+#endif
 
 #endif

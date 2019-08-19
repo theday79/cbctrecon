@@ -19,7 +19,7 @@
 #include "cbctrecon_types.h"
 
 // If this function fails, something is probably wrong with the local OpenCL ICD
-const auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size);
+auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size);
 
 void OpenCL_initialize(const size_t required_mem_alloc_size);
 void OpenCL_initialize(cl::Device &dev);
@@ -58,13 +58,12 @@ void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
 cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput);
 
 cl_float2 OpenCL_min_max_3D(cl_float *buffer,
-                         const FloatImageType::SizeType &inputSize);
+                            const FloatImageType::SizeType &inputSize);
 
 cl_float2 OpenCL_min_max_2D(cl_float *buffer,
                             const FloatImage2DType::SizeType &inputSize);
 
-cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer,
-                                 const cl_uint inputSize,
+cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const cl_uint inputSize,
                                  cl::Buffer &deviceBuffer,
                                  cl::CommandQueue &queue,
                                  cl::NDRange nd_local_work_size);

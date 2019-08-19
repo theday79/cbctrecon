@@ -145,6 +145,16 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 
+# Test: Forward projection, for OpenCL if available
+
+set(test_target
+    test_forwardprojection
+    )
+
+add_cbctrecon_test(
+  TARGET ${test_target}
+  DATA_ARGS ""
+  )
 
 # Test: End 2 End
 
@@ -161,5 +171,4 @@ add_cbctrecon_test(
   TARGET ${test_target}
   DATA_ARGS ${${test_target}_DATA}
   )
-
 

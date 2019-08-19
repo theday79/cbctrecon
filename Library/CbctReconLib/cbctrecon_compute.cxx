@@ -62,6 +62,7 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
   using StatFilterType = itk::StatisticsImageFilter<UShortImageType>;
   auto raw_mean = 0.0;
   auto ctMean = 0.0;
+  std::cerr << "Proj. Mean,\tMin,\tMax\n";
 #pragma omp parallel sections
   {
 #pragma omp section
@@ -71,6 +72,7 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
       statFilter->Update();
 
       raw_mean = statFilter->GetMean();
+      std::cerr << "Raw: " << raw_mean << "\t" << statFilter->GetMinimum() << "\t" << statFilter->GetMaximum() << "\n";
     }
 #pragma omp section
     {
@@ -79,6 +81,7 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
       statFilter->Update();
 
       ctMean = statFilter->GetMean();
+      std::cerr << "CT:  " << ctMean << "\t" << statFilter->GetMinimum() << "\t" << statFilter->GetMaximum() << "\n";
     }
   }
   return ctMean / raw_mean;

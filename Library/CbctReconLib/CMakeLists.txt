@@ -4,6 +4,23 @@ set(CMAKE_CXX_STARDARD 14) # only for this sub directory
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+include(CheckCXXCompilerFlag)
+function(enable_cxx_compiler_flag_if_supported flag)
+    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+    if(flag_already_set EQUAL -1)
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(flag_supported)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
+        endif()
+        unset(flag_supported CACHE)
+    endif()
+endfunction()
+
+enable_cxx_compiler_flag_if_supported("-Wall")
+enable_cxx_compiler_flag_if_supported("-Wextra")
+enable_cxx_compiler_flag_if_supported("-pedantic")
+enable_cxx_compiler_flag_if_supported("-Wno-extra-semi")
+
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 configure_file (
@@ -27,7 +44,10 @@ SET(CbctReconLib_SOURCES
   rtkExtension/rtkOpenCLUtilities.cxx
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
+  rtkExtension/rtkOpenCLForwardProjectionImageFilter.cpp
   OpenCL/ImageFilters.cxx
+  OpenCL/device_picker.cpp
+  OpenCL/err_code.cpp
 )
 
 SET(CbctReconLib_HEADERS
@@ -49,6 +69,8 @@ SET(CbctReconLib_HEADERS
   rtkExtension/itkOpenCLImageToImageFilter.h
   rtkExtension/itkOpenCLImageToImageFilter.hxx
   rtkExtension/rtkOpenCLUtilities.h
+  rtkExtension/rtkOpenCLForwardProjectionImageFilter.h
+  rtkExtension/rtkOpenCLForwardProjectionImageFilter.hxx
   OpenCL/ImageFilters.h
   OpenCL/device_picker.hpp
   OpenCL/err_code.h
@@ -161,6 +183,12 @@ add_custom_command(TARGET CbctReconLib
   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl" "${RUNTIME_DIR}"
   )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
+
+add_custom_command(TARGET CbctReconLib
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl" "${RUNTIME_DIR}"
+  )
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl DESTINATION bin)
 
 ##-----------------------------------------------------------------------------
 ##  Additional install files

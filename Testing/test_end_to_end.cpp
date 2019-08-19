@@ -114,6 +114,11 @@ int do_all_registrations(CbctReconTest *cbctrecon_test) {
 int do_scatter_correction(CbctReconTest *cbctrecon_test) {
   cbctrecon_test->test_DoScatterCorrection_APRIORI();
 
+  auto img_writer = itk::ImageFileWriter<UShortImageType>::New();
+  img_writer->SetInput(cbctrecon_test->m_cbctrecon->m_spScatCorrReconImg);
+  img_writer->SetFileName("plm_tmp/output_corr_fixed.mha");
+  img_writer->Update();
+
   return 0;
 }
 

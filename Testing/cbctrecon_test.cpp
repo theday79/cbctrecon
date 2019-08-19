@@ -329,12 +329,12 @@ void CbctReconTest::test_ReloadProjections() {
             << " files were read" << std::endl;
 
   // Because you can load projections from previous run:
-  //this->ui.pushButton_DoRecon->setEnabled(true);
+  // this->ui.pushButton_DoRecon->setEnabled(true);
 
-  //this->ui.spinBoxImgIdx->setMinimum(0);
-  //this->ui.spinBoxImgIdx->setMaximum(
+  // this->ui.spinBoxImgIdx->setMinimum(0);
+  // this->ui.spinBoxImgIdx->setMaximum(
   //    this->m_cbctrecon->m_vSelectedFileNames.size() - 1);
-  //this->ui.spinBoxImgIdx->setValue(0);
+  // this->ui.spinBoxImgIdx->setValue(0);
 
   this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
@@ -431,7 +431,11 @@ void CbctReconTest::test_DoReconstruction() {
 #else
   const auto use_cuda = false;
 #endif
+#ifdef RTK_USE_OPENCL
+  const auto use_opencl = true;
+#else
   const auto use_opencl = false; // CI OpenCL device doesn't support clImage
+#endif
 
   if (use_cuda) {
     this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
@@ -468,7 +472,8 @@ void CbctReconTest::test_ExportReconSHORT_HU() {}
 void CbctReconTest::test_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {}
 void CbctReconTest::test_DoBHC() {}
 void CbctReconTest::test_DoBowtieCorrection() {
-  std::cerr << "HND BOWTIE CORRECTION TRIGGERED, BUT TESTS ONLY WRITTEN FOR XIM\n";
+  std::cerr
+      << "HND BOWTIE CORRECTION TRIGGERED, BUT TESTS ONLY WRITTEN FOR XIM\n";
 }
 void CbctReconTest::test_Export2DDose_TIF() {}
 void CbctReconTest::test_Export2DDoseMapAsMHA() {}
@@ -477,9 +482,12 @@ void CbctReconTest::test_ViewHistogram() {}
 
 void CbctReconTest::test_DoScatterCorrection_APRIORI() {
 
-  const auto bExportProj_Fwd = false; // this->ui.checkBox_ExportFwd->isChecked();
-  const auto bExportProj_Scat = false; // this->ui.checkBox_ExportScat->isChecked();
-  const auto bExportProj_Cor = false; // this->ui.checkBox_ExportCor->isChecked();
+  const auto bExportProj_Fwd =
+      false; // this->ui.checkBox_ExportFwd->isChecked();
+  const auto bExportProj_Scat =
+      false; // this->ui.checkBox_ExportScat->isChecked();
+  const auto bExportProj_Cor =
+      false; // this->ui.checkBox_ExportCor->isChecked();
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
@@ -498,8 +506,8 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
     this->m_cbctrecon
         ->ForwardProjection_master<UShortImageType, UShortImageType>(
             m_dlgRegistration->m_spMoving,
-            this->m_cbctrecon->m_spCustomGeometry,
-            p_projimg, bExportProj_Fwd, use_cuda);
+            this->m_cbctrecon->m_spCustomGeometry, p_projimg, bExportProj_Fwd,
+            use_cuda);
   } else if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
     std::cerr << "No Moving image in Registration is found. Ref CT image will "
                  "be used instead"
@@ -507,8 +515,8 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
     this->m_cbctrecon
         ->ForwardProjection_master<UShortImageType, UShortImageType>(
             this->m_cbctrecon->m_spRefCTImg,
-            this->m_cbctrecon->m_spCustomGeometry,
-            p_projimg, bExportProj_Fwd, use_cuda);
+            this->m_cbctrecon->m_spCustomGeometry, p_projimg, bExportProj_Fwd,
+            use_cuda);
   } else {
     std::cerr << "Error!: No ref image for forward projection is found."
               << "\n";
@@ -516,8 +524,10 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
   }
 
   // double scaResam = this->ui.lineEdit_scaResam->text().toDouble();
-  const auto scaMedian = 12.0; // this->ui.lineEdit_scaMedian->text().toDouble();
-  const auto scaGaussian = 0.05; // this->ui.lineEdit_scaGaussian->text().toDouble();
+  const auto scaMedian =
+      12.0; // this->ui.lineEdit_scaMedian->text().toDouble();
+  const auto scaGaussian =
+      0.05; // this->ui.lineEdit_scaGaussian->text().toDouble();
 
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
@@ -541,7 +551,8 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
 
   std::cout << "Scatter correction is in progress..." << std::endl;
 
-  const auto postScatMedianSize = 3.0; // this->ui.lineEdit_scaPostMedian->text().toInt();
+  const auto postScatMedianSize =
+      3.0; // this->ui.lineEdit_scaPostMedian->text().toInt();
   this->m_cbctrecon->ScatterCorr_PrioriCT(
       this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgScat3D,
       this->m_cbctrecon->m_spProjImgCorr3D,
@@ -567,12 +578,17 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
 
   this->m_cbctrecon->AfterScatCorrectionMacro(
 #ifdef USE_CUDA
-            true,
+      true,
 #else
-            false,
+      false,
 #endif
-      false, // this->ui.radioButton_UseOpenCL->isChecked(), CI doesn't support clImage
-      true, //this->ui.checkBox_ExportVolDICOM->isChecked(),
+#ifdef RTK_USE_OPENCL
+      true, // this->ui.radioButton_UseOpenCL->isChecked()
+#else
+      false, // this->ui.radioButton_UseOpenCL->isChecked(), CI doesn't support
+             // clImage
+#endif
+      true, // this->ui.checkBox_ExportVolDICOM->isChecked(),
       fdk_options);
 
   // Skin removal (using CT contour w/ big margin)

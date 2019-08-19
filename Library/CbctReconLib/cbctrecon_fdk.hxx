@@ -14,6 +14,7 @@
 #include "itkMedianImageFilter.h"
 #include "itkMultiplyImageFilter.h"
 #include "itkResampleImageFilter.h"
+#include "itkStatisticsImageFilter.h"
 #include "itkStreamingImageFilter.h"
 #include "itkThresholdImageFilter.h"
 #include "itkTimeProbe.h"
@@ -30,8 +31,9 @@
 #include "rtkParkerShortScanImageFilter.h"
 #include "rtkThreeDCircularProjectionGeometry.h" // for ThreeDCircularProje...
 
-#if USE_OPENCL_RTK
+#if RTK_USE_OPENCL
 #include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
+#include "rtkOpenCLForwardProjectionImageFilter.h"
 #endif
 
 #include "cbctrecon_config.h"
@@ -140,8 +142,6 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     return;
   }
 
-  std::cout << "CUDA method will be used..." << std::endl;
-
   using DuplicatorType = itk::ImageDuplicator<ImageType>;
   typename DuplicatorType::Pointer duplicator = DuplicatorType::New();
   duplicator->SetInputImage(cuda_spProjImg3DFloat);
@@ -241,10 +241,14 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   typename ImageType::Pointer targetImg;
 
   if (Tdev == OPENCL_DEVT) {
-
+#ifdef RTK_USE_OPENCL
     std::cout << "Starting RTK fdk" << std::endl;
     targetImg = RTKOpenCLFDK<ImageType>(spCurImg, m_spCustomGeometry, spacing,
                                         sizeOutput, fdk_options);
+#else
+    std::cerr << "You did not compile with RTK_USE_OPENCL=ON!\n";
+    return;
+#endif
   } else {
 
     typename ConstantImageSourceType::PointType origin;
@@ -549,6 +553,12 @@ void CbctRecon::ForwardProjection_master(
         spVolImg3D, spGeometry,
         spProjCT3D); // final moving image
   } else
+#else
+  if (use_cuda) {
+    std::cerr << "USE_CUDA not defined at compiletime, using CPU or OpenCL "
+                 "implementation!\n";
+  }
+
 #endif
   {
     this->ForwardProjection<FloatImageType>(spVolImg3D, spGeometry,
@@ -614,7 +624,11 @@ void CbctRecon::ForwardProjection_master(
 }
 
 template <typename ImageType> struct forward_projector {
+#ifdef RTK_USE_OPENCL
+  using type = rtk::OpenCLForwardProjectionImageFilter<ImageType, ImageType>;
+#else
   using type = rtk::JosephForwardProjectionImageFilter<ImageType, ImageType>;
+#endif
   // forwardProjection =
   // rtk::RayCastInterpolatorForwardProjectionImageFilter<FloatImageType,
   // FloatImageType>::New();
@@ -769,8 +783,11 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     // iNumOfProjections = size[2];
 
     // b) spacing
-    spacing[0] = m_spProjImg3DFloat->GetSpacing()[0]; // m_fProjSpacingX / m_fResampleF; // typical HIS file
-    spacing[1] = m_spProjImg3DFloat->GetSpacing()[1]; // m_fProjSpacingY / m_fResampleF;
+    spacing[0] =
+        m_spProjImg3DFloat->GetSpacing()[0]; // m_fProjSpacingX / m_fResampleF;
+                                             // // typical HIS file
+    spacing[1] =
+        m_spProjImg3DFloat->GetSpacing()[1]; // m_fProjSpacingY / m_fResampleF;
     spacing[2] = 1.0;
 
     // c) Origin: can center be the image center? or should be related to the CT
@@ -808,6 +825,13 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     std::cout << "Forward projection done in:	" << projProbe.GetMean() << ' '
               << projProbe.GetUnit() << '.' << std::endl;
   } // release all the memory
+
+  auto stat_filter = itk::StatisticsImageFilter<FloatImageType>::New();
+  stat_filter->SetInput(spResultProjImageFloat);
+  stat_filter->Update();
+  std::cerr << "Fwd Proj, mean: " << stat_filter->GetMean()
+            << " min: " << stat_filter->GetMinimum()
+            << " max: " << stat_filter->GetMaximum() << "\n";
 
   // From Float to USHORT and line integral to intensity
 
@@ -1002,6 +1026,13 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
   std::cout << "Forward projection done by " << fwd_method<DevFloatImageType>()
             << " in: " << projProbe.GetMean() << ' ' << projProbe.GetUnit()
             << '.' << std::endl;
+
+  auto stat_filter = itk::StatisticsImageFilter<FloatImageType>::New();
+  stat_filter->SetInput(resultFwdImg);
+  stat_filter->Update();
+  std::cerr << "Fwd Proj, mean: " << stat_filter->GetMean()
+            << " min: " << stat_filter->GetMinimum()
+            << " max: " << stat_filter->GetMaximum() << "\n";
 
   // normalization or shift
 

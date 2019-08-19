@@ -698,15 +698,18 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
 
   DRTStructureSetIOD rtstruct;
   DcmFileFormat fileformat;
-  auto status = fileformat.loadFile(input_file.fileName().toLocal8Bit().constData());
-  if (!status.good()){
-      std::cerr << "Could not open RT struct dcm file: " << input_file.fileName().toStdString() << "\n";
-      return false;
+  auto status =
+      fileformat.loadFile(input_file.fileName().toLocal8Bit().constData());
+  if (!status.good()) {
+    std::cerr << "Could not open RT struct dcm file: "
+              << input_file.fileName().toStdString() << "\n";
+    return false;
   }
   status = rtstruct.read(*fileformat.getDataset());
-  if (!status.good()){
-      std::cerr << "Could not read RT struct dcm file: " << input_file.fileName().toStdString() << "\n";
-      return false;
+  if (!status.good()) {
+    std::cerr << "Could not read RT struct dcm file: "
+              << input_file.fileName().toStdString() << "\n";
+    return false;
   }
   fileformat.clear();
   //  Change data in rtstruct
@@ -716,54 +719,56 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
   // ROI Structure Set Seq: 3006, 0020
   auto &roi_seq = rtstruct.getROIContourSequence();
   roi_seq.gotoFirstItem();
-  for (auto &rt_roi : input_rt_struct->slist){
-      auto &item = roi_seq.getCurrentItem();
-      auto &ss_item = ss_seq.getCurrentItem();
-      OFString roi_name;
-      // ROI name: 3006, 0026
-      ss_item.getROIName(roi_name);
-      const auto trimmed_roi_name = QString(rt_roi.name.c_str()).trimmed();
-      const auto trimmed_roi_name_dcm = QString(roi_name.c_str()).trimmed();
-      if (!trimmed_roi_name.contains("WEPL", Qt::CaseSensitive)){
-          roi_seq.gotoNextItem();
-          ss_seq.gotoNextItem();
-          continue;
-      }
-      std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
-      ss_item.setROIName(rt_roi.name.c_str());
-      // Contour Seq: 3006, 0040
-      auto &contour_seq = item.getContourSequence();
-      contour_seq.gotoFirstItem();
-      for (auto &rt_contour : rt_roi.pslist) {
-          auto &contour = contour_seq.getCurrentItem();
-
-          auto data_str = std::string("");
-          for (auto &coord : rt_contour.coordinates){
-              data_str += std::to_string(coord.x) + "\\" +
-                          std::to_string(coord.y) + "\\" +
-                          std::to_string(coord.z) + "\\";
-          }
-          data_str.pop_back();
-          // Contour data: 3006, 0050
-          status = contour.setContourData(OFString(data_str.c_str()), true);
-          if (!status.good()){
-              std:: cerr << "Could not set contour data: " << status.text() << "\n";
-          }
-          contour_seq.gotoNextItem();
-      }
+  for (auto &rt_roi : input_rt_struct->slist) {
+    auto &item = roi_seq.getCurrentItem();
+    auto &ss_item = ss_seq.getCurrentItem();
+    OFString roi_name;
+    // ROI name: 3006, 0026
+    ss_item.getROIName(roi_name);
+    const auto trimmed_roi_name = QString(rt_roi.name.c_str()).trimmed();
+    const auto trimmed_roi_name_dcm = QString(roi_name.c_str()).trimmed();
+    if (!trimmed_roi_name.contains("WEPL", Qt::CaseSensitive)) {
       roi_seq.gotoNextItem();
       ss_seq.gotoNextItem();
+      continue;
+    }
+    std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
+    ss_item.setROIName(rt_roi.name.c_str());
+    // Contour Seq: 3006, 0040
+    auto &contour_seq = item.getContourSequence();
+    contour_seq.gotoFirstItem();
+    for (auto &rt_contour : rt_roi.pslist) {
+      auto &contour = contour_seq.getCurrentItem();
+
+      auto data_str = std::string("");
+      for (auto &coord : rt_contour.coordinates) {
+        data_str += std::to_string(coord.x) + "\\" + std::to_string(coord.y) +
+                    "\\" + std::to_string(coord.z) + "\\";
+      }
+      data_str.pop_back();
+      // Contour data: 3006, 0050
+      status = contour.setContourData(OFString(data_str.c_str()), true);
+      if (!status.good()) {
+        std::cerr << "Could not set contour data: " << status.text() << "\n";
+      }
+      contour_seq.gotoNextItem();
+    }
+    roi_seq.gotoNextItem();
+    ss_seq.gotoNextItem();
   }
   //
   status = rtstruct.write(*fileformat.getDataset());
-  if (!status.good()){
-      std::cerr << "Could not write RT struct dcm file: " << input_file.fileName().toStdString() << "\n";
-      return false;
+  if (!status.good()) {
+    std::cerr << "Could not write RT struct dcm file: "
+              << input_file.fileName().toStdString() << "\n";
+    return false;
   }
-  status = fileformat.saveFile(output_file.fileName().toLocal8Bit().constData());
-  if (!status.good()){
-      std::cerr << "Could not save RT struct dcm file: " << output_file.fileName().toStdString() << "\n";
-      return false;
+  status =
+      fileformat.saveFile(output_file.fileName().toLocal8Bit().constData());
+  if (!status.good()) {
+    std::cerr << "Could not save RT struct dcm file: "
+              << output_file.fileName().toStdString() << "\n";
+    return false;
   }
   return true;
 }
@@ -796,7 +801,6 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
   nameGenerator->SetGlobalWarningDisplay(false);
   nameGenerator->SetDirectory(dir.absolutePath().toStdString());
 
-  using SeriesIdContainer = std::vector<std::string>;
   const auto &seriesUID = nameGenerator->GetSeriesUIDs();
   auto seriesItr = seriesUID.begin();
   const auto seriesEnd = seriesUID.end();

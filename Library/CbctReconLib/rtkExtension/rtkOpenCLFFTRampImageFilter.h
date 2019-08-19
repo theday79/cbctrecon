@@ -22,6 +22,9 @@
 #include "cbctrecon_config.h"
 
 #include "rtkFFTRampImageFilter.h"
+
+#ifdef RTK_USE_OPENCL
+
 #include "rtkOpenCLFFTConvolutionImageFilter.h"
 
 namespace rtk {
@@ -80,4 +83,5 @@ public:
 //#include "rtkOpenCLFFTRampImageFilter.hxx" //do it the cuda way in convolution
 // filter only #endif
 
+#endif
 #endif

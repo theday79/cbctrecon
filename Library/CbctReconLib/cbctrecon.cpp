@@ -120,8 +120,8 @@ CbctRecon::CbctRecon() {
   m_iFixedOffset_ScatterMap = 10000; // fixed! allows negative value of scatter
   // m_iFixedOffset_ScatterMap = 0;//fixed! allows negative value of scatter
   m_fResampleF = 1.0;
-  // m_fProjSpacingX = 0.4; // DEFAULT, will be updated during Load Proj selected
-  // m_fProjSpacingY = 0.4;
+  // m_fProjSpacingX = 0.4; // DEFAULT, will be updated during Load Proj
+  // selected m_fProjSpacingY = 0.4;
 
   m_strPathDirDefault = QDir::currentPath();
   std::cout << "Current Default Dir: "
@@ -891,32 +891,50 @@ void CbctRecon::NormalizeProjections(ProjReaderType::Pointer &reader) {
             << std::endl;
 
   if (correctionValue > 1000.0) {
+    auto add_filter = itk::AddImageFilter<FloatImageType, FloatImageType,
+                                          FloatImageType>::New();
+    add_filter->SetInput(reader->GetOutput());
+    add_filter->SetConstant(-correctionValue);
     if (originalMax - originalMin > log(65535.0f) - theoreticalMin) {
-      OpenCL_AddConst_MulConst_InPlace(
-          static_cast<cl_float *>(reader->GetOutput()->GetBufferPointer()),
-          reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
-          static_cast<cl_float>(-correctionValue), // 2048th lowest value
-                                                   // (avoiding outliers simply)
-          static_cast<cl_float>((log(65535.0f) - theoreticalMin) /
-                                (originalMax - originalMin)));
+      auto mul_filter = itk::MultiplyImageFilter<FloatImageType, FloatImageType,
+                                                 FloatImageType>::New();
+      mul_filter->SetInput(add_filter->GetOutput());
+      mul_filter->SetConstant((log(65535.0f) - theoreticalMin) /
+                              (originalMax - originalMin));
+      mul_filter->Update();
+      m_spProjImg3DFloat =
+          mul_filter->GetOutput(); // 1024 1024, line integ image
     } else {
-      OpenCL_AddConst_InPlace(
-          static_cast<cl_float *>(reader->GetOutput()->GetBufferPointer()),
-          reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
-          static_cast<cl_float>(-correctionValue)); // 2048th lowest value
-                                                    // (avoiding outliers
-                                                    // simply)
+      add_filter->Update();
+      m_spProjImg3DFloat =
+          add_filter->GetOutput(); // 1024 1024, line integ image
     }
+
+    /* OpenCL is slower than ITK for the realistic image sizes
+    if (correctionValue > 1000.0) {
+      if (originalMax - originalMin > log(65535.0f) - theoreticalMin) {
+        OpenCL_AddConst_MulConst_InPlace(
+            static_cast<cl_float *>(reader->GetOutput()->GetBufferPointer()),
+            reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
+            static_cast<cl_float>(-correctionValue),
+            static_cast<cl_float>((log(65535.0f) - theoreticalMin) /
+                                  (originalMax - originalMin)));
+      } else {
+        OpenCL_AddConst_InPlace(
+            static_cast<cl_float *>(reader->GetOutput()->GetBufferPointer()),
+            reader->GetOutput()->GetLargestPossibleRegion().GetSize(),
+            static_cast<cl_float>(-correctionValue));
+      }
+      */
     // Reset min max:
     originalMax = -1.0;
     originalMin = -1.0;
     if (GetMaxAndMinValueOfProjectionImage(originalMax, originalMin,
-                                           reader->GetOutput()) > -1000.0) {
+                                           m_spProjImg3DFloat) > -1000.0) {
       std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin
                 << std::endl;
     }
   }
-  m_spProjImg3DFloat = reader->GetOutput(); // 1024 1024, line integ image
 }
 
 // True if projections were resampled
