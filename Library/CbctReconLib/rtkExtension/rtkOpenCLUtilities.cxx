@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 /*=========================================================================
  *
@@ -20,8 +21,8 @@
  *=========================================================================*/
 
 #include "rtkOpenCLUtilities.h"
-#include <vector>
 #include <fstream>
+#include <vector>
 
 std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
   cl_uint numberOfPlatforms;
@@ -40,17 +41,17 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
                                 &numberOfDevices);
 
   std::vector<cl_device_id> deviceList(numberOfDevices);
-  if (error != -1){ // -1 means we didn't find a GPU
+  if (error != -1) { // -1 means we didn't find a GPU
     OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU,
-                                      numberOfDevices, &deviceList[0], nullptr));
+                                      numberOfDevices, &deviceList[0],
+                                      nullptr));
   }
 
   cl_bool bImageSupport = 0u;
   // If found, check if supports image.
-  if (numberOfDevices > 0 && error != -1){
+  if (numberOfDevices > 0 && error != -1) {
     error = clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
-                                       sizeof(cl_bool), &bImageSupport,
-                                       nullptr);
+                            sizeof(cl_bool), &bImageSupport, nullptr);
   }
 
   // If not a good device, switch to CPU.
@@ -120,8 +121,9 @@ void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
     OPENCL_CHECK_ERROR(clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG,
                                              logSize, &log[0], &logSize));
     log[logSize] = '\0';
-    itkGenericExceptionMacro(<< "OPENCL ERROR with clBuildProgram. The log is:\n"
-                             << &log[0]);
+    itkGenericExceptionMacro(
+        << "OPENCL ERROR with clBuildProgram. The log is:\n"
+        << &log[0]);
   }
   delete[] oclSource;
 }

@@ -2671,7 +2671,7 @@ public:
   ~axmy() = default;
 
   // I think these two operators are required for the SetFunctor
-  bool operator!=(const axmy &) const { return false; }
+  bool operator!=(const axmy & /*unused*/) const { return false; }
   bool operator==(const axmy &other) const { return !(*this != other); }
 
   float operator()(const float val1, const float val2) const {
@@ -2926,11 +2926,11 @@ public:
   }
   corr_functor() = default;
   ~corr_functor() = default;
-  float mAs_correctionFactor = 1.0f;
+  float mAs_correctionFactor = 1.0F;
   int nonNegativeScatOffset = 0;
 
   // I think these two operators are required for the SetFunctor
-  bool operator!=(const corr_functor &) const { return false; }
+  bool operator!=(const corr_functor & /*unused*/) const { return false; }
   bool operator==(const corr_functor &other) const { return !(*this != other); }
 
   float operator()(const float val1, const float val2) const {
@@ -2938,8 +2938,8 @@ public:
     const auto scatVal = val2 - static_cast<float>(nonNegativeScatOffset);
     auto corrVal = rawVal - scatVal;
 
-    if (corrVal < 1.0f) {
-      corrVal = 1.0f; // underflow control
+    if (corrVal < 1.0F) {
+      corrVal = 1.0F; // underflow control
     }
     // max unsigned short - 1, just so we don't overflow
     const auto max_ushort =

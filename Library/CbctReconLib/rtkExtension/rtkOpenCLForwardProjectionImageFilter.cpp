@@ -65,7 +65,8 @@ std::string stringify_array(const std::array<T, N> &arr) {
   return out;
 }
 
-std::string make_OpenCL_defines_str(OpenCL_forwardProject_options &fwd_opts) {
+std::string
+make_OpenCL_defines_str(const OpenCL_forwardProject_options &fwd_opts) {
   auto cl_defines = std::string(" ");
 
   cl_defines += std::string("-DC_PROJ_SIZE=") +
@@ -126,7 +127,8 @@ std::string make_OpenCL_defines_str(OpenCL_forwardProject_options &fwd_opts) {
   return cl_defines;
 }
 
-void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
+void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
+                            const float *h_vol,
                             OpenCL_forwardProject_options &fwd_opts) {
 
   std::vector<cl::Device> devices;
@@ -134,7 +136,7 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
 
   auto err = CL_SUCCESS;
   // Attempt first device if none with image_support
-  cl::Device device = devices.at(5);
+  auto device = devices.at(5);
   /*
   for (auto &dev : devices) {
     auto device_image_support = dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(&err);
@@ -147,12 +149,12 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   auto ctx = cl::Context(device);
   auto queue = cl::CommandQueue(ctx);
 
-  auto tot_proj_size = fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) *
-                       fwd_opts.projSize.at(2);
+  const auto tot_proj_size = fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) *
+                             fwd_opts.projSize.at(2);
 
   // Maybe do the pinned memory trick?
 
-  auto tot_vol_size =
+  const auto tot_vol_size =
       fwd_opts.volSize.at(0) * fwd_opts.volSize.at(1) * fwd_opts.volSize.at(2);
   if (!h_vol) {
     std::cerr << "h_vol ptr is invalid\n";
@@ -186,8 +188,8 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
                                                 "kernel_forwardProject", &err);
   checkError(err, "Create kernel  functor");
 
-  auto req_dev_alloc = tot_proj_size * sizeof(float);
-  auto avail_dev_alloc = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+  const auto req_dev_alloc = tot_proj_size * sizeof(float);
+  const auto avail_dev_alloc = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
   if (avail_dev_alloc < req_dev_alloc) {
     std::cerr << "Oh no, device doesn't have enough memory!\n"
               << "It has: " << avail_dev_alloc / 1024 / 1024 << "MB\n"
@@ -195,48 +197,51 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   }
 
   // Output projection = input + forward proj
-  cl::Buffer dev_proj_out(ctx, CL_MEM_WRITE_ONLY, sizeof(float) * tot_proj_size,
-                          nullptr, &err);
+  const auto dev_proj_out = cl::Buffer(
+      ctx, CL_MEM_WRITE_ONLY, sizeof(float) * tot_proj_size, nullptr, &err);
   checkError(err, "Alloc proj_out on device");
 
   // Input projection (add to this)
-  cl::Buffer dev_proj_in =
-      cl::Buffer(ctx, h_proj_in, h_proj_in + tot_proj_size, true, true, &err);
+  const auto dev_proj_in =
+      cl::Buffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, req_dev_alloc,
+                 (void *)&h_proj_in[0], &err);
   checkError(err, "Alloc proj_in on device");
 
   // Volume to forward project
-  cl::Buffer dev_vol(ctx, h_vol, h_vol + tot_vol_size, true, true, &err);
+  const auto dev_vol =
+      cl::Buffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                 tot_vol_size * sizeof(float), (void *)&h_vol[0], &err);
   checkError(err, "Alloc vol on device");
 
   // Create an array of textures
-  auto dev_tex_vol = cl::Image3D(
+  const auto dev_tex_vol = cl::Image3D(
       ctx, CL_MEM_READ_ONLY, cl::ImageFormat(CL_INTENSITY, CL_FLOAT),
       fwd_opts.volSize[0], fwd_opts.volSize[1], fwd_opts.volSize[2],
       /*row_pitch*/ 0, /*slice_pitch*/ 0, nullptr, &err);
   checkError(err, "Create 3D Image texture");
 
-  std::array<cl::size_type, 3> origin = {{0, 0, 0}};
-  std::array<cl::size_type, 3> region = {
+  const std::array<cl::size_type, 3> origin = {{0, 0, 0}};
+  const std::array<cl::size_type, 3> region = {
       {static_cast<cl::size_type>(fwd_opts.volSize.at(0)),
        static_cast<cl::size_type>(fwd_opts.volSize.at(1)),
        static_cast<cl::size_type>(fwd_opts.volSize.at(2))}};
   err = queue.enqueueWriteImage(dev_tex_vol, CL_TRUE, origin, region, 0, 0,
-                                h_vol);
+                                &h_vol[0]);
   checkError(err, "Copy 3D Image to device");
 
-  auto dev_trn_prj_idx_trf_mats = cl::Buffer(
+  const auto dev_trn_prj_idx_trf_mats = cl::Buffer(
       ctx, fwd_opts.translatedProjectionIndexTransformMatrices.begin(),
       fwd_opts.translatedProjectionIndexTransformMatrices.end(), true, true,
       &err);
   checkError(err, "Copy trnslProjIndexMats to device");
 
-  auto dev_source_positions =
+  const auto dev_source_positions =
       cl::Buffer(ctx, fwd_opts.source_positions.begin(),
                  fwd_opts.source_positions.end(), true, true, &err);
   checkError(err, "Copy source_positions to device");
 
-  auto local_workgroup_size = cl::NDRange(16, 16);
-  auto global_workgroup_size =
+  const auto local_workgroup_size = cl::NDRange(16, 16);
+  const auto global_workgroup_size =
       cl::NDRange(fwd_opts.projSize[0], fwd_opts.projSize[1]);
 
   kernel_forwardProject(

@@ -48,6 +48,7 @@
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
 
+#ifdef RTK_USE_OPENCL
 template <typename ImageType>
 typename ImageType::Pointer RTKOpenCLFDK(
     const typename ImageType::Pointer &spCurImg,
@@ -104,6 +105,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
   castFilter2->Update();
   return castFilter2->GetOutput();
 }
+#endif
 
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,

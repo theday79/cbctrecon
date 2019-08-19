@@ -120,23 +120,22 @@ int main(int, char **) {
   // Streaming filter to test for unusual regions
   using StreamingFilterType =
       itk::StreamingImageFilter<OutputImageType, OutputImageType>;
-  StreamingFilterType::Pointer stream = StreamingFilterType::New();
+  auto stream = StreamingFilterType::New();
   stream->SetInput(jfp->GetOutput());
 
   stream->SetNumberOfStreamDivisions(9);
-  itk::ImageRegionSplitterDirection::Pointer splitter =
-      itk::ImageRegionSplitterDirection::New();
+  auto splitter = itk::ImageRegionSplitterDirection::New();
   splitter->SetDirection(2); // Splitting along direction 1, NOT 2
   stream->SetRegionSplitter(splitter);
 
   std::cout << "\n\n****** Case 1: inner ray source ******" << std::endl;
   // The circle is divided in 4 quarters
-  for (int q = 0; q < 4; q++) {
+  for (auto q = 0; q < 4; q++) {
     // Geometry
     using GeometryType = rtk::ThreeDCircularProjectionGeometry;
-    GeometryType::Pointer geometry = GeometryType::New();
+    auto geometry = GeometryType::New();
     for (unsigned int i = 0; i < NumberOfProjectionImages; i++) {
-      const double angle = -45. + i * 2.;
+      const auto angle = -45. + i * 2.;
       geometry->AddProjection(47.6 / std::cos(angle * itk::Math::pi / 180.),
                               1000., q * 90 + angle);
     }

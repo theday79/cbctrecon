@@ -23,7 +23,8 @@
 // Conditional definition of the class to pass ITKHeaderTest
 #ifdef RTK_USE_OPENCL
 
-#include "RTKExport.h"
+#include "cbctrecon_config.h"
+
 #include "rtkForwardProjectionImageFilter.h"
 
 /** \class OpenCLForwardProjectionImageFilter
@@ -43,28 +44,11 @@
  * \ingroup RTK Projector OpenCLImageToImageFilter
  */
 
-struct OpenCL_forwardProject_options {
-  std::array<unsigned int, 3> projSize;
-  std::array<unsigned int, 3> volSize;
-  std::vector<float> translatedProjectionIndexTransformMatrices;
-  std::vector<float> translatedVolumeTransformMatrices;
-  std::vector<float> source_positions;
-  float t_step;
-  float radiusCylindricalDetector;
-  unsigned int vectorLength;
-  std::array<float, 3> box_min;
-  std::array<float, 3> box_max;
-  std::array<float, 3> spacing;
-};
-
-void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
-                            OpenCL_forwardProject_options &fwd_opts);
-
 namespace rtk {
 
 template <class TInputImage = itk::Image<float, 3>,
           class TOutputImage = itk::Image<float, 3>>
-class ITK_EXPORT OpenCLForwardProjectionImageFilter
+class CBCTRECON_API OpenCLForwardProjectionImageFilter
     : public ForwardProjectionImageFilter<TInputImage, TOutputImage> {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN(OpenCLForwardProjectionImageFilter);

@@ -19,7 +19,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # BASIC CMAKE
 set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
 set(CbctRecon_VERSION_MINOR "5") # bump at functionality change
-set(CbctRecon_VERSION_PATCH "0") # bump at minor change
+set(CbctRecon_VERSION_PATCH "1") # bump at minor change
 
 project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
@@ -57,9 +57,11 @@ OPTION(CBCTRECON_BUILD_EXAMPLES "Build examples for CbctRecon" ON)
 option(CBCTRECON_SANITIZE "Sanitize build of CbctRecon" OFF)
 
 set(CBCTRECON_OPENCL_VERSION 120 CACHE STRING "Version of OpenCL to use, 1.2->120 etc.")
+set(SLAB_SIZE 16 CACHE STRING "Number of projections to process simultaneously in OpenCL/CUDA fwd proj.")
 add_definitions(-DCBCTRECON_OPENCL_VERSION=${CBCTRECON_OPENCL_VERSION})
 if (RTK_USE_OPENCL)
   add_definitions(-DRTK_USE_OPENCL)
+  add_definitions(-DSLAB_SIZE=${SLAB_SIZE})
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX AND ${CBCTRECON_BUILD_TESTS} AND ${USE_CUDA})

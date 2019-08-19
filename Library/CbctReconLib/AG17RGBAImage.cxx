@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include <tuple>
 #include <valarray>
@@ -919,8 +920,7 @@ bool AG17RGBAImage::isPtInFirstImage(const int dataX, const int dataY) const {
   }
 
   if (m_enSplitOption == PRI_LEFT_TOP && !IsEmpty()) {
-    return (dataX < m_ptSplitCenter.x() &&
-            dataY < m_ptSplitCenter.y()) ||
+    return (dataX < m_ptSplitCenter.x() && dataY < m_ptSplitCenter.y()) ||
            (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
             dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);
   }

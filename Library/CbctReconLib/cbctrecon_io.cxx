@@ -309,7 +309,8 @@ bool LoadShortImageToUshort(QString &strPath,
   std::cout << "Current Min and Max Values are	" << minVal << "	"
             << maxVal << std::endl;
 
-  USHORT_PixelType outputMinVal, outputMaxVal;
+  USHORT_PixelType outputMinVal;
+  USHORT_PixelType outputMaxVal;
   if (!bNKI) {
     outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
     outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
@@ -733,7 +734,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
       continue;
     }
     std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
-    ss_item.setROIName(rt_roi.name.c_str());
+    ss_item.setROIName(rt_roi.name);
     // Contour Seq: 3006, 0040
     auto &contour_seq = item.getContourSequence();
     contour_seq.gotoFirstItem();
@@ -747,7 +748,7 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
       }
       data_str.pop_back();
       // Contour data: 3006, 0050
-      status = contour.setContourData(OFString(data_str.c_str()), true);
+      status = contour.setContourData(OFString(data_str), true);
       if (!status.good()) {
         std::cerr << "Could not set contour data: " << status.text() << "\n";
       }

@@ -72,7 +72,8 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
       statFilter->Update();
 
       raw_mean = statFilter->GetMean();
-      std::cerr << "Raw: " << raw_mean << "\t" << statFilter->GetMinimum() << "\t" << statFilter->GetMaximum() << "\n";
+      std::cerr << "Raw: " << raw_mean << "\t" << statFilter->GetMinimum()
+                << "\t" << statFilter->GetMaximum() << "\n";
     }
 #pragma omp section
     {
@@ -81,7 +82,8 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
       statFilter->Update();
 
       ctMean = statFilter->GetMean();
-      std::cerr << "CT:  " << ctMean << "\t" << statFilter->GetMinimum() << "\t" << statFilter->GetMaximum() << "\n";
+      std::cerr << "CT:  " << ctMean << "\t" << statFilter->GetMinimum() << "\t"
+                << statFilter->GetMaximum() << "\n";
     }
   }
   return ctMean / raw_mean;
@@ -95,7 +97,9 @@ void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
     return;
   }
 
-  auto idx_hor = 0, idxVer = 0, idxZ = 0;
+  auto idx_hor = 0;
+  auto idxVer = 0;
+  auto idxZ = 0;
 
   switch (iDirection) {
   case PLANE_AXIAL:

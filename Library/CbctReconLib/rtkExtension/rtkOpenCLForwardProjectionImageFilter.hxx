@@ -25,14 +25,29 @@
 
 #include "rtkOpenCLForwardProjectionImageFilter.h"
 
-#include "rtkMacro.h"
 #include <itkCastImageFilter.h>
-#include <itkImageRegionConstIterator.h>
-#include <itkImageRegionIteratorWithIndex.h>
 #include <itkLinearInterpolateImageFunction.h>
 #include <itkMacro.h>
 
 #include "itkStatisticsImageFilter.h"
+
+struct CBCTRECON_API OpenCL_forwardProject_options {
+  std::array<unsigned int, 3> projSize{};
+  std::array<unsigned int, 3> volSize{};
+  std::vector<float> translatedProjectionIndexTransformMatrices;
+  std::vector<float> translatedVolumeTransformMatrices;
+  std::vector<float> source_positions;
+  float t_step{};
+  float radiusCylindricalDetector{};
+  unsigned int vectorLength{};
+  std::array<float, 3> box_min{};
+  std::array<float, 3> box_max{};
+  std::array<float, 3> spacing{};
+};
+
+void CBCTRECON_API
+OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
+                       OpenCL_forwardProject_options &fwd_opts);
 
 namespace rtk {
 
@@ -141,7 +156,7 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
   fwd_opts.radiusCylindricalDetector = geometry->GetRadiusCylindricalDetector();
 
   // Go over each projection
-  for (unsigned int iProj = iFirstProj; iProj < iFirstProj + nProj; iProj++) {
+  for (auto iProj = iFirstProj; iProj < iFirstProj + nProj; iProj++) {
     typename Superclass::GeometryType::ThreeDHomogeneousMatrixType
         translatedProjectionIndexTransformMatrix;
     typename Superclass::GeometryType::ThreeDHomogeneousMatrixType
@@ -156,8 +171,8 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
               .GetVnlMatrix() *
           rtk::GetIndexToPhysicalPointMatrix(this->GetInput()).GetVnlMatrix() *
           projIndexTranslation.GetVnlMatrix();
-      for (int j = 0; j < 3; j++) { // Ignore the 4th row
-        for (int k = 0; k < 4; k++) {
+      for (auto j = 0; j < 3; j++) { // Ignore the 4th row
+        for (auto k = 0; k < 4; k++) {
           translatedProjectionIndexTransformMatrices.at(iProj - iFirstProj)
               .at(j * 4 + k) = static_cast<float>(
               translatedProjectionIndexTransformMatrix[j][k]);
@@ -169,8 +184,8 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
               .GetVnlMatrix() *
           rtk::GetIndexToPhysicalPointMatrix(this->GetInput()).GetVnlMatrix() *
           projIndexTranslation.GetVnlMatrix();
-      for (int j = 0; j < 3; j++) { // Ignore the 4th row
-        for (int k = 0; k < 4; k++) {
+      for (auto j = 0; j < 3; j++) { // Ignore the 4th row
+        for (auto k = 0; k < 4; k++) {
           translatedProjectionIndexTransformMatrices.at(iProj - iFirstProj)
               .at(j * 4 + k) = static_cast<float>(
               translatedProjectionIndexTransformMatrix[j][k]);
@@ -180,8 +195,8 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
       translatedVolumeTransformMatrix =
           volIndexTranslation.GetVnlMatrix() * volPPToIndex.GetVnlMatrix() *
           geometry->GetRotationMatrices()[iProj].GetInverse();
-      for (int j = 0; j < 3; j++) { // Ignore the 4th row
-        for (int k = 0; k < 4; k++) {
+      for (auto j = 0; j < 3; j++) { // Ignore the 4th row
+        for (auto k = 0; k < 4; k++) {
           translatedVolumeTransformMatrices.at(iProj - iFirstProj)
               .at(j * 4 + k) =
               static_cast<float>(translatedVolumeTransformMatrix[j][k]);
@@ -198,15 +213,15 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
           source_position[d]; // Ignore the 4th component
   }
 
-  int projectionOffset = 0;
   fwd_opts.vectorLength =
       itk::PixelTraits<typename TInputImage::PixelType>::Dimension;
 
   for (unsigned int i = 0; i < nProj; i += SLAB_SIZE) {
     // If nProj is not a multiple of SLAB_SIZE, the last slab will contain less
     // than SLAB_SIZE projections
-    fwd_opts.projSize[2] = std::min(nProj - i, (unsigned int)SLAB_SIZE);
-    projectionOffset =
+    fwd_opts.projSize[2] =
+        std::min(nProj - i, static_cast<unsigned int>(SLAB_SIZE));
+    auto projectionOffset =
         iFirstProj + i - this->GetOutput()->GetBufferedRegion().GetIndex(2);
 
     fwd_opts.translatedProjectionIndexTransformMatrices =
