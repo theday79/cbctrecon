@@ -14,10 +14,10 @@
 /*
  *
  * This code is released under the "attribution CC BY" creative commons license.
- * In other words, you can use it in any way you see fit, including commercially,
- * but please retain an attribution for the original authors:
- * the High Performance Computing Group at the University of Bristol.
- * Contributors include Simon McIntosh-Smith, James Price, Tom Deakin and Mike O'Connor.
+ * In other words, you can use it in any way you see fit, including
+ * commercially, but please retain an attribution for the original authors: the
+ * High Performance Computing Group at the University of Bristol. Contributors
+ * include Simon McIntosh-Smith, James Price, Tom Deakin and Mike O'Connor.
  *
  */
 
@@ -28,9 +28,11 @@
 #ifndef DEVICE_PICKER_HPP
 #define DEVICE_PICKER_HPP
 
-#include <vector>
-#include <string>
 #include <iostream>
+#include <string>
+#include <vector>
+
+#include "cbctrecon_config.h"
 
 #include "OpenCL/err_code.h"
 
@@ -40,11 +42,11 @@
 
 #define MAX_INFO_STRING 256
 
+CBCTRECON_API unsigned OpenCL_getDeviceList(std::vector<cl::Device> &devices);
 
-unsigned OpenCL_getDeviceList(std::vector<cl::Device>& devices);
+CBCTRECON_API std::string OpenCL_getDeviceName(const cl::Device &device);
 
-std::string OpenCL_getDeviceName(const cl::Device& device);
-
-void OpenCL_parseArguments(int argc, char *argv[], cl_uint *deviceIndex);
+CBCTRECON_API void OpenCL_parseArguments(int argc, char *argv[],
+                                         cl_uint *deviceIndex);
 
 #endif

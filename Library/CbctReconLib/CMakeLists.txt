@@ -28,6 +28,15 @@ configure_file (
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 
+if(RTK_USE_OPENCL)
+  set(RTK_OPENCL_SRC
+    rtkExtension/rtkOpenCLUtilities.cxx
+    rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
+    rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
+    rtkExtension/rtkOpenCLForwardProjectionImageFilter.cpp
+  )
+endif()
+
 ############## Qt start wrapping ##############
 SET(CbctReconLib_SOURCES
   cbctrecon.cpp
@@ -41,10 +50,7 @@ SET(CbctReconLib_SOURCES
   cbctrecon_compute.cxx
   cbctrecon_fdk.cxx
   cbctrecon_fdk.hxx
-  rtkExtension/rtkOpenCLUtilities.cxx
-  rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
-  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
-  rtkExtension/rtkOpenCLForwardProjectionImageFilter.cpp
+  ${RTK_OPENCL_SRC}
   OpenCL/ImageFilters.cxx
   OpenCL/device_picker.cpp
   OpenCL/err_code.cpp

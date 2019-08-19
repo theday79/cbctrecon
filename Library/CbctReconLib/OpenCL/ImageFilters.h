@@ -1,7 +1,6 @@
 #ifndef IMAGEFILTERS_H
 #define IMAGEFILTERS_H
 
-#include <complex>
 #include <vector>
 
 #if CBCTRECON_OPENCL_VERSION >= 210
@@ -16,54 +15,61 @@
 
 #include "itkImage.h"
 
+#include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
 // If this function fails, something is probably wrong with the local OpenCL ICD
-auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size);
+auto getDeviceByReqAllocSize(size_t required_mem_alloc_size);
 
-void OpenCL_initialize(const size_t required_mem_alloc_size);
-void OpenCL_initialize(cl::Device &dev);
+CBCTRECON_API void OpenCL_initialize(size_t required_mem_alloc_size);
+CBCTRECON_API void OpenCL_initialize(cl::Device &dev);
 
+CBCTRECON_API
 void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
                     const cl_uint4 &inputSize, const float *hostVolume,
                     float *hostPaddedVolume,
                     const std::vector<float> &mirrorWeights);
 
-void OpenCL_fft_convolution(cl_int4 inputDimension, cl_int2 kernelDimension,
-                            float *hostProjection,
-                            std::complex<float> *deviceKernelFFT);
-
+CBCTRECON_API
 void OpenCL_subtract2Dfrom3DbySlice_InPlace(
     FloatImageType::Pointer &projections,
     const FloatImage2DType::Pointer &filter);
 
 // Actually is divide ln(65535/X) by ln(65535/Y)
+CBCTRECON_API
 itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Num3D,
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D);
 
+CBCTRECON_API
 void OpenCL_AddConst_InPlace(cl_float *buffer,
                              const FloatImageType::SizeType &inputSize,
                              cl_float constant);
 
+CBCTRECON_API
 void OpenCL_AddConst_MulConst_InPlace(cl_float *buffer,
                                       const FloatImageType::SizeType &inputSize,
                                       cl_float add_constant,
                                       cl_float mul_constant);
 
+CBCTRECON_API
 void OpenCL_AddConst_InPlace_2D(cl_float *buffer,
                                 const FloatImage2DType::SizeType &inputSize,
                                 cl_float constant);
 
-cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput);
+CBCTRECON_API
+cl_float2 OpenCL_min_max_1D(cl_float *buffer, size_t memorySizeInput);
 
+CBCTRECON_API
 cl_float2 OpenCL_min_max_3D(cl_float *buffer,
                             const FloatImageType::SizeType &inputSize);
 
+CBCTRECON_API
 cl_float2 OpenCL_min_max_2D(cl_float *buffer,
                             const FloatImage2DType::SizeType &inputSize);
 
-cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const cl_uint inputSize,
+CBCTRECON_API
+cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, cl_uint inputSize,
                                  cl::Buffer &deviceBuffer,
                                  cl::CommandQueue &queue,
                                  cl::NDRange nd_local_work_size);
