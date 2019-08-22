@@ -1,31 +1,10 @@
-/*=========================================================================
- *
- *  Copyright RTK Consortium
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0.txt
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *=========================================================================*/
 /*
- * Completely rewritten from Cuda version to OpenCL
- * by A. Gravgaard
+ * Completely rewritten from RTK Cuda forward projection filter to OpenCL
+ * version by A. Gravgaard
  *
  */
 
-/*****************
- *  rtk #includes *
- *****************/
-#include "rtkConfiguration.h"
-
+#include <cassert>
 #include <string>
 
 #if CBCTRECON_OPENCL_VERSION >= 210
@@ -36,13 +15,69 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 #endif
 
-// #define CL_HPP_ENABLE_EXCEPTIONS
+//#define CL_HPP_ENABLE_EXCEPTIONS
 
 #include "OpenCL/cl2.hpp"
 #include "OpenCL/device_picker.hpp"
 #include "OpenCL/util.hpp"
 
-#include "rtkOpenCLForwardProjectionImageFilter.h"
+#include "OpenCL/ForwardProjectionImageFilter.hpp"
+
+// On Linux with intel opencl runtime, you can debug opencl kernels:
+// #define DEBUG_OPENCL
+
+enum enKernel { en_kernel_forwardProject_test, en_kernel_forwardProject };
+
+class KernelMan {
+
+private:
+  cl::Program m_program;
+  bool m_initialized = false;
+  std::vector<cl::Kernel> m_kernel_list;
+
+  static cl::Program build_ocl_program(cl::Context &ctx, std::string &defines) {
+    const auto cl_source = util::loadProgram("forward_proj.cl");
+
+    auto err = CL_SUCCESS;
+    auto program = cl::Program(ctx, cl_source, /* build? */ false, &err);
+#ifdef DEBUG_OPENCL
+    // For use with GDB, Requires intel OpenCL runtime
+    defines += " -g -s "
+               "/home/andreas/Projects/build-cbct/clang8-itk5-Debug/"
+               "bin/forward_proj.cl ";
+#endif
+    err = program.build(defines.c_str());
+    std::cerr << "DEBUG: OpenCL defines: " << defines << "\n";
+
+    if (err != CL_SUCCESS) {
+      std::cerr << "Could not build OpenCL program! error code: " << err
+                << "\n";
+    }
+    return program;
+  }
+
+public:
+  cl::Context m_ctx;
+  cl::Device m_dev;
+  KernelMan() = default;
+  void initialize(const cl::Device &dev, std::string &defines) {
+    m_ctx = cl::Context(dev);
+    m_program = build_ocl_program(m_ctx, defines);
+    m_program.createKernels(&m_kernel_list);
+    m_initialized = true;
+  }
+
+  cl::Kernel getKernel(const enKernel kernel) {
+    assert(m_initialized);
+
+    auto &out_kernel = m_kernel_list.at(kernel);
+    const auto kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+    std::cerr << kernel_name << "\n";
+    return out_kernel;
+  }
+};
+
+static KernelMan kernel_man;
 
 template <typename T> std::string stringify_array(const std::vector<T> &arr) {
   std::string out;
@@ -120,15 +155,16 @@ make_OpenCL_defines_str(const OpenCL_forwardProject_options &fwd_opts) {
     cl_defines += "-DVECTOR_LENGTH=3 ";
     break;
   default:
-    itkGenericExceptionMacro("Vector length " << fwd_opts.vectorLength
-                                              << " is not supported.")
+    // TODO: Check vectorlength at a higher level so this is impossible to reach
+    std::cerr << "This vectorlength is not implemented, you'll get "
+                 "CL_PROGRAM_BUILD_FAILURE:\n";
+    break; // Will fail with -11 CL_PROGRAM_BUILD_FAILURE
   }
 
   return cl_defines;
 }
 
-void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
-                            const float *h_vol,
+void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
                             OpenCL_forwardProject_options &fwd_opts) {
 
   std::vector<cl::Device> devices;
@@ -136,8 +172,7 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
 
   auto err = CL_SUCCESS;
   // Attempt first device if none with image_support
-  auto device = devices.at(2);
-  /*
+  auto device = devices.at(0);
   for (auto &dev : devices) {
     auto device_image_support = dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(&err);
     checkError(err, "Get device image support");
@@ -145,14 +180,18 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
       device = dev;
       break;
     }
-  }*/
-  auto ctx = cl::Context(device);
-  auto queue = cl::CommandQueue(ctx);
+  }
+
+  // Constant memory
+  auto cl_defines = make_OpenCL_defines_str(fwd_opts);
+
+  kernel_man.initialize(device, cl_defines);
+
+  auto ctx = kernel_man.m_ctx;
+  cl::CommandQueue queue(ctx);
 
   const auto tot_proj_size = fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) *
                              fwd_opts.projSize.at(2);
-
-  // Maybe do the pinned memory trick?
 
   const auto tot_vol_size =
       fwd_opts.volSize.at(0) * fwd_opts.volSize.at(1) * fwd_opts.volSize.at(2);
@@ -162,16 +201,6 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
   if (!(h_vol + tot_vol_size - 1)) {
     std::cerr << "last index of h_vol is invalid\n";
   }
-
-  auto program = cl::Program(util::loadProgram("forward_proj.cl"), false, &err);
-  checkError(err, "Load forward_proj.cl");
-
-  // Constant memory
-  auto cl_defines = make_OpenCL_defines_str(fwd_opts);
-  std::cerr << "DEBUG: OpenCL defines: " << cl_defines << "\n";
-
-  err = program.build(cl_defines.c_str());
-  checkError(err, "Build forward_proj.cl");
 
   /*
    * __kernel void kernel_forwardProject(
@@ -184,9 +213,9 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
    */
   auto kernel_forwardProject =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl::Image3D,
-                        cl::Buffer, cl::Buffer>(program,
-                                                "kernel_forwardProject", &err);
-  checkError(err, "Create kernel  functor");
+                        cl::Buffer, cl::Buffer>(
+          kernel_man.getKernel(en_kernel_forwardProject));
+  checkError(err, "Create kernel functor");
 
   const auto req_dev_alloc = tot_proj_size * sizeof(float);
   const auto avail_dev_alloc = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
@@ -196,54 +225,57 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
               << "But: " << req_dev_alloc / 1024 / 1024 << "MB was required!\n";
   }
 
-  // Output projection = input + forward proj
-  const auto dev_proj_out = cl::Buffer(
-      ctx, CL_MEM_WRITE_ONLY, sizeof(float) * tot_proj_size, nullptr, &err);
-  checkError(err, "Alloc proj_out on device");
-
-  // Input projection (add to this)
-  const auto dev_proj_in =
-      cl::Buffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, req_dev_alloc,
-                 (void *)&h_proj_in[0], &err);
-  checkError(err, "Alloc proj_in on device");
-
-  // Volume to forward project
-  const auto dev_vol =
-      cl::Buffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                 tot_vol_size * sizeof(float), (void *)&h_vol[0], &err);
-  checkError(err, "Alloc vol on device");
-
   // Create an array of textures
+  auto channel_order = CL_INTENSITY;
+  if (fwd_opts.vectorLength == 3) {
+    channel_order = CL_RGB;
+  }
   const auto dev_tex_vol = cl::Image3D(
-      ctx, CL_MEM_READ_ONLY, cl::ImageFormat(CL_INTENSITY, CL_FLOAT),
+      ctx, CL_MEM_READ_ONLY, cl::ImageFormat(channel_order, CL_FLOAT),
       fwd_opts.volSize[0], fwd_opts.volSize[1], fwd_opts.volSize[2],
       /*row_pitch*/ 0, /*slice_pitch*/ 0, nullptr, &err);
   checkError(err, "Create 3D Image texture");
 
+  // Output projection = input + forward proj
+  cl::Buffer dev_proj_out(ctx, CL_MEM_READ_WRITE, req_dev_alloc);
+  checkError(err, "Alloc proj_out on device");
+
+  // Input projection (add to this)
+  const auto dev_proj_in =
+      cl::Buffer(queue, h_proj_in, h_proj_in + tot_proj_size, true, true, &err);
+  checkError(err, "Alloc proj_in on device");
+
+  // Volume to forward project
+  const auto dev_vol =
+      cl::Buffer(queue, h_vol, h_vol + tot_vol_size, true, true, &err);
+  checkError(err, "Alloc vol on device");
+
+  // Write image data to texture object
   const std::array<cl::size_type, 3> origin = {{0, 0, 0}};
   const std::array<cl::size_type, 3> region = {
       {static_cast<cl::size_type>(fwd_opts.volSize.at(0)),
        static_cast<cl::size_type>(fwd_opts.volSize.at(1)),
        static_cast<cl::size_type>(fwd_opts.volSize.at(2))}};
   err = queue.enqueueWriteImage(dev_tex_vol, CL_TRUE, origin, region, 0, 0,
-                                &h_vol[0]);
+                                h_vol);
   checkError(err, "Copy 3D Image to device");
 
+  // Write geometries to constant memory
   const auto dev_trn_prj_idx_trf_mats = cl::Buffer(
-      ctx, fwd_opts.translatedProjectionIndexTransformMatrices.begin(),
+      queue, fwd_opts.translatedProjectionIndexTransformMatrices.begin(),
       fwd_opts.translatedProjectionIndexTransformMatrices.end(), true, true,
       &err);
   checkError(err, "Copy trnslProjIndexMats to device");
 
   const auto dev_source_positions =
-      cl::Buffer(ctx, fwd_opts.source_positions.begin(),
+      cl::Buffer(queue, fwd_opts.source_positions.begin(),
                  fwd_opts.source_positions.end(), true, true, &err);
   checkError(err, "Copy source_positions to device");
 
   const auto local_workgroup_size = cl::NDRange(16, 16);
   const auto global_workgroup_size =
       cl::NDRange(fwd_opts.projSize[0], fwd_opts.projSize[1]);
-
+  // Run kernel
   kernel_forwardProject(
       cl::EnqueueArgs(queue, global_workgroup_size, local_workgroup_size),
       dev_proj_out, dev_proj_in, dev_vol, dev_tex_vol, dev_trn_prj_idx_trf_mats,
@@ -254,8 +286,12 @@ void OpenCL_forward_project(const float *h_proj_in, float *h_proj_out,
   checkError(err, "Forward kernel, finish queue");
 
   // Read back data from device to host
-  err = cl::copy(queue, dev_proj_out, h_proj_out, h_proj_out + tot_proj_size);
-  checkError(err, "Copy proj back from device");
+  err = queue.enqueueReadBuffer(dev_proj_out, CL_TRUE, 0, req_dev_alloc,
+                                h_proj_out);
+  checkError(err, "Read out buffer from device");
+
+  err = queue.finish();
+  checkError(err, "Forward kernel, finish queue");
 
   auto out_sum = 0.0;
   for (auto i = 0U; i < tot_proj_size; ++i) {

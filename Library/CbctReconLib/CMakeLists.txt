@@ -33,7 +33,7 @@ if(RTK_USE_OPENCL)
     rtkExtension/rtkOpenCLUtilities.cxx
     rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
     rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
-    rtkExtension/rtkOpenCLForwardProjectionImageFilter.cpp
+    OpenCL/ForwardProjectionImageFilter.cpp
   )
 endif()
 
@@ -77,6 +77,7 @@ SET(CbctReconLib_HEADERS
   rtkExtension/rtkOpenCLUtilities.h
   rtkExtension/rtkOpenCLForwardProjectionImageFilter.h
   rtkExtension/rtkOpenCLForwardProjectionImageFilter.hxx
+  OpenCL/ForwardProjectionImageFilter.hpp
   OpenCL/ImageFilters.h
   OpenCL/device_picker.hpp
   OpenCL/err_code.h

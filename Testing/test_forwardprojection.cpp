@@ -86,7 +86,7 @@ int main(int, char **) {
   using JFPType =
       rtk::CudaForwardProjectionImageFilter<OutputImageType, OutputImageType>;
 #endif
-#if RTK_USE_OPENCL
+#ifdef RTK_USE_OPENCL
   using JFPType =
       rtk::OpenCLForwardProjectionImageFilter<OutputImageType, OutputImageType>;
 #else
@@ -101,7 +101,7 @@ int main(int, char **) {
   // Ray Box Intersection filter (reference)
   using RBIType =
       rtk::RayBoxIntersectionImageFilter<OutputImageType, OutputImageType>;
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(RTK_USE_OPENCL)
   jfp->SetStepSize(10);
 #endif
   RBIType::Pointer rbi = RBIType::New();
@@ -148,12 +148,22 @@ int main(int, char **) {
     jfp->SetGeometry(geometry);
     stream->Update();
 
+    auto writer_1 = itk::ImageFileWriter<OutputImageType>::New();
+    writer_1->SetInput(stream->GetOutput());
+    writer_1->SetFileName("fwd_proj.mha");
+    writer_1->Update();
+
+    auto writer_2 = itk::ImageFileWriter<OutputImageType>::New();
+    writer_2->SetInput(rbi->GetOutput());
+    writer_2->SetFileName("rbi_proj.mha");
+    writer_2->Update();
+
     CheckImageQuality<OutputImageType>(stream->GetOutput(), rbi->GetOutput(),
                                        1.28, 44.0, 255.0);
     std::cout << "\n\nTest of quarter #" << q << " PASSED! " << std::endl;
   }
 
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(RTK_USE_OPENCL)
   jfp->SetStepSize(1);
 #endif
 

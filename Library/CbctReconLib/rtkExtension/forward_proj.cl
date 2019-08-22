@@ -67,6 +67,25 @@ __constant sampler_t projectionSampler =
 // Can process stacks of at most SLAB_SIZE projections
 // VECTOR_LENGTH must be compiled in
 
+__kernel void kernel_forwardProject_test(__global float *dev_proj_out) {
+
+  unsigned int i = get_global_id(0);
+  unsigned int j = get_global_id(1);
+  unsigned int numThread = j * c_projSize.x + i;
+
+  if (i >= c_projSize.x || j >= c_projSize.y) {
+    return;
+  }
+
+  for (unsigned int proj = 0; proj < c_projSize.z; proj++) {
+    int projOffset = numThread + proj * c_projSize.x * c_projSize.y;
+    for (unsigned int c = 0; c < VECTOR_LENGTH; c++) {
+      dev_proj_out[projOffset * VECTOR_LENGTH + c] = 1.f;
+      //      dev_proj_in[projOffset * VECTOR_LENGTH + c];
+    }
+  }
+}
+
 // KERNEL kernel_forwardProject
 __kernel void kernel_forwardProject(
     __global float *dev_proj_out, __global float *dev_proj_in,
@@ -128,7 +147,7 @@ __kernel void kernel_forwardProject(
       float3 dirInMM = c_spacing * ray.d;
 
       float vStep = c_tStep * native_rsqrt(dot(dirInMM, dirInMM));
-      float3 step = vStep * ray.d;
+      float3 step_d = vStep * ray.d;
 
       // First position in the box
       float halfVStep = 0.5f * vStep;
@@ -159,7 +178,7 @@ __kernel void kernel_forwardProject(
         }
 
         // Step forward
-        pos += step;
+        pos += step_d;
       }
 
       // Update the output projection pixels

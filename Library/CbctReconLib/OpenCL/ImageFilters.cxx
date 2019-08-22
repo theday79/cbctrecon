@@ -4,10 +4,11 @@
 
 #include <cassert>
 
-#include "ImageFilters.h"
 #include "OpenCL/cl2.hpp"
 #include "OpenCL/device_picker.hpp"
 #include "OpenCL/util.hpp"
+
+#include "OpenCL/ImageFilters.h"
 
 // On Linux with intel opencl runtime, you can debug opencl kernels:
 // #define DEBUG_OPENCL
@@ -508,12 +509,6 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   const auto memoryByteSizeSub = memorySizeSub * sizeof(cl_float2);
 
   const cl::NDRange global_work_size(memorySizeSub);
-
-  cl::Buffer deviceSubBuffer(ctx, CL_MEM_READ_WRITE, memoryByteSizeSub);
-  const cl::Buffer devicePinnedSubBuffer(ctx, CL_MEM_ALLOC_HOST_PTR,
-                                         memoryByteSizeSub);
-  auto *sub_buffer = (cl_float2 *)(queue.enqueueMapBuffer(
-      devicePinnedSubBuffer, CL_TRUE, CL_MAP_READ, 0, memoryByteSizeSub));
 
   min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
                  deviceBuffer, deviceSubBuffer, divider);

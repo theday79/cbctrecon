@@ -29,25 +29,7 @@
 #include <itkLinearInterpolateImageFunction.h>
 #include <itkMacro.h>
 
-#include "itkStatisticsImageFilter.h"
-
-struct CBCTRECON_API OpenCL_forwardProject_options {
-  std::array<unsigned int, 3> projSize{};
-  std::array<unsigned int, 3> volSize{};
-  std::vector<float> translatedProjectionIndexTransformMatrices;
-  std::vector<float> translatedVolumeTransformMatrices;
-  std::vector<float> source_positions;
-  float t_step{};
-  float radiusCylindricalDetector{};
-  unsigned int vectorLength{};
-  std::array<float, 3> box_min{};
-  std::array<float, 3> box_max{};
-  std::array<float, 3> spacing{};
-};
-
-void CBCTRECON_API OpenCL_forward_project(
-    const float *h_proj_in, float *h_proj_out, const float *h_vol,
-    OpenCL_forwardProject_options &fwd_opts);
+#include "OpenCL/ForwardProjectionImageFilter.hpp"
 
 namespace rtk {
 
