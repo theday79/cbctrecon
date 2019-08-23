@@ -7,11 +7,12 @@
 #include <chrono>
 #include <iostream>
 
-#include "OpenCL/err_code.h"
 #include "itkAddImageFilter.h"
 #include "itkDivideImageFilter.h"
 #include "itkMultiplyImageFilter.h"
 #include "itkStatisticsImageFilter.h"
+
+#include "OpenCL/err_code.h"
 
 #ifndef CBCTRECON_OPENCL_VERSION
 #define CBCTRECON_OPENCL_VERSION 120

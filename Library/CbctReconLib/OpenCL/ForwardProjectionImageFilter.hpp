@@ -4,18 +4,8 @@
 // Conditional definition of the function
 #ifdef RTK_USE_OPENCL
 
-#if CBCTRECON_OPENCL_VERSION >= 210
-#define CL_HPP_MINIMUM_OPENCL_VERSION 200
-#define CL_HPP_TARGET_OPENCL_VERSION 210
-#else
-#define CL_HPP_MINIMUM_OPENCL_VERSION 120
-#define CL_HPP_TARGET_OPENCL_VERSION 120
-#endif
-
 #include <array>
 #include <vector>
-
-#include "OpenCL/cl2.hpp"
 
 #include "cbctrecon_config.h"
 

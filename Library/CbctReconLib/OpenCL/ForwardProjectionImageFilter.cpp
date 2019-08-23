@@ -35,7 +35,8 @@ private:
   bool m_initialized = false;
   std::vector<cl::Kernel> m_kernel_list;
 
-  static cl::Program build_ocl_program(cl::Context &ctx, std::string &defines) {
+  static cl::Program build_ocl_program(const cl::Context &ctx,
+                                       std::string &defines) {
     const auto cl_source = util::loadProgram("forward_proj.cl");
 
     auto err = CL_SUCCESS;
@@ -174,7 +175,8 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   // Attempt first device if none with image_support
   auto device = devices.at(0);
   for (auto &dev : devices) {
-    auto device_image_support = dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(&err);
+    const auto device_image_support =
+        dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(&err);
     checkError(err, "Get device image support");
     if (device_image_support) {
       device = dev;
@@ -187,7 +189,7 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
 
   kernel_man.initialize(device, cl_defines);
 
-  auto ctx = kernel_man.m_ctx;
+  const auto ctx = kernel_man.m_ctx;
   cl::CommandQueue queue(ctx);
 
   const auto tot_proj_size = fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) *
@@ -237,7 +239,7 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   checkError(err, "Create 3D Image texture");
 
   // Output projection = input + forward proj
-  cl::Buffer dev_proj_out(ctx, CL_MEM_READ_WRITE, req_dev_alloc);
+  const cl::Buffer dev_proj_out(ctx, CL_MEM_READ_WRITE, req_dev_alloc);
   checkError(err, "Alloc proj_out on device");
 
   // Input projection (add to this)

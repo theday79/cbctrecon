@@ -130,7 +130,7 @@ enum FWD_METHOD {
 
 struct WEPLData {
   double fWEPL;
-  int ptIndex;
+  size_t ptIndex;
   double fGanAngle;
 };
 struct VEC3D {
@@ -146,12 +146,12 @@ enum enDeviceType {
 };
 
 enum DCM_MODALITY {
-    RTIMAGE,
-    RTDOSE,
-    RTSTRUCT,
-    RTPLAN,
-    RTRECORD,
-    RTUNKNOWN,
+  RTIMAGE,
+  RTDOSE,
+  RTSTRUCT,
+  RTPLAN,
+  RTRECORD,
+  RTUNKNOWN,
 };
 
 //
@@ -177,8 +177,10 @@ struct RATIONAL {
 
 struct FDK_options {
   QString outputFilePath = QString(); // ui.lineEdit_OutputFilePath->text();
-  double ct_spacing[3] = {0.0, 0.0, 0.0}; // ui.lineEdit_outImgSp_[AP, SI, LR]->text().toDouble();
-  int ct_size[3] = {0, 0, 0};       // ui.lineEdit_outImgDim_[AP, SI, LR]->text().toInt()
+  double ct_spacing[3] = {
+      0.0, 0.0, 0.0}; // ui.lineEdit_outImgSp_[AP, SI, LR]->text().toDouble();
+  int ct_size[3] = {0, 0,
+                    0}; // ui.lineEdit_outImgDim_[AP, SI, LR]->text().toInt()
   int medianRadius[3] = {0, 0, 0};
   double HannCutX = 0.0;
   double HannCutY = 0.0;
@@ -198,7 +200,7 @@ using VnlVectorType = vnl_vector_fixed<double, 3U>;
 using VectorFieldType = itk::Image<ItkVectorType, 3U>;
 using PointType = itk::Point<double, 3U>;
 // Sorry, I can't control myself, I just love std::function
-using TransformType = std::function<VnlVectorType(const VnlVectorType&)>;
+using TransformType = std::function<VnlVectorType(const VnlVectorType &)>;
 
 struct FloatVector {
   float x;

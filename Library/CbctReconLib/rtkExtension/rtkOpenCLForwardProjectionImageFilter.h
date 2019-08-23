@@ -19,11 +19,11 @@
 #ifndef rtkOpenCLForwardProjectionImageFilter_h
 #define rtkOpenCLForwardProjectionImageFilter_h
 
-#include "rtkConfiguration.h"
+#include "cbctrecon_config.h"
+#include "rtkExport.h"
+
 // Conditional definition of the class to pass ITKHeaderTest
 #ifdef RTK_USE_OPENCL
-
-#include "cbctrecon_config.h"
 
 #include "rtkForwardProjectionImageFilter.h"
 
