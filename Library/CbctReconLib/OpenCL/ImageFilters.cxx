@@ -143,7 +143,8 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
                     std::vector<float> &mirrorWeights) {
   auto err = CL_SUCCESS;
 
-  const auto pv_size = paddingSize.x * paddingSize.y * paddingSize.z;
+  const auto pv_size =
+      static_cast<size_t>(paddingSize.x * paddingSize.y * paddingSize.z);
   const auto pv_buffer_size = pv_size * sizeof(float);
 
   const auto dev = getDeviceByReqAllocSize(pv_buffer_size);
@@ -494,7 +495,7 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
 
   const auto local_work_size = get_local_work_size_small(dev);
 
-  cl_uint divider = 128;
+  size_t divider = 128;
   while (true) {
     if (memorySizeInput % divider == 0) {
       break;
@@ -535,7 +536,7 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   return result;
 }
 
-cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const cl_uint inputSize,
+cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
                                  cl::Buffer &deviceBuffer,
                                  cl::CommandQueue &queue,
                                  cl::NDRange nd_local_work_size) {
@@ -582,7 +583,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const cl_uint inputSize,
   }
 
   const auto outputDim = inputSize / divider;
-  auto local_work_size = nd_local_work_size.size();
+  auto local_work_size = nd_local_work_size.get()[0];
 
   while (local_work_size > 32) {
     if ((outputDim + outputDim % local_work_size) / local_work_size % 2 !=

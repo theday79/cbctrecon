@@ -199,7 +199,7 @@ public:
   void GetAngularWEPL_SinglePoint(UShortImageType::Pointer &spUshortImage,
                                   float fAngleGap, float fAngleStart,
                                   float fAngleEnd, const VEC3D &calcPt,
-                                  int curPtIdx,
+                                  size_t curPtIdx,
                                   std::vector<WEPLData> &vOutputWEPLData,
                                   bool bAppend) const;
   void GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,

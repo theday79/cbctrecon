@@ -275,7 +275,7 @@ FloatImageType::PointType point_from_WEPL(
     std::cerr << "Start point {" << start_point[0] << ", " << start_point[1]
               << ", " << start_point[2]
               << "} for reverse WEPL calc was not in image!\n";
-    return FloatImageType::PointType();
+    return {};
   }
 
   const auto step_length = 0.1;

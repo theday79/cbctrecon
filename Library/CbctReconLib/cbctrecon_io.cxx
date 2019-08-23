@@ -678,7 +678,7 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       rt_contour.num_vertices = npts;
       rt_contour.coordinates.reserve(npts);
 
-      for (unsigned int i = 0; i < npts * 3; i += 3) {
+      for (size_t i = 0; i < npts * 3; i += 3) {
         auto vertix = FloatVector{static_cast<float>(pts[i + 0]),
                                   static_cast<float>(pts[i + 1]),
                                   static_cast<float>(pts[i + 2])};

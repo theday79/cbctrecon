@@ -45,7 +45,7 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   /* Copy data into itk */
   using IteratorType = itk::ImageRegionIterator<ImageType>;
   IteratorType it(itk_img, rg);
-  int i;
+  size_t i;
   for (it.GoToBegin(), i = 0; !it.IsAtEnd(); ++it, ++i) {
     auto vec = itk::Vector<float, 3>();
     vec.SetElement(0, img[i].x);

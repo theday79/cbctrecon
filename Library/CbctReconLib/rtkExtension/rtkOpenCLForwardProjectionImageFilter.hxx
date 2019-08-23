@@ -191,7 +191,7 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
     }
   }
 
-  for (unsigned int i = 0; i < nProj; i += SLAB_SIZE) {
+  for (size_t i = 0; i < nProj; i += static_cast<size_t>(SLAB_SIZE)) {
     // If nProj is not a multiple of SLAB_SIZE, the last slab will contain less
     // than SLAB_SIZE projections
     const auto cur_slab = std::min(nProj - i, static_cast<size_t>(SLAB_SIZE));
@@ -215,8 +215,8 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
               std::back_inserter(fwd_opts.source_positions));
 
     // Run the forward projection with a slab of SLAB_SIZE or less projections
-    OpenCL_forward_project(&(pin[nPixelsPerProj * projectionOffset]),
-                           &(pout[nPixelsPerProj * projectionOffset]), pvol,
+    OpenCL_forward_project(pin + (nPixelsPerProj * projectionOffset),
+                           pout + (nPixelsPerProj * projectionOffset), pvol,
                            fwd_opts);
 
     fwd_opts.translatedProjectionIndexTransformMatrices.clear();

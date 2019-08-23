@@ -69,7 +69,7 @@ cl_float2 OpenCL_min_max_2D(cl_float *buffer,
                             const FloatImage2DType::SizeType &inputSize);
 
 CBCTRECON_API
-cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, cl_uint inputSize,
+cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, size_t inputSize,
                                  cl::Buffer &deviceBuffer,
                                  cl::CommandQueue &queue,
                                  cl::NDRange nd_local_work_size);

@@ -191,8 +191,8 @@ bool CbctRecon::FillProjForDisplay(const int slice_number) {
   auto imgSize =
       m_spProjImg3DFloat->GetRequestedRegion().GetSize(); // 1016x1016 x z
 
-  const int width = imgSize[0];
-  const int height = imgSize[1];
+  const auto width = imgSize[0];
+  const auto height = imgSize[1];
   m_dspYKImgProj->CreateImage(width, height, 0);
 
   it.SetFirstDirection(0);  // x?
@@ -747,7 +747,7 @@ CbctRecon::GetExcludeProjFiles(const bool bManAngleGap,
     }
   } else // not manual
   {
-    for (auto i = 0U; i < gantry_angles.size(); i++) {
+    for (size_t i = 0; i < gantry_angles.size(); i++) {
       if (std::find(vExcludeIdx.begin(), vExcludeIdx.end(), i) ==
           vExcludeIdx.end()) { // if i is not included in vExcludeIdx
         vSelectedIdx.push_back(i);
@@ -3748,8 +3748,9 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput,
 
   for (size_t i = 0; i < cntWEPL; i++) {
     const auto cur_rawpoint = vOutputWEPL_rawCBCT.at(i);
-    fout << cur_rawpoint.ptIndex << "\t" << cur_rawpoint.fGanAngle << "\t" << i
-         << "\t" << cur_rawpoint.fWEPL << "\t";
+    fout << static_cast<__int64>(cur_rawpoint.ptIndex) << "\t"
+         << cur_rawpoint.fGanAngle << "\t" << static_cast<__int64>(i) << "\t"
+         << cur_rawpoint.fWEPL << "\t";
 
     if (m_spScatCorrReconImg != nullptr &&
         vOutputWEPL_corCBCT.size() == cntWEPL) {
@@ -3843,7 +3844,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
 void CbctRecon::GetAngularWEPL_SinglePoint(
     UShortImageType::Pointer &spUshortImage, const float fAngleGap,
     const float fAngleStart, const float fAngleEnd, const VEC3D &calcPt,
-    const int curPtIdx, std::vector<WEPLData> &vOutputWEPLData,
+    const size_t curPtIdx, std::vector<WEPLData> &vOutputWEPLData,
     const bool bAppend) const {
   if (spUshortImage == nullptr) {
     return;
@@ -4493,11 +4494,11 @@ bool CbctRecon::ResortCBCTProjection(
 
   auto prevVal = -1;
   for (auto &it : vSelectedIdxTemp) {
-    if (it > prevVal) {
+    if (static_cast<long long signed>(it) > prevVal) {
       vSelectedIdxFin.push_back(it);
     }
 
-    prevVal = it;
+    prevVal = static_cast<int>(it);
   }
 
   auto spSubGeometry = GeometryType::New();
