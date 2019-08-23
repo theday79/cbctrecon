@@ -58,15 +58,15 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
   fwd_opts.vectorLength =
       itk::PixelTraits<typename TInputImage::PixelType>::Dimension;
 
+  auto largestReg = this->GetOutput()->GetLargestPossibleRegion();
+  this->GetOutput()->SetRegions(largestReg);
+  this->GetOutput()->Allocate();
+
   fwd_opts.projSize.at(0) = this->GetOutput()->GetBufferedRegion().GetSize()[0];
   fwd_opts.projSize.at(1) = this->GetOutput()->GetBufferedRegion().GetSize()[1];
 
   const auto nPixelsPerProj =
       fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) * fwd_opts.vectorLength;
-
-  auto largestReg = this->GetOutput()->GetLargestPossibleRegion();
-  this->GetOutput()->SetRegions(largestReg);
-  this->GetOutput()->Allocate();
 
   // Setting BoxMin and BoxMax
   // SR: we are using textures (read_imagef sampling) where the pixel definition
