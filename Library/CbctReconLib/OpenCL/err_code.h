@@ -34,12 +34,6 @@
 /*
  * Modified by A. Gravgaard
  */
-#ifdef __cplusplus
-#include <cstdio>
-#else
-#include <stdio.h>
-#include <stdlib.h>
-#endif
 
 #if CBCTRECON_OPENCL_VERSION >= 210
 #define CL_HPP_MINIMUM_OPENCL_VERSION 200
@@ -51,8 +45,12 @@
 
 #include "OpenCL/cl2.hpp"
 
+#include "cbctrecon_config.h"
+
+CBCTRECON_API
 const char *ocl_err_code(cl_int err_in);
 
+CBCTRECON_API
 void check_ocl_error(cl_int err, const char *operation, const char *filename,
                      int line);
 

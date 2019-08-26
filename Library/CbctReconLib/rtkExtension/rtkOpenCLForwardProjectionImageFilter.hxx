@@ -26,7 +26,6 @@
 #include "rtkOpenCLForwardProjectionImageFilter.h"
 
 #include <itkCastImageFilter.h>
-#include <itkLinearInterpolateImageFunction.h>
 #include <itkMacro.h>
 
 #include "OpenCL/ForwardProjectionImageFilter.hpp"
@@ -41,7 +40,7 @@ OpenCLForwardProjectionImageFilter<
 template <class TInputImage, class TOutputImage>
 void OpenCLForwardProjectionImageFilter<TInputImage,
                                         TOutputImage>::GenerateData() {
-  if (this->GetGeometry()->GetSourceToDetectorDistances().size() &&
+  if (!this->GetGeometry()->GetSourceToDetectorDistances().empty() &&
       this->GetGeometry()->GetSourceToDetectorDistances()[0] == 0) {
     itkGenericExceptionMacro(
         << "Parallel geometry is not handled by OpenCL forward projector.");
@@ -49,30 +48,35 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
 
   const typename Superclass::GeometryType *geometry = this->GetGeometry();
   const unsigned int Dimension = TInputImage::ImageDimension;
-  const unsigned int iFirstProj =
+  const size_t iFirstProj =
       this->GetInput(0)->GetRequestedRegion().GetIndex(Dimension - 1);
-  const unsigned int nProj =
+  const size_t nProj =
       this->GetInput(0)->GetRequestedRegion().GetSize(Dimension - 1);
-  const unsigned int nPixelsPerProj =
-      this->GetOutput()->GetBufferedRegion().GetSize(0) *
-      this->GetOutput()->GetBufferedRegion().GetSize(1) *
-      itk::NumericTraits<typename TInputImage::PixelType>::GetLength();
+
+  OpenCL_forwardProject_options fwd_opts;
+
+  fwd_opts.vectorLength =
+      itk::PixelTraits<typename TInputImage::PixelType>::Dimension;
 
   auto largestReg = this->GetOutput()->GetLargestPossibleRegion();
   this->GetOutput()->SetRegions(largestReg);
   this->GetOutput()->Allocate();
 
-  OpenCL_forwardProject_options fwd_opts;
+  fwd_opts.projSize.at(0) = this->GetOutput()->GetBufferedRegion().GetSize()[0];
+  fwd_opts.projSize.at(1) = this->GetOutput()->GetBufferedRegion().GetSize()[1];
+
+  const auto nPixelsPerProj =
+      fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) * fwd_opts.vectorLength;
+
   // Setting BoxMin and BoxMax
   // SR: we are using textures (read_imagef sampling) where the pixel definition
   // is not center but corner. Therefore, we set the box limits from index to
   // index+size instead of, for ITK, index-0.5 to index+size-0.5.
+  auto &vol_buffer_reg = this->GetInput(1)->GetBufferedRegion();
   for (unsigned int i = 0; i < 3; i++) {
-    fwd_opts.box_min.at(i) =
-        this->GetInput(1)->GetBufferedRegion().GetIndex()[i] + 0.5;
+    fwd_opts.box_min.at(i) = vol_buffer_reg.GetIndex()[i] + 0.5;
     fwd_opts.box_max.at(i) =
-        fwd_opts.box_min.at(i) +
-        this->GetInput(1)->GetBufferedRegion().GetSize()[i] - 1.0;
+        fwd_opts.box_min.at(i) + vol_buffer_reg.GetSize()[i] - 1.0;
   }
 
   // Getting Spacing
@@ -81,22 +85,17 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
   }
   fwd_opts.t_step = m_StepSize;
 
-  // OpenCL convenient format for dimensions
-  fwd_opts.projSize.at(0) = this->GetOutput()->GetBufferedRegion().GetSize()[0];
-  fwd_opts.projSize.at(1) = this->GetOutput()->GetBufferedRegion().GetSize()[1];
+  // Getting dimensions
+  fwd_opts.volSize.at(0) = vol_buffer_reg.GetSize()[0];
+  fwd_opts.volSize.at(1) = vol_buffer_reg.GetSize()[1];
+  fwd_opts.volSize.at(2) = vol_buffer_reg.GetSize()[2];
 
-  fwd_opts.volSize.at(0) = this->GetInput(1)->GetBufferedRegion().GetSize()[0];
-  fwd_opts.volSize.at(1) = this->GetInput(1)->GetBufferedRegion().GetSize()[1];
-  fwd_opts.volSize.at(2) = this->GetInput(1)->GetBufferedRegion().GetSize()[2];
-
-  // auto *pin = this->GetInput(0)->GetBufferPointer();
   auto cast_filter_0 =
       itk::CastImageFilter<TInputImage, itk::Image<float, 3>>::New();
   cast_filter_0->SetInput(this->GetInput(0));
   cast_filter_0->Update();
   auto *pin = cast_filter_0->GetOutput()->GetBufferPointer();
 
-  // auto *pvol = this->GetInput(1)->GetBufferPointer();
   auto cast_filter_1 =
       itk::CastImageFilter<TInputImage, itk::Image<float, 3>>::New();
   cast_filter_1->SetInput(this->GetInput(1));
@@ -119,8 +118,7 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
   for (unsigned int i = 0; i < 3; i++) {
     projIndexTranslation[i][3] =
         this->GetOutput()->GetRequestedRegion().GetIndex(i);
-    volIndexTranslation[i][3] =
-        -this->GetInput(1)->GetBufferedRegion().GetIndex(i);
+    volIndexTranslation[i][3] = -vol_buffer_reg.GetIndex(i);
 
     // Adding 0.5 offset to change from the centered pixel convention (ITK)
     // to the corner pixel convention (OpenCL).
@@ -130,24 +128,19 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
   // Compute matrices to transform projection index to volume index, one per
   // projection
   auto translatedProjectionIndexTransformMatrices =
-      std::vector<std::array<float, 12>>(nProj);
-  auto translatedVolumeTransformMatrices =
-      std::vector<std::array<float, 12>>(nProj);
-  auto source_positions = std::vector<std::array<float, 3>>(nProj);
+      std::vector<float>(nProj * 12);
+  auto translatedVolumeTransformMatrices = std::vector<float>(nProj * 12);
+  auto source_positions = std::vector<float>(nProj * 3);
 
   fwd_opts.radiusCylindricalDetector = geometry->GetRadiusCylindricalDetector();
 
   // Go over each projection
   for (auto iProj = iFirstProj; iProj < iFirstProj + nProj; iProj++) {
-    typename Superclass::GeometryType::ThreeDHomogeneousMatrixType
-        translatedProjectionIndexTransformMatrix;
-    typename Superclass::GeometryType::ThreeDHomogeneousMatrixType
-        translatedVolumeTransformMatrix;
-    translatedVolumeTransformMatrix.Fill(0);
+    const auto new_proj_index = iProj - iFirstProj;
 
     // The matrices required depend on the type of detector
-    if (fwd_opts.radiusCylindricalDetector == 0) {
-      translatedProjectionIndexTransformMatrix =
+    if (fabs(fwd_opts.radiusCylindricalDetector) < 0.001) {
+      const auto translatedProjectionIndexTransformMatrix =
           volIndexTranslation.GetVnlMatrix() * volPPToIndex.GetVnlMatrix() *
           geometry->GetProjectionCoordinatesToFixedSystemMatrix(iProj)
               .GetVnlMatrix() *
@@ -155,32 +148,34 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
           projIndexTranslation.GetVnlMatrix();
       for (auto j = 0; j < 3; j++) { // Ignore the 4th row
         for (auto k = 0; k < 4; k++) {
-          translatedProjectionIndexTransformMatrices.at(iProj - iFirstProj)
-              .at(j * 4 + k) = static_cast<float>(
-              translatedProjectionIndexTransformMatrix[j][k]);
+          translatedProjectionIndexTransformMatrices.at(new_proj_index * 12 +
+                                                        j * 4 + k) =
+              static_cast<float>(
+                  translatedProjectionIndexTransformMatrix[j][k]);
         }
       }
     } else {
-      translatedProjectionIndexTransformMatrix =
+      const auto translatedProjectionIndexTransformMatrix =
           geometry->GetProjectionCoordinatesToDetectorSystemMatrix(iProj)
               .GetVnlMatrix() *
           rtk::GetIndexToPhysicalPointMatrix(this->GetInput()).GetVnlMatrix() *
           projIndexTranslation.GetVnlMatrix();
       for (auto j = 0; j < 3; j++) { // Ignore the 4th row
         for (auto k = 0; k < 4; k++) {
-          translatedProjectionIndexTransformMatrices.at(iProj - iFirstProj)
-              .at(j * 4 + k) = static_cast<float>(
-              translatedProjectionIndexTransformMatrix[j][k]);
+          translatedProjectionIndexTransformMatrices.at(new_proj_index * 12 +
+                                                        j * 4 + k) =
+              static_cast<float>(
+                  translatedProjectionIndexTransformMatrix[j][k]);
         }
       }
 
-      translatedVolumeTransformMatrix =
+      const auto translatedVolumeTransformMatrix =
           volIndexTranslation.GetVnlMatrix() * volPPToIndex.GetVnlMatrix() *
           geometry->GetRotationMatrices()[iProj].GetInverse();
       for (auto j = 0; j < 3; j++) { // Ignore the 4th row
         for (auto k = 0; k < 4; k++) {
-          translatedVolumeTransformMatrices.at(iProj - iFirstProj)
-              .at(j * 4 + k) =
+          translatedVolumeTransformMatrices.at(new_proj_index * 12 + j * 4 +
+                                               k) =
               static_cast<float>(translatedVolumeTransformMatrix[j][k]);
         }
       }
@@ -190,44 +185,43 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
     auto source_position = volPPToIndex * geometry->GetSourcePosition(iProj);
 
     // Copy it into a single large array
-    for (unsigned int d = 0; d < 3; d++)
-      source_positions.at(iProj - iFirstProj).at(d) =
+    for (unsigned int d = 0; d < 3; d++) {
+      source_positions.at(new_proj_index * 3 + d) =
           source_position[d]; // Ignore the 4th component
+    }
   }
 
-  fwd_opts.vectorLength =
-      itk::PixelTraits<typename TInputImage::PixelType>::Dimension;
-
-  for (unsigned int i = 0; i < nProj; i += SLAB_SIZE) {
+  for (size_t i = 0; i < nProj; i += static_cast<size_t>(SLAB_SIZE)) {
     // If nProj is not a multiple of SLAB_SIZE, the last slab will contain less
     // than SLAB_SIZE projections
-    fwd_opts.projSize[2] =
-        std::min(nProj - i, static_cast<unsigned int>(SLAB_SIZE));
-    auto projectionOffset =
+    const auto cur_slab = std::min(nProj - i, static_cast<size_t>(SLAB_SIZE));
+    fwd_opts.projSize[2] = cur_slab;
+    const auto projectionOffset =
         iFirstProj + i - this->GetOutput()->GetBufferedRegion().GetIndex(2);
 
-    fwd_opts.translatedProjectionIndexTransformMatrices =
-        std::vector<float>(fwd_opts.projSize[2] * 12);
-    fwd_opts.translatedVolumeTransformMatrices =
-        std::vector<float>(fwd_opts.projSize[2] * 12);
-    fwd_opts.source_positions = std::vector<float>(fwd_opts.projSize[2] * 3);
-    for (unsigned int i_proj = 0; i_proj < fwd_opts.projSize[2]; ++i_proj) {
-      for (unsigned int jk = 0; jk < 12; ++jk) {
-        fwd_opts.translatedProjectionIndexTransformMatrices.at(i_proj * 12 +
-                                                               jk) =
-            translatedProjectionIndexTransformMatrices.at(i + i_proj).at(jk);
-        fwd_opts.translatedVolumeTransformMatrices.at(i_proj * 12 + jk) =
-            translatedVolumeTransformMatrices.at(i + i_proj).at(jk);
-      }
-      for (unsigned int j = 0; j < 3; ++j) {
-        fwd_opts.source_positions.at(i_proj * 3 + j) =
-            source_positions.at(i + i_proj).at(j);
-      }
-    }
+    // Get the geometry corresonding to the relevant projections:
+    std::copy(translatedProjectionIndexTransformMatrices.begin() + i * 12,
+              translatedProjectionIndexTransformMatrices.begin() +
+                  (i + cur_slab) * 12,
+              std::back_inserter(
+                  fwd_opts.translatedProjectionIndexTransformMatrices));
+
+    std::copy(translatedVolumeTransformMatrices.begin() + i * 12,
+              translatedVolumeTransformMatrices.begin() + (i + cur_slab) * 12,
+              std::back_inserter(fwd_opts.translatedVolumeTransformMatrices));
+
+    std::copy(source_positions.begin() + i * 3,
+              source_positions.begin() + (i + cur_slab) * 3,
+              std::back_inserter(fwd_opts.source_positions));
+
     // Run the forward projection with a slab of SLAB_SIZE or less projections
-    OpenCL_forward_project(pin + nPixelsPerProj * projectionOffset,
-                           pout + nPixelsPerProj * projectionOffset, pvol,
+    OpenCL_forward_project(pin + (nPixelsPerProj * projectionOffset),
+                           pout + (nPixelsPerProj * projectionOffset), pvol,
                            fwd_opts);
+
+    fwd_opts.translatedProjectionIndexTransformMatrices.clear();
+    fwd_opts.translatedVolumeTransformMatrices.clear();
+    fwd_opts.source_positions.clear();
   }
 }
 

@@ -25,11 +25,9 @@ class CBCTRECON_API CbctRecon {
 
 public:
   CbctRecon();
-  ~CbctRecon();
-  // CbctRecon(const CbctRecon &) = delete;
-  // void operator=(const CbctRecon &) = delete;
-  // CbctRecon(CbctRecon &&) = delete;
-  // void operator=(CbctRecon &&) = delete;
+  ~CbctRecon() = default;
+
+  ITK_DISALLOW_COPY_AND_ASSIGN(CbctRecon);
 
   // void DoRecon();
   void ReleaseMemory();
@@ -56,12 +54,12 @@ public:
 
   std::vector<std::string> GetProjFileNames(QString &dirPath);
   bool LoadGeometry(QFileInfo &geomFileInfo, std::vector<std::string> &names);
-  std::vector<int> GetExcludeProjFiles(bool bManAngleGap,
-                                       double gantryAngleInterval);
-  void LoadSelectedProj(const std::vector<int> &exclude_ids,
+  std::vector<size_t> GetExcludeProjFiles(bool bManAngleGap,
+                                          double gantryAngleInterval);
+  void LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                         const std::vector<std::string> &names);
   void saveHisHeader();
-  void NormalizeProjections(ProjReaderType::Pointer &reader);
+  void NormalizeProjections(const FloatImageType::Pointer &reader_output);
   bool ResampleProjections(double &resample_factor);
   void BowtieByFit(bool fullfan, const QStringList &params) const;
   int CropSkinUsingThreshold(int threshold, int erode_radius,
@@ -81,8 +79,8 @@ public:
                               std::vector<int> &vExcludeIdx) const;
   void GetSelectedIndices(const std::vector<double> &vFullAngles,
                           std::vector<double> &vNormAngles,
-                          std::vector<int> &vTargetIdx, bool bCW,
-                          std::vector<int> &vExcludingIdx) const;
+                          std::vector<size_t> &vTargetIdx, bool bCW,
+                          std::vector<size_t> &vExcludingIdx) const;
 
   void SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update
                                              // m_fProjImgValueMin, max
@@ -201,14 +199,9 @@ public:
   void GetAngularWEPL_SinglePoint(UShortImageType::Pointer &spUshortImage,
                                   float fAngleGap, float fAngleStart,
                                   float fAngleEnd, const VEC3D &calcPt,
-                                  int curPtIdx,
+                                  size_t curPtIdx,
                                   std::vector<WEPLData> &vOutputWEPLData,
                                   bool bAppend) const;
-  void GetAngularWEPL_MultiPoint(UShortImageType::Pointer &spUshortImage,
-                                 float fAngleGap, float fAngleStart,
-                                 float fAngleEnd,
-                                 std::vector<WEPLData> &vOutputWEPLData,
-                                 bool bAppend);
   void GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
                              float fAngleGap, float fAngleStart,
                              float fAngleEnd,
@@ -265,7 +258,8 @@ public:
                             std::vector<std::string> &vProjPathsFull) const;
 
   void AppendInPhaseIndex(int iPhase, std::vector<float> &vFloatPhaseFull,
-                          std::vector<int> &vOutputIndex, int margin = 5) const;
+                          std::vector<size_t> &vOutputIndex,
+                          int margin = 5) const;
 
   void LoadShort3DImage(QString &filePath, enREGI_IMAGES enTarget);
 
@@ -294,7 +288,7 @@ public:
                    // based projections
 
   std::vector<YK16GrayImage> m_arrYKBufProj;
-  int m_iCntSelectedProj;
+  size_t m_iCntSelectedProj;
 
   std::unique_ptr<YK16GrayImage> m_pImgOffset;
   std::unique_ptr<YK16GrayImage> m_pImgGain;
