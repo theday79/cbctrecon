@@ -34,9 +34,13 @@ class KernelMan {
 private:
   cl::Program m_program;
   bool m_initialized = false;
+  bool m_defaults_is_set = false;
   std::vector<cl::Kernel> m_kernel_list;
+  cl::Context m_ctx;
+  cl::Device m_dev;
 
-  static cl::Program build_ocl_program(cl::Context &ctx) {
+  static cl::Program build_ocl_program(const cl::Context &ctx,
+                                       std::string &defines) {
 #if CL_HPP_TARGET_OPENCL_VERSION >= 210 ||                                     \
     (CL_HPP_TARGET_OPENCL_VERSION == 200 && defined(CL_HPP_USE_IL_KHR))
     // const auto cl_source = util::loadProgramIL("kernels_cl20.spv");
@@ -44,34 +48,87 @@ private:
 #else
     const auto cl_source = util::loadProgram("fdk_opencl.cl");
 #endif
-    auto err = CL_SUCCESS;
-#ifdef DEBUG_OPENCL
-    auto program = cl::Program(ctx, cl_source, /* build? */ false, &err);
-    // For use with GDB, Requires intel OpenCL runtime
-    err = program.build(" -g -s "
-                        "/home/andreas/Projects/build-cbct/clang8-itk5-Debug/"
-                        "bin/fdk_opencl.cl");
-#else
-    auto program = cl::Program(ctx, cl_source, /* build? */ true, &err);
-#endif
 
-    if (err != CL_SUCCESS) {
-      std::cerr << "Could not build OpenCL program! error code: " << err
-                << "\n";
-    }
+    auto err = CL_SUCCESS;
+    auto program = cl::Program(ctx, cl_source, /* build? */ false, &err);
+#ifdef DEBUG_OPENCL
+    // For use with GDB, Requires intel OpenCL runtime
+    defines += " -g -s "
+               "/home/andreas/Projects/build-cbct/clang8-itk5-Debug/"
+               "bin/fdk_opencl.cl ";
+#endif
+    err = program.build(defines.c_str());
+    std::cerr << "DEBUG: OpenCL defines: " << defines << "\n";
+    checkError(err, "Build program");
+
     return program;
   }
 
-public:
-  cl::Context m_ctx;
-  cl::Device m_dev;
-  KernelMan() = default;
-  void initialize(const cl::Device &dev) {
-    if (m_initialized && dev == m_dev) {
-      return;
+  void make_defaults(cl_int *err, const size_t req_dev_alloc) {
+    if (this->m_defaults_is_set) {
+      const auto dev_max_alloc =
+          cl::Device::getDefault().getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>(err);
+      checkError(*err, "Get dev max alloc pre-check");
+      if (dev_max_alloc > req_dev_alloc) {
+        return;
+      }
     }
-    m_ctx = cl::Context(dev);
-    m_program = build_ocl_program(m_ctx);
+
+    std::vector<cl::Device> devices;
+    OpenCL_getDeviceList(devices);
+
+    // Attempt first device if none with image_support
+    auto device = devices.at(0);
+    auto good_device_found = false;
+    auto image_devices = std::vector<cl::Device>();
+    for (auto &dev : devices) {
+      const auto avail_dev_alloc =
+          dev.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>(err);
+      checkError(*err, "Get device max alloc");
+      if (avail_dev_alloc > req_dev_alloc) {
+        image_devices.push_back(dev);
+      }
+
+      auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
+      checkError(*err, "Get device type");
+
+      if (device_type != CL_DEVICE_TYPE_CPU &&
+          avail_dev_alloc > req_dev_alloc) {
+        device = dev;
+        good_device_found = true;
+      }
+    }
+    if (!good_device_found && !image_devices.empty()) {
+      device = image_devices.at(0);
+    }
+    auto device_name = device.getInfo<CL_DEVICE_NAME>(err);
+    checkError(*err, "Get device name");
+    std::cerr << "Using " << device_name << "\n";
+
+    auto default_ctx = cl::Context(device);
+#if CL_HPP_MINIMUM_OPENCL_VERSION >= 200
+    auto deviceQueue =
+        cl::DeviceCommandQueue::makeDefault(default_ctx, device, err);
+#else
+    cl::Device::setDefault(device);
+    cl::Context::setDefault(default_ctx);
+    cl::CommandQueue::setDefault(cl::CommandQueue(default_ctx, device, 0, err));
+#endif
+    checkError(*err, "Set default queue");
+
+    this->m_defaults_is_set = true;
+  }
+
+public:
+  KernelMan() = default;
+  void initialize(std::string &defines, const size_t req_dev_alloc = 0) {
+    auto err = CL_SUCCESS;
+    this->make_defaults(&err, req_dev_alloc);
+    m_dev = cl::Device::getDefault(&err);
+    checkError(err, "Get default device");
+    m_ctx = cl::Context::getDefault(&err);
+    checkError(err, "Get default context");
+    m_program = build_ocl_program(m_ctx, defines);
     m_program.createKernels(&m_kernel_list);
     m_initialized = true;
   }
@@ -88,38 +145,12 @@ public:
 
 static KernelMan kernel_man;
 
-// If this function fails, something is probably wrong with the local OpenCL ICD
-// setup. Therefore we will just let it run and not throw, so the user gets as
-// much info as possible before the crash
-auto getDeviceByReqAllocSize(const size_t required_mem_alloc_size) {
-
-  auto devices = std::vector<cl::Device>();
-  OpenCL_getDeviceList(devices);
-
-  auto default_id = 0;
-  // Maybe read device number from file?
-
-  for (auto &dev : devices) {
-    const auto dev_available = dev.getInfo<CL_DEVICE_AVAILABLE>();
-    if (!dev_available) {
-      ++default_id;
-      continue;
-    }
-    const auto max_mem_alloc = dev.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
-    if (max_mem_alloc > required_mem_alloc_size) {
-      return dev;
-    }
-  }
-  // Let's hope that max mem alloc is not strictly necessary
-  return devices.at(default_id);
+void OpenCL_initialize(const size_t required_mem_alloc_size,
+                       std::string &defines) {
+  kernel_man.initialize(defines, required_mem_alloc_size);
 }
 
-void OpenCL_initialize(const size_t required_mem_alloc_size) {
-  const auto dev = getDeviceByReqAllocSize(required_mem_alloc_size);
-  kernel_man.initialize(dev);
-}
-
-void OpenCL_initialize(cl::Device &dev) { kernel_man.initialize(dev); }
+void OpenCL_initialize(std::string &defines) { kernel_man.initialize(defines); }
 
 cl::NDRange get_local_work_size_small(const cl::Device &device) {
   const auto device_name = device.getInfo<CL_DEVICE_NAME>();
@@ -147,10 +178,12 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
       static_cast<size_t>(paddingSize.x * paddingSize.y * paddingSize.z);
   const auto pv_buffer_size = pv_size * sizeof(float);
 
-  const auto dev = getDeviceByReqAllocSize(pv_buffer_size);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto defines = std::string("");
+  kernel_man.initialize(defines, pv_buffer_size);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   /* Prepare OpenCL memory objects and place data inside them. */
 
@@ -191,7 +224,8 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
           kernel_man.getKernel(en_padding_kernel));
   // padding_kernel(program, "padding_kernel");
 
-  const auto local_work_size = get_local_work_size_small(dev);
+  const auto local_work_size =
+      get_local_work_size_small(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(pv_size);
 
@@ -225,10 +259,13 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   const auto memoryByteSizeInput =
       memorySizeInput * sizeof(FloatImageType::ValueType);
 
-  const auto dev = getDeviceByReqAllocSize(memoryByteSizeInput);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto err = CL_SUCCESS;
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   auto *buffer = projections->GetBufferPointer();
   auto *sub_buffer = filter->GetBufferPointer();
@@ -244,7 +281,8 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   auto subtract_kernel2D = cl::KernelFunctor<cl::Buffer, cl_uint4, cl::Buffer>(
       kernel_man.getKernel(en_subtract_kernel2D));
 
-  const auto local_work_size = get_local_work_size_large(dev);
+  const auto local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
@@ -255,7 +293,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   subtract_kernel2D(cl::EnqueueArgs(queue, global_work_size, local_work_size),
                     deviceBuffer, inputDim, deviceSubBuffer);
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish subtract2d queue");
 
   /* Fetch results of calculations. */
@@ -299,10 +337,13 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
 
   const auto memorySizeSub = subSize[0] * subSize[1] * subSize[2];
 
-  const auto dev = getDeviceByReqAllocSize(memoryByteSizeInput);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto err = CL_SUCCESS;
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -319,14 +360,15 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer>(
           kernel_man.getKernel(en_divide_kernel3D_ushort));
 
-  const auto local_work_size = get_local_work_size_small(dev);
+  const auto local_work_size =
+      get_local_work_size_small(cl::Device::getDefault());
   const cl::NDRange global_work_size(memorySizeInput);
 
   divide_kernel3D_Ushort(
       cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
       deviceSubBuffer, deviceOutBuffer);
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish divide3d queue");
 
   /* Fetch results of calculations. */
@@ -349,10 +391,13 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
-  const auto dev = getDeviceByReqAllocSize(memoryByteSizeInput);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto err = CL_SUCCESS;
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -362,14 +407,15 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   auto add_const_kernel = cl::KernelFunctor<cl::Buffer, cl_float>(
       kernel_man.getKernel(en_add_const_kernel));
 
-  const auto local_work_size = get_local_work_size_large(dev);
+  const auto local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
   add_const_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
                    deviceBuffer, constant);
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish subtract2d queue");
 
   /* Fetch results of calculations. */
@@ -388,10 +434,13 @@ void OpenCL_AddConst_MulConst_InPlace(
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
-  const auto dev = getDeviceByReqAllocSize(memoryByteSizeInput);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto err = CL_SUCCESS;
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -401,7 +450,8 @@ void OpenCL_AddConst_MulConst_InPlace(
   auto add_mul_const_kernel = cl::KernelFunctor<cl::Buffer, cl_float, cl_float>(
       kernel_man.getKernel(en_add_mul_const_kernel));
 
-  const auto local_work_size = get_local_work_size_large(dev);
+  const auto local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
@@ -409,7 +459,7 @@ void OpenCL_AddConst_MulConst_InPlace(
       cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
       add_constant, mul_constant);
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish add_mul_const queue");
 
   /* Fetch results of calculations. */
@@ -428,10 +478,13 @@ void OpenCL_AddConst_InPlace_2D(
   const auto memorySizeInput = inputSize[0] * inputSize[1];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
-  const auto dev = getDeviceByReqAllocSize(memoryByteSizeInput);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto err = CL_SUCCESS;
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -441,14 +494,15 @@ void OpenCL_AddConst_InPlace_2D(
   auto add_const_kernel = cl::KernelFunctor<cl::Buffer, cl_float>(
       kernel_man.getKernel(en_add_const_kernel));
 
-  const auto local_work_size = get_local_work_size_large(dev);
+  const auto local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
   add_const_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
                    deviceBuffer, constant);
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish add_const queue");
 
   /* Fetch results of calculations. */
@@ -480,10 +534,13 @@ cl_float2 OpenCL_min_max_2D(cl_float *buffer,
 cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
-  const auto dev = getDeviceByReqAllocSize(memoryByteSizeInput);
-  kernel_man.initialize(dev);
-  auto &ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  auto err = CL_SUCCESS;
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -493,7 +550,8 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   auto min_max_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint>(
       kernel_man.getKernel(en_min_max_kernel));
 
-  const auto local_work_size = get_local_work_size_small(dev);
+  const auto local_work_size =
+      get_local_work_size_small(cl::Device::getDefault());
 
   size_t divider = 128;
   while (true) {
@@ -520,13 +578,11 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
                  deviceBuffer, deviceSubBuffer, divider);
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish add_const queue");
 
-  const auto recurse_local_work_size = get_local_work_size_large(dev);
   const auto result =
-      OpenCL_min_max_recurse(sub_buffer, memorySizeSub, deviceSubBuffer, queue,
-                             recurse_local_work_size);
+      OpenCL_min_max_recurse(sub_buffer, memorySizeSub, deviceSubBuffer);
 
   err = queue.enqueueUnmapMemObject(devicePinnedSubBuffer, sub_buffer);
   checkError(err, "add_const unmap");
@@ -537,11 +593,11 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
 }
 
 cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
-                                 cl::Buffer &deviceBuffer,
-                                 cl::CommandQueue &queue,
-                                 cl::NDRange nd_local_work_size) {
+                                 cl::Buffer &deviceBuffer) {
 
-  auto &ctx = kernel_man.m_ctx;
+  const auto recurse_local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
+  auto queue = cl::CommandQueue::getDefault();
 
   if (inputSize < 257) {
     auto err = queue.enqueueReadBuffer(deviceBuffer, CL_TRUE, 0,
@@ -583,11 +639,14 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   }
 
   const auto outputDim = inputSize / divider;
-  auto local_work_size = nd_local_work_size.get()[0];
+  auto local_work_size = recurse_local_work_size.get()[0];
 
   while (local_work_size > 32) {
-    if ((outputDim + outputDim % local_work_size) / local_work_size % 2 !=
-        0) { // global must be evenly divisable with local work group
+    const auto n_work_groups =
+        (outputDim + outputDim % local_work_size) / local_work_size;
+    if (n_work_groups % 2 !=
+            0 // global must be evenly divisable with local work group
+        || n_work_groups * local_work_size < local_work_size) {
       local_work_size /= 2;
     } else {
       break;
@@ -600,6 +659,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   const auto memoryByteSizeSub = global_work_size * sizeof(cl_float2);
   // to avoid access violation in kernel
 
+  auto ctx = cl::Context::getDefault();
   cl::Buffer deviceSubBuffer(ctx, CL_MEM_READ_WRITE, memoryByteSizeSub);
   const cl::Buffer devicePinnedSubBuffer(ctx, CL_MEM_ALLOC_HOST_PTR,
                                          memoryByteSizeSub);
@@ -620,8 +680,8 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   err = queue.finish();
   checkError(err, "Finish read sub buffer min_max_recurse queue");
 
-  const auto result = OpenCL_min_max_recurse(
-      sub_buffer, outputDim, deviceSubBuffer, queue, nd_local_work_size);
+  const auto result =
+      OpenCL_min_max_recurse(sub_buffer, outputDim, deviceSubBuffer);
 
   err = queue.enqueueUnmapMemObject(devicePinnedSubBuffer, sub_buffer);
   checkError(err, "Unmap sub pinned min_max_recurse queue");

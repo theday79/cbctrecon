@@ -5,7 +5,12 @@
  */
 
 #include <cassert>
+#include <memory>
 #include <string>
+
+#ifndef CBCTRECON_OPENCL_VERSION
+#define CBCTRECON_OPENCL_VERSION 120
+#endif
 
 #if CBCTRECON_OPENCL_VERSION >= 210
 #define CL_HPP_MINIMUM_OPENCL_VERSION 200
@@ -26,14 +31,17 @@
 // On Linux with intel opencl runtime, you can debug opencl kernels:
 // #define DEBUG_OPENCL
 
-enum enKernel { en_kernel_forwardProject_test, en_kernel_forwardProject };
+enum enKernelName { en_kernel_forwardProject_test, en_kernel_forwardProject };
 
-class KernelMan {
+class FwdKernelMan {
 
 private:
   cl::Program m_program;
   bool m_initialized = false;
+  bool m_defaults_is_set = false;
   std::vector<cl::Kernel> m_kernel_list;
+  cl::Context m_ctx;
+  cl::Device m_dev;
 
   static cl::Program build_ocl_program(const cl::Context &ctx,
                                        std::string &defines) {
@@ -49,26 +57,75 @@ private:
 #endif
     err = program.build(defines.c_str());
     std::cerr << "DEBUG: OpenCL defines: " << defines << "\n";
+    checkError(err, "Build program");
 
-    if (err != CL_SUCCESS) {
-      std::cerr << "Could not build OpenCL program! error code: " << err
-                << "\n";
-    }
     return program;
   }
 
+  void make_defaults(cl_int *err) {
+    if (this->m_defaults_is_set) {
+      return;
+    }
+
+    std::vector<cl::Device> devices;
+    OpenCL_getDeviceList(devices);
+
+    // Attempt first device if none with image_support
+    auto device = devices.at(0);
+    auto good_device_found = false;
+    auto image_devices = std::vector<cl::Device>();
+    for (auto &dev : devices) {
+      const auto device_image_support =
+          dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(err);
+      checkError(*err, "Get device image support");
+      if (device_image_support) {
+        image_devices.push_back(dev);
+      }
+
+      auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
+      checkError(*err, "Get device type");
+
+      if (device_type != CL_DEVICE_TYPE_CPU && device_image_support) {
+        device = dev;
+        good_device_found = true;
+      }
+    }
+    if (!good_device_found && !image_devices.empty()) {
+      device = image_devices.at(0);
+    }
+    auto device_name = device.getInfo<CL_DEVICE_NAME>(err);
+    checkError(*err, "Get device name");
+    std::cerr << "Using " << device_name << " for fwd proj.\n";
+
+    auto default_ctx = cl::Context(device);
+#if CL_HPP_MINIMUM_OPENCL_VERSION >= 200
+    auto deviceQueue =
+        cl::DeviceCommandQueue::makeDefault(default_ctx, device, err);
+#else
+    cl::Device::setDefault(device);
+    cl::Context::setDefault(default_ctx);
+    cl::CommandQueue::setDefault(cl::CommandQueue(default_ctx, device, 0, err));
+#endif
+    checkError(*err, "Set default queue");
+
+    this->m_defaults_is_set = true;
+  }
+
 public:
-  cl::Context m_ctx;
-  cl::Device m_dev;
-  KernelMan() = default;
-  void initialize(const cl::Device &dev, std::string &defines) {
-    m_ctx = cl::Context(dev);
+  FwdKernelMan() = default;
+  void initialize(std::string &defines) {
+    auto err = CL_SUCCESS;
+    this->make_defaults(&err);
+    m_dev = cl::Device::getDefault(&err);
+    checkError(err, "Get default device");
+    m_ctx = cl::Context::getDefault(&err);
+    checkError(err, "Get default context");
     m_program = build_ocl_program(m_ctx, defines);
     m_program.createKernels(&m_kernel_list);
     m_initialized = true;
   }
 
-  cl::Kernel getKernel(const enKernel kernel) {
+  cl::Kernel getKernel(const enKernelName kernel) {
     assert(m_initialized);
 
     auto &out_kernel = m_kernel_list.at(kernel);
@@ -78,7 +135,7 @@ public:
   }
 };
 
-static KernelMan kernel_man;
+// static KernelMan kernel_man;
 
 template <typename T> std::string stringify_array(const std::vector<T> &arr) {
   std::string out;
@@ -168,29 +225,17 @@ make_OpenCL_defines_str(const OpenCL_forwardProject_options &fwd_opts) {
 void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
                             OpenCL_forwardProject_options &fwd_opts) {
 
-  std::vector<cl::Device> devices;
-  OpenCL_getDeviceList(devices);
-
   auto err = CL_SUCCESS;
-  // Attempt first device if none with image_support
-  auto device = devices.at(0);
-  for (auto &dev : devices) {
-    const auto device_image_support =
-        dev.getInfo<CL_DEVICE_IMAGE_SUPPORT>(&err);
-    checkError(err, "Get device image support");
-    if (device_image_support) {
-      device = dev;
-      break;
-    }
-  }
-
   // Constant memory
   auto cl_defines = make_OpenCL_defines_str(fwd_opts);
 
-  kernel_man.initialize(device, cl_defines);
+  auto kernel_man = std::make_unique<FwdKernelMan>();
+  kernel_man->initialize(cl_defines);
 
-  const auto ctx = kernel_man.m_ctx;
-  cl::CommandQueue queue(ctx);
+  const auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
 
   const auto tot_proj_size = fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) *
                              fwd_opts.projSize.at(2);
@@ -216,11 +261,13 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   auto kernel_forwardProject =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl::Image3D,
                         cl::Buffer, cl::Buffer>(
-          kernel_man.getKernel(en_kernel_forwardProject));
+          kernel_man->getKernel(en_kernel_forwardProject));
   checkError(err, "Create kernel functor");
 
   const auto req_dev_alloc = tot_proj_size * sizeof(float);
-  const auto avail_dev_alloc = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+  const auto avail_dev_alloc =
+      cl::Device::getDefault().getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>(&err);
+  checkError(err, "Get device max alloc size");
   if (avail_dev_alloc < req_dev_alloc) {
     std::cerr << "Oh no, device doesn't have enough memory!\n"
               << "It has: " << avail_dev_alloc / 1024 / 1024 << "MB\n"
@@ -243,6 +290,12 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   checkError(err, "Alloc proj_out on device");
 
   // Input projection (add to this)
+  if (!h_proj_in) {
+    std::cerr << "h_proj ptr is invalid\n";
+  }
+  if (!(h_proj_in + tot_proj_size - 1)) {
+    std::cerr << "last index of h_proj is invalid\n";
+  }
   const auto dev_proj_in =
       cl::Buffer(queue, h_proj_in, h_proj_in + tot_proj_size, true, true, &err);
   checkError(err, "Alloc proj_in on device");
@@ -294,11 +347,4 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
 
   err = queue.finish();
   checkError(err, "Forward kernel, finish queue");
-
-  auto out_sum = 0.0;
-  for (auto i = 0U; i < tot_proj_size; ++i) {
-    out_sum += h_proj_out[i];
-  }
-  std::cerr << "DEBUG: h_proj_out test sum over " << tot_proj_size
-            << " elements: " << out_sum << "\n";
 }

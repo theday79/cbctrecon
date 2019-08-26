@@ -14,9 +14,6 @@
 
 #include "OpenCL/err_code.h"
 
-#ifndef CBCTRECON_OPENCL_VERSION
-#define CBCTRECON_OPENCL_VERSION 120
-#endif
 #define REQ_OPENCL_VER static_cast<cl_uint>(CBCTRECON_OPENCL_VERSION)
 
 template <typename T, size_t DIM> auto GenerateImage() {
@@ -148,310 +145,284 @@ int main(const int argc, char **argv) {
   const auto filter_str = std::string(argv[1]);
   std::cerr << filter_str << "\n";
 
-  auto platforms = std::vector<cl::Platform>();
-  cl::Platform::get(&platforms);
-  for (auto &plat : platforms) {
-    auto plat_name = plat.getInfo<CL_PLATFORM_NAME>();
+  // Cuts off about 150 ms per filter:
+  auto defines = std::string("");
+  OpenCL_initialize(0, defines);
 
-    const auto supported_ocl_version = getPlatformOpenCLVersion(plat);
-    if (supported_ocl_version < REQ_OPENCL_VER) {
-      std::cerr << plat_name << " does not support OpenCL version "
-                << REQ_OPENCL_VER << ", only " << supported_ocl_version
-                << " and will be skipped\n";
-      continue;
+  if (filter_str == "add_const_filter") {
+
+    auto image_ocl = GenerateImage<float, 3U>();
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    OpenCL_AddConst_InPlace(image_ocl->GetBufferPointer(),
+                            image_ocl->GetLargestPossibleRegion().GetSize(),
+                            17.0f);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    auto image_cpu = GenerateImage<float, 3U>();
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    using ImageType = itk::Image<float, 3U>;
+    auto add_filter =
+        itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
+    add_filter->SetInput1(image_cpu);
+    add_filter->SetConstant2(17.0f);
+    add_filter->Update();
+    image_cpu = add_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
+
+    const auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_cpu);
+    if (result != 0) {
+      return result;
     }
 
-    auto devices = std::vector<cl::Device>();
-    const auto err = plat.getDevices(CL_DEVICE_TYPE_ALL, &devices);
-    checkError(err, "Get all devices from platform");
+  } else if (filter_str == "add_const_2d_filter") {
 
-    for (auto &dev : devices) {
-      auto dev_name = dev.getInfo<CL_DEVICE_NAME>();
-      std::cerr << plat_name << " :: " << dev_name << "\n";
-      // Cuts off about 150 ms per filter:
-      OpenCL_initialize(dev);
+    auto image_ocl = GenerateImage<float, 2U>();
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    OpenCL_AddConst_InPlace_2D(image_ocl->GetBufferPointer(),
+                               image_ocl->GetLargestPossibleRegion().GetSize(),
+                               17.0f);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
 
-      if (filter_str == "add_const_filter") {
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
 
-        auto image_ocl = GenerateImage<float, 3U>();
-        const auto start_ocl_time = std::chrono::steady_clock::now();
-        OpenCL_AddConst_InPlace(image_ocl->GetBufferPointer(),
-                                image_ocl->GetLargestPossibleRegion().GetSize(),
-                                17.0f);
-        const auto end_ocl_time = std::chrono::steady_clock::now();
+    auto image_cpu = GenerateImage<float, 2U>();
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    using ImageType = itk::Image<float, 2U>;
+    auto add_filter =
+        itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
+    add_filter->SetInput1(image_cpu);
+    add_filter->SetConstant2(17.0f);
+    add_filter->Update();
+    image_cpu = add_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
 
-        std::cerr << "OpenCL: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_ocl_time - start_ocl_time)
-                         .count()
-                  << " ms\n";
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
 
-        auto image_cpu = GenerateImage<float, 3U>();
-        const auto start_itk_time = std::chrono::steady_clock::now();
-        using ImageType = itk::Image<float, 3U>;
-        auto add_filter =
-            itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
-        add_filter->SetInput1(image_cpu);
-        add_filter->SetConstant2(17.0f);
-        add_filter->Update();
-        image_cpu = add_filter->GetOutput();
-        const auto end_itk_time = std::chrono::steady_clock::now();
+    const auto result = CheckImage<itk::Image<float, 2U>>(image_ocl, image_cpu);
+    if (result != 0) {
+      return result;
+    }
+  } else if (filter_str == "add_mul_const_filter") {
 
-        std::cerr << "ITKCPU:   "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_time - start_itk_time)
-                         .count()
-                  << " ms\n";
+    auto image_ocl = GenerateImage<float, 3U>();
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    OpenCL_AddConst_MulConst_InPlace(
+        image_ocl->GetBufferPointer(),
+        image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f, 2.0f);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
 
-        const auto result =
-            CheckImage<itk::Image<float, 3U>>(image_ocl, image_cpu);
-        if (result != 0) {
-          return result;
-        }
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
 
-      } else if (filter_str == "add_const_2d_filter") {
+    auto image_cpu = GenerateImage<float, 3U>();
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    using ImageType = itk::Image<float, 3U>;
+    auto add_filter =
+        itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
+    add_filter->SetInput1(image_cpu);
+    add_filter->SetConstant2(17.0f);
 
-        auto image_ocl = GenerateImage<float, 2U>();
-        const auto start_ocl_time = std::chrono::steady_clock::now();
-        OpenCL_AddConst_InPlace_2D(
-            image_ocl->GetBufferPointer(),
-            image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f);
-        const auto end_ocl_time = std::chrono::steady_clock::now();
+    auto mul_filter =
+        itk::MultiplyImageFilter<ImageType, ImageType, ImageType>::New();
+    mul_filter->SetInput(add_filter->GetOutput());
+    mul_filter->SetConstant(2.0f);
+    mul_filter->Update();
+    image_cpu = mul_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
 
-        std::cerr << "OpenCL: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_ocl_time - start_ocl_time)
-                         .count()
-                  << " ms\n";
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
 
-        auto image_cpu = GenerateImage<float, 2U>();
-        const auto start_itk_time = std::chrono::steady_clock::now();
-        using ImageType = itk::Image<float, 2U>;
-        auto add_filter =
-            itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
-        add_filter->SetInput1(image_cpu);
-        add_filter->SetConstant2(17.0f);
-        add_filter->Update();
-        image_cpu = add_filter->GetOutput();
-        const auto end_itk_time = std::chrono::steady_clock::now();
+    const auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_cpu);
+    if (result != 0) {
+      return result;
+    }
+  } else if (filter_str == "min_max_filter") {
 
-        std::cerr << "ITKCPU:   "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_time - start_itk_time)
-                         .count()
-                  << " ms\n";
+    auto image_in = GenerateRandImage<float, 3U>();
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    const auto minmax_ocl =
+        OpenCL_min_max_3D(image_in->GetBufferPointer(),
+                          image_in->GetLargestPossibleRegion().GetSize());
+    const auto end_ocl_time = std::chrono::steady_clock::now();
 
-        const auto result =
-            CheckImage<itk::Image<float, 2U>>(image_ocl, image_cpu);
-        if (result != 0) {
-          return result;
-        }
-      } else if (filter_str == "add_mul_const_filter") {
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
 
-        auto image_ocl = GenerateImage<float, 3U>();
-        const auto start_ocl_time = std::chrono::steady_clock::now();
-        OpenCL_AddConst_MulConst_InPlace(
-            image_ocl->GetBufferPointer(),
-            image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f, 2.0f);
-        const auto end_ocl_time = std::chrono::steady_clock::now();
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    using ImageType = itk::Image<float, 3U>;
+    auto stat_filter = itk::StatisticsImageFilter<ImageType>::New();
+    stat_filter->SetInput(image_in);
+    stat_filter->Update();
+    const auto max_itk = stat_filter->GetMaximum();
+    const auto min_itk = stat_filter->GetMinimum();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
 
-        std::cerr << "OpenCL: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_ocl_time - start_ocl_time)
-                         .count()
-                  << " ms\n";
-
-        auto image_cpu = GenerateImage<float, 3U>();
-        const auto start_itk_time = std::chrono::steady_clock::now();
-        using ImageType = itk::Image<float, 3U>;
-        auto add_filter =
-            itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
-        add_filter->SetInput1(image_cpu);
-        add_filter->SetConstant2(17.0f);
-
-        auto mul_filter =
-            itk::MultiplyImageFilter<ImageType, ImageType, ImageType>::New();
-        mul_filter->SetInput(add_filter->GetOutput());
-        mul_filter->SetConstant(2.0f);
-        mul_filter->Update();
-        image_cpu = mul_filter->GetOutput();
-        const auto end_itk_time = std::chrono::steady_clock::now();
-
-        std::cerr << "ITKCPU:   "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_time - start_itk_time)
-                         .count()
-                  << " ms\n";
-
-        const auto result =
-            CheckImage<itk::Image<float, 3U>>(image_ocl, image_cpu);
-        if (result != 0) {
-          return result;
-        }
-      } else if (filter_str == "min_max_filter") {
-
-        auto image_in = GenerateRandImage<float, 3U>();
-        const auto start_ocl_time = std::chrono::steady_clock::now();
-        const auto minmax_ocl =
-            OpenCL_min_max_3D(image_in->GetBufferPointer(),
-                              image_in->GetLargestPossibleRegion().GetSize());
-        const auto end_ocl_time = std::chrono::steady_clock::now();
-
-        std::cerr << "OpenCL: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_ocl_time - start_ocl_time)
-                         .count()
-                  << " ms\n";
-
-        const auto start_itk_time = std::chrono::steady_clock::now();
-        using ImageType = itk::Image<float, 3U>;
-        auto stat_filter = itk::StatisticsImageFilter<ImageType>::New();
-        stat_filter->SetInput(image_in);
-        stat_filter->Update();
-        const auto max_itk = stat_filter->GetMaximum();
-        const auto min_itk = stat_filter->GetMinimum();
-        const auto end_itk_time = std::chrono::steady_clock::now();
-        std::cerr << "ITKCPU:   "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_time - start_itk_time)
-                         .count()
-                  << " ms\n";
-
-        const auto start_itk_iter_time = std::chrono::steady_clock::now();
-        auto iter = itk::ImageRegionIterator<ImageType>(
-            image_in, image_in->GetLargestPossibleRegion());
-        auto it_min = std::numeric_limits<float>::max();
-        auto it_max = std::numeric_limits<float>::min();
-        while (!iter.IsAtEnd()) {
-          if (iter.Get() < it_min) {
-            it_min = iter.Get();
-          }
-          if (iter.Get() > it_max) {
-            it_max = iter.Get();
-          }
-          ++iter;
-        }
-        const auto end_itk_iter_time = std::chrono::steady_clock::now();
-
-        std::cerr << "IterCPU:  "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_iter_time - start_itk_iter_time)
-                         .count()
-                  << " ms\n";
-
-        if (fabs(min_itk - it_min) > 0.01f) {
-          std::cerr << "Mininums were different: itk: " << min_itk
-                    << " iter: " << it_min << "\n";
-          return -2;
-        }
-        if (fabs((max_itk / it_max) - 1.f) > 0.01f) {
-          std::cerr << "Maximums were different: itk: " << max_itk
-                    << " iter: " << it_max << "\n";
-          return -3;
-        }
-
-        if (fabs(min_itk - minmax_ocl.x) > 0.01f) {
-          std::cerr << "Mininums were different: itk: " << min_itk
-                    << " ocl: " << minmax_ocl.x << "\n";
-          return -2;
-        }
-        if (fabs((max_itk / minmax_ocl.y) - 1.f) > 0.01f) {
-          std::cerr << "Maximums were different: itk: " << max_itk
-                    << " ocl: " << minmax_ocl.y << "\n";
-          return -3;
-        }
-
-      } else if (filter_str == "min_max_2d_filter") {
-
-        auto image_in = GenerateRandImage<float, 2U>();
-        const auto start_ocl_time = std::chrono::steady_clock::now();
-        const auto minmax_ocl =
-            OpenCL_min_max_2D(image_in->GetBufferPointer(),
-                              image_in->GetLargestPossibleRegion().GetSize());
-        const auto end_ocl_time = std::chrono::steady_clock::now();
-
-        std::cerr << "OpenCL: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_ocl_time - start_ocl_time)
-                         .count()
-                  << " ms\n";
-
-        const auto start_itk_time = std::chrono::steady_clock::now();
-        using ImageType = itk::Image<float, 2U>;
-        auto stat_filter = itk::StatisticsImageFilter<ImageType>::New();
-        stat_filter->SetInput(image_in);
-        stat_filter->Update();
-        const auto max_itk = stat_filter->GetMaximum();
-        const auto min_itk = stat_filter->GetMinimum();
-        const auto end_itk_time = std::chrono::steady_clock::now();
-
-        std::cerr << "ITKCPU:   "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_time - start_itk_time)
-                         .count()
-                  << " ms\n";
-
-        if (fabs(min_itk - minmax_ocl.x) > 0.01f) {
-          std::cerr << "Mininums were different: itk: " << min_itk
-                    << " ocl: " << minmax_ocl.x << "\n";
-          return -2;
-        }
-        if (fabs((max_itk / minmax_ocl.y) - 1.f) > 0.01f) {
-          std::cerr << "Maximums were different: itk: " << max_itk
-                    << " ocl: " << minmax_ocl.y << "\n";
-          return -3;
-        }
-
-      } else if (filter_str == "divide_3Dby3D_filter") {
-
-        using ImageType = itk::Image<unsigned short, 3U>;
-        auto image_in1 = GenerateRandImage<unsigned short, 3U>();
-        auto image_in2 = GenerateRandImage<unsigned short, 3U>();
-        auto add_filter =
-            itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
-        add_filter->SetInput1(image_in1);
-        add_filter->SetConstant2(17);
-        add_filter->Update();
-        image_in1 = add_filter->GetOutput();
-
-        const auto start_ocl_time = std::chrono::steady_clock::now();
-        const auto image_ocl =
-            OpenCL_divide3Dby3D_OutOfPlace(image_in1, image_in2);
-        const auto end_ocl_time = std::chrono::steady_clock::now();
-
-        std::cerr << "OpenCL: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_ocl_time - start_ocl_time)
-                         .count()
-                  << " ms\n";
-
-        const auto start_itk_time = std::chrono::steady_clock::now();
-        auto div_filter = itk::DivideImageFilter<ImageType, ImageType,
-                                                 itk::Image<float, 3U>>::New();
-        div_filter->SetInput1(image_in1);
-        div_filter->SetInput2(image_in2);
-        div_filter->Update();
-        const auto image_itk = div_filter->GetOutput();
-        const auto end_itk_time = std::chrono::steady_clock::now();
-
-        std::cerr << "ITKCPU:   "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(
-                         end_itk_time - start_itk_time)
-                         .count()
-                  << " ms\n";
-
-        const auto result =
-            CheckImage<itk::Image<float, 3U>>(image_ocl, image_itk);
-        if (result != 0) {
-          return result;
-        }
-      } else if (filter_str == "padding_filter") {
-      } else if (filter_str == "subtract_2Dfrom3D_filter") {
-      } else {
-        std::cerr << "This filter does not exists: " << filter_str << "\n";
-        return -1;
+    const auto start_itk_iter_time = std::chrono::steady_clock::now();
+    auto iter = itk::ImageRegionIterator<ImageType>(
+        image_in, image_in->GetLargestPossibleRegion());
+    auto it_min = std::numeric_limits<float>::max();
+    auto it_max = std::numeric_limits<float>::min();
+    while (!iter.IsAtEnd()) {
+      if (iter.Get() < it_min) {
+        it_min = iter.Get();
       }
+      if (iter.Get() > it_max) {
+        it_max = iter.Get();
+      }
+      ++iter;
     }
+    const auto end_itk_iter_time = std::chrono::steady_clock::now();
+
+    std::cerr << "IterCPU:  "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_iter_time - start_itk_iter_time)
+                     .count()
+              << " ms\n";
+
+    if (fabs(min_itk - it_min) > 0.01f) {
+      std::cerr << "Mininums were different: itk: " << min_itk
+                << " iter: " << it_min << "\n";
+      return -2;
+    }
+    if (fabs((max_itk / it_max) - 1.f) > 0.01f) {
+      std::cerr << "Maximums were different: itk: " << max_itk
+                << " iter: " << it_max << "\n";
+      return -3;
+    }
+
+    if (fabs(min_itk - minmax_ocl.x) > 0.01f) {
+      std::cerr << "Mininums were different: itk: " << min_itk
+                << " ocl: " << minmax_ocl.x << "\n";
+      return -2;
+    }
+    if (fabs((max_itk / minmax_ocl.y) - 1.f) > 0.01f) {
+      std::cerr << "Maximums were different: itk: " << max_itk
+                << " ocl: " << minmax_ocl.y << "\n";
+      return -3;
+    }
+
+  } else if (filter_str == "min_max_2d_filter") {
+
+    auto image_in = GenerateRandImage<float, 2U>();
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    const auto minmax_ocl =
+        OpenCL_min_max_2D(image_in->GetBufferPointer(),
+                          image_in->GetLargestPossibleRegion().GetSize());
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    using ImageType = itk::Image<float, 2U>;
+    auto stat_filter = itk::StatisticsImageFilter<ImageType>::New();
+    stat_filter->SetInput(image_in);
+    stat_filter->Update();
+    const auto max_itk = stat_filter->GetMaximum();
+    const auto min_itk = stat_filter->GetMinimum();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
+
+    if (fabs(min_itk - minmax_ocl.x) > 0.01f) {
+      std::cerr << "Mininums were different: itk: " << min_itk
+                << " ocl: " << minmax_ocl.x << "\n";
+      return -2;
+    }
+    if (fabs((max_itk / minmax_ocl.y) - 1.f) > 0.01f) {
+      std::cerr << "Maximums were different: itk: " << max_itk
+                << " ocl: " << minmax_ocl.y << "\n";
+      return -3;
+    }
+
+  } else if (filter_str == "divide_3Dby3D_filter") {
+
+    using ImageType = itk::Image<unsigned short, 3U>;
+    auto image_in1 = GenerateRandImage<unsigned short, 3U>();
+    auto image_in2 = GenerateRandImage<unsigned short, 3U>();
+    auto add_filter =
+        itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
+    add_filter->SetInput1(image_in1);
+    add_filter->SetConstant2(17);
+    add_filter->Update();
+    image_in1 = add_filter->GetOutput();
+
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    const auto image_ocl = OpenCL_divide3Dby3D_OutOfPlace(image_in1, image_in2);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    auto div_filter = itk::DivideImageFilter<ImageType, ImageType,
+                                             itk::Image<float, 3U>>::New();
+    div_filter->SetInput1(image_in1);
+    div_filter->SetInput2(image_in2);
+    div_filter->Update();
+    const auto image_itk = div_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
+
+    const auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_itk);
+    if (result != 0) {
+      return result;
+    }
+  } else if (filter_str == "padding_filter") {
+  } else if (filter_str == "subtract_2Dfrom3D_filter") {
+  } else {
+    std::cerr << "This filter does not exists: " << filter_str << "\n";
+    return -1;
   }
 
   return 0;

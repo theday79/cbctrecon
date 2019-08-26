@@ -73,17 +73,6 @@
 using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #endif // USE_CUDA
 
-// Plastimatch
-//#undef TIMEOUT
-//#undef CUDA_FOUND
-//#include <dcmtk_rt_study.h>
-//#include <itk_image_type.h>
-//#include <plan_calc.h> // used to be rt_plan in earlier plm
-//#include <proj_matrix.h>
-//#include <proj_volume.h>
-//#include <ray_data.h>
-//#include <volume_adjust.h>
-
 // Local
 #include "AG17RGBAImage.h"
 #include "OpenCL/ImageFilters.h"
@@ -3748,8 +3737,8 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput,
 
   for (size_t i = 0; i < cntWEPL; i++) {
     const auto cur_rawpoint = vOutputWEPL_rawCBCT.at(i);
-    fout << static_cast<__int64>(cur_rawpoint.ptIndex) << "\t"
-         << cur_rawpoint.fGanAngle << "\t" << static_cast<__int64>(i) << "\t"
+    fout << static_cast<int64_t>(cur_rawpoint.ptIndex) << "\t"
+         << cur_rawpoint.fGanAngle << "\t" << static_cast<int64_t>(i) << "\t"
          << cur_rawpoint.fWEPL << "\t";
 
     if (m_spScatCorrReconImg != nullptr &&

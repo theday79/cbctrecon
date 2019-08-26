@@ -3,6 +3,10 @@
 
 #include <vector>
 
+#ifndef CBCTRECON_OPENCL_VERSION
+#define CBCTRECON_OPENCL_VERSION 120
+#endif
+
 #if CBCTRECON_OPENCL_VERSION >= 210
 #define CL_HPP_MINIMUM_OPENCL_VERSION 200
 #define CL_HPP_TARGET_OPENCL_VERSION 210
@@ -18,11 +22,9 @@
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
-// If this function fails, something is probably wrong with the local OpenCL ICD
-auto getDeviceByReqAllocSize(size_t required_mem_alloc_size);
-
-CBCTRECON_API void OpenCL_initialize(size_t required_mem_alloc_size);
-CBCTRECON_API void OpenCL_initialize(cl::Device &dev);
+CBCTRECON_API void OpenCL_initialize(size_t required_mem_alloc_size,
+                                     std::string &defines);
+CBCTRECON_API void OpenCL_initialize(std::string &defines);
 
 CBCTRECON_API
 void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
@@ -70,8 +72,6 @@ cl_float2 OpenCL_min_max_2D(cl_float *buffer,
 
 CBCTRECON_API
 cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, size_t inputSize,
-                                 cl::Buffer &deviceBuffer,
-                                 cl::CommandQueue &queue,
-                                 cl::NDRange nd_local_work_size);
+                                 cl::Buffer &deviceBuffer);
 
 #endif // IMAGEFILTERS_H
