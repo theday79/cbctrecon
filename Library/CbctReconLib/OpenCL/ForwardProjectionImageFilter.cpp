@@ -56,7 +56,9 @@ private:
                "bin/forward_proj.cl ";
 #endif
     err = program.build(defines.c_str());
+#ifdef DEBUG_OPENCL
     std::cerr << "DEBUG: OpenCL defines: " << defines << "\n";
+#endif
     checkError(err, "Build program");
 
     return program;
@@ -95,7 +97,9 @@ private:
     }
     auto device_name = device.getInfo<CL_DEVICE_NAME>(err);
     checkError(*err, "Get device name");
+#ifdef DEBUG_OPENCL
     std::cerr << "Using " << device_name << " for fwd proj.\n";
+#endif
 
     auto default_ctx = cl::Context(device);
 #if CL_HPP_MINIMUM_OPENCL_VERSION >= 200
@@ -130,7 +134,9 @@ public:
 
     auto &out_kernel = m_kernel_list.at(kernel);
     const auto kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+#ifdef DEBUG_OPENCL
     std::cerr << kernel_name << "\n";
+#endif
     return out_kernel;
   }
 };
@@ -242,12 +248,6 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
 
   const auto tot_vol_size =
       fwd_opts.volSize.at(0) * fwd_opts.volSize.at(1) * fwd_opts.volSize.at(2);
-  if (!h_vol) {
-    std::cerr << "h_vol ptr is invalid\n";
-  }
-  if (!(h_vol + tot_vol_size - 1)) {
-    std::cerr << "last index of h_vol is invalid\n";
-  }
 
   /*
    * __kernel void kernel_forwardProject(
@@ -290,12 +290,6 @@ void OpenCL_forward_project(float *h_proj_in, float *h_proj_out, float *h_vol,
   checkError(err, "Alloc proj_out on device");
 
   // Input projection (add to this)
-  if (!h_proj_in) {
-    std::cerr << "h_proj ptr is invalid\n";
-  }
-  if (!(h_proj_in + tot_proj_size - 1)) {
-    std::cerr << "last index of h_proj is invalid\n";
-  }
   const auto dev_proj_in =
       cl::Buffer(queue, h_proj_in, h_proj_in + tot_proj_size, true, true, &err);
   checkError(err, "Alloc proj_in on device");

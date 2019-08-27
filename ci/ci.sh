@@ -8,7 +8,7 @@ mkdir -p build && cd build
 
 echo Test building: $BUILD_TESTING
 
-export COMMON_FLAGS=".. -GNinja -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON"
+export COMMON_FLAGS=".. -GNinja -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON -DRTK_USE_OPENCL=ON"
 # Eigen should be included in ITK if necessary:
 export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DUSE_SYSTEM_DCMTK=ON -DHUNTER_ENABLED=OFF -DUSE_SYSTEM_Plastimatch=OFF"
 

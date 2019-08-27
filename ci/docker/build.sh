@@ -3,6 +3,14 @@
 REPO="andreasga"
 NAME="cbctrecon"
 
+CC="conan-python"
+docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
+docker push ${REPO}/${NAME}:${CC}
+
+CC="intel-opencl-runtime-cpu"
+docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
+docker push ${REPO}/${NAME}:${CC}
+
 CC="gcc-7-x86_64"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}

@@ -14,19 +14,19 @@ Ubuntu-gcc7:
     script:
       - ./ci/ci.sh
 
-Ubuntu-gcc7-CUDA:
-    stage: test
-    tags:
-      - linux
-      - docker
-      - cuda
-      - gpu
-    image: andreasga/cbctrecon:gcc-7-CUDA-x86_64
-    variables:
-      CUDA_AVAILABLE: "YES"
-      COVERAGE: "YES"
-    script:
-      - ./ci/ci.sh
+#Ubuntu-gcc7-CUDA:
+#    stage: test
+#    tags:
+#      - linux
+#      - docker
+#      - cuda
+#      - gpu
+#    image: andreasga/cbctrecon:gcc-7-CUDA-x86_64
+#    variables:
+#      CUDA_AVAILABLE: "YES"
+#      COVERAGE: "YES"
+#    script:
+#      - ./ci/ci.sh
 
 Ubuntu-gcc7-prebuild-DCM-I-RTK:
     stage: test
@@ -43,16 +43,18 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
 #    tags:
 #      - linux
 #      - docker
+#      - gpu
 #    image: andreasga/cbctrecon:clang-6-x86_64
 #    script:
 #      - ./ci/ci.sh
 
-#Ubuntu-clang6-prebuild-DCM-I-RTK:
-#    stage: test
-#    tags:
-#      - linux
-#      - docker
-#    image: andreasga/cbctrecon:clang-6-x86_64-libDCMTK-ITKv5-RTK
-#    script:
-#      - ./ci/ci.sh
+Ubuntu-clang6-prebuild-DCM-I-RTK:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - gpu
+    image: andreasga/cbctrecon:clang-6-x86_64-libDCMTK-ITKv5-RTK
+    script:
+      - ./ci/ci.sh
 
