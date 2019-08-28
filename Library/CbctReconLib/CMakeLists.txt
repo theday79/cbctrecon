@@ -16,10 +16,12 @@ function(enable_cxx_compiler_flag_if_supported flag)
     endif()
 endfunction()
 
-enable_cxx_compiler_flag_if_supported("-Wall")
-enable_cxx_compiler_flag_if_supported("-Wextra")
-enable_cxx_compiler_flag_if_supported("-pedantic")
-enable_cxx_compiler_flag_if_supported("-Wno-extra-semi")
+if(ENABLE_PEDANTIC)
+  enable_cxx_compiler_flag_if_supported("-Wall")
+  enable_cxx_compiler_flag_if_supported("-Wextra")
+  enable_cxx_compiler_flag_if_supported("-pedantic")
+  enable_cxx_compiler_flag_if_supported("-Wno-extra-semi")
+endif()
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
