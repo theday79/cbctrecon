@@ -58,7 +58,9 @@ private:
                "bin/fdk_opencl.cl ";
 #endif
     err = program.build(defines.c_str());
+#ifdef DEBUG_OPENCL
     std::cerr << "DEBUG: OpenCL defines: " << defines << "\n";
+#endif
     checkError(err, "Build program");
 
     return program;
@@ -103,7 +105,9 @@ private:
     }
     auto device_name = device.getInfo<CL_DEVICE_NAME>(err);
     checkError(*err, "Get device name");
+#ifdef DEBUG_OPENCL
     std::cerr << "Using " << device_name << "\n";
+#endif
 
     auto default_ctx = cl::Context(device);
 #if CL_HPP_MINIMUM_OPENCL_VERSION >= 200
@@ -138,7 +142,9 @@ public:
 
     auto &out_kernel = m_kernel_list.at(kernel);
     const auto kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+#ifdef DEBUG_OPENCL
     std::cerr << kernel_name << "\n";
+#endif
     return out_kernel;
   }
 };
@@ -193,30 +199,18 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   const auto weights_d =
       cl::Buffer(ctx, mirrorWeights.begin(), mirrorWeights.end(),
                  /*read only*/ true, /*use host ptr*/ false, &err);
-  if (err != CL_SUCCESS) {
-    std::cout << "PAD::Could not create weigths device buffer, error code: "
-              << err << std::endl;
-  }
+  checkError(err, "Pad, allocate weights on device");
 
   const auto devicePaddedVolume =
       cl::Buffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, pv_buffer_size,
                  (void *)&hostPaddedVolume[0], &err);
-
-  if (err != CL_SUCCESS) {
-    std::cout
-        << "PAD::Could not write OpenCL devicePaddedVolume buffer, error code: "
-        << err << std::endl;
-  }
+  checkError(err, "Pad, Allocate device padded volume");
 
   const auto v_buffer_size = sizeof(hostVolume);
   const auto deviceVolume =
       cl::Buffer(ctx, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, v_buffer_size,
                  (void *)&hostVolume[0], &err);
-
-  if (err != CL_SUCCESS) {
-    std::cout << "PAD::Could not write OpenCL deviceVolume buffer, error code: "
-              << err << std::endl;
-  }
+  checkError(err, "Pad, allocate volume device buffer");
 
   auto padding_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_int4, cl_uint4, cl_uint4,
@@ -241,11 +235,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   /* Fetch results of calculations. */
   err = cl::copy(queue, devicePaddedVolume, hostPaddedVolume,
                  hostPaddedVolume + pv_size);
-  if (err != CL_SUCCESS) {
-    std::cerr << "PAD::Something went wrong, error code: " << err << "\n";
-  }
-
-  // std::cout << "Did it work? we just don't know..." << std::endl;
+  checkError(err, "Padding copy back from device");
 }
 
 void OpenCL_subtract2Dfrom3DbySlice_InPlace(
@@ -299,10 +289,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   /* Fetch results of calculations. */
   err = cl::copy(queue, deviceBuffer, buffer, buffer + memorySizeInput);
 
-  if (err != CL_SUCCESS) {
-    std::cout << "SUB::Could not read OpenCL buffer, error code: " << err
-              << std::endl;
-  }
+  checkError(err, "Sub, copy back from device");
 }
 
 itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
@@ -376,10 +363,7 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
   err = cl::copy(queue, deviceOutBuffer, out_buffer,
                  out_buffer + memorySizeInput);
 
-  if (err != CL_SUCCESS) {
-    std::cout << "SUB3D::Could not read OpenCL buffer, error code: " << err
-              << std::endl;
-  }
+  checkError(err, "Sub3D, could not copy out_buffer back from device");
 
   return outImage;
 }
@@ -421,10 +405,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   /* Fetch results of calculations. */
   err = cl::copy(queue, deviceBuffer, buffer, buffer + memorySizeInput);
 
-  if (err != CL_SUCCESS) {
-    std::cout << "ADD::Could not read OpenCL buffer, error code: " << err
-              << std::endl;
-  }
+  checkError(err, "Add, copy data back from device");
 }
 
 void OpenCL_AddConst_MulConst_InPlace(
@@ -465,10 +446,7 @@ void OpenCL_AddConst_MulConst_InPlace(
   /* Fetch results of calculations. */
   err = cl::copy(queue, deviceBuffer, buffer, buffer + memorySizeInput);
 
-  if (err != CL_SUCCESS) {
-    std::cout << "ADDMUL::Could not read OpenCL buffer, error code: " << err
-              << std::endl;
-  }
+  checkError(err, "addMul, copy data back from device");
 }
 
 void OpenCL_AddConst_InPlace_2D(
@@ -508,10 +486,7 @@ void OpenCL_AddConst_InPlace_2D(
   /* Fetch results of calculations. */
   err = cl::copy(queue, deviceBuffer, buffer, buffer + memorySizeInput);
 
-  if (err != CL_SUCCESS) {
-    std::cout << "ADD::Could not read OpenCL buffer, error code: " << err
-              << std::endl;
-  }
+  checkError(err, "add2d could not copy back from device");
 }
 
 cl_float2 OpenCL_min_max_3D(cl_float *buffer,
@@ -531,12 +506,108 @@ cl_float2 OpenCL_min_max_2D(cl_float *buffer,
   return OpenCL_min_max_1D(buffer, memorySizeInput);
 }
 
-cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
-  const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
-
+cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
+                                         cl::Buffer &deviceBuffer) {
   auto err = CL_SUCCESS;
-  auto defines = std::string("");
-  kernel_man.initialize(defines, memoryByteSizeInput);
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
+
+  const auto recurse_local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
+
+  if (inputSize < 257) {
+    // read device buffer
+    auto *buffer = (cl_float2 *)queue.enqueueMapBuffer(
+        deviceBuffer, CL_TRUE, CL_MAP_READ, 0, inputSize * sizeof(cl_float2));
+    err = queue.finish();
+    checkError(err, "Finish min_max_recurese queue");
+
+    cl_float2 out;
+    out.x = std::numeric_limits<float>::max();
+    out.y = std::numeric_limits<float>::min();
+    for (cl_uint i = 0; i < inputSize; i++) {
+      if (out.x > buffer[i].x) {
+        out.x = buffer[i].x;
+      }
+      if (out.y < buffer[i].y) {
+        out.y = buffer[i].y;
+      }
+    }
+
+    err = queue.enqueueUnmapMemObject(deviceBuffer, buffer);
+    checkError(err, "OpenCL_min_max_recurse_unified unmap");
+
+    return out;
+  }
+
+  // Create program
+  auto min_max_kernel =
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint, cl_uint>(
+          kernel_man.getKernel(en_min_max_kernel2));
+
+  /* Prepare OpenCL memory objects and place data inside them. */
+
+  cl_uint divider = 128;
+  while (true) {
+    if (inputSize % divider == 0) {
+      break;
+    }
+    divider /= 2;
+    if (divider == 2) {
+      break;
+    }
+  }
+
+  const auto outputDim = inputSize / divider;
+  auto local_work_size = recurse_local_work_size.get()[0];
+
+  while (local_work_size > 32) {
+    const auto n_work_groups =
+        (outputDim + outputDim % local_work_size) / local_work_size;
+    if (n_work_groups % 2 !=
+            0 // global must be evenly divisable with local work group
+        || n_work_groups * local_work_size < local_work_size) {
+      local_work_size /= 2;
+    } else {
+      break;
+    }
+  }
+  const auto global_work_size = (outputDim + outputDim % local_work_size) /
+                                local_work_size *
+                                local_work_size; // seems redundant, but isn't
+
+  const auto memoryByteSizeSub = global_work_size * sizeof(cl_float2);
+  // to avoid access violation in kernel
+
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+
+  cl::Buffer deviceSubBuffer(ctx, CL_MEM_ALLOC_HOST_PTR, memoryByteSizeSub,
+                             nullptr, &err);
+  checkError(err, "Allocate device sub buffer in unified memory");
+
+  min_max_kernel(cl::EnqueueArgs(queue, cl::NDRange(global_work_size),
+                                 cl::NDRange(local_work_size)),
+                 deviceBuffer, deviceSubBuffer, divider, inputSize, err);
+  checkError(err, "min_max_kernel call recurse unified");
+
+  err = queue.finish();
+  checkError(err, "Finish min_max_recurse queue");
+
+  const auto result =
+      OpenCL_min_max_recurse_unified(outputDim, deviceSubBuffer);
+
+  err = queue.finish();
+  checkError(err, "Finish unmap min_max_recurse queue");
+
+  return result;
+}
+
+cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
+                                 const size_t memorySizeSub,
+                                 const cl::NDRange local_work_size,
+                                 const size_t divider) {
+  auto err = CL_SUCCESS;
   auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
@@ -550,21 +621,46 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   auto min_max_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint>(
       kernel_man.getKernel(en_min_max_kernel));
 
-  const auto local_work_size =
-      get_local_work_size_small(cl::Device::getDefault());
+  const auto memoryByteSizeSub = memorySizeSub * sizeof(cl_float2);
 
-  size_t divider = 128;
-  while (true) {
-    if (memorySizeInput % divider == 0) {
-      break;
-    }
-    divider /= 2;
-    if (divider == 2) {
-      break;
-    }
-  }
+  cl::Buffer deviceSubBuffer(ctx, CL_MEM_ALLOC_HOST_PTR, memoryByteSizeSub);
 
-  const auto memorySizeSub = memorySizeInput / divider;
+  const cl::NDRange global_work_size(memorySizeSub);
+
+  min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
+                 deviceBuffer, deviceSubBuffer, divider);
+
+  err = queue.finish();
+  checkError(err, "Finish add_const queue");
+
+  const auto result =
+      OpenCL_min_max_recurse_unified(memorySizeSub, deviceSubBuffer);
+
+  err = queue.finish();
+  checkError(err, "add_const finish");
+
+  return result;
+}
+
+cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
+                                const size_t memorySizeSub,
+                                const cl::NDRange local_work_size,
+                                const size_t divider) {
+
+  auto err = CL_SUCCESS;
+  auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
+
+  /* Prepare OpenCL memory objects and place data inside them. */
+  const auto deviceBuffer =
+      cl::Buffer(ctx, buffer, buffer + memorySizeInput, true, true, nullptr);
+
+  // Create program
+  auto min_max_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint>(
+      kernel_man.getKernel(en_min_max_kernel));
+
   const auto memoryByteSizeSub = memorySizeSub * sizeof(cl_float2);
 
   cl::Buffer deviceSubBuffer(ctx, CL_MEM_READ_WRITE, memoryByteSizeSub);
@@ -666,11 +762,13 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   auto *sub_buffer = (cl_float2 *)queue.enqueueMapBuffer(
       devicePinnedSubBuffer, CL_TRUE, CL_MAP_READ, 0, memoryByteSizeSub);
 
+  auto err = CL_SUCCESS;
   min_max_kernel(cl::EnqueueArgs(queue, cl::NDRange(global_work_size),
                                  cl::NDRange(local_work_size)),
-                 deviceBuffer, deviceSubBuffer, divider, inputSize);
+                 deviceBuffer, deviceSubBuffer, divider, inputSize, err);
+  checkError(err, "min_max_kernel call recurse pinned");
 
-  auto err = queue.finish();
+  err = queue.finish();
   checkError(err, "Finish min_max_recurse queue");
 
   /* Fetch results of calculations. */
@@ -689,4 +787,40 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   checkError(err, "Finish unmap min_max_recurse queue");
 
   return result;
+}
+
+cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
+
+  const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memoryByteSizeInput);
+
+  const auto local_work_size =
+      get_local_work_size_small(cl::Device::getDefault());
+
+  size_t divider = 128;
+  while (true) {
+    if (memorySizeInput % divider == 0) {
+      break;
+    }
+    divider /= 2;
+    if (divider == 2) {
+      break;
+    }
+  }
+
+  const auto memorySizeSub = memorySizeInput / divider;
+
+#if CL_HPP_TARGET_OPENCL_VERSION < 200
+  auto dev = cl::Device::getDefault();
+  auto unified_memory = dev.getInfo<CL_DEVICE_HOST_UNIFIED_MEMORY>();
+  if (unified_memory) {
+    return OpenCL_min_max_unified(buffer, memorySizeInput, memorySizeSub,
+                                  local_work_size, divider);
+  } else
+#endif
+  {
+    return OpenCL_min_max_pinned(buffer, memorySizeInput, memorySizeSub,
+                                 local_work_size, divider);
+  }
 }

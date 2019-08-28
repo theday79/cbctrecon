@@ -292,39 +292,6 @@ int main(const int argc, char **argv) {
                      .count()
               << " ms\n";
 
-    const auto start_itk_iter_time = std::chrono::steady_clock::now();
-    auto iter = itk::ImageRegionIterator<ImageType>(
-        image_in, image_in->GetLargestPossibleRegion());
-    auto it_min = std::numeric_limits<float>::max();
-    auto it_max = std::numeric_limits<float>::min();
-    while (!iter.IsAtEnd()) {
-      if (iter.Get() < it_min) {
-        it_min = iter.Get();
-      }
-      if (iter.Get() > it_max) {
-        it_max = iter.Get();
-      }
-      ++iter;
-    }
-    const auto end_itk_iter_time = std::chrono::steady_clock::now();
-
-    std::cerr << "IterCPU:  "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     end_itk_iter_time - start_itk_iter_time)
-                     .count()
-              << " ms\n";
-
-    if (fabs(min_itk - it_min) > 0.01f) {
-      std::cerr << "Mininums were different: itk: " << min_itk
-                << " iter: " << it_min << "\n";
-      return -2;
-    }
-    if (fabs((max_itk / it_max) - 1.f) > 0.01f) {
-      std::cerr << "Maximums were different: itk: " << max_itk
-                << " iter: " << it_max << "\n";
-      return -3;
-    }
-
     if (fabs(min_itk - minmax_ocl.x) > 0.01f) {
       std::cerr << "Mininums were different: itk: " << min_itk
                 << " ocl: " << minmax_ocl.x << "\n";

@@ -103,5 +103,8 @@ int main(int argc, char **argv) {
     std::cerr << "\n";
   }
 
+  std::cerr << "FLOPS is calculated for single-precision float\n - if you know "
+               "the number is wrong, let me know so I can adjust the "
+               "calculation for your hardware\n";
   return 0;
 }
