@@ -46,6 +46,8 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
 #      - gpu
 #    image: andreasga/cbctrecon:clang-6-x86_64
 #    script:
+#      - export CC=clang
+#      - export CXX=clang++
 #      - ./ci/ci.sh
 
 Ubuntu-clang6-prebuild-DCM-I-RTK:
@@ -56,5 +58,7 @@ Ubuntu-clang6-prebuild-DCM-I-RTK:
       - gpu
     image: andreasga/cbctrecon:clang-6-x86_64-libDCMTK-ITKv5-RTK
     script:
+      - export CC=clang
+      - export CXX=clang++
       - ./ci/ci.sh
 
