@@ -51,6 +51,21 @@ public:
   }
 
   template <ctType CT_TYPE> bool ApplyTransformTo(const QFile &transform_file) {
+    switch (CT_TYPE) {
+    case PLAN_CT:
+      if (m_plan_ss == nullptr) {
+        return false;
+      }
+    case RIGID_CT:
+      if (m_rigid_ss == nullptr) {
+        return false;
+      }
+    case DEFORM_CT:
+      if (m_deform_ss == nullptr) {
+        return false;
+      }
+    }
+
     auto xform = Xform::New();
     xform->load(transform_file.fileName().toStdString());
 

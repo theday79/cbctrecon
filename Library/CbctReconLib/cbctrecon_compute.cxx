@@ -176,11 +176,11 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
   // spTargetImg2D->GetRequestedRegion().GetSize() << " " << std::endl;
 
   itk::ImageSliceConstIteratorWithIndex<FloatImageType> it_3D(
-      spSrcImg3D, spSrcImg3D->GetRequestedRegion());
+      spSrcImg3D, spSrcImg3D->GetBufferedRegion());
   // itk::ImageRegionIteratorWithIndex<FloatImageType2D> it_2D (spTargetImg2D,
   // spTargetImg2D->GetRequestedRegion());
   itk::ImageRegionIterator<FloatImage2DType> it_2D(
-      spTargetImg2D, spTargetImg2D->GetRequestedRegion());
+      spTargetImg2D, spTargetImg2D->GetBufferedRegion());
 
   it_3D.SetFirstDirection(idx_hor);
   it_3D.SetSecondDirection(idxVer);
@@ -365,7 +365,7 @@ QString XML_GetSingleItemString(QXmlStreamReader &xml) {
 void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 
   using iteratorType = itk::ImageRegionIteratorWithIndex<UShortImageType>;
-  iteratorType it(spImg, spImg->GetRequestedRegion());
+  iteratorType it(spImg, spImg->GetBufferedRegion());
 
   it.GoToBegin();
 

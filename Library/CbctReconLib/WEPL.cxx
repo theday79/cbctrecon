@@ -4,6 +4,7 @@
 
 #include <algorithm> // for find_if, min_element, transform
 #include <array>
+#include <chrono>   // for chrono
 #include <cmath>    // for sqrt, pow, sin, cos
 #include <iostream> // for operator<<, endl, basic_ostream, cerr, ostream
 #include <numeric>  // for accumulate, adjacent_difference
@@ -525,10 +526,13 @@ Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
     WEPL_contour->ct_slice_uid = contour.ct_slice_uid;
     WEPL_contour->slice_no = contour.slice_no;
     WEPL_contour->num_vertices = contour.num_vertices;
+
+    const auto start_time_wepl = std::chrono::steady_clock::now();
     // Actually calculate WEPL on spMoving
     auto WEPL_points =
         WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
 
+    const auto start_time_rev_wepl = std::chrono::steady_clock::now();
     // Inversely calc WEPL on spFixed
     // And put WEPL point in contour
     std::transform(std::begin(WEPL_points), std::end(WEPL_points),
@@ -537,6 +541,16 @@ Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
                      return NewPoint_from_WEPLVector(val, vec_basis,
                                                      wepl_cube_fixed);
                    });
+    const auto end_time_rev_wepl = std::chrono::steady_clock::now();
+    std::cerr << "The " << i << ". contour took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     start_time_rev_wepl - start_time_wepl)
+                     .count()
+              << " ms to calculate wepl, and "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_time_rev_wepl - start_time_rev_wepl)
+                     .count()
+              << " ms to calculate new points\n";
     WEPL_voi->pslist.at(i++) = *WEPL_contour.release();
   }
   return WEPL_voi.release();

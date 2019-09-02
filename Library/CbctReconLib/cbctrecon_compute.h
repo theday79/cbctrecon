@@ -215,9 +215,9 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
   }
 
   itk::ImageRegionConstIterator<FloatImage2DType> it_2D(
-      spSrcImg2D, spSrcImg2D->GetRequestedRegion());
+      spSrcImg2D, spSrcImg2D->GetBufferedRegion());
   itk::ImageSliceIteratorWithIndex<OutputImageType> it_3D(
-      spTargetImg3D, spTargetImg3D->GetRequestedRegion());
+      spTargetImg3D, spTargetImg3D->GetBufferedRegion());
 
   it_3D.SetFirstDirection(idxHor);
   it_3D.SetSecondDirection(idxVer);

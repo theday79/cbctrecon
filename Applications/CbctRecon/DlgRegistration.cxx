@@ -259,7 +259,7 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
     break;
   }
 
-  auto imgSize = m_spFixed->GetRequestedRegion().GetSize(); // 1016x1016 x z
+  auto imgSize = m_spFixed->GetBufferedRegion().GetSize(); // 1016x1016 x z
   auto imgOrigin = m_spFixed->GetOrigin();
   auto imgSpacing = m_spFixed->GetSpacing();
 
@@ -1337,9 +1337,12 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   std::cout << "6: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
-      xform_file);
-  std::cout << "7: Contours registered" << std::endl;
+  const auto transform_success =
+      m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
+          xform_file);
+  if (transform_success) {
+    std::cout << "7: Contours registered" << std::endl;
+  }
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);

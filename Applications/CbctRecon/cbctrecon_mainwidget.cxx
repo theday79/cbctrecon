@@ -72,16 +72,19 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
 
   // connect(this->ui.MyLabel, SIGNAL(Mouse_Pos()), this, SLOT(MouseCurrPos()));
 
-#if USE_CUDA
+#ifdef USE_CUDA
   this->ui.radioButton_UseCUDA->setDisabled(false);
   this->ui.radioButton_UseCUDA->setChecked(true);
 #endif
 
-#if USE_OPENCL_PLM
+#ifdef RTK_USE_OPENCL
   this->ui.radioButton_UseOpenCL->setDisabled(false);
+  this->ui.radioButton_UseOpenCL->setChecked(true);
 #endif
 
-#ifndef LOWPASS_FFT
+#ifdef LOWPASS_FFT
+  this->ui.lineEdit_scaGaussian->setText("0.05");
+#else
   this->ui.lineEdit_scaGaussian->setText("1.5");
 #endif
 
@@ -933,7 +936,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     SLT_DoReconstruction();
   }
 
-  if (std::get<1>(answers)) { // CT DCM dir was found
+  if (std::get<0>(answers) && std::get<1>(answers)) { // CT DCM dir was found
     SLT_ViewRegistration();
   }
 }
@@ -1554,7 +1557,7 @@ void CbctReconWidget::SLT_PostProcCropInv() {
   // itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spReconImg,
   // m_spReconImg->GetRequestedRegion());
   itk::ImageSliceIteratorWithIndex<UShortImageType> it(
-      p_curimg, p_curimg->GetRequestedRegion());
+      p_curimg, p_curimg->GetBufferedRegion());
 
   // ImageSliceConstIteratorWithIndex<ImageType> it( image,
   // image->GetRequestedRegion() );
@@ -1860,7 +1863,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   this->ui.pushButton_DoRecon->setEnabled(true);
   this->ui.spinBoxImgIdx->setMinimum(0);
   const auto iSizeZ =
-      this->m_cbctrecon->m_spProjImg3DFloat->GetRequestedRegion().GetSize()[2];
+      this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[2];
   this->ui.spinBoxImgIdx->setMaximum(iSizeZ - 1);
   this->ui.spinBoxImgIdx->setValue(0);
   this->m_cbctrecon
@@ -1931,7 +1934,7 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
 
   this->ui.lineEdit_Cur3DFileName->setText(fileName);
 
-  auto size = p_curimg->GetRequestedRegion().GetSize();
+  auto size = p_curimg->GetBufferedRegion().GetSize();
 
   this->m_cbctrecon->m_dspYKReconImage->CreateImage(size[0], size[1], 0);
 
@@ -4005,7 +4008,7 @@ void CbctReconWidget::SLT_ReloadProjections() {
 
   std::cout
       << "Raw3DProj dimension "
-      << this->m_cbctrecon->m_spProjImgRaw3D->GetRequestedRegion().GetSize()
+      << this->m_cbctrecon->m_spProjImgRaw3D->GetBufferedRegion().GetSize()
       << std::endl;
 
   // m_spProjImgRaw3D is Ushort

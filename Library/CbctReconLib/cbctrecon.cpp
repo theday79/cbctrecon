@@ -174,10 +174,10 @@ bool CbctRecon::FillProjForDisplay(const int slice_number) {
   }
 
   itk::ImageSliceConstIteratorWithIndex<FloatImageType> it(
-      m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
+      m_spProjImg3DFloat, m_spProjImg3DFloat->GetBufferedRegion());
 
   auto imgSize =
-      m_spProjImg3DFloat->GetRequestedRegion().GetSize(); // 1016x1016 x z
+      m_spProjImg3DFloat->GetBufferedRegion().GetSize(); // 1016x1016 x z
 
   const auto width = imgSize[0];
   const auto height = imgSize[1];
@@ -1121,7 +1121,7 @@ void CbctRecon::SetMaxAndMinValueOfProjectionImage() // should be called
   }
 
   itk::ImageSliceConstIteratorWithIndex<FloatImageType> it(
-      m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
+      m_spProjImg3DFloat, m_spProjImg3DFloat->GetBufferedRegion());
 
   it.SetFirstDirection(0);  // x?
   it.SetSecondDirection(1); // y?
@@ -1583,7 +1583,7 @@ void CbctRecon::BowtieByFit(const bool fullfan,
   }
 
   using iteratorType = itk::ImageRegionIteratorWithIndex<FloatImageType>;
-  iteratorType it(m_spProjImg3DFloat, m_spProjImg3DFloat->GetRequestedRegion());
+  iteratorType it(m_spProjImg3DFloat, m_spProjImg3DFloat->GetBufferedRegion());
 
   it.GoToBegin();
   if (fullfan) {
@@ -1634,9 +1634,9 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   }
 
   itk::ImageSliceConstIteratorWithIndex<UShortImageType> it(
-      spFixedImg, spFixedImg->GetRequestedRegion());
+      spFixedImg, spFixedImg->GetBufferedRegion());
 
-  auto imgSize = spFixedImg->GetRequestedRegion().GetSize(); // 1016x1016 x z
+  auto imgSize = spFixedImg->GetBufferedRegion().GetSize(); // 1016x1016 x z
   // UShortImageType::SizeType imgSizeBuf =
   // spFixedImg->GetBufferedRegion().GetSize(); //1016x1016 x z
   // UShortImageType::SizeType imgSizeLargest =
@@ -1804,9 +1804,9 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   }
 
   itk::ImageSliceConstIteratorWithIndex<UShortImageType> it(
-      spFixedImg, spFixedImg->GetRequestedRegion());
+      spFixedImg, spFixedImg->GetBufferedRegion());
 
-  auto imgSize = spFixedImg->GetRequestedRegion().GetSize(); // 1016x1016 x z
+  auto imgSize = spFixedImg->GetBufferedRegion().GetSize(); // 1016x1016 x z
   // UShortImageType::SizeType imgSizeBuf =
   // spFixedImg->GetBufferedRegion().GetSize(); //1016x1016 x z
   // UShortImageType::SizeType imgSizeLargest =
@@ -1969,9 +1969,9 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
   }
 
   itk::ImageSliceConstIteratorWithIndex<UShortImageType> it(
-      pImg, pImg->GetRequestedRegion());
+      pImg, pImg->GetBufferedRegion());
 
-  auto imgSize = pImg->GetRequestedRegion().GetSize(); // 1016x1016 x z
+  auto imgSize = pImg->GetBufferedRegion().GetSize(); // 1016x1016 x z
   // UShortImageType::SizeType imgSizeBuf = pImg->GetBufferedRegion().GetSize();
   // //1016x1016 x z UShortImageType::SizeType imgSizeLargest =
   // pImg->GetLargestPossibleRegion().GetSize(); //1016x1016 x z
@@ -2491,7 +2491,7 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
   }
 
   itk::ImageSliceConstIteratorWithIndex<FloatImageType> it_FwdProj(
-      targetImg3D, targetImg3D->GetRequestedRegion());
+      targetImg3D, targetImg3D->GetBufferedRegion());
 
   it_FwdProj.SetFirstDirection(0);
   it_FwdProj.SetSecondDirection(1);
@@ -2672,8 +2672,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
   }
 
   using SizeType = FloatImageType::SizeType;
-  auto size1 = spProjRaw3D->GetRequestedRegion().GetSize();
-  auto size2 = spProjCT3D->GetRequestedRegion().GetSize();
+  auto size1 = spProjRaw3D->GetBufferedRegion().GetSize();
+  auto size2 = spProjCT3D->GetBufferedRegion().GetSize();
 
   std::cout << "Raw3DProj Size= " << size1 << std::endl;
   std::cout << "spProjCT Size= " << size2 << std::endl;
@@ -2706,7 +2706,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
   AllocateByRef<FloatImageType, FloatImageType>(spTmpProjRaw3D, spProjScat3D);
 
-  auto imgSize = spTmpProjRaw3D->GetRequestedRegion().GetSize();
+  auto imgSize = spTmpProjRaw3D->GetBufferedRegion().GetSize();
 
   // dimension of the spProjRaw3D
   const int iSizeZ = imgSize[2];
@@ -2871,8 +2871,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     return;
   }
 
-  auto size1 = spProjRaw3D->GetRequestedRegion().GetSize();
-  auto size2 = spProjScat3D->GetRequestedRegion().GetSize();
+  auto size1 = spProjRaw3D->GetBufferedRegion().GetSize();
+  auto size2 = spProjScat3D->GetBufferedRegion().GetSize();
 
   std::cout << "Raw3DProj Size= " << size1 << std::endl;
   std::cout << "spProjScat3D Size= " << size2 << std::endl;
@@ -2903,7 +2903,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
   AllocateByRef<FloatImageType, FloatImageType>(spProjRaw3D, m_spProjCorr3D);
 
-  auto imgSize = spProjRaw3D->GetRequestedRegion().GetSize();
+  auto imgSize = spProjRaw3D->GetBufferedRegion().GetSize();
 
   const int iSizeZ = imgSize[2];
 
@@ -3336,7 +3336,7 @@ int CbctRecon::CropSkinUsingThreshold(const int threshold,
   threshFilter->Update();
   const UShortImageType::Pointer spCrntImgMask = threshFilter->GetOutput();
   using iteratorType = itk::ImageRegionIteratorWithIndex<UShortImageType>;
-  iteratorType it(spCrntImgMask, spCrntImgMask->GetRequestedRegion());
+  iteratorType it(spCrntImgMask, spCrntImgMask->GetBufferedRegion());
   auto imgDims = spCrntImgMask->GetBufferedRegion().GetSize();
 
   it.GoToBegin();
@@ -4040,7 +4040,7 @@ void CbctRecon::GenerateCylinderMask(UShortImageType::Pointer &spImgCanvas,
   // itk::ImageSliceConstIteratorWithIndex<FloatImageType> it (m_spReconImg,
   // m_spReconImg->GetRequestedRegion());
   itk::ImageSliceIteratorWithIndex<UShortImageType> it(
-      spImgCanvas, spImgCanvas->GetRequestedRegion());
+      spImgCanvas, spImgCanvas->GetBufferedRegion());
 
   // ImageSliceConstIteratorWithIndex<ImageType> it( image,
   // image->GetRequestedRegion() );  UShortImageType::SizeType imgSize =
@@ -4103,7 +4103,7 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer &spImg,
   // UShortImageType::SizeType size = spImg->GetBufferedRegion().GetSize();
 
   itk::ImageSliceIteratorWithIndex<UShortImageType> it(
-      spImg, spImg->GetRequestedRegion());
+      spImg, spImg->GetBufferedRegion());
   // UShortImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize();
   // //1016x1016 x z
 

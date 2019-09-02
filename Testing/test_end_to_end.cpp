@@ -198,11 +198,12 @@ int end_to_end_test(const QString &dcm_dir_str, const QString &cbct_dir_str) {
     return ret_code;
   }
 
-  /* WEPL structure test: */
+  /* WEPL structure test: disabled, because it's time consuming
+   * and I don't want to optimize until I know if we'll actually use this tool
   ret_code = calculate_wepl(cbctrecon_test.get());
   if (ret_code < 0) {
     return ret_code;
-  }
+  }*/
 
   /* Some verification of the WEPL results should go here */
 

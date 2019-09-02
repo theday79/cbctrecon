@@ -408,7 +408,7 @@ void AG17RGBAImage::CopyYKImage2ItkImage(
   }
   // Raw File open
   // UShortImage2DType::SizeType tmpSize =
-  auto region = spTarImage->GetRequestedRegion();
+  auto region = spTarImage->GetBufferedRegion();
   auto tmpSize = region.GetSize();
 
   const int sizeX = tmpSize[0];
@@ -438,7 +438,7 @@ void AG17RGBAImage::CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
   }
   // Raw File open
   // UShortImage2DType::SizeType tmpSize =
-  auto region = spSrcImage->GetRequestedRegion();
+  auto region = spSrcImage->GetBufferedRegion();
   auto tmpSize = region.GetSize();
 
   const int sizeX = tmpSize[0];
@@ -1040,7 +1040,7 @@ UShortImage2DType::Pointer AG17RGBAImage::CloneItkImage() const {
   spTmpItkImg->Allocate();
 
   itk::ImageRegionIterator<UShortImage2DType> it(
-      spTmpItkImg, spTmpItkImg->GetRequestedRegion());
+      spTmpItkImg, spTmpItkImg->GetBufferedRegion());
 
   auto i = 0;
   for (it.GoToBegin(); !it.IsAtEnd(); ++it) {
@@ -1129,7 +1129,7 @@ void AG17RGBAImage::UpdateFromItkImage(
     m_pPixmap = nullptr;
   }
 
-  auto size = spRefItkImg->GetRequestedRegion().GetSize();
+  auto size = spRefItkImg->GetBufferedRegion().GetSize();
   // UShortImage2DType::SpacingType spacing = spRefItkImg->GetSpacing();
 
   m_iWidth = size[0];
@@ -1138,7 +1138,7 @@ void AG17RGBAImage::UpdateFromItkImage(
   m_pData.resize(m_iWidth * m_iHeight);
 
   itk::ImageRegionIterator<UShortImage2DType> it(
-      spRefItkImg, spRefItkImg->GetRequestedRegion());
+      spRefItkImg, spRefItkImg->GetBufferedRegion());
 
   auto i = 0;
   for (it.GoToBegin(); !it.IsAtEnd(); ++it) {
@@ -1162,7 +1162,7 @@ void AG17RGBAImage::UpdateFromItkImageFloat(
     m_pPixmap = nullptr;
   }
 
-  auto size = spRefItkImg->GetRequestedRegion().GetSize();
+  auto size = spRefItkImg->GetBufferedRegion().GetSize();
   // FloatImageType2D::SpacingType spacing = spRefItkImg->GetSpacing();
 
   m_iWidth = size[0];
@@ -1171,7 +1171,7 @@ void AG17RGBAImage::UpdateFromItkImageFloat(
   m_pData.resize(m_iWidth * m_iHeight);
 
   itk::ImageRegionIterator<FloatImage2DType> it(
-      spRefItkImg, spRefItkImg->GetRequestedRegion());
+      spRefItkImg, spRefItkImg->GetBufferedRegion());
 
   auto i = 0;
   for (it.GoToBegin(); !it.IsAtEnd(); ++it) {

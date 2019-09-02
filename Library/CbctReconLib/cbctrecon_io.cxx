@@ -1004,9 +1004,9 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
     }
   }
 
-  Rt_study_metadata::Pointer rsm;
-  rsm->set_patient_id(strPatientID.toLocal8Bit().constData());
-  rsm->set_patient_name(strPatientName.toLocal8Bit().constData());
+  auto rsm = Rt_study_metadata::New();
+  rsm->set_patient_id(strPatientID.toStdString());
+  rsm->set_patient_name(strPatientName.toStdString());
 
   dicom_save_short(newDirPath.toStdString(), plm_img, rsm);
 

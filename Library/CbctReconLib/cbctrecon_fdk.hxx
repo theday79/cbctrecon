@@ -1059,7 +1059,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
   // ValOffset = " << valOffset << std::endl;
 
   itk::ImageRegionConstIterator<FloatImageType> itSrc(
-      resultFwdImg, resultFwdImg->GetRequestedRegion()); // 2D
+      resultFwdImg, resultFwdImg->GetBufferedRegion()); // 2D
 
   // Convert line integral to intensity value (I0/I = exp(mu_t)) --> I =
   // I0/exp(mu_t)
@@ -1070,7 +1070,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
   itSrc.GoToBegin();
 
   itk::ImageSliceIteratorWithIndex<FloatImageType> it_FwdProj3D(
-      spProjImg3D, spProjImg3D->GetRequestedRegion());
+      spProjImg3D, spProjImg3D->GetBufferedRegion());
 
   it_FwdProj3D.SetFirstDirection(0);
   it_FwdProj3D.SetSecondDirection(1);
