@@ -37,8 +37,8 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
 
 std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
   cl_uint numberOfDevices;
-  cl_int error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
-                                &numberOfDevices);
+  const auto error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
+                                    &numberOfDevices);
 
   std::vector<cl_device_id> deviceList(numberOfDevices);
   if (error != -1) { // -1 means we didn't find a GPU
@@ -47,11 +47,12 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
                                       nullptr));
   }
 
-  cl_bool bImageSupport = 0u;
+  cl_bool bImageSupport = false;
   // If found, check if supports image.
   if (numberOfDevices > 0 && error != -1) {
-    error = clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
-                            sizeof(cl_bool), &bImageSupport, nullptr);
+    OPENCL_CHECK_ERROR(clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
+                                       sizeof(cl_bool), &bImageSupport,
+                                       nullptr));
   }
 
   // If not a good device, switch to CPU.

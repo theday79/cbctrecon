@@ -1,5 +1,7 @@
 #include "OpenCL/device_picker.hpp"
 
+#include <iostream>
+
 unsigned OpenCL_getDeviceList(std::vector<cl::Device> &devices) {
   // Get list of platforms
   std::vector<cl::Platform> platforms;

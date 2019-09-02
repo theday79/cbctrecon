@@ -92,7 +92,7 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
 }
 
 bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
-                                               bool reconstruct) {
+                                               const bool reconstruct) {
   // this->ui.pushButton_DoRecon->setDisabled(true);
   // 1) Get all projection file names
   auto dirPath = proj_path; // this->ui.lineEdit_HisDirPath->text();
@@ -480,7 +480,7 @@ void CbctReconTest::test_Export2DDoseMapAsMHA() {}
 void CbctReconTest::test_ViewRegistration() const {}
 void CbctReconTest::test_ViewHistogram() {}
 
-void CbctReconTest::test_DoScatterCorrection_APRIORI() {
+void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
 
   if ((this->m_cbctrecon->m_spRefCTImg == nullptr &&
        m_dlgRegistration->m_spMoving == nullptr) ||

@@ -158,7 +158,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
   auto strListOption2 = strStageOption2.split(",");
   auto strListOption3 = strStageOption3.split(",");
 
-  std::string treading_opt = "openmp";
+  const std::string treading_opt = "openmp";
   if (use_cuda) { // m_pParent->ui.radioButton_UseCUDA->isChecked()) {
     std::cerr
         << "Cuda option has been disabled for PLM, as OpenMP is much faster\n";

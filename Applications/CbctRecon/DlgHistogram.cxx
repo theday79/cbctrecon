@@ -22,7 +22,7 @@ DlgHistogram::DlgHistogram(CbctReconWidget *parent) : QDialog(parent) {
 }
 
 struct HistogramType {
-  HistogramType(const size_t n_bins) {
+  explicit HistogramType(const size_t n_bins) {
     hist_data = std::valarray<float>(n_bins);
     bin_size =
         static_cast<float>(std::numeric_limits<unsigned short>::max()) / n_bins;
@@ -160,8 +160,7 @@ void DlgHistogram::SLT_ReDrawGraph_dial() const {
     return;
   }
 
-  const auto scaling =
-      (ui.dial->value() * 20.0f) / ui.dial->maximum(); // 0 to 20
+  const auto scaling = ui.dial->value() * 20.0f / ui.dial->maximum(); // 0 to 20
 
   const auto &raw_size = raw_img->GetLargestPossibleRegion().GetSize();
   const auto size_raw_data = raw_size[0] * raw_size[1] * raw_size[2];

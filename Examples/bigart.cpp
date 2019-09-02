@@ -22,13 +22,12 @@
 
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
-UShortImageType::Pointer
-get_image_from_dicom(const QString &dir, const UShortImageType::SpacingType &new_spacing,
+UShortImageType::Pointer get_image_from_dicom(
+    const QString &dir, const UShortImageType::SpacingType &new_spacing,
     const UShortImageType::SizeType &new_size,
     const UShortImageType::PointType &new_origin,
     const UShortImageType::DirectionType &new_direction,
- const DoubleVector &translation_vec,
-                     const DoubleVector &rotation_vec) {
+    const DoubleVector &translation_vec, const DoubleVector &rotation_vec) {
   // auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   auto dcm_dir = QDir(dir);
@@ -107,7 +106,7 @@ get_image_from_dicom(const QString &dir, const UShortImageType::SpacingType &new
   spRescaleFilter->SetOutputMinimum(outputMinVal);
   spRescaleFilter->SetOutputMaximum(outputMaxVal);
   spRescaleFilter->Update();
-  auto ct_img = spRescaleFilter->GetOutput();
+  const auto ct_img = spRescaleFilter->GetOutput();
 
   if (!ct_img) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
@@ -145,7 +144,7 @@ get_image_from_dicom(const QString &dir, const UShortImageType::SpacingType &new
   transform->SetTranslation(translation);
 
   resampler->SetInput(ct_img);
-  auto interpolator =
+  const auto interpolator =
       itk::LinearInterpolateImageFunction<UShortImageType, double>::New();
   resampler->SetInterpolator(interpolator);
   resampler->SetSize(new_size);
@@ -156,34 +155,39 @@ get_image_from_dicom(const QString &dir, const UShortImageType::SpacingType &new
   resampler->Update();
 
   return resampler->GetOutput();
-
 }
 
+// Currently just writes the points to a vector of vectors of QStrings
 auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
-                           const Rtss_roi_modern *orig_voi,
-                           const std::array<double, 3> basis) {
+                           const Rtss_roi_modern *orig_voi/*,
+                           const std::array<double, 3> basis*/) {
 
   auto output = std::vector<std::vector<QString>>(orig_voi->pslist.size());
 
-  std::transform(
-      std::begin(wepl_voi->pslist), std::end(wepl_voi->pslist),
-      std::begin(orig_voi->pslist), std::begin(output),
-      [&basis](const Rtss_contour_modern &wepl_contour,
-               const Rtss_contour_modern &orig_contour) {
-        auto out_contour = std::vector<QString>(orig_contour.coordinates.size());
-        std::transform(std::begin(wepl_contour.coordinates),
-                       std::end(wepl_contour.coordinates),
-                       std::begin(orig_contour.coordinates),
-                       std::begin(out_contour),
-                       [&basis](const FloatVector &wepl_coord,
-                                const FloatVector &orig_coord) {
-                       return QString("%1,%2,%3\n").arg(wepl_coord.x).arg(wepl_coord.y).arg(wepl_coord.z);
-                         /*return basis.at(0) * (orig_coord.x - wepl_coord.x) +
-                                basis.at(1) * (orig_coord.y - wepl_coord.y) +
-                                basis.at(2) * (orig_coord.z - wepl_coord.z);*/
-                       });
-        return out_contour;
-      });
+  std::transform(std::begin(wepl_voi->pslist), std::end(wepl_voi->pslist),
+                 std::begin(orig_voi->pslist), std::begin(output),
+                 [/*&basis*/](const Rtss_contour_modern &wepl_contour,
+                              const Rtss_contour_modern &orig_contour) {
+                   auto out_contour =
+                       std::vector<QString>(orig_contour.coordinates.size());
+                   std::transform(std::begin(wepl_contour.coordinates),
+                                  std::end(wepl_contour.coordinates),
+                                  /*std::begin(orig_contour.coordinates),*/
+                                  std::begin(out_contour),
+                                  [/*&basis*/](const FloatVector &wepl_coord /*,
+                                               const FloatVector &orig_coord*/) {
+                                    return QString("%1,%2,%3\n")
+                                        .arg(wepl_coord.x)
+                                        .arg(wepl_coord.y)
+                                        .arg(wepl_coord.z);
+                                    /*return basis.at(0) * (orig_coord.x -
+                                       wepl_coord.x) + basis.at(1) *
+                                       (orig_coord.y - wepl_coord.y) +
+                                           basis.at(2) * (orig_coord.z -
+                                       wepl_coord.z);*/
+                                  });
+                   return out_contour;
+                 });
 
   return output;
 }
@@ -243,11 +247,10 @@ int main(const int argc, char *argv[]) {
   auto recalc_dcm_dir = QDir(argv[2]);
   const auto recalc_dcm_path = recalc_dcm_dir.absolutePath();
 
-  auto recalc_img =
-      get_image_from_dicom(recalc_dcm_path, ct_img->GetSpacing(),
+  auto recalc_img = get_image_from_dicom(
+      recalc_dcm_path, ct_img->GetSpacing(),
       ct_img->GetLargestPossibleRegion().GetSize(), ct_img->GetOrigin(),
-      ct_img->GetDirection(),
- translation, rotation);
+      ct_img->GetDirection(), translation, rotation);
 
   cbctrecon_test->m_cbctrecon->m_spRawReconImg = recalc_img;
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);
@@ -265,8 +268,9 @@ int main(const int argc, char *argv[]) {
   saveImageAsMHA<UShortImageType>(cbctrecon_test->m_cbctrecon->m_spRawReconImg,
                                   recalc_dcm_path.toStdString() +
                                       "/recalc.mha");
-  saveImageAsMHA<UShortImageType>(cbctrecon_test->m_cbctrecon->m_spManualRigidCT,
-                                  dcm_path.toStdString() + "/orig.mha");
+  saveImageAsMHA<UShortImageType>(
+      cbctrecon_test->m_cbctrecon->m_spManualRigidCT,
+      dcm_path.toStdString() + "/orig.mha");
   ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
   recalc_img = cbctrecon_test->m_cbctrecon->m_spRawReconImg;
   std::cout << "Images saved" << std::endl;
@@ -282,11 +286,11 @@ int main(const int argc, char *argv[]) {
     }
   }
   if (voi.empty()) {
-  for (auto &structure : ss->slist) {
-    if (structure.name.find(argv[3]) != std::string::npos) {
-      voi = structure.name;
+    for (auto &structure : ss->slist) {
+      if (structure.name.find(argv[3]) != std::string::npos) {
+        voi = structure.name;
+      }
     }
-  }
   }
   if (voi.empty()) {
     std::cerr << "Couldn't find: \"" << argv[3] << "\"\n";
@@ -313,13 +317,14 @@ int main(const int argc, char *argv[]) {
   const auto orig_voi = ss->get_roi_by_name(voi);
   const auto gantry_angle = std::stod(argv[4], &sz);
   const auto couch_angle = std::stod(argv[5], &sz);
-  const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
+  // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
   const auto wepl_voi = CalculateWEPLtoVOI(orig_voi.get(), gantry_angle,
                                            couch_angle, ct_img, recalc_img);
 
-  /* Generate a vector of vectors with distances */;
-  const auto output = get_signed_difference(wepl_voi, orig_voi.get(), basis);
+  /* Generate a vector of vectors with distances */
+  const auto output =
+      get_signed_difference(wepl_voi, orig_voi.get()); //, basis);
 
   for (auto &cur_voi : ss->slist) {
     if (cur_voi.name.find(argv[3]) != std::string::npos) {
@@ -328,9 +333,8 @@ int main(const int argc, char *argv[]) {
   }
   const auto out_dcm = QString("RS.wepl_structure_");
   // http://www.plastimatch.org/plastimatch.html#plastimatch-dice
-  const QFile out_dcm_file((out_dcm + argv[3]) + "_" +
-                           recalc_dcm_dir.dirName() + "_G" + argv[4] + "_C" +
-                           argv[5] + ".dcm");
+  const QFile out_dcm_file(out_dcm + argv[3] + "_" + recalc_dcm_dir.dirName() +
+                           "_G" + argv[4] + "_C" + argv[5] + ".dcm");
   std::cerr << "Writing WEPL struct to dicom...\n";
   if (!AlterData_RTStructureSetStorage(cbctrecon_test->m_cbctrecon->m_strPathRS,
                                        ss, out_dcm_file)) {
@@ -342,16 +346,17 @@ int main(const int argc, char *argv[]) {
   auto better_name = orig_voi->name;
   std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
   std::replace(std::begin(better_name), std::end(better_name), '/', '-');
-  const auto output_filename =
-      "WEPLstruct_" + better_name + "_" + dcm_dir.dirName().toStdString() +
-      "_to_" + recalc_dcm_dir.dirName().toStdString() + ".txt";
-  // + "_at_G" + std::to_string(gantry_angle) + "C" + std::to_string(couch_angle) + ".txt";
+  const auto output_filename = "WEPLstruct_" + better_name + "_" +
+                               dcm_dir.dirName().toStdString() + "_to_" +
+                               recalc_dcm_dir.dirName().toStdString() + ".txt";
+  // + "_at_G" + std::to_string(gantry_angle) + "C" +
+  // std::to_string(couch_angle) + ".txt";
 
   std::cerr << "Writing WEPL struct to txt...\n";
   std::ofstream f_stream;
   f_stream.open(output_filename);
   if (f_stream.is_open()) {
-    //f_stream << std::fixed << std::setprecision(5);
+    // f_stream << std::fixed << std::setprecision(5);
 
     std::for_each(std::begin(output), std::end(output),
                   [&f_stream](const std::vector<QString> out_vec) {

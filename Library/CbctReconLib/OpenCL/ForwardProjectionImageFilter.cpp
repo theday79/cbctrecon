@@ -84,7 +84,7 @@ private:
         image_devices.push_back(dev);
       }
 
-      auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
+      const auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
       checkError(*err, "Get device type");
 
       if (device_type != CL_DEVICE_TYPE_CPU && device_image_support) {
@@ -101,7 +101,7 @@ private:
     std::cerr << "Using " << device_name << " for fwd proj.\n";
 #endif
 
-    auto default_ctx = cl::Context(device);
+    const auto default_ctx = cl::Context(device);
 #if CL_HPP_MINIMUM_OPENCL_VERSION >= 200
     auto deviceQueue =
         cl::DeviceCommandQueue::makeDefault(default_ctx, device, err);

@@ -28,7 +28,6 @@
 #ifndef DEVICE_PICKER_HPP
 #define DEVICE_PICKER_HPP
 
-#include <iostream>
 #include <string>
 #include <vector>
 

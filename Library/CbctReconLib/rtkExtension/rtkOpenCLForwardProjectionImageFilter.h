@@ -75,7 +75,7 @@ protected:
   OpenCLForwardProjectionImageFilter();
   ~OpenCLForwardProjectionImageFilter(){};
 
-  virtual void GenerateData() override;
+  void GenerateData() override;
 
 private:
   double m_StepSize;

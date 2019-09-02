@@ -35,7 +35,6 @@
 #include <itkBinaryDilateImageFilter.h>
 #include <itkBinaryErodeImageFilter.h>
 #include <itkBinaryFillholeImageFilter.h>
-#include <itkBinaryFunctorImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkImageDuplicator.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
@@ -2660,7 +2659,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
                                       FloatImageType::Pointer &spProjScat3D,
                                       double medianRadius,
                                       const double gaussianSigma,
-                                      const bool bSave) {
+                                      const bool bSave) const {
   // Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1) {
     std::cout << "error: no count of proj image" << std::endl;
@@ -2860,7 +2859,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                                      FloatImageType::Pointer &spProjScat3D,
                                      FloatImageType::Pointer &m_spProjCorr3D,
-                                     int postMedian, const bool bSave) {
+                                     int postMedian, const bool bSave) const {
   // Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1) {
     std::cout << "error: no count of proj image" << std::endl;
@@ -4574,7 +4573,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
             << spProjImgCT3D->GetSpacing()[1] << ", "
             << spProjImgCT3D->GetSpacing()[2] << std::endl;
 
-  const int iCntRefVol = m_strListPerProjRefVol.count();
+  const auto iCntRefVol = m_strListPerProjRefVol.count();
 
   if (iCntRefVol < 1) {
     std::cout << "Error! no volume data for loading" << std::endl;

@@ -43,7 +43,6 @@
 #undef CUDA_FOUND
 #include "dcmtk_rt_study.h"
 #include "dicom_util.h"
-#include "itk_image_save.h"
 #include "plm_image.h"
 #include <rt_study_metadata.h>
 

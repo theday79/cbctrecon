@@ -160,12 +160,12 @@ auto float_to_(const float input) {
   const auto max_ushort = std::numeric_limits<unsigned short>::max();
   if (input < 0.0f) {
     return static_cast<T>(0);
-  } else if (input > static_cast<float>(max_ushort)) {
+  }
+  if (input > static_cast<float>(max_ushort)) {
     return static_cast<T>(max_ushort -
                           1); // - 1 to avoid implicit cast overflow
-  } else {
-    return static_cast<T>(qRound(input));
   }
+  return static_cast<T>(qRound(input));
 }
 
 template <class T, std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
@@ -216,7 +216,7 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
 
   itk::ImageRegionConstIterator<FloatImage2DType> it_2D(
       spSrcImg2D, spSrcImg2D->GetRequestedRegion());
-  typename itk::ImageSliceIteratorWithIndex<OutputImageType> it_3D(
+  itk::ImageSliceIteratorWithIndex<OutputImageType> it_3D(
       spTargetImg3D, spTargetImg3D->GetRequestedRegion());
 
   it_3D.SetFirstDirection(idxHor);

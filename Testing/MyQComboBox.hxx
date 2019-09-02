@@ -94,10 +94,10 @@ QString_Matches(const QString &str, const QString &pattern,
     }
   }
   if (flags.testFlag(Qt::MatchFixedString)) {
-    return (str.compare(pattern, cs) == 0);
+    return str.compare(pattern, cs) == 0;
   }
   return false;
-};
+}
 
 class MyQComboBox {
 
@@ -105,13 +105,13 @@ public:
   MyQComboBox() = default;
   ~MyQComboBox() = default;
 
-  int count() const { return m_container.size(); };
-  void setMaxCount(const int max) { m_container.reserve(max); };
-  int maxCount() const { return m_container.capacity(); };
+  int count() const { return m_container.size(); }
+  void setMaxCount(const int max) { m_container.reserve(max); }
+  int maxCount() const { return m_container.capacity(); }
 
-  inline int findText(const QString &text,
-                      const Qt::MatchFlags flags = static_cast<Qt::MatchFlags>(
-                          Qt::MatchExactly | Qt::MatchCaseSensitive)) const {
+  int findText(const QString &text,
+               const Qt::MatchFlags flags = static_cast<Qt::MatchFlags>(
+                   Qt::MatchExactly | Qt::MatchCaseSensitive)) const {
     return findData(text, Qt::DisplayRole, flags);
   }
   int findData(const QVariant &data, int role = Qt::UserRole,
@@ -128,7 +128,7 @@ public:
       ++i_out;
     }
     return -1;
-  };
+  }
 
   enum InsertPolicy {
     NoInsert,
@@ -140,41 +140,43 @@ public:
     InsertAlphabetically
   };
 
-  InsertPolicy insertPolicy() const { return m_insert_policy; };
-  void setInsertPolicy(const InsertPolicy policy) { m_insert_policy = policy; };
+  InsertPolicy insertPolicy() const { return m_insert_policy; }
+  void setInsertPolicy(const InsertPolicy policy) { m_insert_policy = policy; }
 
-  bool isEditable() const { return m_editable; };
-  void setEditable(const bool editable) { m_editable = editable; };
+  bool isEditable() const { return m_editable; }
+  void setEditable(const bool editable) { m_editable = editable; }
 
-  int currentIndex() const { return m_current_index; };
-  QString currentText() const { return m_container.at(m_current_index).first; };
+  int currentIndex() const { return m_current_index; }
+  QString currentText() const { return m_container.at(m_current_index).first; }
+
   QVariant currentData(int role = Qt::UserRole) const {
     return m_container.at(m_current_index).second;
-  };
+  }
 
   QString itemText(const int index) const {
     return m_container.at(index).first;
-  };
-  QVariant itemData(const int index, int role = Qt::UserRole) const {
-    return m_container.at(index).second;
-  };
-
-  inline void addItem(const QString &text,
-                      const QVariant &userData = QVariant()) {
-    insertItem(count(), text, userData);
-  };
-  inline void addItem(const QIcon &icon, const QString &text,
-                      const QVariant &userData = QVariant()) {
-    insertItem(count(), icon, text, userData);
-  };
-  inline void addItems(const QStringList &texts) {
-    insertItems(count(), texts);
   }
 
-  inline void insertItem(const int index, const QString &text,
-                         const QVariant &userData = QVariant()) {
+  QVariant itemData(const int index, int role = Qt::UserRole) const {
+    return m_container.at(index).second;
+  }
+
+  void addItem(const QString &text, const QVariant &userData = QVariant()) {
+    insertItem(count(), text, userData);
+  }
+
+  void addItem(const QIcon &icon, const QString &text,
+               const QVariant &userData = QVariant()) {
+    insertItem(count(), icon, text, userData);
+  }
+
+  void addItems(const QStringList &texts) { insertItems(count(), texts); }
+
+  void insertItem(const int index, const QString &text,
+                  const QVariant &userData = QVariant()) {
     insertItem(index, QIcon(), text, userData);
-  };
+  }
+
   void insertItem(const int index, const QIcon &icon, const QString &text,
                   const QVariant &userData = QVariant()) {
     if (!m_editable) {
@@ -189,19 +191,20 @@ public:
     const auto pair = std::make_pair(text, data);
     const auto it = m_container.begin();
     m_container.insert(it + index, pair);
-  };
+  }
+
   void insertItems(const int index, const QStringList &texts) {
     size_t i = index;
     for (auto &item : texts) {
       insertItem(i, item);
       ++i;
     }
-  };
+  }
 
   void removeItem(const int index) {
     const auto it = m_container.begin();
     m_container.erase(it + index);
-  };
+  }
 
   void setItemText(const int index, const QString &text) {
     if (!m_editable || index < 0 ||
@@ -209,7 +212,8 @@ public:
       return;
     }
     m_container.at(index).first = text;
-  };
+  }
+
   void setItemData(const int index, const QVariant &value,
                    int role = Qt::UserRole) {
     if (!m_editable || index < 0 ||
@@ -217,16 +221,18 @@ public:
       return;
     }
     m_container.at(index).second = value;
-  };
+  }
 
   void clear() {
     m_container.clear();
     m_current_index = 0;
-  };
-  void setCurrentIndex(const int index) { m_current_index = index; };
+  }
+
+  void setCurrentIndex(const int index) { m_current_index = index; }
+
   void setCurrentText(const QString &text) {
     m_container.at(m_current_index) = std::make_pair(text, QVariant(text));
-  };
+  }
 
 private:
   Q_DISABLE_COPY(MyQComboBox)

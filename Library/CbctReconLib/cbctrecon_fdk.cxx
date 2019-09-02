@@ -4,6 +4,9 @@
 
 /* Do reconstruction algorithms */
 
+// PLM
+#ifdef USE_OPENCL_PLM
+
 // std
 #include <array>
 #include <cmath> // for asin, cos
@@ -13,8 +16,6 @@
 // Local
 #include "cbctrecon_types.h"
 
-// PLM
-#ifdef USE_OPENCL_PLM
 #undef TIMEOUT
 #undef CUDA_FOUND
 #include <fdk_opencl.h>

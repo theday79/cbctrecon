@@ -99,7 +99,7 @@ public:
   void test_Export2DDoseMapAsMHA();
   void test_ViewRegistration() const;
   void test_ViewHistogram();
-  void test_DoScatterCorrection_APRIORI();
+  void test_DoScatterCorrection_APRIORI() const;
   void test_TempAudit() const;
   void test_CalcAndSaveAngularWEPL();
   void test_DoScatterCorrectionUniform();

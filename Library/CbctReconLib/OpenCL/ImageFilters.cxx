@@ -91,7 +91,7 @@ private:
         image_devices.push_back(dev);
       }
 
-      auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
+      const auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
       checkError(*err, "Get device type");
 
       if (device_type != CL_DEVICE_TYPE_CPU &&
@@ -109,7 +109,7 @@ private:
     std::cerr << "Using " << device_name << "\n";
 #endif
 
-    auto default_ctx = cl::Context(device);
+    const auto default_ctx = cl::Context(device);
 #if CL_HPP_MINIMUM_OPENCL_VERSION >= 200
     auto deviceQueue =
         cl::DeviceCommandQueue::makeDefault(default_ctx, device, err);
@@ -186,7 +186,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
 
   auto defines = std::string("");
   kernel_man.initialize(defines, pv_buffer_size);
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -252,7 +252,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   auto err = CL_SUCCESS;
   auto defines = std::string("");
   kernel_man.initialize(defines, memoryByteSizeInput);
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -327,7 +327,7 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
   auto err = CL_SUCCESS;
   auto defines = std::string("");
   kernel_man.initialize(defines, memoryByteSizeInput);
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -378,7 +378,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
   auto err = CL_SUCCESS;
   auto defines = std::string("");
   kernel_man.initialize(defines, memoryByteSizeInput);
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -418,7 +418,7 @@ void OpenCL_AddConst_MulConst_InPlace(
   auto err = CL_SUCCESS;
   auto defines = std::string("");
   kernel_man.initialize(defines, memoryByteSizeInput);
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -459,7 +459,7 @@ void OpenCL_AddConst_InPlace_2D(
   auto err = CL_SUCCESS;
   auto defines = std::string("");
   kernel_man.initialize(defines, memoryByteSizeInput);
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -495,7 +495,6 @@ cl_float2 OpenCL_min_max_3D(cl_float *buffer,
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
 
   return OpenCL_min_max_1D(buffer, memorySizeInput);
-  ;
 }
 
 cl_float2 OpenCL_min_max_2D(cl_float *buffer,
@@ -579,7 +578,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
   const auto memoryByteSizeSub = global_work_size * sizeof(cl_float2);
   // to avoid access violation in kernel
 
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
 
   cl::Buffer deviceSubBuffer(ctx, CL_MEM_ALLOC_HOST_PTR, memoryByteSizeSub,
@@ -608,7 +607,7 @@ cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
                                  const cl::NDRange local_work_size,
                                  const size_t divider) {
   auto err = CL_SUCCESS;
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -648,7 +647,7 @@ cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
                                 const size_t divider) {
 
   auto err = CL_SUCCESS;
-  auto ctx = cl::Context::getDefault(&err);
+  const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -755,7 +754,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   const auto memoryByteSizeSub = global_work_size * sizeof(cl_float2);
   // to avoid access violation in kernel
 
-  auto ctx = cl::Context::getDefault();
+  const auto ctx = cl::Context::getDefault();
   cl::Buffer deviceSubBuffer(ctx, CL_MEM_READ_WRITE, memoryByteSizeSub);
   const cl::Buffer devicePinnedSubBuffer(ctx, CL_MEM_ALLOC_HOST_PTR,
                                          memoryByteSizeSub);
@@ -813,14 +812,12 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
 
 #if CL_HPP_TARGET_OPENCL_VERSION < 200
   auto dev = cl::Device::getDefault();
-  auto unified_memory = dev.getInfo<CL_DEVICE_HOST_UNIFIED_MEMORY>();
+  const auto unified_memory = dev.getInfo<CL_DEVICE_HOST_UNIFIED_MEMORY>();
   if (unified_memory) {
     return OpenCL_min_max_unified(buffer, memorySizeInput, memorySizeSub,
                                   local_work_size, divider);
-  } else
-#endif
-  {
-    return OpenCL_min_max_pinned(buffer, memorySizeInput, memorySizeSub,
-                                 local_work_size, divider);
   }
+#endif
+  return OpenCL_min_max_pinned(buffer, memorySizeInput, memorySizeSub,
+                               local_work_size, divider);
 }

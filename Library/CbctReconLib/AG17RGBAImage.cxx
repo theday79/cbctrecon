@@ -127,7 +127,7 @@ bool AG17RGBAImage::ReleaseBuffer() {
 bool AG17RGBAImage::IsEmpty() const { return m_pData.size() == 0; }
 
 bool AG17RGBAImage::CreateImage(const int width, const int height,
-                                unsigned short usVal) {
+                                const unsigned short usVal) {
   if (width < 1 || height < 1) {
     return false;
   }

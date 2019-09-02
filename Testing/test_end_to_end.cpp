@@ -123,6 +123,10 @@ int do_scatter_correction(CbctReconTest *cbctrecon_test) {
 }
 
 int calculate_wepl(CbctReconTest *cbctrecon_test) {
+  if (!cbctrecon_test->m_cbctrecon->m_spScatCorrReconImg) {
+    std::cerr << "Scatter corrected recon image was null\n";
+    return -1;
+  }
   auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
   for (auto &structure : ss->slist) {
     std::cerr << structure.name << "\n";
@@ -133,7 +137,7 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
   const auto start_time = std::chrono::steady_clock::now();
   auto wepl_voi = CalculateWEPLtoVOI(
       orig_voi.get(), 45, 45, cbctrecon_test->m_cbctrecon->m_spDeformedCT_Final,
-      cbctrecon_test->m_cbctrecon->m_spRawReconImg);
+      cbctrecon_test->m_cbctrecon->m_spScatCorrReconImg);
   const auto end_time = std::chrono::steady_clock::now();
   std::cerr << "WEPL was calculated in: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
@@ -141,6 +145,31 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
                    .count()
             << " ms"
             << "\n";
+
+  const auto sum_ct = std::accumulate(
+      orig_voi->pslist.begin(), orig_voi->pslist.end(), 0.0,
+      [](const double val, Rtss_contour_modern &contour) {
+        return val + std::accumulate(
+                         contour.coordinates.begin(), contour.coordinates.end(),
+                         0.0, [](const double val, const FloatVector &vec) {
+                           return val +
+                                  std::sqrt(vec.x * vec.x + vec.y * vec.y +
+                                            vec.z * vec.z);
+                         });
+      });
+  const auto sum_wepl = std::accumulate(
+      wepl_voi->pslist.begin(), wepl_voi->pslist.end(), 0.0,
+      [](const double val, Rtss_contour_modern &contour) {
+        return val + std::accumulate(
+                         contour.coordinates.begin(), contour.coordinates.end(),
+                         0.0, [](const double val, const FloatVector &vec) {
+                           return val +
+                                  std::sqrt(vec.x * vec.x + vec.y * vec.y +
+                                            vec.z * vec.z);
+                         });
+      });
+  std::cerr << "Total difference between WEPL contour and CT contour: "
+            << sum_ct - sum_wepl << "\n";
   return 0;
 }
 

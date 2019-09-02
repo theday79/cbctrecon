@@ -43,12 +43,14 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 #endif
 
+#include <string>
+
 #include "OpenCL/cl2.hpp"
 
 #include "cbctrecon_config.h"
 
 CBCTRECON_API
-const char *ocl_err_code(cl_int err_in);
+std::string ocl_err_code(cl_int err_in);
 
 CBCTRECON_API
 void check_ocl_error(cl_int err, const char *operation, const char *filename,

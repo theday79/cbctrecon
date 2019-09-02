@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 /*=========================================================================
  *
  *  Copyright RTK Consortium
@@ -56,8 +57,9 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
     itkExceptionMacro(<< "Could not allocate OpenCL matrix buffer, error code: "
                       << error);
 
-  auto volBytes = this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
-                  sizeof(float);
+  const auto volBytes =
+      this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
+      sizeof(float);
   m_DeviceVolume = clCreateBuffer(
       m_Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, volBytes,
       (void *)this->GetInput()->GetBufferPointer(), &error);
@@ -121,8 +123,9 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
 }
 
 void OpenCLFDKBackProjectionImageFilter ::CleanUpDevice() {
-  auto volBytes = this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
-                  sizeof(float);
+  const auto volBytes =
+      this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
+      sizeof(float);
 
   OPENCL_CHECK_ERROR(clReleaseKernel(m_Kernel));
   OPENCL_CHECK_ERROR(clReleaseProgram(m_Program));
@@ -143,10 +146,8 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
   const auto Dimension = ImageType::ImageDimension;
   const auto input1_largestregion =
       this->GetInput(1)->GetLargestPossibleRegion();
-  const unsigned int nProj =
-      input1_largestregion.GetSize(Dimension - 1);
-  const unsigned int iFirstProj =
-      input1_largestregion.GetIndex(Dimension - 1);
+  const unsigned int nProj = input1_largestregion.GetSize(Dimension - 1);
+  const unsigned int iFirstProj = input1_largestregion.GetIndex(Dimension - 1);
 
   // Ramp factor is the correction for ramp filter which did not account for the
   // divergence of the beam
@@ -157,9 +158,8 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
   ImageType::PointType rotCenterPoint;
   rotCenterPoint.Fill(0.0);
   itk::ContinuousIndex<double, Dimension> rotCenterIndex;
-  if (!this->GetInput(0)->TransformPhysicalPointToContinuousIndex(rotCenterPoint,
-                                                             rotCenterIndex))
-  {
+  if (!this->GetInput(0)->TransformPhysicalPointToContinuousIndex(
+          rotCenterPoint, rotCenterIndex)) {
     std::cerr << "Center was outside of cube!??" << std::endl;
     return;
   }

@@ -2345,7 +2345,7 @@ void DlgRegistration::SLT_gPMCrecalc() {
   enDevice gPMC_device =
       CPU_DEV; // because I've only tested with intel graphics
 #else
-  enDevice gPMC_device = CPU_DEV;
+  auto gPMC_device = CPU_DEV;
 #endif
 
   if (m_pParent->ui.radioButton_UseCPU->isChecked()) {

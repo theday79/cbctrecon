@@ -26,7 +26,6 @@
 #include "rtkFFTProjectionsConvolutionImageFilter.h" // for FFTProjec...
 #include "rtkFFTRampImageFilter.h"                   // for FFTRampImageFilter
 #include "rtkFieldOfViewImageFilter.h"
-#include "rtkJosephForwardProjectionImageFilter.h"
 #include "rtkMacro.h" // for TRY_AND_EXIT_ON_ITK_EXCEPTION
 #include "rtkParkerShortScanImageFilter.h"
 #include "rtkThreeDCircularProjectionGeometry.h" // for ThreeDCircularProje...
@@ -34,9 +33,9 @@
 #if RTK_USE_OPENCL
 #include "rtkOpenCLFDKConeBeamReconstructionFilter.h"
 #include "rtkOpenCLForwardProjectionImageFilter.h"
+#else
+#include "rtkJosephForwardProjectionImageFilter.h"
 #endif
-
-#include "cbctrecon_config.h"
 
 #if USE_CUDA
 #include "rtkCudaForwardProjectionImageFilter.h"

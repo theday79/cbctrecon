@@ -43,8 +43,7 @@ int main(int, char **) {
   ConstantImageSourceType::SpacingType spacing;
 
   // Create Joseph Forward Projector volume input.
-  const ConstantImageSourceType::Pointer volInput =
-      ConstantImageSourceType::New();
+  const auto volInput = ConstantImageSourceType::New();
   origin[0] = -126;
   origin[1] = -126;
   origin[2] = -126;
@@ -72,8 +71,7 @@ int main(int, char **) {
   // Initialization Volume, it is used in the Joseph Forward Projector and in
   // the Ray Box Intersection Filter in order to initialize the stack of
   // projections.
-  const ConstantImageSourceType::Pointer projInput =
-      ConstantImageSourceType::New();
+  const auto projInput = ConstantImageSourceType::New();
   size[2] = NumberOfProjectionImages;
   projInput->SetOrigin(origin);
   projInput->SetSpacing(spacing);
@@ -93,7 +91,7 @@ int main(int, char **) {
   using JFPType =
       rtk::JosephForwardProjectionImageFilter<OutputImageType, OutputImageType>;
 #endif
-  JFPType::Pointer jfp = JFPType::New();
+  auto jfp = JFPType::New();
   jfp->InPlaceOff();
   jfp->SetInput(projInput->GetOutput());
   jfp->SetInput(1, volInput->GetOutput());
@@ -104,7 +102,7 @@ int main(int, char **) {
 #if defined(USE_CUDA) || defined(RTK_USE_OPENCL)
   jfp->SetStepSize(10);
 #endif
-  RBIType::Pointer rbi = RBIType::New();
+  auto rbi = RBIType::New();
   rbi->InPlaceOff();
   rbi->SetInput(projInput->GetOutput());
   VectorType boxMin, boxMax;
@@ -148,16 +146,6 @@ int main(int, char **) {
     jfp->SetGeometry(geometry);
     stream->Update();
 
-    auto writer_1 = itk::ImageFileWriter<OutputImageType>::New();
-    writer_1->SetInput(stream->GetOutput());
-    writer_1->SetFileName("fwd_proj.mha");
-    writer_1->Update();
-
-    auto writer_2 = itk::ImageFileWriter<OutputImageType>::New();
-    writer_2->SetInput(rbi->GetOutput());
-    writer_2->SetFileName("rbi_proj.mha");
-    writer_2->Update();
-
     CheckImageQuality<OutputImageType>(stream->GetOutput(), rbi->GetOutput(),
                                        1.28, 44.0, 255.0);
     std::cout << "\n\nTest of quarter #" << q << " PASSED! " << std::endl;
@@ -173,7 +161,7 @@ int main(int, char **) {
 
   // Geometry
   using GeometryType = rtk::ThreeDCircularProjectionGeometry;
-  GeometryType::Pointer geometry = GeometryType::New();
+  auto geometry = GeometryType::New();
   for (unsigned int i = 0; i < NumberOfProjectionImages; i++)
     geometry->AddProjection(500., 1000., i * 8.);
 
@@ -193,7 +181,7 @@ int main(int, char **) {
   // Create Shepp Logan reference projections
   using SLPType =
       rtk::SheppLoganPhantomFilter<OutputImageType, OutputImageType>;
-  SLPType::Pointer slp = SLPType::New();
+  auto slp = SLPType::New();
   slp->InPlaceOff();
   slp->SetInput(projInput->GetOutput());
   slp->SetGeometry(geometry);
@@ -209,7 +197,7 @@ int main(int, char **) {
   volInput->SetConstant(0.);
 
   using DSLType = rtk::DrawSheppLoganFilter<OutputImageType, OutputImageType>;
-  DSLType::Pointer dsl = DSLType::New();
+  auto dsl = DSLType::New();
   dsl->InPlaceOff();
   dsl->SetInput(volInput->GetOutput());
   dsl->Update();

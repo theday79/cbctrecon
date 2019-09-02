@@ -151,7 +151,7 @@ bool YK16GrayImage::ReleaseBuffer() {
 bool YK16GrayImage::IsEmpty() const { return m_pData == nullptr; }
 
 bool YK16GrayImage::CreateImage(const int width, const int height,
-                                unsigned short usVal) {
+                                const unsigned short usVal) {
   if (width < 1 || height < 1) {
     return false;
   }
@@ -243,8 +243,8 @@ bool YK16GrayImage::CopyFromBuffer(const unsigned short *p_image_buf,
 }
 
 template <typename T>
-inline quint32 fill_pixel(const T data, const size_t lowVal,
-                          const size_t uppVal, const double d_win_width) {
+quint32 fill_pixel(const T data, const size_t lowVal, const size_t uppVal,
+                   const double d_win_width) {
   if (data >= uppVal) {
     return 0xffffffff;
   }
@@ -257,9 +257,8 @@ inline quint32 fill_pixel(const T data, const size_t lowVal,
 }
 
 template <typename T>
-inline quint32 fill_pixel_invert(const T data, const size_t low_val,
-                                 const size_t upp_val,
-                                 const double d_win_width) {
+quint32 fill_pixel_invert(const T data, const size_t low_val,
+                          const size_t upp_val, const double d_win_width) {
   if (data >= upp_val) {
     return 0xff000000;
   }

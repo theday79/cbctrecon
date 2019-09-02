@@ -2645,7 +2645,7 @@ void CbctReconWidget::SLTM_ForwardProjection() {
           curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
     }
 
-    auto spProjImgRaw3D =
+    const auto spProjImgRaw3D =
         this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
             this->m_cbctrecon->m_spRawReconImg, crntGeometry, false,
             this->ui.radioButton_UseCUDA->isChecked());
@@ -2733,7 +2733,7 @@ void CbctReconWidget::SLTM_ForwardProjection() {
       this, tr("Open Directory"), ".",
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   //}
-  auto spProjImgRaw3D =
+  const auto spProjImgRaw3D =
       this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
           this->m_cbctrecon->m_spRawReconImg, crntGeometry, true,
           this->ui.radioButton_UseCUDA->isChecked());

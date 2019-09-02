@@ -348,7 +348,7 @@ int main(const int argc, char **argv) {
 
     using ImageType = itk::Image<unsigned short, 3U>;
     auto image_in1 = GenerateRandImage<unsigned short, 3U>();
-    auto image_in2 = GenerateRandImage<unsigned short, 3U>();
+    const auto image_in2 = GenerateRandImage<unsigned short, 3U>();
     auto add_filter =
         itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
     add_filter->SetInput1(image_in1);

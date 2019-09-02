@@ -8,10 +8,9 @@
 
 #include <iostream>
 
-#include <QDir>
+#include <QString>
 
 #include "itkEuler3DTransform.h"
-
 
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
@@ -44,14 +43,13 @@ int main(const int argc, char *argv[]) {
   reader_like->SetFileName(imglike_file.toStdString());
   reader_like->UpdateOutputInformation();
 
-  auto ct_img = reader->GetOutput();
+  const auto ct_img = reader->GetOutput();
 
   if (!ct_img) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
   }
 
-  auto resampler =
-      itk::ResampleImageFilter<ImageType, ImageType>::New();
+  auto resampler = itk::ResampleImageFilter<ImageType, ImageType>::New();
 
   std::string::size_type sz;
   auto translation_str = QString(argv[3]);
@@ -79,10 +77,11 @@ int main(const int argc, char *argv[]) {
   transform->SetTranslation(translation);
 
   resampler->SetInput(ct_img);
-  auto interpolator =
+  const auto interpolator =
       itk::LinearInterpolateImageFunction<ImageType, double>::New();
   resampler->SetInterpolator(interpolator);
-  resampler->SetSize(reader_like->GetOutput()->GetLargestPossibleRegion().GetSize());
+  resampler->SetSize(
+      reader_like->GetOutput()->GetLargestPossibleRegion().GetSize());
   resampler->SetOutputSpacing(reader_like->GetOutput()->GetSpacing());
   resampler->SetOutputOrigin(reader_like->GetOutput()->GetOrigin());
   resampler->SetOutputDirection(reader_like->GetOutput()->GetDirection());
@@ -97,4 +96,3 @@ int main(const int argc, char *argv[]) {
 
   return 0;
 }
-

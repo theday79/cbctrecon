@@ -36,7 +36,7 @@ struct CBCTRECON_API Rtss_roi_modern { // : public Rtss_roi {
 
 struct CBCTRECON_API Rtss_modern { // : public Rtss {
   Rtss_modern() = default;
-  ~Rtss_modern() { this->wait(); };
+  ~Rtss_modern() { this->wait(); }
   Rtss_modern(const Rtss_modern &old);
   std::unique_ptr<Rtss_roi_modern> get_roi_by_name(const std::string &name);
   Rtss_roi_modern &get_roi_ref_by_name(const std::string &name);

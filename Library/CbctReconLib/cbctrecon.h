@@ -140,11 +140,11 @@ public:
                              FloatImageType::Pointer &spProjCT3D,
                              FloatImageType::Pointer &spProjScat3D,
                              double medianRadius, double gaussianSigma,
-                             bool bSave);
+                             bool bSave) const;
   void ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                             FloatImageType::Pointer &spProjScat3D,
                             FloatImageType::Pointer &m_spProjCorr3D,
-                            int postMedian, bool bSave);
+                            int postMedian, bool bSave) const;
 
   void AfterScatCorrectionMacro(bool use_cuda, bool use_opencl, bool save_dicom,
                                 FDK_options &fdk_options);

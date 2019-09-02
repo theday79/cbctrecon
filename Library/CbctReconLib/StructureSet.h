@@ -33,7 +33,8 @@ public:
   template <ctType CT_TYPE>
   void ApplyVectorTransformTo(const FloatVector &vec) {
     transform_by_vector(CT_TYPE, vec, m_rigid_ss);
-  };
+  }
+
   template <ctType CT_TYPE>
   void ApplyVectorTransformOn(const FloatVector &vec) {
     switch (CT_TYPE) {
@@ -47,7 +48,7 @@ public:
       transform_by_vector(CT_TYPE, vec, m_deform_ss);
       break;
     }
-  };
+  }
 
   template <ctType CT_TYPE> bool ApplyTransformTo(const QFile &transform_file) {
     auto xform = Xform::New();
@@ -78,7 +79,7 @@ public:
               << "Transform function were not created and no vector field were "
                  "applied\n";
     return false;
-  };
+  }
 
 private:
   std::pair<TransformType, VectorFieldType::Pointer>
