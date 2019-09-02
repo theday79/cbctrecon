@@ -90,7 +90,7 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
 }
 
 // spSrcImg3D: usually projImage in USHORT type
-void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
+void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
                  FloatImage2DType::Pointer &spTargetImg2D, const int idx,
                  const enPLANE iDirection) {
   if (spSrcImg3D == nullptr) {
@@ -175,7 +175,7 @@ void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
   // " " << std::endl;  std::cout << "target image size = " <<
   // spTargetImg2D->GetRequestedRegion().GetSize() << " " << std::endl;
 
-  itk::ImageSliceConstIteratorWithIndex<UShortImageType> it_3D(
+  itk::ImageSliceConstIteratorWithIndex<FloatImageType> it_3D(
       spSrcImg3D, spSrcImg3D->GetRequestedRegion());
   // itk::ImageRegionIteratorWithIndex<FloatImageType2D> it_2D (spTargetImg2D,
   // spTargetImg2D->GetRequestedRegion());
@@ -199,9 +199,7 @@ void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
       while (!it_3D.IsAtEndOfSlice()) // Error here why?
       {
         while (!it_3D.IsAtEndOfLine()) {
-          auto tmpVal = static_cast<float>(
-              it_3D.Get()); // in proj image case, this is intensity
-          it_2D.Set(tmpVal);
+          it_2D.Set(it_3D.Get());
           ++it_2D;
           ++it_3D;
         } // while2

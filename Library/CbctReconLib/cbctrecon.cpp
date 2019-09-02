@@ -2473,14 +2473,14 @@ void CbctRecon::FindAllRelevantPaths(
             << m_strPathElektaINIXVI2.toLocal8Bit().constData() << std::endl;
 }
 
-void CbctRecon::SaveProjImageAsHIS(UShortImageType::Pointer &spProj3D,
+void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                                    std::vector<YK16GrayImage> arrYKImage,
                                    QString &strSavingFolder,
                                    const double resampleF) const {
   std::cout << "Starting Saving files" << std::endl;
   FILE *fd = nullptr;
 
-  UShortImageType::Pointer targetImg3D;
+  FloatImageType::Pointer targetImg3D;
   const auto restoreResampleF = 1.0 / resampleF;
 
   if (fabs(resampleF - 1.0) > 0.001) {
@@ -2491,7 +2491,7 @@ void CbctRecon::SaveProjImageAsHIS(UShortImageType::Pointer &spProj3D,
     targetImg3D = spProj3D;
   }
 
-  itk::ImageSliceConstIteratorWithIndex<UShortImageType> it_FwdProj(
+  itk::ImageSliceConstIteratorWithIndex<FloatImageType> it_FwdProj(
       targetImg3D, targetImg3D->GetRequestedRegion());
 
   it_FwdProj.SetFirstDirection(0);
@@ -2653,31 +2653,13 @@ FloatImage2DType::Pointer LowPassFFT(FloatImage2DType::Pointer &input,
 }
 #endif
 
-// a * x - y
-class axmy {
-public:
-  float a = 1.0;
-  explicit axmy(const float a_val) { this->a = a_val; };
-  axmy() = default;
-  ~axmy() = default;
-
-  // I think these two operators are required for the SetFunctor
-  bool operator!=(const axmy & /*unused*/) const { return false; }
-  bool operator==(const axmy &other) const { return !(*this != other); }
-
-  float operator()(const float val1, const float val2) const {
-    return val1 * a - val2;
-  }
-};
-
 // spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value
 // (0-65535)
-void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
-                                      UShortImageType::Pointer &spProjCT3D,
-                                      UShortImageType::Pointer &spProjScat3D,
+void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
+                                      FloatImageType::Pointer &spProjCT3D,
+                                      FloatImageType::Pointer &spProjScat3D,
                                       double medianRadius,
                                       const double gaussianSigma,
-                                      const int nonNegativeScatOffset,
                                       const bool bSave) {
   // Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1) {
@@ -2690,7 +2672,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
     return;
   }
 
-  using SizeType = UShortImageType::SizeType;
+  using SizeType = FloatImageType::SizeType;
   auto size1 = spProjRaw3D->GetRequestedRegion().GetSize();
   auto size2 = spProjCT3D->GetRequestedRegion().GetSize();
 
@@ -2714,7 +2696,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
     }
   }
 
-  UShortImageType::Pointer spTmpProjRaw3D;
+  FloatImageType::Pointer spTmpProjRaw3D;
 
   if (bHighResolMacro) {
     std::cout << "bHighResolMacro is unexpectedly on" << std::endl;
@@ -2723,31 +2705,13 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
     spTmpProjRaw3D = spProjRaw3D;
   }
 
-  AllocateByRef<UShortImageType, UShortImageType>(spTmpProjRaw3D, spProjScat3D);
-  // AllocateByRef(spProjCT3D, spProjScat3D);
-
-  // std::cout << "Scat3D size = " <<
-  // spProjScat3D->GetRequestedRegion().GetSize() << std::endl;
+  AllocateByRef<FloatImageType, FloatImageType>(spTmpProjRaw3D, spProjScat3D);
 
   auto imgSize = spTmpProjRaw3D->GetRequestedRegion().GetSize();
-  // UShortImageType::SizeType imgSize =
-  // spProjCT3D->GetRequestedRegion().GetSize();
 
-  // UShortImageType::SizeType imgSize =
-  // spSrcImg3D->GetBufferedRegion().GetSize();  Create spProjScat3D with same
   // dimension of the spProjRaw3D
   const int iSizeZ = imgSize[2];
 
-  // std::cout << "resample factor " << resF2D << std::endl;
-  const auto scaling =
-      CalculateIntensityScaleFactorFromMeans(spProjRaw3D, spProjCT3D);
-
-  m_strCur_mAs = QString("%1,20").arg((64.0 * 40.0 / 20.0) / scaling);
-
-  m_strRef_mAs = QString("64,40");
-
-  const auto mAs_correctionFactor = //  = 1 / scaling
-      GetRawIntensityScaleFactor(m_strRef_mAs, m_strCur_mAs);
   for (auto i = 0; i < iSizeZ; i++) {
     FloatImage2DType::Pointer spImg2DRaw;
     FloatImage2DType::Pointer spImg2DPrim;
@@ -2760,17 +2724,16 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
 
     // Dimension should be matched
     AllocateByRef<FloatImage2DType, FloatImage2DType>(spImg2DRaw, spImg2DScat);
-    auto axmy_functor = axmy(mAs_correctionFactor);
-    auto axmy_filter =
-        itk::BinaryFunctorImageFilter<FloatImage2DType, FloatImage2DType,
-                                      FloatImage2DType, axmy>::New();
-    axmy_filter->SetFunctor(axmy_functor);
-    axmy_filter->SetInput1(spImg2DRaw);
-    axmy_filter->SetInput2(spImg2DPrim);
-    axmy_filter->Update();
-    spImg2DScat = axmy_filter->GetOutput();
+
+    auto subtract_filter =
+        itk::SubtractImageFilter<FloatImage2DType, FloatImage2DType,
+                                 FloatImage2DType>::New();
+    subtract_filter->SetInput(0, spImg2DRaw);
+    subtract_filter->SetInput(1, spImg2DPrim);
 
 #ifdef LOWPASS_FFT
+    subtract_filter->Update();
+    spImg2DScat = subtract_filter->GetOutput();
     spImg2DScat = LowPassFFT(spImg2DScat, gaussianSigma);
 #else
     // ResampleItkImage2D(spImg2DScat, spImg2DScat, resF2D);
@@ -2782,9 +2745,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
     radiusX[0] = medianRadius;
     radiusX[1] = 0;
     medianFilterX->SetRadius(radiusX);
-    medianFilterX->SetInput(spImg2DScat);
-    // medianFilterX->Update();
-    // spImg2DScat = medianFilterX->GetOutput();
+    medianFilterX->SetInput(subtract_filter->GetOutput());
 
     MedianFilterType::Pointer medianFilterY = MedianFilterType::New();
     MedianFilterType::InputSizeType radiusY{};
@@ -2799,7 +2760,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
         itk::SmoothingRecursiveGaussianImageFilter<FloatImage2DType,
                                                    FloatImage2DType>;
     SmoothingFilterType::Pointer gaussianFilter = SmoothingFilterType::New();
-    // gaussianFilter->SetInput(medianFilter->GetOutput());
+    // gaussianFilter->SetInput(medianFilterY->GetOutput());
     gaussianFilter->SetInput(spImg2DScat);
     if (this->m_projFormat == HIS_FORMAT) {
       gaussianFilter->SetSigma(
@@ -2811,28 +2772,15 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
       gaussianFilter->SetSigmaArray(
           gaussianSigmaArray); // filter specific setting for 512x384 (varian/2)
     }
-    // gaussianFilter->Update();
-    // spImg2DScat = gaussianFilter->GetOutput();
+    gaussianFilter->Update();
+    spImg2DScat = gaussianFilter->GetOutput();
 #endif
-
-    using AddImageFilterType =
-        itk::AddImageFilter<FloatImage2DType, FloatImage2DType,
-                            FloatImage2DType>;
-    auto addFilter = AddImageFilterType::New();
-#ifdef LOWPASS_FFT
-    addFilter->SetInput1(spImg2DScat);
-#else
-    addFilter->SetInput1(gaussianFilter->GetOutput());
-#endif
-    addFilter->SetConstant2(static_cast<float>(nonNegativeScatOffset));
-    addFilter->Update();
-    spImg2DScat = addFilter->GetOutput(); // even after the offset applied, -
-                                          // value is still possible
 
     // float to unsigned short
-    Set2DTo3D(spImg2DScat, spProjScat3D, i,
-              PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno mu_t to
-                            // intensity converion is involved
+    Set2DTo3D<FloatImageType>(
+        spImg2DScat, spProjScat3D, i,
+        PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno mu_t to
+                      // intensity converion is involved
 
     const auto unit = qRound(iSizeZ / 10.0);
     if (i % unit == 0) {
@@ -2899,7 +2847,7 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
       SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder,
                          m_fResampleF);
     } else {
-      using imagewritertype = itk::ImageFileWriter<UShortImageType>;
+      using imagewritertype = itk::ImageFileWriter<FloatImageType>;
       auto imagewriter = imagewritertype::New();
       imagewriter->SetInput(spProjScat3D);
       imagewriter->SetFileName(
@@ -2909,46 +2857,9 @@ void CbctRecon::GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
   }
 }
 
-class corr_functor {
-public:
-  corr_functor(const float mAs_corr, const int nonNegOffset) {
-    this->mAs_correctionFactor = mAs_corr;
-    this->nonNegativeScatOffset = nonNegOffset;
-  }
-  corr_functor() = default;
-  ~corr_functor() = default;
-  float mAs_correctionFactor = 1.0F;
-  int nonNegativeScatOffset = 0;
-
-  // I think these two operators are required for the SetFunctor
-  bool operator!=(const corr_functor & /*unused*/) const { return false; }
-  bool operator==(const corr_functor &other) const { return !(*this != other); }
-
-  float operator()(const float val1, const float val2) const {
-    const auto rawVal = val1 * mAs_correctionFactor;
-    const auto scatVal = val2 - static_cast<float>(nonNegativeScatOffset);
-    auto corrVal = rawVal - scatVal;
-
-    if (corrVal < 1.0F) {
-      corrVal = 1.0F; // underflow control
-    }
-    // max unsigned short - 1, just so we don't overflow
-    const auto max_ushort =
-        static_cast<float>(std::numeric_limits<unsigned short>::max() - 1);
-    if (corrVal >
-        max_ushort) { // 65535 -->(inversion) --> 0 --> LOg (65536 / 0) = ERROR!
-      corrVal = max_ushort;
-    }
-
-    return corrVal; // later, add customSPR
-                    // corrVal = (float)(rawVal - customSPR*scatterVal);
-  }
-};
-
-void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
-                                     UShortImageType::Pointer &spProjScat3D,
-                                     UShortImageType::Pointer &m_spProjCorr3D,
-                                     const int nonNegativeScatOffset,
+void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
+                                     FloatImageType::Pointer &spProjScat3D,
+                                     FloatImageType::Pointer &m_spProjCorr3D,
                                      int postMedian, const bool bSave) {
   // Scatter map: should be 2D to use 2D median, Gaussian filters
   if (m_iCntSelectedProj < 1) {
@@ -2983,7 +2894,7 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
     }
   }
 
-  UShortImageType::Pointer spTmpProjScat3D;
+  FloatImageType::Pointer spTmpProjScat3D;
 
   if (bHighResolMacro) {
     ResampleItkImage(spProjScat3D, spTmpProjScat3D, 2.0);
@@ -2991,19 +2902,14 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
     spTmpProjScat3D = spProjScat3D;
   }
 
-  AllocateByRef<UShortImageType, UShortImageType>(spProjRaw3D, m_spProjCorr3D);
+  AllocateByRef<FloatImageType, FloatImageType>(spProjRaw3D, m_spProjCorr3D);
 
   auto imgSize = spProjRaw3D->GetRequestedRegion().GetSize();
 
-  // UShortImageType::SizeType imgSize =
-  // spSrcImg3D->GetBufferedRegion().GetSize();  Create spProjScat3D with same
-  // dimension of the spProjRaw3D
   const int iSizeZ = imgSize[2];
 
   // std::cout << "resample factor " << resF2D << std::endl;.
 
-  const auto mAs_correctionFactor =
-      GetRawIntensityScaleFactor(m_strRef_mAs, m_strCur_mAs);
   for (auto i = 0; i < iSizeZ; i++) {
     FloatImage2DType::Pointer spImg2DRaw;
     FloatImage2DType::Pointer spImg2DScat;
@@ -3012,15 +2918,13 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
     Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, PLANE_AXIAL);
     Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, PLANE_AXIAL);
 
-    auto corr_fun = corr_functor(mAs_correctionFactor, nonNegativeScatOffset);
-    auto corr_filter =
-        itk::BinaryFunctorImageFilter<FloatImage2DType, FloatImage2DType,
-                                      FloatImage2DType, corr_functor>::New();
-    corr_filter->SetFunctor(corr_fun);
-    corr_filter->SetInput1(spImg2DRaw);
-    corr_filter->SetInput2(spImg2DScat);
-    corr_filter->Update();
-    spImg2DCorr = corr_filter->GetOutput();
+    auto subtract_filter =
+        itk::SubtractImageFilter<FloatImage2DType, FloatImage2DType,
+                                 FloatImage2DType>::New();
+    subtract_filter->SetInput1(spImg2DRaw);
+    subtract_filter->SetInput2(spImg2DScat);
+    subtract_filter->Update();
+    spImg2DCorr = subtract_filter->GetOutput();
 
     // Post Median filtering
 
@@ -3038,23 +2942,14 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
       radius[0] = qRound(postMedian / 2.0);
       radius[1] = radius[0];
 
-      /*	if (ui.radioButton_UseCUDA->isChecked())
-              {
-              int wndX = radius[0] * 2 + 1;
-              int wndY = radius[1] * 2 + 1;
-
-              cudaMedianFilter2DITK(spImg2DCorr, wndX, wndY);
-              }
-              else
-              {*/
       medianFilter->SetRadius(radius);
       medianFilter->SetInput(spImg2DCorr);
       medianFilter->Update();
       spImg2DCorr = medianFilter->GetOutput();
-      //}
     }
 
-    Set2DTo3D(spImg2DCorr, m_spProjCorr3D, i, PLANE_AXIAL); // float2D to USHORT
+    Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
+                              PLANE_AXIAL); // float2D to USHORT
 
     const auto unit = qRound(iSizeZ / 10.0);
     if (i % unit == 0) {
@@ -3111,108 +3006,6 @@ void CbctRecon::ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
   // spProjScat3D->Initialize(); //memory release
 }
 
-void CbctRecon::Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
-                          UShortImageType::Pointer &spTargetImg3D,
-                          const int idx, const enPLANE iDirection) const {
-  if (spSrcImg2D == nullptr ||
-      spTargetImg3D == nullptr) { // Target image should be also ready.
-    return;
-  }
-
-  auto idxHor = 0, idxVer = 0, idxZ = 0;
-
-  switch (iDirection) {
-  case PLANE_AXIAL:
-    idxHor = 0;
-    idxVer = 1;
-    idxZ = 2;
-    break;
-  case PLANE_FRONTAL:
-    idxHor = 0;
-    idxVer = 2;
-    idxZ = 1;
-    break;
-  case PLANE_SAGITTAL:
-    idxHor = 1;
-    idxVer = 2;
-    idxZ = 0;
-    break;
-  }
-
-  auto imgDim2D = spSrcImg2D->GetBufferedRegion().GetSize();
-  // FloatImage2DType::SpacingType spacing2D = spSrcImg2D->GetSpacing();
-  // FloatImage2DType::PointType origin2D = spSrcImg2D->GetOrigin();
-
-  auto imgDim3D = spTargetImg3D->GetBufferedRegion().GetSize();
-  // UShortImageType::SpacingType spacing3D = spTargetImg3D->GetSpacing();
-  // UShortImageType::PointType origin3D = spTargetImg3D->GetOrigin();
-
-  // Filtering
-  if (imgDim2D[0] != imgDim3D[idxHor] || imgDim2D[1] != imgDim3D[idxVer] ||
-      idx < 0 || idx >= static_cast<int>(imgDim3D[idxZ])) {
-    std::cout << "Error: image dimensions is not matching" << std::endl;
-    std::cout << "2D= " << imgDim2D << std::endl;
-    std::cout << "3D= " << imgDim3D << std::endl;
-    return;
-  }
-  /*int width = imgDim[idxHor];
-  int height  = imgDim[idxVer];*/
-
-  // itk::ImageRegionConstIteratorWithIndex<FloatImageType2D> it_2D (spSrcImg2D,
-  // spSrcImg2D->GetRequestedRegion());
-  itk::ImageRegionConstIterator<FloatImage2DType> it_2D(
-      spSrcImg2D, spSrcImg2D->GetRequestedRegion());
-  itk::ImageSliceIteratorWithIndex<UShortImageType> it_3D(
-      spTargetImg3D, spTargetImg3D->GetRequestedRegion());
-
-  it_3D.SetFirstDirection(idxHor);
-  it_3D.SetSecondDirection(idxVer);
-  it_3D.GoToBegin();
-
-  const int zSize = imgDim3D[idxZ];
-
-  it_2D.GoToBegin();
-
-  unsigned short outputVal = 0;
-  const auto max_ushort = std::numeric_limits<unsigned short>::max();
-  for (auto i = 0; i < zSize && !it_3D.IsAtEnd(); i++) {
-    /*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
-    QString crntFileName = crntFileInfo.fileName();
-    QString crntPath = strSavingFolder + "/" + crntFileName;*/
-    // Search matching slice using slice iterator for m_spProjCTImg
-    if (i == idx) {
-      while (!it_3D.IsAtEndOfSlice()) {
-        while (!it_3D.IsAtEndOfLine()) {
-          const auto fVal2D = it_2D.Get();
-
-          if (fVal2D < 0.0f) {
-            outputVal = 0U;
-          } else if (fVal2D > static_cast<float>(max_ushort)) {
-            outputVal = max_ushort;
-          } else {
-            outputVal = static_cast<unsigned short>(qRound(fVal2D));
-          }
-
-          it_3D.Set(outputVal);
-          // float tmpVal = (float)(it_3D.Get()); //in proj image case, this is
-          // intensity  it_2D.Set(tmpVal);
-          ++it_2D;
-          ++it_3D;
-        } // while2
-        it_3D.NextLine();
-      } // while1
-      break;
-    }
-    //
-    it_3D.NextSlice();
-  } // end of for
-}
-
-// void CbctRecon::Get2DFrom3D( FloatImageType::Pointer& spSrcImg3D,
-// FloatImageType2D::Pointer& spTargetImg2D, enPLANE iDirection)
-//{
-//
-//}
 class LineInt2Intensity {
 public:
   LineInt2Intensity() = default;
@@ -3249,11 +3042,11 @@ CbctRecon::ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D) {
   return convert_filter->GetOutput();
 }
 
-class Intensity2LineInt {
+template <typename Tinput> class Intensity2LineInt {
 public:
   Intensity2LineInt() = default;
   ~Intensity2LineInt() = default;
-  float operator()(const unsigned short val) const {
+  float operator()(const Tinput val) const {
     const auto max_ushort = std::numeric_limits<unsigned short>::max();
     // mu = ln(I_0/I) OR mu = ln(I/I0)
     const float mu_t_val =
@@ -3270,7 +3063,20 @@ FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt(
   }
   auto convert_filter =
       itk::UnaryFunctorImageFilter<UShortImageType, FloatImageType,
-                                   Intensity2LineInt>::New();
+                                   Intensity2LineInt<unsigned short>>::New();
+  convert_filter->SetInput(spProjIntensity3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
+
+FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt(
+    FloatImageType::Pointer &spProjIntensity3D) {
+  if (spProjIntensity3D == nullptr) {
+    return nullptr;
+  }
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<FloatImageType, FloatImageType,
+                                   Intensity2LineInt<float>>::New();
   convert_filter->SetInput(spProjIntensity3D);
   convert_filter->Update();
   return convert_filter->GetOutput();
@@ -3473,7 +3279,8 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
   // Original projection file can be replaced by the corrected one
   // Current projection map (float) used for the reconstruction is:
   // m_spProjImg3DFloat and this is resampled one
-  m_spProjImg3DFloat = ConvertIntensity2LineInt(m_spProjImgCorr3D);
+  m_spProjImg3DFloat =
+      m_spProjImgCorr3D; // ConvertIntensity2LineInt(m_spProjImgCorr3D);
 
   // Do reconstruction
 
@@ -4736,7 +4543,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
     return;
   }
 
-  m_spProjImgCT3D = UShortImageType::New(); // later
+  auto spProjImgCT3D = FloatImageType::New(); // later
   const auto projCT_size =
       m_spProjImgRaw3D->GetLargestPossibleRegion().GetSize(); // 1024 1024 350
   const auto projCT_idxStart =
@@ -4745,27 +4552,27 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   const auto projCT_origin =
       m_spProjImgRaw3D->GetOrigin(); //-204.6 -204.6 -174.5
 
-  UShortImageType::RegionType projCT_region;
+  FloatImageType::RegionType projCT_region;
   projCT_region.SetSize(projCT_size);
   projCT_region.SetIndex(projCT_idxStart);
 
-  m_spProjImgCT3D->SetRegions(projCT_region);
-  m_spProjImgCT3D->SetSpacing(projCT_spacing);
-  m_spProjImgCT3D->SetOrigin(projCT_origin);
+  spProjImgCT3D->SetRegions(projCT_region);
+  spProjImgCT3D->SetSpacing(projCT_spacing);
+  spProjImgCT3D->SetOrigin(projCT_origin);
 
-  m_spProjImgCT3D->Allocate();
-  m_spProjImgCT3D->FillBuffer(0);
+  spProjImgCT3D->Allocate();
+  spProjImgCT3D->FillBuffer(0);
 
   // YKTEMP
-  const auto proj_size = m_spProjImgCT3D->GetBufferedRegion().GetSize();
+  const auto proj_size = spProjImgCT3D->GetBufferedRegion().GetSize();
   std::cout << "ProjImgCT Size = " << proj_size[0] << ", " << proj_size[1]
             << ", " << proj_size[2] << std::endl;
-  std::cout << "ProjImgCT origin = " << m_spProjImgCT3D->GetOrigin()[0] << ", "
-            << m_spProjImgCT3D->GetOrigin()[1] << ", "
-            << m_spProjImgCT3D->GetOrigin()[2] << std::endl;
-  std::cout << "ProjImgCT spacing = " << m_spProjImgCT3D->GetSpacing()[0]
-            << ", " << m_spProjImgCT3D->GetSpacing()[1] << ", "
-            << m_spProjImgCT3D->GetSpacing()[2] << std::endl;
+  std::cout << "ProjImgCT origin = " << spProjImgCT3D->GetOrigin()[0] << ", "
+            << spProjImgCT3D->GetOrigin()[1] << ", "
+            << spProjImgCT3D->GetOrigin()[2] << std::endl;
+  std::cout << "ProjImgCT spacing = " << spProjImgCT3D->GetSpacing()[0] << ", "
+            << spProjImgCT3D->GetSpacing()[1] << ", "
+            << spProjImgCT3D->GetSpacing()[2] << std::endl;
 
   const int iCntRefVol = m_strListPerProjRefVol.count();
 
@@ -4822,18 +4629,10 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
     {
       SingleForwardProjection<FloatImageType>(spAttFloat, curMVAngle,
                                               curPanelOffsetX, curPanelOffsetY,
-                                              m_spProjImgCT3D, i);
+                                              spProjImgCT3D, i);
     }
     std::cout << "Proj: " << i << "/" << iCntRefVol << std::endl;
   }
-
-  /* typedef itk::ImageFileWriter<UShortImageType> WriterType;
-   WriterType::Pointer writer = WriterType::New();
-   writer->SetFileName("D:/TmpProjCT3D.mha");
-   writer->SetUseCompression(true);
-   writer->SetInput(m_spProjImgCT3D);
-   writer->Update();
-   */
 
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
@@ -4842,57 +4641,33 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
             << "will be multiplied during scatter correction to avoid negative "
                "scatter"
             << std::endl;
+  auto cast_ushort_to_float =
+      itk::CastImageFilter<UShortImageType, FloatImageType>::New();
+  cast_ushort_to_float->SetInput(m_spProjImgRaw3D);
+  cast_ushort_to_float->Update();
+  FloatImageType::Pointer spProjImg3DFloat = cast_ushort_to_float->GetOutput();
 
-  GenScatterMap_PriorCT(m_spProjImgRaw3D, m_spProjImgCT3D, m_spProjImgScat3D,
-                        scaMedian, scaGaussian, m_iFixedOffset_ScatterMap,
-                        false);  // void GenScatterMap2D_PriorCT()
-  m_spProjImgCT3D->Initialize(); // memory saving
+  GenScatterMap_PriorCT(spProjImg3DFloat, spProjImgCT3D, m_spProjImgScat3D,
+                        scaMedian, scaGaussian,
+                        false); // void GenScatterMap2D_PriorCT()
+  spProjImgCT3D->Initialize();  // memory saving
 
   std::cout << "Scatter correction is in progress..." << std::endl;
 
-  ScatterCorr_PrioriCT(m_spProjImgRaw3D, m_spProjImgScat3D, m_spProjImgCorr3D,
-                       m_iFixedOffset_ScatterMap, postScatMedianSize, true);
+  ScatterCorr_PrioriCT(spProjImg3DFloat, m_spProjImgScat3D, m_spProjImgCorr3D,
+                       postScatMedianSize, true);
   m_spProjImgScat3D->Initialize(); // memory saving
+
+  auto cast_float_to_ushort =
+      itk::CastImageFilter<FloatImageType, UShortImageType>::New();
+  cast_float_to_ushort->SetInput(spProjImg3DFloat);
+  cast_float_to_ushort->Update();
+  m_spProjImgRaw3D = cast_float_to_ushort->GetOutput();
 
   std::cout << "AfterCorrectionMacro is ongoing..." << std::endl;
   AfterScatCorrectionMacro(use_cuda, use_opencl, save_dicom, fdk_options);
   std::cout << "FINISHED!Scatter correction: CBCT DICOM files are saved"
             << std::endl;
-
-  ////1) Export current CBCT file
-  // QString filePathCBCT = m_strPathPlastimatch + "/" + "CorrCBCT.mha";
-  // //usually corrected one  QString filePathCBCT_noSkin = m_strPathPlastimatch
-  // +
-  // "/" + "CorrCBCT_final.mha"; //usually corrected one
-
-  // typedef itk::ImageFileWriter<UShortImageType> writerType;
-  // writerType::Pointer writer = writerType::New();
-  // writer->SetFileName(filePathCBCT.toLocal8Bit().constData());
-  // writer->SetUseCompression(true);
-  // writer->SetInput(spCBCT);
-
-  // std::cout << "Writing the CBCT file" << std::endl;
-  // writer->Update();
-
-  // QFileInfo CBCTInfo(filePathCBCT);
-  // if (!CBCTInfo.exists())
-  //{
-  //    std::cout << "No CBCT file to read. Maybe prior writing failed" <<
-  //    std::endl; return;
-  //}
-
-  ////ERROR HERE! delete the temporry folder.
-  // std::cout << "Delete the temporary folder if it crashes" << std::endl;
-
-  ////4) eliminate the air region (temporarily)
-  ////Mask_parms parms_msk;
-  ////DIMENSION SHOULD BE MATCHED!!!! BETWEEN raw CBCT and Mask files
-  // Mask_operation mask_option = MASK_OPERATION_MASK;
-  // QString input_fn = filePathCBCT.toLocal8Bit().constData();
-  // QString mask_fn = strPath_mskSkinCT_final.toLocal8Bit().constData();
-  // QString output_fn = filePathCBCT_noSkin.toLocal8Bit().constData();
-  // float mask_value = 0.0; //unsigned short
-  // plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
 }
 
 // double CbctRecon::CropSkinUsingRS(UShortImageType::Pointer& spImgUshort,

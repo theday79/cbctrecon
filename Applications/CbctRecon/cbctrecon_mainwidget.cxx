@@ -1751,9 +1751,11 @@ void CbctReconWidget::SLT_ViewHistogram() const
     } else
 #endif
     {
-      m_cbctrecon->ForwardProjection<FloatImageType>(
-          m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
-          m_cbctrecon->m_spProjImgCT3D); // final moving image
+      /*
+    m_cbctrecon->ForwardProjection<FloatImageType>(
+        m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
+        m_cbctrecon->m_spProjImgCT3D); // final moving image
+        */
     }
   }
 
@@ -1761,6 +1763,15 @@ void CbctReconWidget::SLT_ViewHistogram() const
 }
 
 void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
+
+  if ((this->m_cbctrecon->m_spRefCTImg == nullptr &&
+       m_dlgRegistration->m_spMoving == nullptr) ||
+      m_dlgRegistration->m_spFixed == nullptr) {
+    std::cerr
+        << "Error!: No ref or no fixed image for forward projection is found."
+        << "\n";
+    return;
+  }
 
   const auto bExportProj_Fwd = this->ui.checkBox_ExportFwd->isChecked();
   const auto bExportProj_Scat = this->ui.checkBox_ExportScat->isChecked();
@@ -1773,29 +1784,28 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
         this, tr("Open Directory"), ".",
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   }
-  auto &p_projimg = this->m_cbctrecon->m_spProjImgCT3D;
 
+  // Overwrite the raw projections by re-projecting them from the potentially
+  // modified CBCT
+  auto spProjImg3DFloat =
+      this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+          m_dlgRegistration->m_spFixed, this->m_cbctrecon->m_spCustomGeometry,
+          bExportProj_Fwd, this->ui.radioButton_UseCUDA->isChecked());
+
+  FloatImageType::Pointer p_projimg;
   if (m_dlgRegistration->m_spMoving != nullptr) {
-    this->m_cbctrecon
-        ->ForwardProjection_master<UShortImageType, UShortImageType>(
-            m_dlgRegistration->m_spMoving,
-            this->m_cbctrecon->m_spCustomGeometry,
-            this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
-            this->ui.radioButton_UseCUDA->isChecked()); // final moving image
+    p_projimg = this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+        m_dlgRegistration->m_spMoving, this->m_cbctrecon->m_spCustomGeometry,
+        bExportProj_Fwd,
+        this->ui.radioButton_UseCUDA->isChecked()); // final moving image
   } else if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
     std::cerr << "No Moving image in Registration is found. Ref CT image will "
                  "be used instead"
               << "\n";
-    this->m_cbctrecon
-        ->ForwardProjection_master<UShortImageType, UShortImageType>(
-            this->m_cbctrecon->m_spRefCTImg,
-            this->m_cbctrecon->m_spCustomGeometry,
-            this->m_cbctrecon->m_spProjImgCT3D, bExportProj_Fwd,
-            this->ui.radioButton_UseCUDA->isChecked()); // final moving image
-  } else {
-    std::cerr << "Error!: No ref image for forward projection is found."
-              << "\n";
-    return;
+    p_projimg = this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+        this->m_cbctrecon->m_spRefCTImg, this->m_cbctrecon->m_spCustomGeometry,
+        bExportProj_Fwd,
+        this->ui.radioButton_UseCUDA->isChecked()); // final moving image
   }
 
   // YKTEMP
@@ -1816,9 +1826,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
   this->m_cbctrecon->GenScatterMap_PriorCT(
-      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgCT3D,
-      this->m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
-      this->m_cbctrecon->m_iFixedOffset_ScatterMap,
+      spProjImg3DFloat, p_projimg, this->m_cbctrecon->m_spProjImgScat3D,
+      scaMedian, scaGaussian,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
 
   std::cout << "To account for the mAs values, the intensity scale factor of "
@@ -1837,11 +1846,12 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   const auto postScatMedianSize =
       this->ui.lineEdit_scaPostMedian->text().toInt();
-  this->m_cbctrecon->ScatterCorr_PrioriCT(
-      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgScat3D,
-      this->m_cbctrecon->m_spProjImgCorr3D,
-      this->m_cbctrecon->m_iFixedOffset_ScatterMap, postScatMedianSize,
-      bExportProj_Cor);
+
+  this->m_cbctrecon->ScatterCorr_PrioriCT(spProjImg3DFloat,
+                                          this->m_cbctrecon->m_spProjImgScat3D,
+                                          this->m_cbctrecon->m_spProjImgCorr3D,
+                                          postScatMedianSize, bExportProj_Cor);
+
   this->m_cbctrecon->m_spProjImgScat3D->Initialize(); // memory saving
 
   std::cout << "AfterCorrectionMacro is ongoing..." << std::endl;
@@ -2635,10 +2645,9 @@ void CbctReconWidget::SLTM_ForwardProjection() {
           curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
     }
 
-    this->m_cbctrecon
-        ->ForwardProjection_master<UShortImageType, UShortImageType>(
-            this->m_cbctrecon->m_spRawReconImg, crntGeometry,
-            this->m_cbctrecon->m_spProjImgRaw3D, false,
+    auto spProjImgRaw3D =
+        this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+            this->m_cbctrecon->m_spRawReconImg, crntGeometry, false,
             this->ui.radioButton_UseCUDA->isChecked());
     // Save proj3D;
 
@@ -2652,12 +2661,12 @@ void CbctReconWidget::SLTM_ForwardProjection() {
       return;
     }
 
-    using WriterType = itk::ImageFileWriter<UShortImageType>;
+    using WriterType = itk::ImageFileWriter<FloatImageType>;
     auto writer = WriterType::New();
     writer->SetFileName(outputPath.toLocal8Bit().constData());
     // writer->SetUseCompression(true);
     writer->SetUseCompression(true); // for plastimatch
-    writer->SetInput(this->m_cbctrecon->m_spProjImgRaw3D);
+    writer->SetInput(spProjImgRaw3D);
     writer->Update();
 
     return;
@@ -2724,10 +2733,16 @@ void CbctReconWidget::SLTM_ForwardProjection() {
       this, tr("Open Directory"), ".",
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
   //}
-  this->m_cbctrecon->ForwardProjection_master<UShortImageType, UShortImageType>(
-      this->m_cbctrecon->m_spRawReconImg, crntGeometry,
-      this->m_cbctrecon->m_spProjImgRaw3D, true,
-      this->ui.radioButton_UseCUDA->isChecked());
+  auto spProjImgRaw3D =
+      this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+          this->m_cbctrecon->m_spRawReconImg, crntGeometry, true,
+          this->ui.radioButton_UseCUDA->isChecked());
+
+  auto cast_float_to_ushort =
+      itk::CastImageFilter<FloatImageType, UShortImageType>::New();
+  cast_float_to_ushort->SetInput(spProjImgRaw3D);
+  cast_float_to_ushort->Update();
+  this->m_cbctrecon->m_spProjImgRaw3D = cast_float_to_ushort->GetOutput();
 
   // Export geometry txt
   /* QString strPath = QFileDialog::getSaveFileName(this, "Save geometry file

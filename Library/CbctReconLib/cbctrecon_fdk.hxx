@@ -528,32 +528,31 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 }
 
 // output spProjCT3D => intensity value, not line integral
-template <typename CTImageType, typename ProjImageType>
-void CbctRecon::ForwardProjection_master(
-    typename CTImageType::Pointer &spVolImg3D,
-    GeometryType::Pointer &spGeometry,
-    typename ProjImageType::Pointer &spProjCT3D, const bool bSave,
-    const bool use_cuda) {
+template <typename CTImageType>
+FloatImageType::Pointer
+CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
+                                    GeometryType::Pointer &spGeometry,
+                                    const bool bSave, const bool use_cuda) {
   if (spVolImg3D == nullptr) {
     std::cout << "ERROR! No 3D-CT file. Load 3D CT file first" << std::endl;
-    return;
+    return nullptr;
   }
 
   if (this->m_iCntSelectedProj < 1 && bSave) {
     std::cout << "Error! No projection image is loaded" << std::endl;
-    return;
+    return nullptr;
   }
 
   if (spGeometry->GetGantryAngles().empty()) {
     std::cout << "No geometry!" << std::endl;
-    return;
+    return nullptr;
   }
 
+  FloatImageType::Pointer spProj3D;
 #if USE_CUDA
   if (use_cuda) {
-    this->ForwardProjection<CUDAFloatImageType>(
-        spVolImg3D, spGeometry,
-        spProjCT3D); // final moving image
+    spProj3D = this->ForwardProjection<CUDAFloatImageType>(
+        spVolImg3D, spGeometry); // final moving image
   } else
 #else
   if (use_cuda) {
@@ -563,8 +562,8 @@ void CbctRecon::ForwardProjection_master(
 
 #endif
   {
-    this->ForwardProjection<FloatImageType>(spVolImg3D, spGeometry,
-                                            spProjCT3D); // final moving image
+    spProj3D = this->ForwardProjection<FloatImageType>(
+        spVolImg3D, spGeometry); // final moving image
   }
   if (bSave) {
     // Saving part: save as his file in sub-folder of raw image
@@ -579,7 +578,7 @@ void CbctRecon::ForwardProjection_master(
       std::cout << "File save error!: No patient DIR name" << std::endl;
 
       if (this->m_strPathPatientDir.length() <= 1) {
-        return;
+        return spProj3D;
       }
       manuallySelectedDir = true;
     }
@@ -599,12 +598,12 @@ void CbctRecon::ForwardProjection_master(
         if (!success) {
           std::cerr << "Could not create subfolder IMAGES in given directory"
                     << std::endl;
-          return;
+          return spProj3D;
         }
       } else {
         std::cout << "File save error: The specified folder does not exist."
                   << std::endl;
-        return;
+        return spProj3D;
       }
     }
 
@@ -620,9 +619,10 @@ void CbctRecon::ForwardProjection_master(
     }
 
     auto strSavingFolder = strCrntDir + "/" + fwdDirName;
-    this->SaveProjImageAsHIS(spProjCT3D, this->m_arrYKBufProj, strSavingFolder,
+    this->SaveProjImageAsHIS(spProj3D, this->m_arrYKBufProj, strSavingFolder,
                              this->m_fResampleF);
   }
+  return spProj3D;
 }
 
 template <typename ImageType> struct forward_projector {
@@ -643,9 +643,9 @@ template <> struct forward_projector<CUDAFloatImageType> {
 #endif
 
 template <typename DevFloatImageType>
-void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                                  GeometryType::Pointer &spGeometry,
-                                  UShortImageType::Pointer &spProjCT3D) const {
+FloatImageType::Pointer
+CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
+                             GeometryType::Pointer &spGeometry) const {
 
   // m_spProjCTImg --> spProjCT3D
 
@@ -835,64 +835,67 @@ void CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
             << " min: " << stat_filter->GetMinimum()
             << " max: " << stat_filter->GetMaximum() << "\n";
 
+  return spResultProjImageFloat;
   // From Float to USHORT and line integral to intensity
+  /*
+    spProjCT3D = UShortImageType::New(); // later
+    const auto projCT_size = spResultProjImageFloat->GetLargestPossibleRegion()
+                                 .GetSize(); // 1024 1024 350
+    const auto projCT_idxStart =
+        spResultProjImageFloat->GetLargestPossibleRegion().GetIndex(); // 0 0 0
+    const auto projCT_spacing =
+        spResultProjImageFloat->GetSpacing(); // 0.4 0.4 1.0
+    const auto projCT_origin =
+        spResultProjImageFloat->GetOrigin(); //-204.6 -204.6 -174.5
 
-  spProjCT3D = UShortImageType::New(); // later
-  const auto projCT_size = spResultProjImageFloat->GetLargestPossibleRegion()
-                               .GetSize(); // 1024 1024 350
-  const auto projCT_idxStart =
-      spResultProjImageFloat->GetLargestPossibleRegion().GetIndex(); // 0 0 0
-  const auto projCT_spacing =
-      spResultProjImageFloat->GetSpacing(); // 0.4 0.4 1.0
-  const auto projCT_origin =
-      spResultProjImageFloat->GetOrigin(); //-204.6 -204.6 -174.5
+    // Copy informations from spResultProjImageFloat
+    FloatImageType::RegionType projCT_region;
+    projCT_region.SetSize(projCT_size);
+    projCT_region.SetIndex(projCT_idxStart);
 
-  // Copy informations from spResultProjImageFloat
-  FloatImageType::RegionType projCT_region;
-  projCT_region.SetSize(projCT_size);
-  projCT_region.SetIndex(projCT_idxStart);
+    spProjCT3D->SetRegions(projCT_region);
+    spProjCT3D->SetSpacing(projCT_spacing);
+    spProjCT3D->SetOrigin(projCT_origin);
 
-  spProjCT3D->SetRegions(projCT_region);
-  spProjCT3D->SetSpacing(projCT_spacing);
-  spProjCT3D->SetOrigin(projCT_origin);
+    spProjCT3D->Allocate();
+    spProjCT3D->FillBuffer(0);
 
-  spProjCT3D->Allocate();
-  spProjCT3D->FillBuffer(0);
+    // Calculation process
+    itk::ImageRegionConstIterator<FloatImageType> itSrc(
+        spResultProjImageFloat, spResultProjImageFloat->GetRequestedRegion());
+    itk::ImageRegionIterator<UShortImageType> itTarg(
+        spProjCT3D, spProjCT3D->GetRequestedRegion()); // writing
 
-  // Calculation process
-  itk::ImageRegionConstIterator<FloatImageType> itSrc(
-      spResultProjImageFloat, spResultProjImageFloat->GetRequestedRegion());
-  itk::ImageRegionIterator<UShortImageType> itTarg(
-      spProjCT3D, spProjCT3D->GetRequestedRegion()); // writing
+    itSrc.GoToBegin();
+    itTarg.GoToBegin();
 
-  itSrc.GoToBegin();
-  itTarg.GoToBegin();
+    // Convert line integral to intensity value (I0/I = exp(mu_t)) --> I =
+    // I0/exp(mu_t)
+    const auto ushort_max = std::numeric_limits<unsigned short>::max();
+    while (!itSrc.IsAtEnd() && !itTarg.IsAtEnd()) {
+      const auto fProjVal = itSrc.Get();                  // mu_t //63.5
+    --> 6.35 const auto tmpConvVal = ushort_max / exp(fProjVal); // physically
+    true
 
-  // Convert line integral to intensity value (I0/I = exp(mu_t)) --> I =
-  // I0/exp(mu_t)
-  const auto ushort_max = std::numeric_limits<unsigned short>::max();
-  while (!itSrc.IsAtEnd() && !itTarg.IsAtEnd()) {
-    const auto fProjVal = itSrc.Get();                  // mu_t //63.5 --> 6.35
-    const auto tmpConvVal = ushort_max / exp(fProjVal); // physically true
+      if (tmpConvVal <= 0.0) {
+        itTarg.Set(0);
+      } else if (tmpConvVal > ushort_max) {
+        itTarg.Set(ushort_max);
+      } else {
+        itTarg.Set(static_cast<unsigned short>(tmpConvVal));
+      }
 
-    if (tmpConvVal <= 0.0) {
-      itTarg.Set(0);
-    } else if (tmpConvVal > ushort_max) {
-      itTarg.Set(ushort_max);
-    } else {
-      itTarg.Set(static_cast<unsigned short>(tmpConvVal));
+      ++itSrc;
+      ++itTarg;
     }
 
-    ++itSrc;
-    ++itTarg;
-  }
-
-  // spProjCT3D: USHORT IMAGE of intensity. Not inverted (physical intensity)
+    // spProjCT3D: USHORT IMAGE of intensity. Not inverted (physical intensity)
+    */
 }
 
-template <typename OutImageType>
+template <typename LikeImageType, typename OutImageType>
 typename OutImageType::Pointer
-create_empty_projections(UShortImageType::Pointer &spProjImg3D) {
+create_empty_projections(typename LikeImageType::Pointer &spProjImg3D) {
 
   // Create a stack of empty projection images
   using ConstantImageSourceType =
@@ -959,7 +962,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
                                         const float fMVGanAngle,
                                         const float panelOffsetX,
                                         const float panelOffsetY,
-                                        UShortImageType::Pointer &spProjImg3D,
+                                        FloatImageType::Pointer &spProjImg3D,
                                         const int iSliceIdx) const {
   if (spVolImgFloat == nullptr) {
     return;
@@ -1007,8 +1010,8 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
       curSrcOffsetX, curSrcOffsetY);         // In elekta, these are 0
 
   itk::TimeProbe projProbe;
-  const auto proj_husk =
-      create_empty_projections<DevFloatImageType>(spProjImg3D);
+  auto proj_husk = // Don't use const to allow for in-place filter
+      create_empty_projections<FloatImageType, DevFloatImageType>(spProjImg3D);
   forward_projection->SetInput(
       proj_husk); // Canvas. projection image will be saved here.
   using Caster = itk::CastImageFilter<FloatImageType, DevFloatImageType>;
@@ -1067,7 +1070,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
 
   itSrc.GoToBegin();
 
-  itk::ImageSliceIteratorWithIndex<UShortImageType> it_FwdProj3D(
+  itk::ImageSliceIteratorWithIndex<FloatImageType> it_FwdProj3D(
       spProjImg3D, spProjImg3D->GetRequestedRegion());
 
   it_FwdProj3D.SetFirstDirection(0);
@@ -1086,6 +1089,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
           // mu_t //63.5 --> 6.35
           const auto tmpConvVal = 65535.0 / exp(fProjVal); // intensity value
 
+          /*
           unsigned short val = 0;
           if (tmpConvVal <= 0.0) {
             val = 0;
@@ -1099,6 +1103,8 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
           // tmpVal = 65535 - tmpVal; //inverse is done here
 
           it_FwdProj3D.Set(val);
+          */
+          it_FwdProj3D.Set(tmpConvVal);
 
           ++it_FwdProj3D;
           ++itSrc;

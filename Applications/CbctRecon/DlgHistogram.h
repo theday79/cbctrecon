@@ -4,6 +4,8 @@
 #include "ui_DlgHistogram.h"
 #include <QDialog>
 
+#include "cbctrecon_types.h"
+
 class CbctReconWidget;
 
 class DlgHistogram : public QDialog, public Ui::DlgHistogramClass {
@@ -21,6 +23,8 @@ public:
   ~DlgHistogram() = default;
 
   CbctReconWidget *m_pParent{}; // to pull 3D images
+  FloatImageType::Pointer m_spProjImgRaw3D;
+  FloatImageType::Pointer m_spProjImgCT3D;
 
 private:
   Ui::DlgHistogramClass ui{};

@@ -482,6 +482,15 @@ void CbctReconTest::test_ViewHistogram() {}
 
 void CbctReconTest::test_DoScatterCorrection_APRIORI() {
 
+  if ((this->m_cbctrecon->m_spRefCTImg == nullptr &&
+       m_dlgRegistration->m_spMoving == nullptr) ||
+      m_dlgRegistration->m_spFixed == nullptr) {
+    std::cerr
+        << "Error!: No ref or no fixed image for forward projection is found."
+        << "\n";
+    return;
+  }
+
   const auto bExportProj_Fwd =
       false; // this->ui.checkBox_ExportFwd->isChecked();
   const auto bExportProj_Scat =
@@ -494,7 +503,6 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
   if (bExportProj_Fwd) {
     this->m_cbctrecon->m_strPathPatientDir = "";
   }
-  auto &p_projimg = this->m_cbctrecon->m_spProjImgCT3D;
 
 #ifdef USE_CUDA
   const auto use_cuda = true;
@@ -502,25 +510,25 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
   const auto use_cuda = false;
 #endif
 
+  // Overwrite the raw projections by re-projecting them from the potentially
+  // modified CBCT
+  auto spProjImg3DFloat =
+      this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+          m_dlgRegistration->m_spFixed, this->m_cbctrecon->m_spCustomGeometry,
+          bExportProj_Fwd, use_cuda);
+
+  FloatImageType::Pointer p_projimg;
   if (m_dlgRegistration->m_spMoving != nullptr) {
-    this->m_cbctrecon
-        ->ForwardProjection_master<UShortImageType, UShortImageType>(
-            m_dlgRegistration->m_spMoving,
-            this->m_cbctrecon->m_spCustomGeometry, p_projimg, bExportProj_Fwd,
-            use_cuda);
+    p_projimg = this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+        m_dlgRegistration->m_spMoving, this->m_cbctrecon->m_spCustomGeometry,
+        bExportProj_Fwd, use_cuda);
   } else if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
     std::cerr << "No Moving image in Registration is found. Ref CT image will "
                  "be used instead"
               << "\n";
-    this->m_cbctrecon
-        ->ForwardProjection_master<UShortImageType, UShortImageType>(
-            this->m_cbctrecon->m_spRefCTImg,
-            this->m_cbctrecon->m_spCustomGeometry, p_projimg, bExportProj_Fwd,
-            use_cuda);
-  } else {
-    std::cerr << "Error!: No ref image for forward projection is found."
-              << "\n";
-    return;
+    p_projimg = this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
+        this->m_cbctrecon->m_spRefCTImg, this->m_cbctrecon->m_spCustomGeometry,
+        bExportProj_Fwd, use_cuda);
   }
 
   // double scaResam = this->ui.lineEdit_scaResam->text().toDouble();
@@ -532,9 +540,8 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
   this->m_cbctrecon->GenScatterMap_PriorCT(
-      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgCT3D,
-      this->m_cbctrecon->m_spProjImgScat3D, scaMedian, scaGaussian,
-      this->m_cbctrecon->m_iFixedOffset_ScatterMap,
+      spProjImg3DFloat, p_projimg, this->m_cbctrecon->m_spProjImgScat3D,
+      scaMedian, scaGaussian,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
 
   std::cout << "To account for the mAs values, the intensity scale factor of "
@@ -553,11 +560,11 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() {
 
   const auto postScatMedianSize =
       3.0; // this->ui.lineEdit_scaPostMedian->text().toInt();
-  this->m_cbctrecon->ScatterCorr_PrioriCT(
-      this->m_cbctrecon->m_spProjImgRaw3D, this->m_cbctrecon->m_spProjImgScat3D,
-      this->m_cbctrecon->m_spProjImgCorr3D,
-      this->m_cbctrecon->m_iFixedOffset_ScatterMap, postScatMedianSize,
-      bExportProj_Cor);
+  this->m_cbctrecon->ScatterCorr_PrioriCT(spProjImg3DFloat,
+                                          this->m_cbctrecon->m_spProjImgScat3D,
+                                          this->m_cbctrecon->m_spProjImgCorr3D,
+                                          postScatMedianSize, bExportProj_Cor);
+
   this->m_cbctrecon->m_spProjImgScat3D->Initialize(); // memory saving
 
   std::cout << "AfterCorrectionMacro is ongoing..." << std::endl;

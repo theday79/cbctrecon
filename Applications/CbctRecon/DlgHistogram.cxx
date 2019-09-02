@@ -23,17 +23,16 @@ DlgHistogram::DlgHistogram(CbctReconWidget *parent) : QDialog(parent) {
 
 struct HistogramType {
   HistogramType(const size_t n_bins) {
-    hist_data = std::valarray<unsigned int>(n_bins);
+    hist_data = std::valarray<float>(n_bins);
     bin_size =
         static_cast<float>(std::numeric_limits<unsigned short>::max()) / n_bins;
   }
-  std::valarray<unsigned int> hist_data;
+  std::valarray<float> hist_data;
   float bin_size = 0.0f;
 };
 
-void threaded_calculate_histogram(
-    HistogramType &histogram_out,
-    const std::valarray<unsigned short> &raw_data) {
+void threaded_calculate_histogram(HistogramType &histogram_out,
+                                  const std::valarray<float> &raw_data) {
   const auto bin_scaling = 1.f / histogram_out.bin_size;
 
   for (auto &val : raw_data) {
@@ -42,21 +41,20 @@ void threaded_calculate_histogram(
 }
 
 void DlgHistogram::SLT_DrawGraph() const {
-  auto &raw_img = m_pParent->m_cbctrecon->m_spProjImgRaw3D;
-  auto &ct_img = m_pParent->m_cbctrecon->m_spProjImgCT3D;
+  auto &raw_img = this->m_spProjImgRaw3D;
+  auto &ct_img = this->m_spProjImgCT3D;
   if (!raw_img || !ct_img) {
     return;
   }
 
   const auto &raw_size = raw_img->GetLargestPossibleRegion().GetSize();
   const auto size_raw_data = raw_size[0] * raw_size[1] * raw_size[2];
-  const std::valarray<unsigned short> raw_data(raw_img->GetBufferPointer(),
-                                               size_raw_data);
+  const std::valarray<float> raw_data(raw_img->GetBufferPointer(),
+                                      size_raw_data);
 
   const auto &ct_size = raw_img->GetLargestPossibleRegion().GetSize();
   const auto size_ct_data = ct_size[0] * ct_size[1] * ct_size[2];
-  const std::valarray<unsigned short> ct_data(ct_img->GetBufferPointer(),
-                                              size_ct_data);
+  const std::valarray<float> ct_data(ct_img->GetBufferPointer(), size_ct_data);
 
   const auto n_bins = static_cast<size_t>(ui.spinBox_nBins->value());
 

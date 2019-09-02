@@ -5,12 +5,14 @@
 
 #include <algorithm> // for std::max
 #include <iostream>
+#include <type_traits>
 
 #include <qdir.h>
 #include <qfileinfo.h>
 #include <qstring.h>
 
 #include "itkImage.h"
+#include "itkImageSliceIteratorWithIndex.h"
 
 #include "rtkFieldOfViewImageFilter.h"
 #include "rtkThreeDCircularProjectionGeometry.h"
@@ -26,7 +28,7 @@ CBCTRECON_API double GetMaxAndMinValueOfProjectionImage(
     double &fProjImgValueMax, double &fProjImgValueMin,
     const FloatImageType::Pointer &projImage); // , double theoreticalMin);
 
-CBCTRECON_API void Get2DFrom3D(UShortImageType::Pointer &spSrcImg3D,
+CBCTRECON_API void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
                                FloatImage2DType::Pointer &spTargetImg2D,
                                int idx, enPLANE iDirection);
 
@@ -151,6 +153,100 @@ bool GetOutputResolutionFromFOV(
   }
 
   return false;
+}
+
+template <class T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
+auto float_to_(const float input) {
+  const auto max_ushort = std::numeric_limits<unsigned short>::max();
+  if (input < 0.0f) {
+    return static_cast<T>(0);
+  } else if (input > static_cast<float>(max_ushort)) {
+    return static_cast<T>(max_ushort -
+                          1); // - 1 to avoid implicit cast overflow
+  } else {
+    return static_cast<T>(qRound(input));
+  }
+}
+
+template <class T, std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+auto float_to_(const float input) {
+  return static_cast<T>(input);
+}
+
+template <typename OutputImageType>
+void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
+               typename OutputImageType::Pointer &spTargetImg3D, const int idx,
+               const enPLANE iDirection) {
+  if (spSrcImg2D == nullptr ||
+      spTargetImg3D == nullptr) { // Target image should be also ready.
+    return;
+  }
+
+  auto idxHor = 0, idxVer = 0, idxZ = 0;
+
+  switch (iDirection) {
+  case PLANE_AXIAL:
+    idxHor = 0;
+    idxVer = 1;
+    idxZ = 2;
+    break;
+  case PLANE_FRONTAL:
+    idxHor = 0;
+    idxVer = 2;
+    idxZ = 1;
+    break;
+  case PLANE_SAGITTAL:
+    idxHor = 1;
+    idxVer = 2;
+    idxZ = 0;
+    break;
+  }
+
+  auto imgDim2D = spSrcImg2D->GetBufferedRegion().GetSize();
+  auto imgDim3D = spTargetImg3D->GetBufferedRegion().GetSize();
+
+  // Filtering
+  if (imgDim2D[0] != imgDim3D[idxHor] || imgDim2D[1] != imgDim3D[idxVer] ||
+      idx < 0 || idx >= static_cast<int>(imgDim3D[idxZ])) {
+    std::cout << "Error: image dimensions is not matching" << std::endl;
+    std::cout << "2D= " << imgDim2D << std::endl;
+    std::cout << "3D= " << imgDim3D << std::endl;
+    return;
+  }
+
+  itk::ImageRegionConstIterator<FloatImage2DType> it_2D(
+      spSrcImg2D, spSrcImg2D->GetRequestedRegion());
+  typename itk::ImageSliceIteratorWithIndex<OutputImageType> it_3D(
+      spTargetImg3D, spTargetImg3D->GetRequestedRegion());
+
+  it_3D.SetFirstDirection(idxHor);
+  it_3D.SetSecondDirection(idxVer);
+  it_3D.GoToBegin();
+
+  const int zSize = imgDim3D[idxZ];
+
+  it_2D.GoToBegin();
+
+  for (auto i = 0; i < zSize && !it_3D.IsAtEnd(); i++) {
+    // Search matching slice using slice iterator for m_spProjCTImg
+    if (i == idx) {
+      while (!it_3D.IsAtEndOfSlice()) {
+        while (!it_3D.IsAtEndOfLine()) {
+
+          it_3D.Set(
+              float_to_<typename OutputImageType::ValueType>(it_2D.Get()));
+          // float tmpVal = (float)(it_3D.Get()); //in proj image case, this is
+          // intensity  it_2D.Set(tmpVal);
+          ++it_2D;
+          ++it_3D;
+        } // while2
+        it_3D.NextLine();
+      } // while1
+      break;
+    }
+    //
+    it_3D.NextSlice();
+  } // end of for
 }
 
 #endif // CBCTRECON_COMPUTE_H

@@ -1271,8 +1271,6 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
   return !(fabs(kVp * mA * ms) < 0.0001f);
 }
 
-// Projection image Median filtering using CUDA
-
 // Dir or File
 bool LoadShortImageDirOrFile(QString &strPathDir,
                              ShortImageType::Pointer &spOutputShortImg) {
@@ -1284,16 +1282,6 @@ bool LoadShortImageDirOrFile(QString &strPathDir,
   Plm_image plmImg;
   plmImg.load_native(strPathDir.toLocal8Bit().constData());
   const auto spShortImg = plmImg.itk_short();
-
-  // Figure out whether this is NKI
-  using ImageCalculatorFilterType =
-      itk::MinimumMaximumImageCalculator<ShortImageType>;
-  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
-  imageCalculatorFilter->SetImage(spShortImg);
-  imageCalculatorFilter->Compute();
-
-  /* double minVal0 = (double)(imageCalculatorFilter->GetMinimum());
-  double maxVal0 = (double)(imageCalculatorFilter->GetMaximum());*/
 
   // Thresholding
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;

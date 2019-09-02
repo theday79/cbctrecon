@@ -123,34 +123,34 @@ public:
 
   void FindAllRelevantPaths(const QString &pathProjHisDir);
 
-  template <typename CTImageType, typename ProjImageType>
-  void ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
-                                GeometryType::Pointer &spGeometry,
-                                typename ProjImageType::Pointer &spProjCT3D,
-                                bool bSave, bool use_cuda);
+  template <typename CTImageType>
+  FloatImageType::Pointer
+  ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
+                           GeometryType::Pointer &spGeometry, bool bSave,
+                           bool use_cuda);
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
   template <typename DevFloatImageType>
-  void ForwardProjection(UShortImageType::Pointer &spVolImg3D,
-                         GeometryType::Pointer &spGeometry,
-                         UShortImageType::Pointer &spProjCT3D) const;
+  FloatImageType::Pointer
+  ForwardProjection(UShortImageType::Pointer &spVolImg3D,
+                    GeometryType::Pointer &spGeometry) const;
 
   // to be implemented: Save projection3D to *.his files
-  void GenScatterMap_PriorCT(UShortImageType::Pointer &spProjRaw3D,
-                             UShortImageType::Pointer &spProjCT3D,
-                             UShortImageType::Pointer &spProjScat3D,
+  void GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
+                             FloatImageType::Pointer &spProjCT3D,
+                             FloatImageType::Pointer &spProjScat3D,
                              double medianRadius, double gaussianSigma,
-                             int nonNegativeScatOffset, bool bSave);
-  void ScatterCorr_PrioriCT(UShortImageType::Pointer &spProjRaw3D,
-                            UShortImageType::Pointer &spProjScat3D,
-                            UShortImageType::Pointer &m_spProjCorr3D,
-                            int nonNegativeScatOffset, int postMedian,
-                            bool bSave);
+                             bool bSave);
+  void ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
+                            FloatImageType::Pointer &spProjScat3D,
+                            FloatImageType::Pointer &m_spProjCorr3D,
+                            int postMedian, bool bSave);
+
   void AfterScatCorrectionMacro(bool use_cuda, bool use_opencl, bool save_dicom,
                                 FDK_options &fdk_options);
 
   // His file export from 3D proj file
-  void SaveProjImageAsHIS(UShortImageType::Pointer &spProj3D,
+  void SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                           std::vector<YK16GrayImage> arrYKImage,
                           QString &strSavingFolder,
                           double resampleF)
@@ -162,9 +162,8 @@ public:
   static FloatImageType::Pointer
   ConvertIntensity2LineInt(UShortImageType::Pointer &spProjIntensity3D);
 
-  void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
-                 UShortImageType::Pointer &spTargetImg3D, int idx,
-                 enPLANE iDirection) const;
+  static FloatImageType::Pointer
+  ConvertIntensity2LineInt(FloatImageType::Pointer &spProjIntensity3D);
 
   // void ResampleItkImage(OutputImageType::Pointer& spImgFloat, double
   // resampleF);  Resample proj images
@@ -272,7 +271,7 @@ public:
   void SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
                                float fMVGanAngle, float panelOffsetX,
                                float panelOffsetY,
-                               UShortImageType::Pointer &spProjImg3D,
+                               FloatImageType::Pointer &spProjImg3D,
                                int iSliceIdx) const;
 
   bool ReadDicomDir(QString &dirPath);
@@ -311,14 +310,12 @@ public:
   UShortImageType::Pointer m_spProjImgRaw3D; // raw intensity value converted
                                              // from line integral (mu_t).
                                              // 0-65535
-  UShortImageType::Pointer
-      m_spProjImgCT3D; // 1.5G // release this after Scatter Generation
-  UShortImageType::Pointer m_spProjImgScat3D; // scatter map proj file using any
-                                              // scatter-estimation method//1.5G
-                                              // //release this after Cor gen
-  UShortImageType::Pointer m_spProjImgCorr3D; // proj file-scatter corrected one
-                                              // using either priori CT or any
-                                              // other method//1.5G
+  FloatImageType::Pointer m_spProjImgScat3D; // scatter map proj file using any
+                                             // scatter-estimation method//1.5G
+                                             // //release this after Cor gen
+  FloatImageType::Pointer m_spProjImgCorr3D; // proj file-scatter corrected one
+                                             // using either priori CT or any
+                                             // other method//1.5G
 
   UShortImageType::Pointer m_spCrntReconImg; // fixed image // ID: RawCBCT
   UShortImageType::Pointer m_spRawReconImg;  // just added --> when file is
