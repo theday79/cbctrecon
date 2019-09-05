@@ -22,6 +22,8 @@
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
+struct Rtss_roi_modern;
+
 CBCTRECON_API void OpenCL_initialize(size_t required_mem_alloc_size,
                                      std::string &defines);
 CBCTRECON_API void OpenCL_initialize(std::string &defines);
@@ -73,5 +75,9 @@ cl_float2 OpenCL_min_max_2D(cl_float *buffer,
 CBCTRECON_API
 cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, size_t inputSize,
                                  cl::Buffer &deviceBuffer);
+
+CBCTRECON_API
+void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
+                                   const Rtss_roi_modern &voi);
 
 #endif // IMAGEFILTERS_H

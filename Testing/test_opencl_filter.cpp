@@ -7,10 +7,19 @@
 #include <chrono>
 #include <iostream>
 
+#include <QDir>
+
+#include "itkGDCMImageIO.h"
+#include "itkImageSeriesReader.h"
+#include "itkRescaleIntensityImageFilter.h"
+
 #include "itkAddImageFilter.h"
 #include "itkDivideImageFilter.h"
 #include "itkMultiplyImageFilter.h"
 #include "itkStatisticsImageFilter.h"
+
+#include "StructureSet.h"
+#include "cbctrecon_io.h"
 
 #include "OpenCL/err_code.h"
 
@@ -79,6 +88,52 @@ template <typename T, size_t DIM> auto GenerateRandImage() {
   }
 
   return image;
+}
+
+UShortImageType::Pointer read_dicom_image(const QString &dcm_dir) {
+
+  auto dir = QDir(dcm_dir);
+  const auto filenamelist = get_dcm_image_files(dir);
+
+  ShortImageType::Pointer spShortImg;
+
+  if (!filenamelist.empty()) {
+    using dcm_reader_type = itk::ImageSeriesReader<ShortImageType>;
+    auto dcm_reader = dcm_reader_type::New();
+    const auto dicom_io = itk::GDCMImageIO::New();
+    dcm_reader->SetImageIO(dicom_io);
+    dcm_reader->SetFileNames(filenamelist);
+    dcm_reader->Update();
+    spShortImg = dcm_reader->GetOutput();
+  }
+
+  auto imageCalculatorFilter =
+      itk::StatisticsImageFilter<ShortImageType>::New();
+
+  // Thresholding
+  auto thresholdFilter = itk::ThresholdImageFilter<ShortImageType>::New();
+  thresholdFilter->SetInput(spShortImg);
+  thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
+  thresholdFilter->SetOutsideValue(-1024);
+  thresholdFilter->Update();
+
+  imageCalculatorFilter->SetInput(thresholdFilter->GetOutput());
+  imageCalculatorFilter->Update();
+
+  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
+  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
+
+  const auto outputMinVal = static_cast<unsigned short>(minVal + 1024);
+  const auto outputMaxVal = static_cast<unsigned short>(maxVal + 1024);
+
+  auto spRescaleFilter =
+      itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>::New();
+  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
+  spRescaleFilter->SetOutputMinimum(outputMinVal);
+  spRescaleFilter->SetOutputMaximum(outputMaxVal);
+  spRescaleFilter->Update();
+
+  return spRescaleFilter->GetOutput();
 }
 
 template <typename ImageType>
@@ -387,6 +442,49 @@ int main(const int argc, char **argv) {
     }
   } else if (filter_str == "padding_filter") {
   } else if (filter_str == "subtract_2Dfrom3D_filter") {
+  } else if (filter_str == "crop_by_struct_filter") {
+    if (argc < 3) {
+      std::cerr << "Crop filter requires a dicom directory as the 3rd input\n";
+      return -1;
+    }
+    const auto dcmdir_str =
+        QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
+    const auto structures = load_rtstruct(
+        dcmdir_str +
+        "/RS.1.2.246.352.71.4.453824782.282736.20120706180259.dcm");
+
+    const auto body_struct = structures->get_roi_ref_by_name("BODY");
+    auto image = read_dicom_image(dcmdir_str);
+
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    OpenCL_crop_by_struct_InPlace(image, body_struct);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    UShortImageType::IndexType index;
+    index.SetElement(0, 237);
+    index.SetElement(1, 438);
+    index.SetElement(2, 99);
+    if (image->GetPixel(index) != 0) {
+      std::cerr << "Test pixel was not 0, it was: " << image->GetPixel(index)
+                << "\n";
+      return -2;
+    }
+
+    index.SetElement(0, 189);
+    index.SetElement(1, 366);
+    index.SetElement(2, 99);
+    if (image->GetPixel(index) != 1059) {
+      std::cerr << "Test pixel was not 1059, it was: " << image->GetPixel(index)
+                << "\n";
+      return -3;
+    }
+
   } else {
     std::cerr << "This filter does not exists: " << filter_str << "\n";
     return -1;

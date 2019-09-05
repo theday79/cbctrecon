@@ -10,6 +10,7 @@
 #include "cbctrecon_types.h"
 
 class QXmlStreamReader;
+class QDir;
 struct Rtss_modern;
 
 CBCTRECON_API QString MakeElektaXML(const QString &filePath_ImageDBF,
@@ -55,6 +56,8 @@ template <typename ImageType> auto loadMHAImageAs(const std::string &filename) {
   return reader->GetOutput();
 }
 
+std::vector<std::string> CBCTRECON_API get_dcm_image_files(QDir &dir);
+
 template <int group, int element, typename T>
 auto gdcm_attribute_from(T &parent) {
   // auto attribute = gdcm::Attribute<group, element>();
@@ -64,6 +67,9 @@ auto gdcm_attribute_from(T &parent) {
   at.SetFromDataElement(data_element);
   return at;
 }
+
+std::unique_ptr<Rtss_modern>
+    CBCTRECON_API load_rtstruct(const QString &filename);
 
 bool CBCTRECON_API AlterData_RTStructureSetStorage(
     const QFile &input_file, const Rtss_modern *input_rt_struct,

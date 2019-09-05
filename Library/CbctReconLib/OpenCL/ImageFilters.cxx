@@ -10,6 +10,9 @@
 #include "OpenCL/device_picker.hpp"
 #include "OpenCL/util.hpp"
 
+// For crop_by_structure
+#include "StructureSet.h"
+
 // On Linux with intel opencl runtime, you can debug opencl kernels:
 // #define DEBUG_OPENCL
 
@@ -26,7 +29,8 @@ enum enKernel {
   en_add_mul_const_kernel,
   en_add_mul_const_with_thresh_kernel,
   en_min_max_kernel,
-  en_min_max_kernel2
+  en_min_max_kernel2,
+  en_crop_by_struct_kernel
 };
 
 class KernelMan {
@@ -820,4 +824,90 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
 #endif
   return OpenCL_min_max_pinned(buffer, memorySizeInput, memorySizeSub,
                                local_work_size, divider);
+}
+
+void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
+                                   const Rtss_roi_modern &voi) {
+
+  const auto inputSize = ct_image->GetBufferedRegion().GetSize();
+  const cl_ulong4 in_size = {inputSize[0], inputSize[1], inputSize[2], 0};
+
+  const auto inputOrigin = ct_image->GetOrigin();
+  const cl_float2 in_orig = {static_cast<cl_float>(inputOrigin[0]),
+                             static_cast<cl_float>(inputOrigin[1])};
+
+  const auto inputSpacing = ct_image->GetSpacing();
+  const cl_float2 in_spacing = {static_cast<cl_float>(inputSpacing[0]),
+                                static_cast<cl_float>(inputSpacing[1])};
+
+  const auto memorySizeInput = inputSize[0] * inputSize[1];
+
+  auto defines = std::string("");
+  kernel_man.initialize(defines, memorySizeInput * sizeof(cl_ushort));
+
+  auto err = CL_SUCCESS;
+  const auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
+
+  /*
+   * __kernel void crop_by_struct_kernel(__global ushort *dev_vol,
+   *                                 __constant float2 *structure,
+   *                                 ulong number_of_verti, ulong4 vol_dim,
+   *                                 float2 vol_offset, float2 vol_spacing)
+   */
+  // Create program
+  auto crop_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_ulong,
+                                       cl_ulong4, cl_float2, cl_float2>(
+      kernel_man.getKernel(en_crop_by_struct_kernel));
+
+  const auto local_work_size =
+      get_local_work_size_large(cl::Device::getDefault());
+  const cl::NDRange global_work_size(memorySizeInput);
+
+  for (auto slice = 0ul; slice < inputSize[2]; ++slice) {
+    auto *buffer = ct_image->GetBufferPointer() + slice * memorySizeInput;
+
+    /* Prepare OpenCL memory objects and place data inside them. */
+    const auto deviceBuffer =
+        cl::Buffer(ctx, buffer, buffer + memorySizeInput, false, true, &err);
+    checkError(err, "Create device buffer ushort image");
+
+    std::vector<cl_float2> struct_buffer;
+    auto prev_z_pos = voi.pslist.at(1).coordinates.at(0).z;
+    for (auto &contour : voi.pslist) {
+      const auto slice_pos = inputOrigin[2] + inputSpacing[2] * slice;
+      const auto z_pos = contour.coordinates.at(0).z;
+      if (fabs(z_pos - slice_pos) < 2 * fabs(z_pos - prev_z_pos)) {
+        for (const auto coord : contour.coordinates) {
+          if (fabs(coord.z - slice_pos) < inputSpacing[2]) {
+            struct_buffer.push_back({coord.x, coord.y});
+          }
+        }
+      }
+      prev_z_pos = z_pos;
+    }
+
+    cl::Buffer d_struct_buffer;
+    if (!struct_buffer.empty()) {
+      d_struct_buffer = cl::Buffer(struct_buffer.begin(), struct_buffer.end(),
+                                   true, false, &err);
+      checkError(err, "Create structure buffer");
+    }
+
+    cl_ulong n_coords = struct_buffer.size();
+
+    crop_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
+                deviceBuffer, d_struct_buffer, n_coords, in_size, in_orig,
+                in_spacing);
+
+    err = queue.finish();
+    checkError(err, "Finish crop by struct queue");
+
+    /* Fetch results of calculations. */
+    err = cl::copy(queue, deviceBuffer, buffer, buffer + memorySizeInput);
+
+    checkError(err, "Add, copy data back from device");
+  }
 }

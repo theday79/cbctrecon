@@ -145,6 +145,12 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 
+ExternalData_Add_test(CbctData
+  NAME ${test_target}_crop_by_struct
+  COMMAND $<TARGET_FILE:${test_target}> crop_by_struct_filter DATA{Input/Alderson/CT.tar.gz}
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+
 # Test: Forward projection, for OpenCL if available
 
 set(test_target

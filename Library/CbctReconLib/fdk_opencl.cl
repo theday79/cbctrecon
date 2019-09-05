@@ -337,3 +337,81 @@ __kernel void min_max_kernel2(__global const float2 *input,
   subImg[idx].x = min_val; // min
   subImg[idx].y = max_val; // max
 }
+
+//// From http://geomalgorithms.com/a03-_inclusion.html
+// Copyright 2000 softSurfer, 2012 Dan Sunday
+// This code may be freely used and modified for any purpose
+// providing that this copyright notice is included with it.
+// SoftSurfer makes no warranty for this code, and cannot be held
+// liable for any real or imagined damage resulting from its use.
+// Users of this code must verify correctness for their application.
+
+// a Point is defined by its coordinates {int x, y;}
+//===================================================================
+
+// isLeft(): tests if a point is Left|On|Right of an infinite line.
+//    Input:  three points P0, P1, and P2
+//    Return: >0 for P2 left of the line through P0 and P1
+//            =0 for P2  on the line
+//            <0 for P2  right of the line
+//    See: Algorithm 1 "Area of Triangles and Polygons"
+inline int isLeft(float2 P0, float2 P1, float2 P2) {
+  return ((P1.x - P0.x) * (P2.y - P0.y) - (P2.x - P0.x) * (P1.y - P0.y));
+}
+//===================================================================
+
+// wn_PnPoly(): winding number test for a point in a polygon
+//      Input:   P = a point,
+//               V[] = vertex points of a polygon V[n+1] with V[n]=V[0]
+//      Return:  wn = the winding number (=0 only when P is outside)
+inline int wn_PnPoly(float2 P, __constant float2 *V, int n) {
+  int wn = 0; // the  winding number counter
+
+  // loop through all edges of the polygon
+  for (int i = 0; i < n; i++) {            // edge from V[i] to  V[i+1]
+    if (V[i].y <= P.y) {                   // start y <= P.y
+      if (V[i + 1].y > P.y)                // an upward crossing
+        if (isLeft(V[i], V[i + 1], P) > 0) // P left of  edge
+          ++wn;                            // have  a valid up intersect
+    } else {                               // start y > P.y (no test needed)
+      if (V[i + 1].y <= P.y)               // a downward crossing
+        if (isLeft(V[i], V[i + 1], P) < 0) // P right of  edge
+          --wn;                            // have  a valid down intersect
+    }
+  }
+  return wn;
+}
+//===================================================================
+
+// Crop everything outside structure
+__kernel void crop_by_struct_kernel(__global ushort *dev_vol,
+                                    __constant float2 *structure,
+                                    ulong number_of_verti, ulong4 vol_dim,
+                                    float2 vol_offset, float2 vol_spacing) {
+  uint id = get_global_id(0);
+
+  if (id >= vol_dim.x * vol_dim.y) {
+    return;
+  }
+
+  if (number_of_verti < 3) {
+    // If no struct, nothing is inside.
+    // And a line or a point is not a struct
+    dev_vol[id] = 0;
+    return;
+  }
+
+  int j = id / vol_dim.x;
+  int i = id - j * vol_dim.x;
+
+  // Get (x,y,z) coordinates
+  float2 vp;
+  vp.x = vol_offset[0] + (i * vol_spacing[0]);
+  vp.y = vol_offset[1] + (j * vol_spacing[1]);
+
+  if (wn_PnPoly(vp, structure, number_of_verti) == 0) {
+    // the point, vp, is outside the structure
+    dev_vol[id] = 0;
+  }
+}
+
