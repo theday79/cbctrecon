@@ -17,8 +17,6 @@
 // #define DEBUG_OPENCL
 
 enum enKernel {
-  en_fdk_kernel_nn,
-  en_OpenCLFDKBackProjectionImageFilterKernel,
   en_padding_kernel,
   en_multiply_kernel,
   en_multiply_kernel2D,
@@ -48,9 +46,9 @@ private:
 #if CL_HPP_TARGET_OPENCL_VERSION >= 210 ||                                     \
     (CL_HPP_TARGET_OPENCL_VERSION == 200 && defined(CL_HPP_USE_IL_KHR))
     // const auto cl_source = util::loadProgramIL("kernels_cl20.spv");
-    const auto cl_source = util::loadProgram("fdk_opencl.cl");
+    const auto cl_source = util::loadProgram("filters.cl");
 #else
-    const auto cl_source = util::loadProgram("fdk_opencl.cl");
+    const auto cl_source = util::loadProgram("filters.cl");
 #endif
 
     auto err = CL_SUCCESS;
@@ -59,7 +57,7 @@ private:
     // For use with GDB, Requires intel OpenCL runtime
     defines += " -g -s "
                "/home/andreas/Projects/build-cbct/clang8-itk5-Debug/"
-               "bin/fdk_opencl.cl ";
+               "bin/filters.cl ";
 #endif
     err = program.build(defines.c_str());
 #ifdef DEBUG_OPENCL

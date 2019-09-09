@@ -199,6 +199,12 @@ add_custom_command(TARGET CbctReconLib
   )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl DESTINATION bin)
 
+add_custom_command(TARGET CbctReconLib
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/OpenCL/filters.cl" "${RUNTIME_DIR}"
+  )
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/OpenCL/filters.cl DESTINATION bin)
+
 ##-----------------------------------------------------------------------------
 ##  Additional install files
 ##-----------------------------------------------------------------------------
