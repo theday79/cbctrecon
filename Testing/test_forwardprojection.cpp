@@ -80,11 +80,10 @@ int main(int, char **) {
   projInput->Update();
 
   // Joseph Forward Projection filter
-#ifdef USE_CUDA
+#if defined(USE_CUDA)
   using JFPType =
       rtk::CudaForwardProjectionImageFilter<OutputImageType, OutputImageType>;
-#endif
-#ifdef RTK_USE_OPENCL
+#elif defined(RTK_USE_OPENCL)
   using JFPType =
       rtk::OpenCLForwardProjectionImageFilter<OutputImageType, OutputImageType>;
 #else

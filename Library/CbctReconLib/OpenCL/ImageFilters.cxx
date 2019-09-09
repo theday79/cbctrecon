@@ -53,7 +53,7 @@ private:
 
     auto err = CL_SUCCESS;
     auto program = cl::Program(ctx, cl_source, /* build? */ false, &err);
-#ifdef DEBUG_OPENCL
+#if defined(DEBUG_OPENCL) && !defined(_WIN32)
     // For use with GDB, Requires intel OpenCL runtime
     defines += " -g -s "
                "/home/andreas/Projects/build-cbct/clang8-itk5-Debug/"
@@ -142,8 +142,59 @@ public:
   cl::Kernel getKernel(const enKernel kernel) {
     assert(m_initialized);
 
+#ifdef _WIN32
+    // Maybe only necessary for xeon phi
+    auto get_kernel_name = [](enKernel en_kernel) {
+      switch (en_kernel) {
+      case en_padding_kernel:
+        return "padding_kernel";
+      case en_multiply_kernel:
+        return "multiply_kernel";
+      case en_multiply_kernel2D:
+        return "multiply_kernel2D";
+      case en_subtract_kernel2D:
+        return "subtract_kernel2D";
+      case en_divide_kernel3D_ushort:
+        return "divide_kernel3D_Ushort";
+      case en_add_const_kernel:
+        return "add_const_kernel";
+      case en_add_const_with_thresh_kernel:
+        return "add_const_with_thresh_kernel";
+      case en_add_mul_const_kernel:
+        return "add_mul_const_kernel";
+      case en_add_mul_const_with_thresh_kernel:
+        return "add_mul_const_with_thresh_kernel";
+      case en_min_max_kernel:
+        return "min_max_kernel";
+      case en_min_max_kernel2:
+        return "min_max_kernel2";
+      case en_crop_by_struct_kernel:
+        return "crop_by_struct_kernel";
+      };
+    };
+
+    auto get_kernel_by_name = [](const std::string &kernel_name,
+                                 const std::vector<cl::Kernel> &kernel_list) {
+      for (auto &cur_kernel : kernel_list) {
+        const auto cur_kernel_name =
+            cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+        if (cur_kernel_name == kernel_name) {
+          return cur_kernel;
+        }
+      }
+      std::cerr << "OH NO, SOMETHING BAD WILL HAPPEN SOON!\n";
+      return kernel_list.at(0);
+    };
+
+    const auto &kernel_name = get_kernel_name(kernel);
+    auto &out_kernel = get_kernel_by_name(kernel_name, m_kernel_list);
+#else
+    // It seems linux always has the kernels in order, probably it's just
+    // windows which doesn't
     auto &out_kernel = m_kernel_list.at(kernel);
-    const auto kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+    const auto &kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+#endif
+
 #ifdef DEBUG_OPENCL
     std::cerr << kernel_name << "\n";
 #endif

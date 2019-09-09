@@ -4622,7 +4622,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
     if (use_cuda) {
       SingleForwardProjection<CUDAFloatImageType>(
           spAttFloat, curMVAngle, curPanelOffsetX, curPanelOffsetY,
-          m_spProjImgCT3D, i);
+          spProjImgCT3D, i);
     } else
 #endif
     {
