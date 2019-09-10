@@ -17,7 +17,7 @@
 #include <itkLinearInterpolateImageFunction.h>
 #include <itkMacro.h> // for CastImageFilter::New, ImageFileWriter::New
 #include <itkUnaryFunctorImageFilter.h>
-#include <vnl_vector_fixed.h> // for vnl_vector_fixed
+#include <vnl/vnl_vector_fixed.h> // for vnl_vector_fixed
 
 #include "plm_math.h" // for M_PI, NLMAX, NLMIN
 

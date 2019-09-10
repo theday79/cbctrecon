@@ -1742,6 +1742,9 @@ void CbctReconWidget::SLT_ViewHistogram() const
     std::cerr << "Moving image not ready -> can't produce histogram!\n";
     return;
   }
+  std::cerr << "Histogram is currently disabled, until it's fixed for the new forward projection style\n";
+  return;
+  /*
   m_dlgHistogram->show();
 
   if (m_dlgRegistration->m_spMoving) {
@@ -1753,15 +1756,14 @@ void CbctReconWidget::SLT_ViewHistogram() const
     } else
 #endif
     {
-      /*
     m_cbctrecon->ForwardProjection<FloatImageType>(
         m_dlgRegistration->m_spMoving, m_cbctrecon->m_spCustomGeometry,
         m_cbctrecon->m_spProjImgCT3D); // final moving image
-        */
     }
   }
 
   m_dlgHistogram->SLT_DrawGraph();
+  */
 }
 
 void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {

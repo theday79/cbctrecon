@@ -94,6 +94,11 @@ int main(int argc, char **argv) {
       auto float_vec_width =
           dev.getInfo<CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT>(&cl_err);
       checkError(cl_err, "device float vec width");
+      if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
+        compute_units /= 4;
+        // because the vector width of AVX512 and double hyperthreading cannot
+        // happen at the same time
+      }
       FLOPs = float_vec_width * 2; // 2 = (2 AVX2 + 2 FMA) / 2
     }
 
