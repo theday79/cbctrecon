@@ -13,6 +13,8 @@
 // For crop_by_structure
 #include "StructureSet.h"
 
+// #define USE_XEON_PHI
+
 // On Linux with intel opencl runtime, you can debug opencl kernels:
 // #define DEBUG_OPENCL
 
@@ -215,6 +217,8 @@ cl::NDRange get_local_work_size_small(const cl::Device &device) {
   const auto device_name = device.getInfo<CL_DEVICE_NAME>();
   if (device_name == "Intel(R) Iris(TM) Pro Graphics 5200") {
     return {16};
+  } else if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
+    return {32};
   }
   return {128};
 }
@@ -222,6 +226,8 @@ cl::NDRange get_local_work_size_large(const cl::Device &device) {
   const auto device_name = device.getInfo<CL_DEVICE_NAME>();
   if (device_name == "Intel(R) Iris(TM) Pro Graphics 5200") {
     return {32};
+  } else if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
+    return {64};
   }
   return {128};
 }
@@ -421,6 +427,15 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
   return outImage;
 }
 
+#ifdef USE_XEON_PHI
+#include "C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2017.8.275\windows\mkl\include\mkl.h"
+
+void OpenCL_AddConst_InPlace(cl_float *buffer,
+                             const itk::Image<float, 3U>::SizeType &inputSize,
+                             const cl_float constant) {}
+
+#else
+
 void OpenCL_AddConst_InPlace(cl_float *buffer,
                              const itk::Image<float, 3U>::SizeType &inputSize,
                              const cl_float constant) {
@@ -460,6 +475,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
 
   checkError(err, "Add, copy data back from device");
 }
+#endif
 
 void OpenCL_AddConst_MulConst_InPlace(
     cl_float *buffer, const itk::Image<float, 3U>::SizeType &inputSize,
@@ -915,11 +931,12 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
       get_local_work_size_large(cl::Device::getDefault());
   const cl::NDRange global_work_size(memorySizeInput);
 
+  std::vector<cl::Buffer> deviceBuffer(inputSize[2]);
   for (auto slice = 0ul; slice < inputSize[2]; ++slice) {
     auto *buffer = ct_image->GetBufferPointer() + slice * memorySizeInput;
 
     /* Prepare OpenCL memory objects and place data inside them. */
-    const auto deviceBuffer =
+    deviceBuffer.at(slice) =
         cl::Buffer(ctx, buffer, buffer + memorySizeInput, false, true, &err);
     checkError(err, "Create device buffer ushort image");
 
@@ -930,7 +947,7 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
       const auto z_pos = contour.coordinates.at(0).z;
       if (fabs(z_pos - slice_pos) < 2 * fabs(z_pos - prev_z_pos)) {
         for (const auto coord : contour.coordinates) {
-          if (fabs(coord.z - slice_pos) < inputSpacing[2]) {
+          if (fabs(coord.z - slice_pos) < fabs(coord.z - prev_z_pos)) {
             struct_buffer.push_back({coord.x, coord.y});
           }
         }
@@ -948,14 +965,18 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
     cl_ulong n_coords = struct_buffer.size();
 
     crop_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                deviceBuffer, d_struct_buffer, n_coords, in_size, in_orig,
-                in_spacing);
+                deviceBuffer.at(slice), d_struct_buffer, n_coords, in_size,
+                in_orig, in_spacing);
+  }
 
-    err = queue.finish();
-    checkError(err, "Finish crop by struct queue");
+  err = queue.finish();
+  checkError(err, "Finish crop by struct queue");
 
+  for (auto slice = 0ul; slice < inputSize[2]; ++slice) {
+    auto *buffer = ct_image->GetBufferPointer() + slice * memorySizeInput;
     /* Fetch results of calculations. */
-    err = cl::copy(queue, deviceBuffer, buffer, buffer + memorySizeInput);
+    err = cl::copy(queue, deviceBuffer.at(slice), buffer,
+                   buffer + memorySizeInput);
 
     checkError(err, "Add, copy data back from device");
   }
