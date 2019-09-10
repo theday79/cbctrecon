@@ -62,7 +62,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="page_2">
          <property name="geometry">
@@ -1749,13 +1749,6 @@
             </property>
            </widget>
           </item>
-          <item row="18" column="0">
-           <widget class="QPushButton" name="pushButton_SetCBCTSkinRS">
-            <property name="text">
-             <string>set</string>
-            </property>
-           </widget>
-          </item>
           <item row="16" column="0" colspan="5">
            <widget class="Line" name="line_3">
             <property name="orientation">
@@ -1763,31 +1756,10 @@
             </property>
            </widget>
           </item>
-          <item row="19" column="0">
-           <widget class="QLabel" name="label_43">
-            <property name="text">
-             <string>Expansion/Contraction (mm)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="18" column="1" colspan="4">
-           <widget class="QLineEdit" name="lineEdit_PathCBCTSkinPath">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
           <item row="19" column="2" colspan="3">
            <widget class="QPushButton" name="pushButton_CropSkinRS">
             <property name="text">
              <string>Process</string>
-            </property>
-           </widget>
-          </item>
-          <item row="19" column="1">
-           <widget class="QLineEdit" name="lineEdit_SkinMargin">
-            <property name="text">
-             <string>0</string>
             </property>
            </widget>
           </item>
@@ -1851,6 +1823,13 @@
             </property>
             <property name="text">
              <string>Crop Axial</string>
+            </property>
+           </widget>
+          </item>
+          <item row="19" column="0" colspan="2">
+           <widget class="QLineEdit" name="lineEdit_StructToCropBy">
+            <property name="text">
+             <string/>
             </property>
            </widget>
           </item>
@@ -3682,7 +3661,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>240</x>
-     <y>155</y>
+     <y>128</y>
     </hint>
     <hint type="destinationlabel">
      <x>808</x>
@@ -3730,7 +3709,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>240</x>
-     <y>92</y>
+     <y>58</y>
     </hint>
     <hint type="destinationlabel">
      <x>577</x>
@@ -4098,7 +4077,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>427</x>
-     <y>367</y>
+     <y>332</y>
     </hint>
     <hint type="destinationlabel">
      <x>223</x>
@@ -4178,7 +4157,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>541</x>
-     <y>365</y>
+     <y>190</y>
     </hint>
     <hint type="destinationlabel">
      <x>1315</x>
@@ -4209,8 +4188,8 @@
    <slot>SLT_CalcAndSaveAngularWEPL()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1170</x>
-     <y>563</y>
+     <x>675</x>
+     <y>504</y>
     </hint>
     <hint type="destinationlabel">
      <x>1305</x>
@@ -4226,7 +4205,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>541</x>
-     <y>726</y>
+     <y>551</y>
     </hint>
     <hint type="destinationlabel">
      <x>1318</x>
@@ -4267,22 +4246,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>pushButton_SetCBCTSkinRS</sender>
-   <signal>released()</signal>
-   <receiver>CbctReconClass</receiver>
-   <slot>SLT_SetCBCTSkinRSPath()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>208</x>
-     <y>656</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>999</x>
-     <y>794</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>pushButton_CropSkinRS</sender>
    <signal>released()</signal>
    <receiver>CbctReconClass</receiver>
@@ -4305,8 +4268,8 @@
    <slot>SLT_ExportAngularWEPL_byFile()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1170</x>
-     <y>693</y>
+     <x>675</x>
+     <y>516</y>
     </hint>
     <hint type="destinationlabel">
      <x>1326</x>
@@ -4434,7 +4397,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>566</x>
-     <y>309</y>
+     <y>239</y>
     </hint>
     <hint type="destinationlabel">
      <x>959</x>
@@ -4562,7 +4525,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>541</x>
-     <y>304</y>
+     <y>269</y>
     </hint>
     <hint type="destinationlabel">
      <x>5</x>
@@ -4578,7 +4541,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>541</x>
-     <y>269</y>
+     <y>234</y>
     </hint>
     <hint type="destinationlabel">
      <x>563</x>
@@ -4641,8 +4604,8 @@
    <slot>SLT_DoCouchCorrection()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1170</x>
-     <y>563</y>
+     <x>675</x>
+     <y>504</y>
     </hint>
     <hint type="destinationlabel">
      <x>1321</x>
@@ -4722,7 +4685,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>518</x>
-     <y>570</y>
+     <y>395</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -4770,7 +4733,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>150</x>
-     <y>402</y>
+     <y>367</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4785,8 +4748,8 @@
    <slot>SLT_GeneratePOIData()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1170</x>
-     <y>628</y>
+     <x>675</x>
+     <y>510</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -4834,7 +4797,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>566</x>
-     <y>416</y>
+     <y>350</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4850,7 +4813,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>282</x>
-     <y>621</y>
+     <y>551</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4882,7 +4845,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>169</x>
-     <y>551</y>
+     <y>516</y>
     </hint>
     <hint type="destinationlabel">
      <x>148</x>
@@ -4898,7 +4861,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>169</x>
-     <y>586</y>
+     <y>551</y>
     </hint>
     <hint type="destinationlabel">
      <x>193</x>
@@ -4914,7 +4877,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>516</x>
-     <y>481</y>
+     <y>446</y>
     </hint>
     <hint type="destinationlabel">
      <x>269</x>
@@ -4930,7 +4893,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>169</x>
-     <y>516</y>
+     <y>481</y>
     </hint>
     <hint type="destinationlabel">
      <x>198</x>
@@ -4946,7 +4909,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>282</x>
-     <y>586</y>
+     <y>516</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
@@ -4962,7 +4925,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>541</x>
-     <y>128</y>
+     <y>93</y>
     </hint>
     <hint type="destinationlabel">
      <x>573</x>
@@ -5014,7 +4977,6 @@
   <slot>SLT_DoScatterCorrectionUniform()</slot>
   <slot>SLT_FileExportShortDICOM_CurrentImg()</slot>
   <slot>SLT_AddConstHUToCurImg()</slot>
-  <slot>SLT_SetCBCTSkinRSPath()</slot>
   <slot>SLT_CropSkinUsingRS()</slot>
   <slot>SLT_CropSkinUsingThreshold()</slot>
   <slot>SLT_ExportAngularWEPL_byFile()</slot>

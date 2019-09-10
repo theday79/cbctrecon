@@ -9,6 +9,7 @@
 #include <QString>
 #include <qcombobox.h>
 
+#include "OpenCL/ImageFilters.h"
 #include "PlmWrapper.h"
 #include "StructureSet.h"
 #include "cbctrecon.h"
@@ -118,6 +119,10 @@ void DlgRegistration::initDlgRegistration(QString &strDCMUID) {
   p_parent->m_spDeformedCT_Final = spNull; // AutoDeformCT3
 
   this->ui.checkBoxKeyMoving->setChecked(false);
+
+  // There seems to be a problem with the cropping function:
+  // this->ui.checkBoxCropBkgroundCT->setChecked(false);
+
   this->ui.lineEditOriginChanged->setText("");
 
   UpdateListOfComboBox(0);
@@ -671,13 +676,6 @@ void DlgRegistration::UpdateSplit(const int viewIdx, qyklabel *pOverlapWnd) {
         static_cast<int>(dspHeight), dataWidth, dataHeight, QPoint(0, 0),
         m_YKDisp[idx].m_fZoom);
 
-    // int dspOffsetX = pOverlapWnd->x - m_ptPanStart.x();
-    // int dspOffsetY = m_ptPanStart.y() - pOverlapWnd->y;
-
-    /*QPoint ptDataStart= pOverlapWnd->GetDataPtFromViewPt(m_ptPanStart.x(),
-    m_ptPanStart.y()); QPoint ptDataEnd=
-    pOverlapWnd->GetDataPtFromViewPt(pOverlapWnd->x, pOverlapWnd->y);*/
-
     const auto curOffsetX = ptDataPanEndRel.x() - ptDataPanStartRel.x();
     const auto curOffsetY = ptDataPanEndRel.y() - ptDataPanStartRel.y();
 
@@ -1140,8 +1138,6 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf
   E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
 
-  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCT->isChecked();
-
   std::cout << "1: writing temporary files" << std::endl;
 
   // Both image type: Unsigned Short
@@ -1195,6 +1191,10 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
       writer3->SetInput(spRoiMask);
       writer3->Update();
     }
+    std::cout << "2.A:  ROI-based Rigid body registration will be done"
+              << std::endl;
+  } else {
+    filePathROI = QString("");
   }
 
   // Preprocessing
@@ -1202,99 +1202,6 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   //  if (m_strPathCTSkin)
 
   // m_strPathCTSkin is prepared after PreProcessCT()
-
-  // QString filePathFixed_proc = filePathFixed;
-
-  using readerType = itk::ImageFileReader<UShortImageType>;
-
-  QString strPathOriginalCTSkinMask;
-
-  auto filePathFixed_proc = m_cbctregistration->m_strPathPlastimatch + "/" +
-                            "fixed_rigid_proc.mha"; // After autoRigidbody Regi
-
-  const auto strPath_mskSkinCT_manRegi_exp =
-      m_cbctregistration->m_strPathPlastimatch +
-      "/msk_skin_CT_manRegi_exp.mha"; // proof of preproceesing for CBCT
-
-  auto finfoFixedProc = QFileInfo(filePathFixed_proc);
-  auto finfoManMask = QFileInfo(strPath_mskSkinCT_manRegi_exp);
-
-  // if this file already exists, no need of proprocess for CBCT (skin cropping)
-  // is needed.
-  // if skin cropping is not done for this case (supposed to be done during
-  // confirm manual regi)
-
-  if (!finfoFixedProc.exists() && !finfoManMask.exists()) {
-    std::cout << "Preprocessing for CBCT is not done. It is being done here "
-                 "before rigid body registration"
-              << std::endl;
-
-    auto originBefore = m_pParent->m_cbctrecon->m_spRefCTImg->GetOrigin();
-    auto originAfter = m_pParent->m_cbctrecon->m_spManualRigidCT->GetOrigin();
-
-    double fShift[3];
-    fShift[0] = originBefore[0] - originAfter[0]; // DICOM
-    fShift[1] = originBefore[1] - originAfter[1];
-    fShift[2] = originBefore[2] - originAfter[2];
-
-    auto finfoSkinFile1 = QFileInfo(m_cbctregistration->m_strPathCTSkin);
-    const auto strPathAlternateSkin =
-        m_cbctregistration->m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
-    auto finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
-
-    const auto skinExp =
-        this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-    const auto bkGroundValUshort = this->ui.spinBoxBkFillCT->value(); // 0
-
-    if (finfoSkinFile1.exists()) {
-      strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
-      // This was OK.
-      m_cbctregistration->ProcessCBCT_beforeAutoRigidRegi(
-          filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc,
-          &fShift[0], bPrepareMaskOnly, skinExp, bkGroundValUshort);
-
-      if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
-        filePathFixed_proc = filePathFixed;
-      }
-    } else if (finfoSkinFile2.exists()) {
-      std::cout << "alternative skin file will be used" << std::endl;
-      strPathOriginalCTSkinMask = strPathAlternateSkin;
-      m_cbctregistration->ProcessCBCT_beforeAutoRigidRegi(
-          filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc,
-          &fShift[0], bPrepareMaskOnly, skinExp, bkGroundValUshort);
-
-      if (bPrepareMaskOnly) {
-        filePathFixed_proc = filePathFixed;
-      }
-    } else {
-      std::cout << "CT skin file(msk_skin_CT.mha) is not found. preprocessing "
-                   "will be skipped"
-                << std::endl;
-      filePathFixed_proc = filePathFixed;
-    }
-
-    QFileInfo fixedProcInfo(filePathFixed_proc);
-    if (!fixedProcInfo.exists()) {
-      std::cout << "Error! proc file doesn't exist!" << std::endl;
-      return;
-    }
-
-    auto reader2 = readerType::New();
-    reader2->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
-    reader2->Update();
-    m_pParent->m_cbctrecon->m_spRawReconImg = reader2->GetOutput();
-
-    const auto tmpSkinMargin =
-        this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-    auto update_message =
-        QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
-    m_pParent->UpdateReconImage(m_pParent->m_cbctrecon->m_spRawReconImg,
-                                update_message);
-  }
-
-  if (!finfoFixedProc.exists()) {
-    filePathFixed_proc = filePathFixed; //"fixed_rigid.mha";
-  }
 
   std::cout << "2: Creating a plastimatch command file" << std::endl;
 
@@ -1309,19 +1216,11 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   const auto cuda = m_pParent->ui.radioButton_UseCUDA->isChecked();
   auto GradOptionStr = this->ui.lineEditGradOption->text();
   // For Cropped patients, FOV mask is applied.
-  if (this->ui.checkBoxUseROIForRigid->isChecked()) {
-    std::cout << "2.A:  ROI-based Rigid body registration will be done"
-              << std::endl;
-    m_cbctregistration->GenPlastiRegisterCommandFile(
-        pathCmdRegister, filePathFixed_proc, filePathMoving, filePathOutput,
-        filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy, filePathROI,
-        mse, cuda, GradOptionStr);
-  } else {
-    m_cbctregistration->GenPlastiRegisterCommandFile(
-        pathCmdRegister, filePathFixed_proc, filePathMoving, filePathOutput,
-        filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy, strDummy, mse,
-        cuda, GradOptionStr);
-  }
+
+  m_cbctregistration->GenPlastiRegisterCommandFile(
+      pathCmdRegister, filePathFixed, filePathMoving, filePathOutput,
+      filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy, filePathROI,
+      mse, cuda, GradOptionStr);
 
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
@@ -1329,7 +1228,7 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
 
   std::cout << "5: Reading output image-CT" << std::endl;
 
-  auto reader = readerType::New();
+  auto reader = itk::ImageFileReader<UShortImageType>::New();
   reader->SetFileName(filePathOutput.toLocal8Bit().constData());
   reader->Update();
   m_pParent->m_cbctrecon->m_spAutoRigidCT = reader->GetOutput();
@@ -1337,6 +1236,16 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   std::cout << "6: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
+
+  // If rigid structure already exists copy it to plan-ct structure before
+  // applying rigid again.
+  if (!m_cbctregistration->m_pParent->m_structures->is_ss_null<RIGID_CT>()) {
+    auto rigid_ss = std::make_unique<Rtss_modern>(
+        *(m_cbctregistration->m_pParent->m_structures->get_ss(RIGID_CT)));
+    m_cbctregistration->m_pParent->m_structures->set_planCT_ss(
+        std::move(rigid_ss));
+  }
+
   const auto transform_success =
       m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
           xform_file);
@@ -1700,6 +1609,7 @@ void DlgRegistration::UpdateVOICombobox(const ctType ct_type) const {
   for (const auto &voi : struct_set->slist) {
     this->ui.comboBox_VOI->addItem(QString(voi.name.c_str()));
     this->ui.comboBox_VOItoCropBy->addItem(QString(voi.name.c_str()));
+    this->ui.comboBox_VOItoCropBy_copy->addItem(QString(voi.name.c_str()));
   }
 }
 
@@ -1709,6 +1619,7 @@ void DlgRegistration::SLT_RestoreMovingImg() {
   this->ui.lineEditOriginChanged->setText(QString());
 
   SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  this->ui.pushButtonConfirmManualRegi->setDisabled(false);
 }
 
 void DlgRegistration::SLT_PreProcessCT() {
@@ -1939,21 +1850,10 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
         filePathXform, PLAST_BSPLINE, strDeformableStage1, strDeformableStage2,
         strDeformableStage3, QString(), mse, cuda, GradOptionStr);
   }
-  /*void DlgRegistration::GenPlastiRegisterCommandFile(QString
-  strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg, QString
-  strPathOutImg, QString strPathXformOut, enRegisterOption regiOption, QString
-  strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
   m_cbctregistration->CallingPLMCommand(str_command_filepath);
-
-  // Registration_parms *regp = new Registration_parms();
-  // if (regp->parse_command_file (command_filepath) < 0) {
-  // std::cout << "wrong use of command file" << std::endl;
-  // }
-  // do_registration (regp);
-  // delete regp;
 
   std::cout << "5: DoRegistrationDeform: Registration is done" << std::endl;
   std::cout << "6: DoRegistrationDeform: Reading output image" << std::endl;
@@ -1991,8 +1891,6 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
     readerFinCBCT->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
     readerFinCBCT->Update();
     m_cbctregistration->m_pParent->m_spRawReconImg = readerFinCBCT->GetOutput();
-    // std::cout << "fixed Image Path = " <<
-    // filePathFixed_proc.toLocal8Bit().constData() << std::endl;
   } else {
     std::cout << "No filePathFixed_proc is available. Exit the function"
               << std::endl;
@@ -2091,12 +1989,6 @@ void DlgRegistration::SLT_DoLowerMaskIntensity() {
   const auto iNoTouchThreshold =
       this->ui.lineEditiNoTouchThreshold->text().toInt();
 
-  /*if (!m_pParent->m_spScatCorrReconImg || !m_pParent->m_spRawReconImg)
-  {
-
-      std::cout << "You need both raw and corr CBCT images" << std::endl;
-      return;
-  }*/
   const auto fInnerMargin = this->ui.lineEditThermoInner->text().toDouble();
   const auto fOuterMargin = this->ui.lineEditThermoOuter->text().toDouble();
 
@@ -2124,7 +2016,6 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
     return;
   }
 
-  // ImageManualMoveOneShot(-iso_pos[0], -iso_pos[1], -iso_pos[2]);
   ImageManualMoveOneShot(final_iso_pos[0], final_iso_pos[1], final_iso_pos[2]);
 
   UpdateListOfComboBox(0); // combo selection signalis called
@@ -2165,7 +2056,6 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
     return;
   }
 
-  // ImageManualMoveOneShot(-iso_pos[0], -iso_pos[1], -iso_pos[2]);
   ImageManualMoveOneShot(static_cast<float>(planIso.x),
                          static_cast<float>(planIso.y),
                          static_cast<float>(planIso.z));
@@ -2174,7 +2064,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
       FloatVector{static_cast<float>(planIso.x), static_cast<float>(planIso.y),
                   static_cast<float>(planIso.z)};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  structs->ApplyVectorTransformOn<PLAN_CT>(trn_vec);
+  structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
@@ -2225,12 +2115,9 @@ void DlgRegistration::SLT_Override() const {
     break;
   }
 
-  // UShortImageType::SizeType img_size =
-  //  m_spFixed->GetRequestedRegion().GetSize(); // 1016x1016 x z
   auto imgOrigin = m_spFixed->GetOrigin();
   auto imgSpacing = m_spFixed->GetSpacing();
   if (!isFixed) {
-    // img_size = m_spMoving->GetRequestedRegion().GetSize(); // 1016x1016 x z
     imgOrigin = m_spMoving->GetOrigin();
     imgSpacing = m_spMoving->GetSpacing();
   }
@@ -2435,12 +2322,8 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
   this->ui.progressBar->setValue(10);
 
   const auto fnCmdRegisterGradient = QString("cmd_register_gradient.txt");
-  // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   auto pathCmdRegister =
       m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterGradient;
-
-  /*GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed, filePathMoving,
-      filePathOutput, filePathXform, PLAST_GRADIENT, "", "", "");    */
 
   std::cout << "For Gradient searching only, CBCT image is a moving image, CT "
                "image is fixed image"
@@ -2455,11 +2338,6 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
       filePathXform, PLAST_GRADIENT, dummyStr, dummyStr, dummyStr, dummyStr,
       mse, cuda, GradOptionStr);
 
-  /*void DlgRegistration::GenPlastiRegisterCommandFile(QString
-  strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg, QString
-  strPathOutImg, QString strPathXformOut, enRegisterOption regiOption, QString
-  strStageOption1, , QString strStageOption2, QString strStageOption3)*/
-
   // const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
   std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
 
@@ -2472,21 +2350,13 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
                   static_cast<float>(-trn[-2])};
 
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  structs->ApplyVectorTransformOn<PLAN_CT>(trn_vec);
+  structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
 
   this->ui.progressBar->setValue(99); // good ol' 99%
 
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
                          static_cast<float>(-trn[1]),
                          static_cast<float>(-trn[2]));
-  /*
-std::cout << "5: Load shift values" << std::endl;
-
-VEC3D shiftVal = GetShiftValueFromGradientXForm(filePathXform, true); //true:
-inverse trans should be applied if CBCT was moving image //in mm
-
-ImageManualMoveOneShot(shiftVal.x, shiftVal.y, shiftVal.z);
-  */
   std::cout << "6: Reading is completed" << std::endl;
   this->ui.progressBar->setValue(100);
 
@@ -2517,8 +2387,6 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   // Apply post processing for raw CBCT image and generate
   std::cout << "Preprocessing for CBCT" << std::endl;
 
-  const auto bPrepareMaskOnly = !this->ui.checkBoxCropBkgroundCT->isChecked();
-
   auto originBefore = p_parent->m_spRefCTImg->GetOrigin();
   auto originAfter = p_parent->m_spManualRigidCT->GetOrigin();
 
@@ -2527,77 +2395,26 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   fShift[1] = originBefore[1] - originAfter[1];
   fShift[2] = originBefore[2] - originAfter[2];
 
-  std::cout << "1: writing temporary files" << std::endl;
+  const auto trn_vec = FloatVector{static_cast<float>(-fShift[0]),
+                                   static_cast<float>(-fShift[1]),
+                                   static_cast<float>(-fShift[2])};
 
-  // Both image type: Unsigned Short
-  auto filePathFixed = m_cbctregistration->m_strPathPlastimatch + "/" +
-                       "fixed_rigid.mha"; // CBCT image //redundant
-  auto filePathFixed_proc = m_cbctregistration->m_strPathPlastimatch + "/" +
-                            "fixed_rigid_proc.mha"; // After autoRigidbody Regi
+  m_cbctregistration->m_pParent->m_structures
+      ->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
 
-  // writing
-  using writerType = itk::ImageFileWriter<UShortImageType>;
-  auto writer = writerType::New();
-  writer->SetFileName(filePathFixed.toLocal8Bit().constData());
-  writer->SetUseCompression(true);
-  writer->SetInput(m_spFixed);
-  writer->Update();
+  if (this->ui.checkBoxCropBkgroundCT->isChecked()) {
+    auto structures =
+        m_cbctregistration->m_pParent->m_structures->get_ss(RIGID_CT);
 
-  std::cout << "1.A: Writing temporary files is done" << std::endl;
-
-  auto finfoSkinFile1 = QFileInfo(m_cbctregistration->m_strPathCTSkin);
-  const auto strPathAlternateSkin =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "msk_skin_CT.mha";
-  auto finfoSkinFile2 = QFileInfo(strPathAlternateSkin);
-
-  QString strPathOriginalCTSkinMask;
-
-  const auto skinExp = this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-  const auto bkGroundValUshort = this->ui.spinBoxBkFillCT->value(); // 0
-
-  if (finfoSkinFile1.exists()) {
-    strPathOriginalCTSkinMask = m_cbctregistration->m_strPathCTSkin;
-    m_cbctregistration->ProcessCBCT_beforeAutoRigidRegi(
-        filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc,
-        &fShift[0], bPrepareMaskOnly, skinExp, bkGroundValUshort);
-
-    if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
-      filePathFixed_proc = filePathFixed;
+    // RIGID_CT structs should be created above
+    const auto voi_name = this->ui.comboBox_VOItoCropBy->currentText();
+    if (structures != nullptr) {
+      const auto voi = structures->get_roi_ref_by_name(voi_name.toStdString());
+      OpenCL_crop_by_struct_InPlace(p_parent->m_spRawReconImg, voi);
     }
 
-  } else if (finfoSkinFile2.exists()) {
-    std::cout << "alternative skin file will be used" << std::endl;
-    strPathOriginalCTSkinMask = strPathAlternateSkin;
-    m_cbctregistration->ProcessCBCT_beforeAutoRigidRegi(
-        filePathFixed, strPathOriginalCTSkinMask, filePathFixed_proc,
-        &fShift[0], bPrepareMaskOnly, skinExp, bkGroundValUshort);
-
-    if (bPrepareMaskOnly) { // currently, filePathFixed_proc == "";
-      filePathFixed_proc = filePathFixed;
-    }
-  }
-
-  auto fInfo = QFileInfo(filePathFixed_proc);
-
-  if (fInfo.exists() &&
-      !bPrepareMaskOnly) // if fixed_rigid_proc.mha is generated successfully.
-  {
-
-    std::cout << "Trying to read file: filePathFixed_proc" << std::endl;
-    // Update RawReconImg
-    using readerType = itk::ImageFileReader<UShortImageType>;
-    auto reader = readerType::New();
-    reader->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
-    reader->Update();
-    p_parent->m_spRawReconImg = reader->GetOutput();
-
-    const auto tmpSkinMargin =
-        this->ui.lineEditCBCTSkinCropBfRegid->text().toDouble();
-    auto update_message =
-        QString("Skin removed CBCT with margin %1 mm").arg(tmpSkinMargin);
+    auto update_message = QString("CBCT cropped outside of ") + voi_name;
     m_pParent->UpdateReconImage(p_parent->m_spRawReconImg, update_message);
-
-    std::cout << "Reading is completed" << std::endl;
 
     UpdateListOfComboBox(0); // combo selection signalis called
     UpdateListOfComboBox(1);
@@ -2619,15 +2436,9 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
   // fout << "FixedParameters: 0 0 0" << std::endl;
 
   fout.close();
-
-  const auto trn_vec = FloatVector{static_cast<float>(-fShift[0]),
-                                   static_cast<float>(-fShift[1]),
-                                   static_cast<float>(-fShift[2])};
-  m_cbctregistration->m_pParent->m_structures->ApplyVectorTransformOn<PLAN_CT>(
-      trn_vec);
-
   std::cout << "Writing manual registration transform info is done."
             << std::endl;
+  this->ui.pushButtonConfirmManualRegi->setDisabled(true);
 }
 
 void DlgRegistration::SLT_IntensityNormCBCT() {
@@ -2646,8 +2457,6 @@ void DlgRegistration::SLT_IntensityNormCBCT() {
             << intensitySDFix << std::endl;
   std::cout << "Mean/SD for Moving = " << meanIntensityMov << "/"
             << intensitySDMov << std::endl;
-
-  // m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));
 
   AddConstHU(m_spFixed, static_cast<int>(meanIntensityMov - meanIntensityFix));
   // SLT_PassMovingImgForAnalysis();

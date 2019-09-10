@@ -112,13 +112,6 @@ public:
   QString gen_bubble_mask_plm(float bubble_thresh, float bubble_fill,
                               const QString &strPathOutputCBCT);
 
-  void ProcessCBCT_beforeAutoRigidRegi(QString &strPathRawCBCT,
-                                       QString &strPath_mskSkinCT,
-                                       QString &strPathOutputCBCT,
-                                       double *manualTrans3d,
-                                       bool bPrepareMaskOnly, double skinExp,
-                                       int bkGroundValUshort);
-
   void ProcessCBCT_beforeDeformRegi(
       QString &strPathRawCBCT, QString &strPath_mskSkinCT_manRegi,
       QString &strPathOutputCBCT, QString &strPathXFAutoRigid,
@@ -127,13 +120,11 @@ public:
       int bubbleFill); // 8 mm skin cut + fill air bubbles inside CBCT
   void SetPlmOutputDir(QString &endFix);
 
-  void PostSkinRemovingCBCT(
-      UShortImageType::Pointer &spCBCT) const; // this function
-                                               // will be called
-                                               // from main Dlg.
-
-  void CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
-                       QString &strPathRS, double cropMargin) const;
+  void
+  PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT,
+                       const std::string &voi_name) const; // this function
+                                                           // will be called
+                                                           // from main Dlg.
 
   void ThermoMaskRemovingCBCT(UShortImageType::Pointer &spCBCTraw,
                               UShortImageType::Pointer &spCBCTcor,

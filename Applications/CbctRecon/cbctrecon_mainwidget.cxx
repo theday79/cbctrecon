@@ -38,6 +38,7 @@
 // Local
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
+#include "OpenCL/ImageFilters.h"
 #include "cbctrecon.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
@@ -633,8 +634,6 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
 
   this->ui.lineEdit_ElektaGeomPath->setText(
       this->m_cbctrecon->m_strPathGeomXML);
-  this->ui.lineEdit_PathCBCTSkinPath->setText(
-      this->m_cbctrecon->m_strPathRS_CBCT);
 
   float kVp = 0.0;
   float mA = 0.0;
@@ -1622,7 +1621,7 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
   }
 
   // Get current folder
-  QDir crntDir(dirPath);
+  const QDir crntDir(dirPath);
 
   QInputDialog inputDlg;
 
@@ -1883,9 +1882,12 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
       << "Post  FDK reconstruction is done. Moving on to post skin removal"
       << std::endl;
 
-  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg);
+  const auto voi_name =
+      this->m_dlgRegistration->ui.comboBox_VOItoCropBy->currentText();
+  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg,
+                                           voi_name.toStdString());
   m_cbctregistration->PostSkinRemovingCBCT(
-      this->m_cbctrecon->m_spScatCorrReconImg);
+      this->m_cbctrecon->m_spScatCorrReconImg, voi_name.toStdString());
 
   // 20151208 Removal of high intensity skin mask
   // Main issue: raw CBCT projection includes mask, deformed CT doesn't include
@@ -2178,18 +2180,6 @@ void CbctReconWidget::SLT_AddConstHUToCurImg() {
   UpdateReconImage(this->m_cbctrecon->m_spCrntReconImg, updated_text);
 }
 
-void CbctReconWidget::SLT_SetCBCTSkinRSPath() {
-  auto strPath = QFileDialog::getOpenFileName(
-      this, "Open RS file", this->m_cbctrecon->m_strPathDirDefault,
-      "DICOM RS (*.dcm)", nullptr, nullptr);
-
-  if (strPath.length() <= 1) {
-    return;
-  }
-
-  this->ui.lineEdit_PathCBCTSkinPath->setText(strPath);
-}
-
 void CbctReconWidget::SLT_CropSkinUsingThreshold() {
 
   auto update_text = QString("Thresh-based skin cropped image");
@@ -2217,27 +2207,40 @@ void CbctReconWidget::SLT_CropSkinUsingThreshold() {
 }
 
 void CbctReconWidget::SLT_CropSkinUsingRS() {
-  auto strPathRS = this->ui.lineEdit_PathCBCTSkinPath->text();
-  if (strPathRS.length() < 1) {
+  auto struct_to_crop = this->ui.lineEdit_StructToCropBy->text();
+  if (struct_to_crop.length() < 1) {
     return;
   }
 
-  const auto croppingMargin = this->ui.lineEdit_SkinMargin->text().toDouble();
   auto update_text = QString("RS-based skin cropped image");
   if (this->m_cbctrecon->m_spCrntReconImg ==
       this->m_cbctrecon->m_spRawReconImg) {
-    m_cbctregistration->CropSkinUsingRS(this->m_cbctrecon->m_spRawReconImg,
-                                        strPathRS, croppingMargin);
+    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+    if (!latest_structures) {
+      latest_structures = this->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+    }
+    const auto voi =
+        latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
+
+    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spRefCTImg) {
-    m_cbctregistration->CropSkinUsingRS(this->m_cbctrecon->m_spRefCTImg,
-                                        strPathRS, croppingMargin);
+    auto structures = this->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+    const auto voi =
+        structures->get_roi_ref_by_name(struct_to_crop.toStdString());
+    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRefCTImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spScatCorrReconImg) {
-    m_cbctregistration->CropSkinUsingRS(this->m_cbctrecon->m_spScatCorrReconImg,
-                                        strPathRS, croppingMargin);
+    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+    if (!latest_structures) {
+      latest_structures = this->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+    }
+    const auto voi =
+        latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
+
+    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
 }

@@ -603,9 +603,12 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
       << "Post  FDK reconstruction is done. Moving on to post skin removal"
       << std::endl;
 
-  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg);
+  const auto voi_name =
+      this->m_dlgRegistration->ui_comboBox_VOItoCropBy->currentText();
+  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg,
+                                           voi_name.toStdString());
   m_cbctregistration->PostSkinRemovingCBCT(
-      this->m_cbctrecon->m_spScatCorrReconImg);
+      this->m_cbctrecon->m_spScatCorrReconImg, voi_name.toStdString());
 
   // 20151208 Removal of high intensity skin mask
   // Main issue: raw CBCT projection includes mask, deformed CT doesn't include

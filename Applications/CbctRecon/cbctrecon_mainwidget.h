@@ -126,7 +126,6 @@ public slots:
   void SLT_DoScatterCorrectionUniform();
   void SLT_FileExportShortDICOM_CurrentImg();
   void SLT_AddConstHUToCurImg();
-  void SLT_SetCBCTSkinRSPath();
   void SLT_CropSkinUsingRS();
   void SLT_CropSkinUsingThreshold();
   void SLT_ExportAngularWEPL_byFile();
