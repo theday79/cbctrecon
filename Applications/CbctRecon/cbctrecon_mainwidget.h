@@ -121,7 +121,6 @@ public slots:
   void SLT_ViewRegistration() const;
   void SLT_ViewHistogram() const;
   void SLT_DoScatterCorrection_APRIORI();
-  void SLT_TempAudit() const;
   void SLT_CalcAndSaveAngularWEPL();
   void SLT_DoScatterCorrectionUniform();
   void SLT_FileExportShortDICOM_CurrentImg();

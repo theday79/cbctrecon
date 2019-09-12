@@ -2060,11 +2060,13 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
                          static_cast<float>(planIso.y),
                          static_cast<float>(planIso.z));
 
+  /* Should be done in confirm manual!
   const auto trn_vec =
       FloatVector{static_cast<float>(planIso.x), static_cast<float>(planIso.y),
                   static_cast<float>(planIso.z)};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
   structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+  */
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);

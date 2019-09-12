@@ -48,7 +48,7 @@ namespace rtk {
 
 template <class TInputImage = itk::Image<float, 3>,
           class TOutputImage = itk::Image<float, 3>>
-class CBCTRECON_API OpenCLForwardProjectionImageFilter
+class OpenCLForwardProjectionImageFilter
     : public ForwardProjectionImageFilter<TInputImage, TOutputImage> {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN(OpenCLForwardProjectionImageFilter);
@@ -83,9 +83,7 @@ private:
 
 } // end namespace rtk
 
-#ifndef ITK_MANUAL_INSTANTIATION
 #include "rtkOpenCLForwardProjectionImageFilter.hxx"
-#endif
 
 #endif // end conditional definition of the class
 

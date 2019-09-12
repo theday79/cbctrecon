@@ -1742,7 +1742,8 @@ void CbctReconWidget::SLT_ViewHistogram() const
     std::cerr << "Moving image not ready -> can't produce histogram!\n";
     return;
   }
-  std::cerr << "Histogram is currently disabled, until it's fixed for the new forward projection style\n";
+  std::cerr << "Histogram is currently disabled, until it's fixed for the new "
+               "forward projection style\n";
   return;
   /*
   m_dlgHistogram->show();
@@ -1886,10 +1887,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   const auto voi_name =
       this->m_dlgRegistration->ui.comboBox_VOItoCropBy->currentText();
-  m_cbctregistration->PostSkinRemovingCBCT(this->m_cbctrecon->m_spRawReconImg,
-                                           voi_name.toStdString());
-  m_cbctregistration->PostSkinRemovingCBCT(
-      this->m_cbctrecon->m_spScatCorrReconImg, voi_name.toStdString());
+  // m_cbctregistration->PostSkinRemovingCBCT(
+  //    this->m_cbctrecon->m_spScatCorrReconImg, voi_name.toStdString());
 
   // 20151208 Removal of high intensity skin mask
   // Main issue: raw CBCT projection includes mask, deformed CT doesn't include
@@ -1908,8 +1907,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
-  m_dlgRegistration
-      ->SLT_DoLowerMaskIntensity(); // it will check the check button.
+  // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check
+  // button.
 
   SLT_DrawProjImages();
 
@@ -1961,23 +1960,6 @@ void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
           SLOT(SLT_DrawReconImage()));
 
   SLT_DrawReconImage();
-}
-
-void CbctReconWidget::SLT_TempAudit() const {
-  if (this->m_cbctrecon->m_spRawReconImg != nullptr) {
-    std::cout << "m_spRawReconImg " << this->m_cbctrecon->m_spRawReconImg
-              << std::endl;
-  }
-
-  if (this->m_cbctrecon->m_spRefCTImg != nullptr) {
-    std::cout << "m_spRefCTImg " << this->m_cbctrecon->m_spRefCTImg
-              << std::endl;
-  }
-
-  if (this->m_cbctrecon->m_spCrntReconImg != nullptr) {
-    std::cout << "m_spCrntReconImg " << this->m_cbctrecon->m_spCrntReconImg
-              << std::endl;
-  }
 }
 
 void CbctReconWidget::SLT_LoadPlanCT_USHORT() {

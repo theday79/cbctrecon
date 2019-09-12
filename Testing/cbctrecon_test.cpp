@@ -641,7 +641,6 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
             << std::endl;
 }
 
-void CbctReconTest::test_TempAudit() const {}
 void CbctReconTest::test_CalcAndSaveAngularWEPL() {}
 void CbctReconTest::test_DoScatterCorrectionUniform() {}
 void CbctReconTest::test_FileExportShortDICOM_CurrentImg() {}

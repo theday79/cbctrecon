@@ -155,10 +155,11 @@ if(USE_SYSTEM_Plastimatch)
 
   message(STATUS "${PLASTIMATCH_LIBRARIES}")
   message(STATUS "${Plastimatch_LIBRARIES}")
-
+  
   target_link_libraries(CbctReconLib
     PUBLIC ${Plastimatch_LIBRARIES}
-    )
+  )
+
   get_target_property(plmbase_includes plmbase INTERFACE_INCLUDE_DIRECTORIES)
   foreach(i_dir ${plmbase_includes})
     target_include_directories(CbctReconLib
