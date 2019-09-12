@@ -19,7 +19,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # BASIC CMAKE
 set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
 set(CbctRecon_VERSION_MINOR "5") # bump at functionality change
-set(CbctRecon_VERSION_PATCH "1") # bump at minor change
+set(CbctRecon_VERSION_PATCH "2") # bump at minor change
 
 project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
