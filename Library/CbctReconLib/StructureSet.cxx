@@ -176,28 +176,45 @@ StructureSet::get_transform_function(const Xform::Pointer &xform) const {
   }
   case XFORM_ITK_VERSOR: {
     const auto &versor = xform->get_vrs();
-    const auto matrix = -(versor->GetMatrix().GetVnlMatrix());
-    const auto offset = -(versor->GetOffset().GetVnlVector());
-    transform = [matrix, offset](const VnlVectorType &point) {
-      return matrix * point + offset;
+    const auto invtransform =
+        itk::MatrixOffsetTransformBase<double, 3, 3>::New();
+    if (!versor->GetInverse(invtransform)) {
+      std::cerr << "Could not get inverse versor transform structures won't be "
+                   "registered\n";
+    }
+    const auto invmatrix = invtransform->GetMatrix().GetVnlMatrix();
+    const auto invoffset = invtransform->GetOffset().GetVnlVector();
+    transform = [invmatrix, invoffset](const VnlVectorType &point) {
+      return invmatrix * point + invoffset;
     };
     break;
   }
   case XFORM_ITK_QUATERNION: {
     const auto &quarternion = xform->get_quat();
-    const auto matrix = -(quarternion->GetMatrix().GetVnlMatrix());
-    const auto offset = -(quarternion->GetOffset().GetVnlVector());
-    transform = [matrix, offset](const VnlVectorType &point) {
-      return matrix * point + offset;
+    const auto invtransform =
+        itk::MatrixOffsetTransformBase<double, 3, 3>::New();
+    if (!quarternion->GetInverse(invtransform)) {
+      std::cerr << "Could not get inverse versor transform structures won't be "
+                   "registered\n";
+    }
+    const auto invmatrix = invtransform->GetMatrix().GetVnlMatrix();
+    const auto invoffset = invtransform->GetOffset().GetVnlVector();
+    transform = [invmatrix, invoffset](const VnlVectorType &point) {
+      return invmatrix * point + invoffset;
     };
     break;
   }
   case XFORM_ITK_AFFINE: {
     const auto &affine = xform->get_aff();
-    const auto matrix = -(affine->GetMatrix().GetVnlMatrix());
-    const auto offset = -(affine->GetOffset().GetVnlVector());
-    transform = [matrix, offset](const VnlVectorType &point) {
-      return matrix * point + offset;
+    const auto invtransform = itk::AffineTransform<double, 3>::New();
+    if (!affine->GetInverse(invtransform)) {
+      std::cerr << "Could not get inverse affine transform structures won't be "
+                   "registered\n";
+    }
+    const auto invmatrix = invtransform->GetMatrix().GetVnlMatrix();
+    const auto invoffset = invtransform->GetOffset().GetVnlVector();
+    transform = [invmatrix, invoffset](const VnlVectorType &point) {
+      return invmatrix * point + invoffset;
     };
     break;
   }

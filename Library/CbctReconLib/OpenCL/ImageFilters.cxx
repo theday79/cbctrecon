@@ -141,12 +141,12 @@ public:
     m_initialized = true;
   }
 
-  cl::Kernel getKernel(const enKernel kernel) {
+  cl::Kernel getKernel(const enKernel kernel) const {
     assert(m_initialized);
 
 #ifdef _WIN32
     // Maybe only necessary for xeon phi
-    auto get_kernel_name = [](enKernel en_kernel) {
+    const auto get_kernel_name = [](enKernel en_kernel) {
       switch (en_kernel) {
       case en_padding_kernel:
         return "padding_kernel";
@@ -175,21 +175,22 @@ public:
       };
     };
 
-    auto get_kernel_by_name = [](const std::string &kernel_name,
-                                 const std::vector<cl::Kernel> &kernel_list) {
-      for (auto &cur_kernel : kernel_list) {
-        const auto cur_kernel_name =
-            cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
-        if (cur_kernel_name == kernel_name) {
-          return cur_kernel;
-        }
-      }
-      std::cerr << "OH NO, SOMETHING BAD WILL HAPPEN SOON!\n";
-      return kernel_list.at(0);
-    };
+    const auto get_kernel_by_name =
+        [](const std::string &kernel_name,
+           const std::vector<cl::Kernel> &kernel_list) {
+          for (auto &cur_kernel : kernel_list) {
+            const auto cur_kernel_name =
+                cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
+            if (cur_kernel_name == kernel_name) {
+              return cur_kernel;
+            }
+          }
+          std::cerr << "OH NO, SOMETHING BAD WILL HAPPEN SOON!\n";
+          return kernel_list.at(0);
+        };
 
     const auto &kernel_name = get_kernel_name(kernel);
-    auto &out_kernel = get_kernel_by_name(kernel_name, m_kernel_list);
+    auto out_kernel = get_kernel_by_name(kernel_name, m_kernel_list);
 #else
     // It seems linux always has the kernels in order, probably it's just
     // windows which doesn't
@@ -895,15 +896,15 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
                                    const Rtss_roi_modern &voi) {
 
   const auto inputSize = ct_image->GetBufferedRegion().GetSize();
-  const cl_ulong4 in_size = {inputSize[0], inputSize[1], inputSize[2], 0};
+  const cl_ulong4 in_size = {{inputSize[0], inputSize[1], inputSize[2], 0}};
 
   const auto inputOrigin = ct_image->GetOrigin();
-  const cl_float2 in_orig = {static_cast<cl_float>(inputOrigin[0]),
-                             static_cast<cl_float>(inputOrigin[1])};
+  const cl_float2 in_orig = {{static_cast<cl_float>(inputOrigin[0]),
+                              static_cast<cl_float>(inputOrigin[1])}};
 
   const auto inputSpacing = ct_image->GetSpacing();
-  const cl_float2 in_spacing = {static_cast<cl_float>(inputSpacing[0]),
-                                static_cast<cl_float>(inputSpacing[1])};
+  const cl_float2 in_spacing = {{static_cast<cl_float>(inputSpacing[0]),
+                                 static_cast<cl_float>(inputSpacing[1])}};
 
   const auto memorySizeInput = inputSize[0] * inputSize[1];
 
@@ -945,12 +946,11 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
     for (auto &contour : voi.pslist) {
       const auto slice_pos = inputOrigin[2] + inputSpacing[2] * slice;
       const auto z_pos = contour.coordinates.at(0).z;
-      if (fabs(z_pos - slice_pos) < 2 * fabs(z_pos - prev_z_pos)) {
+      if (fabs(z_pos - slice_pos) < fabs(z_pos - prev_z_pos)) {
         for (const auto coord : contour.coordinates) {
-          if (fabs(coord.z - slice_pos) < fabs(coord.z - prev_z_pos)) {
-            struct_buffer.push_back({coord.x, coord.y});
-          }
+          struct_buffer.push_back({coord.x, coord.y});
         }
+        break;
       }
       prev_z_pos = z_pos;
     }
@@ -962,7 +962,7 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
       checkError(err, "Create structure buffer");
     }
 
-    cl_ulong n_coords = struct_buffer.size();
+    const cl_ulong n_coords = struct_buffer.size();
 
     crop_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
                 deviceBuffer.at(slice), d_struct_buffer, n_coords, in_size,

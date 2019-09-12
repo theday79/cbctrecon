@@ -36,6 +36,7 @@
 #include <synthetic_vf.h>
 #include <warp_parms.h>
 
+#include "OpenCL/ImageFilters.h"
 #include "StructureSet.h"
 #include "cbctrecon.h"
 #include "cbctrecon_io.h"
@@ -944,71 +945,6 @@ CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
   return strPathMskBubbleCBCT_final;
 }
 
-// NoBubble filling is included. bubble is only needed to be filled during
-// deformable regi
-void CbctRegistration::ProcessCBCT_beforeAutoRigidRegi(
-    QString &strPathRawCBCT, QString &strPath_mskSkinCT,
-    QString &strPathOutputCBCT, double *manualTrans3d,
-    const bool bPrepareMaskOnly, const double skinExp,
-    const int bkGroundValUshort) {
-  // 1) Move CT mask according to the manual shift
-  // plastimatch synth-vf --fixed [msk_skin.mha] --output [xf_manual_trans.mha]
-  // --xf-trans "[origin diff (raw - regi)]"
-  if (m_pParent->m_spManualRigidCT == nullptr) {
-    return;
-  }
-
-  auto strPath_outputXF_manualTrans =
-      m_strPathPlastimatch + "/xf_manual_trans.mha";
-
-  plm_synth_trans_xf(strPath_mskSkinCT, strPath_outputXF_manualTrans,
-                     manualTrans3d[0], manualTrans3d[1], manualTrans3d[2]);
-
-  // 2) Move CT mask according to the manual shift
-  /*Move the skin contour according to the std::vector field
-        plastimatch warp --input [msk_skin.mha] --output-img
-  [msk_skin_manRegi.mha] --xf [xf_manual_trans.mha] plastimatch warp --input
-  E:\PlastimatchData\DicomEg\OLD\msk_skin.mha --output-img
-  E:\PlastimatchData\DicomEg\OLD\msk_skin_manRegi.mha --xf
-  E:\PlastimatchData\DicomEg\OLD\xf_manual_trans.mha*/
-
-  // convert --input-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all.mha
-  // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
-  // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha  QString
-  // strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
-
-  auto mask_fn = this->gen_and_expand_skinmask_plm(
-      strPath_mskSkinCT, strPath_outputXF_manualTrans, strPathRawCBCT, skinExp);
-
-  // 4) eliminate the air region (temporarily)
-  // plastimatch mask --input E:\PlastimatchData\DicomEg\NEW\rawCBCT2.mha
-  // --mask-value 0 --mask
-  // E:\PlastimatchData\DicomEg\OLD\msk_skin_autoRegi_exp.mha --output
-  // E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
-
-  const auto mask_option = MASK_OPERATION_MASK;
-  const float mask_value = bkGroundValUshort; // unsigned short
-
-  if (!bPrepareMaskOnly) // actual cropping is controled by
-                         // checkBoxCropBkgroundCBCT. But mask files are always
-                         // prepared.
-  {
-    auto input_fn = strPathRawCBCT;
-    auto output_fn = strPathOutputCBCT;
-    std::cout << "Entering plm_mask_main to crop the skin image." << std::endl;
-    plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-  } else {
-    std::cout << "bPrepareMaskOnly flag is on. Skipping plm_mask_main.. "
-              << std::endl;
-    strPathOutputCBCT.clear();
-  }
-
-  std::cout << "CBCT preprocessing is done! " << std::endl;
-
-  // Delete temporary file (~450 MB)
-  QFile::remove(strPath_outputXF_manualTrans);
-}
-
 // called after the auto rigid regi. 1) accurate skin clipping 2) air bubble
 // filling inside of the CBCT
 void CbctRegistration::ProcessCBCT_beforeDeformRegi(
@@ -1289,98 +1225,20 @@ void CbctRegistration::SetPlmOutputDir(QString &endFix) {
   m_strPathPlastimatch = dirName;
 }
 
-void CbctRegistration::PostSkinRemovingCBCT(
-    UShortImageType::Pointer &spCBCT) const {
+void CbctRegistration::PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT,
+                                            const std::string &voi_name) const {
   if (spCBCT == nullptr) {
     std::cout << "Error! No CBCT image is available" << std::endl;
     return;
   }
 
-  // find the closest skin contour for CBCT: !8 mm expansion from auto rigid
-  // body
-
-  QString strPath_mskSkinCT_final;
-  const auto strPath_mskSkinCT_autoRegi_exp =
-      m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
-  QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
-
-  const auto strPath_mskSkinCT_manualRegi_exp =
-      m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
-  QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
-
-  if (maskInfoAuto.exists()) // if the mask file is not prepared, give up the
-                             // skin removal
-  {
-    strPath_mskSkinCT_final = strPath_mskSkinCT_autoRegi_exp;
-  } else {
-    std::cout << "Mask file of auto-registration is not prepared. Use manual "
-                 "regi-mask instead"
-              << std::endl;
-
-    if (maskInfoManual.exists()) {
-      strPath_mskSkinCT_final = strPath_mskSkinCT_manualRegi_exp;
-    } else {
-      std::cout << "Mask file of manual registration is not prepared. Skip "
-                   "skin removal!"
-                << std::endl;
-      return;
-    }
-  }
-
-  if (m_strPathPlastimatch.length() < 1) {
-    std::cout << "NO plastimatch Dir was defined. CorrCBCT will not be saved "
-                 "automatically"
-              << std::endl;
+  auto ss = this->m_pParent->m_structures->get_ss(RIGID_CT);
+  if (!ss) {
+    std::cerr << "No structure set available, skipping post skin removal\n";
     return;
   }
-  // 1) Export current CBCT file
-  auto filePathCBCT =
-      m_strPathPlastimatch + "/" + "CorrCBCT.mha"; // usually corrected one
-  auto filePathCBCT_noSkin = m_strPathPlastimatch + "/" +
-                             "CorrCBCT_final.mha"; // usually corrected one
-
-  using writerType = itk::ImageFileWriter<UShortImageType>;
-  auto writer = writerType::New();
-  writer->SetFileName(filePathCBCT.toLocal8Bit().constData());
-  writer->SetUseCompression(true);
-  writer->SetInput(spCBCT);
-
-  std::cout << "Writing the CBCT file" << std::endl;
-  writer->Update();
-
-  QFileInfo CBCTInfo(filePathCBCT);
-  if (!CBCTInfo.exists()) {
-    std::cout << "No CBCT file to read. Maybe prior writing failed"
-              << std::endl;
-    return;
-  }
-
-  // ERROR HERE! delete the temporry folder.
-  std::cout << "Delete the temporary folder if it crashes" << std::endl;
-
-  // 4) eliminate the air region (temporarily)
-  // Mask_parms parms_msk;
-  // DIMENSION SHOULD BE MATCHED!!!! BETWEEN raw CBCT and Mask files
-  const auto mask_option = MASK_OPERATION_MASK;
-  QString input_fn = filePathCBCT.toLocal8Bit().constData();
-  QString mask_fn = strPath_mskSkinCT_final.toLocal8Bit().constData();
-  QString output_fn = filePathCBCT_noSkin.toLocal8Bit().constData();
-  const float mask_value = 0.0; // unsigned short
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-
-  using readerType = itk::ImageFileReader<UShortImageType>;
-  auto readerCBCT = readerType::New();
-  QFileInfo tmpFileInfo(filePathCBCT_noSkin);
-
-  if (tmpFileInfo.exists()) {
-    readerCBCT->SetFileName(filePathCBCT_noSkin.toLocal8Bit().constData());
-    std::cout << "Reading the corrected file" << std::endl;
-    readerCBCT->Update();
-    spCBCT = readerCBCT->GetOutput();
-  } else {
-    std::cout << "Error! No skin-removed file is available for reading"
-              << std::endl;
-  }
+  const auto voi = ss->get_roi_ref_by_name(voi_name);
+  OpenCL_crop_by_struct_InPlace(spCBCT, voi);
 }
 
 void CbctRegistration::ThermoMaskRemovingCBCT(
@@ -1488,159 +1346,6 @@ void CbctRegistration::GenShellMask(
 
   QFile::remove(strPathTmpExp);
   QFile::remove(strPathTmpCont);
-}
-
-void CbctRegistration::CropSkinUsingRS(UShortImageType::Pointer &spImgUshort,
-                                       QString &strPathRS,
-                                       const double cropMargin) const {
-  if (fabs(cropMargin) > 0.01) {
-    std::cout << "margin has not been implemented yet. regarded as 0.0 in this "
-                 "version"
-              << std::endl;
-  }
-  if (spImgUshort == nullptr) {
-    return;
-  }
-
-  /* Load RS file to make a Skin mask*/
-  Warp_parms parms;
-  Rt_study rtds;
-
-  // Export cur image first
-  auto filePathCurImg = m_strPathPlastimatch + "/" +
-                        "SkinCropRS_curImg.mha"; // usually corrected one
-
-  using writerType = itk::ImageFileWriter<UShortImageType>;
-
-  auto writer = writerType::New();
-  writer->SetFileName(filePathCurImg.toLocal8Bit().constData());
-  writer->SetUseCompression(true);
-  writer->SetInput(spImgUshort);
-  std::cout << "Writing the current image file" << std::endl;
-  writer->Update();
-
-  parms.input_fn = strPathRS.toLocal8Bit().constData();
-  parms.fixed_img_fn = filePathCurImg.toLocal8Bit().constData();
-
-  auto ssimg_path_all = m_strPathPlastimatch + "/ssimg_all_cstm.mha";
-  auto sslist_path_all = m_strPathPlastimatch + "/sslist_all_cstm.txt";
-  parms.output_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
-  parms.output_ss_list_fn = sslist_path_all.toLocal8Bit().constData();
-
-  parms.prefix_format = "mha";
-  parms.use_itk = 0;
-  parms.interp_lin = 1;
-
-  const auto file_type = PLM_FILE_FMT_DICOM_RTSS;
-  /* Process warp */
-  rt_study_warp(&rtds, file_type, &parms);
-  printf("Warping Finished!\n");
-
-  // return;
-
-  /* [3]Read outputss-list.txt and leave skin only*/
-  std::ifstream fin;
-  fin.open(sslist_path_all.toLocal8Bit().constData(), std::ios::in);
-  if (fin.fail()) {
-    return;
-  }
-
-  char str[MAX_LINE_LENGTH];
-
-  QString strLineSkin;
-
-  while (!fin.eof()) {
-    memset(str, 0, MAX_LINE_LENGTH);
-    fin.getline(str, MAX_LINE_LENGTH);
-    QString strLine(str);
-
-    auto strList = strLine.split('|');
-    // third one is the organ name
-    if (strList.length() != 3) {
-      std::cout << "abnormal file expression." << std::endl;
-      break;
-    }
-    auto organName = strList.at(2);
-
-    organName = organName.trimmed();
-    if (organName == "Skin" || organName == "skin" || organName == "SKIN") {
-      strLineSkin = strLine;
-    }
-  }
-  fin.close();
-
-  QString sslist_path_skin;
-  if (strLineSkin.length() > 1) {
-    std::ofstream fout;
-    sslist_path_skin = sslist_path_all;
-    sslist_path_skin.replace("all", "skin");
-    fout.open(sslist_path_skin.toLocal8Bit().constData());
-
-    fout << strLineSkin.toLocal8Bit().constData() << std::endl;
-
-    fout.close();
-  } else {
-    std::cout << "Error: no skin contour is found in DICOM RS file. "
-              << std::endl;
-    return;
-  }
-  /* End of [3]Read outputss-list.txt and leave skin only*/
-
-  /* [4]prepare a skin mask image*/
-  // plastimatch convert --input-ss-img [ssimg_all.mha] --input-ss-list
-  // [sslist_skin.txt] --output-labelmap [msk_skin.mha]
-
-  Warp_parms parms2;
-  Rt_study rtds2;
-  // convert --input-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all.mha
-  // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
-  // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha
-  auto strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT_cstm.mha";
-  parms2.input_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
-  parms2.input_ss_list_fn = sslist_path_skin.toLocal8Bit().constData();
-  parms2.output_labelmap_fn =
-      strPath_mskSkinCT.toLocal8Bit().constData(); // output
-  parms2.prefix_format = "mha";
-  parms2.use_itk = 0;
-  parms2.interp_lin = 1;
-  const auto file_type2 = PLM_FILE_FMT_NO_FILE;
-  /* Process warp */
-  rt_study_warp(&rtds2, file_type2, &parms2);
-  printf("Warping2 Finished!\n");
-  // m_strPathCTSkin = strPath_mskSkinCT;
-
-  // Mask_parms parms_msk3;
-  auto strPathSkinRemovedCT =
-      m_strPathPlastimatch + "/skin_removed_CT_cstm.mha";
-  const auto mask_option = MASK_OPERATION_MASK;
-  QFileInfo tmpInfo(filePathCurImg);
-
-  QString input_fn;
-  if (tmpInfo.exists()) {
-    input_fn = filePathCurImg;
-  } else {
-    return;
-  }
-
-  auto mask_fn = strPath_mskSkinCT;
-  auto output_fn = strPathSkinRemovedCT;
-  const auto mask_value = 0.0f;
-  plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
-  // strPathSkinRemovedCT .mha file is ready. this is SHORT image
-
-  using readerType = itk::ImageFileReader<UShortImageType>;
-  auto reader = readerType::New();
-
-  auto tmpFileInfo = QFileInfo(strPathSkinRemovedCT); // cropped image
-  if (tmpFileInfo.exists()) {
-    reader->SetFileName(strPathSkinRemovedCT.toLocal8Bit().constData());
-    reader->Update();
-
-    spImgUshort = reader->GetOutput();
-  } else {
-    std::cout << "No strPathSkinRemovedCT is available. Exit the function"
-              << std::endl;
-  }
 }
 
 VEC3D CbctRegistration::GetShiftValueFromGradientXForm(QString &file_path,

@@ -100,7 +100,6 @@ public:
   void test_ViewRegistration() const;
   void test_ViewHistogram();
   void test_DoScatterCorrection_APRIORI() const;
-  void test_TempAudit() const;
   void test_CalcAndSaveAngularWEPL();
   void test_DoScatterCorrectionUniform();
   void test_FileExportShortDICOM_CurrentImg();

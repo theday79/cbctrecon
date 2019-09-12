@@ -13,13 +13,12 @@
 #include "WEPL.h"
 #include "YK16GrayImage.h"
 #include "cbctrecon_types.h"
+#include "StructureSet.h"
 
 class QFileInfo;
 class QString;
 class QStringList;
 class QXmlStreamReader;
-
-class StructureSet;
 
 class CBCTRECON_API CbctRecon {
 

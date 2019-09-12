@@ -30,13 +30,25 @@ public:
 
   Rtss_modern *get_ss(ctType struct_set) const;
 
+  template <ctType CT_TYPE> bool is_ss_null() const {
+    switch (CT_TYPE) {
+    case PLAN_CT:
+      return m_plan_ss == nullptr;
+    case RIGID_CT:
+      return m_rigid_ss == nullptr;
+    case DEFORM_CT:
+      return m_deform_ss == nullptr;
+    }
+    return true;
+  }
+
   template <ctType CT_TYPE>
   void ApplyVectorTransformTo(const FloatVector &vec) {
     transform_by_vector(CT_TYPE, vec, m_rigid_ss);
   }
 
   template <ctType CT_TYPE>
-  void ApplyVectorTransformOn(const FloatVector &vec) {
+  void ApplyVectorTransform_InPlace(const FloatVector &vec) {
     switch (CT_TYPE) {
     case PLAN_CT:
       transform_by_vector(CT_TYPE, vec, m_plan_ss);
@@ -56,14 +68,17 @@ public:
       if (m_plan_ss == nullptr) {
         return false;
       }
+      break;
     case RIGID_CT:
       if (m_rigid_ss == nullptr) {
         return false;
       }
+      break;
     case DEFORM_CT:
       if (m_deform_ss == nullptr) {
         return false;
       }
+      break;
     }
 
     auto xform = Xform::New();
