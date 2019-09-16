@@ -26,14 +26,6 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
 
-double itk_lin_interpolate(const itk::ContinuousIndex<double, 3> &index_pos,
-                           const FloatImageType::Pointer &wepl_cube) {
-  auto interpolator =
-      itk::LinearInterpolateImageFunction<FloatImageType, double>::New();
-  interpolator->SetInputImage(wepl_cube);
-  return interpolator->EvaluateAtContinuousIndex(index_pos);
-}
-
 double lin_interpolate_old(const std::array<int, 3> &point_id,
                            const std::array<double, 3> &point_id_pos,
                            const int idx_2, const int idy_2, const int idz_2,
@@ -102,6 +94,9 @@ double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
                        const std::array<double, 3> &vec_basis,
                        const std::array<double, 3> &vec_voxelsize,
                        const FloatImageType::Pointer &wepl_cube) {
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<FloatImageType, double>::New();
+  interpolator->SetInputImage(wepl_cube);
   const auto step_length = 0.1;
   const auto step =
       DoubleVector{vec_basis.at(0) * step_length, vec_basis.at(1) * step_length,
@@ -127,7 +122,7 @@ double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
     if (!wepl_cube->GetBufferedRegion().IsInside(index_pos)) {
       break;
     }
-    const auto val = itk_lin_interpolate(index_pos, wepl_cube);
+    const auto val = interpolator->EvaluateAtContinuousIndex(index_pos);
     if (!std::isnan(val)) { // Hopefully this is only happening at the edge!?
       out += val;
     }
@@ -156,6 +151,9 @@ WEPL_trace_from_point(const std::array<size_t, 3> &cur_point_id,
                       const std::array<double, 3> &vec_basis,
                       const std::array<double, 3> &vec_cubesize,
                       const FloatImageType::Pointer &wepl_cube) {
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<FloatImageType, double>::New();
+  interpolator->SetInputImage(wepl_cube);
 
   std::vector<double> cumWEPL; // cumulative WEPL
 
@@ -184,7 +182,7 @@ WEPL_trace_from_point(const std::array<size_t, 3> &cur_point_id,
     if (!wepl_cube->GetBufferedRegion().IsInside(index_pos)) {
       break;
     }
-    const auto val = itk_lin_interpolate(index_pos, wepl_cube);
+    const auto val = interpolator->EvaluateAtContinuousIndex(index_pos);
     if (!std::isnan(val)) { // Hopefully this is only happening at the edge!?
       out_wepl += val;
     }
@@ -269,6 +267,10 @@ FloatImageType::PointType point_from_WEPL(
 
   using VectorType = vnl_vector_fixed<double, 3>;
 
+  auto interpolator =
+      itk::LinearInterpolateImageFunction<FloatImageType, double>::New();
+  interpolator->SetInputImage(wepl_cube);
+
   const auto start_point_phys = FloatImageType::PointType(&start_point[0]);
   auto start_idx = itk::ContinuousIndex<double, 3>();
   if (!wepl_cube->TransformPhysicalPointToContinuousIndex(start_point_phys,
@@ -302,7 +304,7 @@ FloatImageType::PointType point_from_WEPL(
                 << ", " << size[2] << "} on WEPL re-calc\n";
       break;
     }
-    const auto val = itk_lin_interpolate(index_pos, wepl_cube);
+    const auto val = interpolator->EvaluateAtContinuousIndex(index_pos);
     accumWEPL += val * step_length;
 
     // point = point + step (Reverse of WEPL_from_point)

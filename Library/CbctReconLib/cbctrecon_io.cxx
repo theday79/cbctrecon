@@ -791,6 +791,22 @@ std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
   return rt_struct;
 }
 
+double get_dcm_offset_z(const std::string &filename) {
+  gdcm::Reader reader;
+  reader.SetFileName(filename.c_str());
+  if (!reader.Read()) {
+    std::cerr << "Reading dicom: " << filename << " failed!\n";
+    return std::numeric_limits<double>::min();
+  }
+  auto &file = reader.GetFile();
+  auto &ds = file.GetDataSet();
+  gdcm::Attribute<0x0020, 0x0032> at_position;
+  at_position.SetFromDataElement(
+      ds.GetDataElement(gdcm::Attribute<0x20, 0x32>::GetTag()));
+  const auto position = at_position.GetValues();
+  return position[2];
+}
+
 std::vector<std::string> get_dcm_image_files(QDir &dir) {
 
   using NamesGeneratorType = itk::GDCMSeriesFileNames;
@@ -810,15 +826,41 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
     return {};
   }
 
+  std::vector<std::string> fileNames;
   seriesItr = seriesUID.begin();
-  if (seriesItr != seriesUID.end()) {
+  while (seriesItr != seriesUID.end()) {
     const auto seriesIdentifier = seriesItr->c_str();
     ++seriesItr;
-    auto fileNames = nameGenerator->GetFileNames(seriesIdentifier);
-
-    return fileNames;
+    const auto names = nameGenerator->GetFileNames(seriesIdentifier);
+    // For most dicom series, it would be enough to return names here in the
+    // first iteration
+    std::copy(names.begin(), names.end(), std::back_inserter(fileNames));
   }
-  return {};
+
+  std::vector<size_t> idxtopop;
+  for (size_t i = 0; i < fileNames.size(); ++i) {
+    const auto modality = get_dcm_modality(QString(fileNames.at(i).c_str()));
+    switch (modality) {
+    case RTIMAGE:
+      break;
+    default:
+      idxtopop.push_back(i);
+      break;
+    }
+  }
+
+  std::reverse(idxtopop.begin(), idxtopop.end());
+  for (const auto &id : idxtopop) {
+    fileNames.erase(fileNames.begin() + id);
+  }
+  std::sort(fileNames.begin(), fileNames.end(),
+            [](std::string &file_a, std::string &file_b) {
+              const auto pos_z_a = get_dcm_offset_z(file_a);
+              const auto pos_z_b = get_dcm_offset_z(file_b);
+              return pos_z_a < pos_z_b;
+            });
+
+  return fileNames;
 }
 
 bool CbctRecon::ReadDicomDir(QString &dirPath) {
@@ -827,9 +869,6 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
   const auto filenamelist = get_dcm_image_files(dir);
 
   for (auto &&filename : dir.entryList(QDir::Files)) {
-    /*entryList(QStringList() << "*.dcm"
-                                                     << "*.DCM"
-                                       QDir::Files)) {*/
     if (filename.contains("-hash-stamp")) {
       continue; // Just so the test data is less annoying.
     }
