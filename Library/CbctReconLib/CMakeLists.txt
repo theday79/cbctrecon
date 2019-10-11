@@ -80,9 +80,9 @@ SET(CbctReconLib_HEADERS
   rtkExtension/rtkOpenCLForwardProjectionImageFilter.h
   rtkExtension/rtkOpenCLForwardProjectionImageFilter.hxx
   OpenCL/ForwardProjectionImageFilter.hpp
-  OpenCL/ImageFilters.h
+  OpenCL/ImageFilters.hpp
   OpenCL/device_picker.hpp
-  OpenCL/err_code.h
+  OpenCL/err_code.hpp
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 
@@ -106,9 +106,11 @@ set_target_cpu_flags(CbctReconLib)
 # Only sets report flags if Intel Compiler:
 set_target_vectorizer_report_flags(CbctReconLib)
 
-if(CBCTRECON_SANITIZE)
-    sanitize_build(CbctReconLib)
+if (CBCTRECON_SANITIZE)
+  sanitize_build(CbctReconLib)
 endif()
+
+target_code_coverage(CbctReconLib AUTO ALL)
 
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)

@@ -7,7 +7,7 @@
 #include <QString>
 #include <qcombobox.h>
 
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 #include "PlmWrapper.h"
 #include "StructureSet.h"
 #include "cbctrecon.h"

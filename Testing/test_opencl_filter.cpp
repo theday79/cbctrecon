@@ -2,9 +2,10 @@
 // it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
 // http://www.viva64.com
 
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <iostream>
 
 #include <QDir>
@@ -15,17 +16,57 @@
 
 #include "itkAddImageFilter.h"
 #include "itkDivideImageFilter.h"
+#include "itkMedianImageFilter.h"
 #include "itkMultiplyImageFilter.h"
+#include "itkSmoothingRecursiveGaussianImageFilter.h"
 #include "itkStatisticsImageFilter.h"
 
 #include "StructureSet.h"
 #include "cbctrecon_io.h"
 
-#include "OpenCL/err_code.h"
+#include "OpenCL/err_code.hpp"
 
 #define REQ_OPENCL_VER static_cast<cl_uint>(CBCTRECON_OPENCL_VERSION)
 
-template <typename T, size_t DIM> auto GenerateImage() {
+// From line integral to raw intensity
+class LineInt2Intensity {
+public:
+  LineInt2Intensity() = default;
+  ~LineInt2Intensity() = default;
+  float operator()(const float val) const {
+    float intensityVal = std::exp(-val) /* I_0=1 */;
+    return intensityVal;
+  }
+};
+// From raw intensity to line integral
+class Intensity2LineInt {
+public:
+  Intensity2LineInt() = default;
+  ~Intensity2LineInt() = default;
+  float operator()(const float val) const {
+    // mu = ln(I_0/I) OR mu = ln(I/I0)
+    float lineintVal = std::numeric_limits<float>::max();
+    if (val > 0) {
+      lineintVal = /* log(I_0=1) = 0 */ -std::log(val);
+    }
+    return lineintVal;
+  }
+};
+
+// log(ushort_max / val)
+class LogInvFunctor {
+public:
+  LogInvFunctor() = default;
+  ~LogInvFunctor() = default;
+  float operator()(const unsigned short val) const {
+    // mu = ln(I_0/I) OR mu = ln(I/I0)
+    const auto log_ushrt_max =
+        std::log(std::numeric_limits<unsigned short>::max());
+    return log_ushrt_max - std::log(val);
+  }
+};
+
+template <typename T, size_t DIM> auto GenerateImage(const T init_val = 1) {
   using ImageType = itk::Image<T, DIM>;
   auto image = ImageType::New();
   typename ImageType::IndexType origin;
@@ -49,14 +90,16 @@ template <typename T, size_t DIM> auto GenerateImage() {
 
   itk::ImageRegionIterator<ImageType> ImageIter(image, region);
   while (!ImageIter.IsAtEnd()) {
-    ImageIter.Set(static_cast<T>(1));
+    ImageIter.Set(init_val);
     ++ImageIter;
   }
 
   return image;
 }
 
-template <typename T, size_t DIM> auto GenerateRandImage() {
+template <typename T, size_t DIM>
+auto GenerateRandImage(const int seed = 69, const T min_val = 0,
+                       const T max_val = std::numeric_limits<T>::max()) {
   using ImageType = itk::Image<T, DIM>;
   auto image = ImageType::New();
   typename ImageType::IndexType origin;
@@ -78,12 +121,13 @@ template <typename T, size_t DIM> auto GenerateRandImage() {
   image->SetRegions(region);
   image->Allocate();
 
-  std::srand(69); // RNG seed
+  std::srand(seed); // RNG seed
+  const auto norm_factor = (max_val - min_val) / static_cast<double>(RAND_MAX);
 
   itk::ImageRegionIterator<ImageType> ImageIter(image, region);
   while (!ImageIter.IsAtEnd()) {
     // rand is between 0 and RAND_MAX, which is implementation dependend
-    ImageIter.Set(static_cast<T>(std::rand()));
+    ImageIter.Set(static_cast<T>(std::rand() * norm_factor + min_val));
     ++ImageIter;
   }
 
@@ -146,14 +190,14 @@ auto CheckImage(typename ImageType::Pointer image_test,
 
   auto n_err = 0;
   while (!ImageIter_ref.IsAtEnd()) {
-    if (fabs(ImageIter_ref.Get() - ImageIter_test.Get()) > 0.01f) {
+    if (fabs(ImageIter_ref.Get() - ImageIter_test.Get()) > 0.00001f) {
       ++n_err;
     }
     ++ImageIter_ref;
     ++ImageIter_test;
   }
   if (n_err != 0) {
-    std::cerr << "Error larger than 0.01 " << n_err
+    std::cerr << "Error larger than 0.00001 " << n_err
               << " times, between OpenCL and ITK implementation!\n";
     return -n_err;
   }
@@ -238,7 +282,7 @@ int main(const int argc, char **argv) {
 
     const auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_cpu);
     if (result != 0) {
-      return result;
+      return -2;
     }
 
   } else if (filter_str == "add_const_2d_filter") {
@@ -275,7 +319,7 @@ int main(const int argc, char **argv) {
 
     const auto result = CheckImage<itk::Image<float, 2U>>(image_ocl, image_cpu);
     if (result != 0) {
-      return result;
+      return -2;
     }
   } else if (filter_str == "add_mul_const_filter") {
 
@@ -316,7 +360,7 @@ int main(const int argc, char **argv) {
 
     const auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_cpu);
     if (result != 0) {
-      return result;
+      return -2;
     }
   } else if (filter_str == "min_max_filter") {
 
@@ -399,20 +443,15 @@ int main(const int argc, char **argv) {
       return -3;
     }
 
-  } else if (filter_str == "divide_3Dby3D_filter") {
+  } else if (filter_str == "divide_3Dby3D_loginv_filter") {
 
     using ImageType = itk::Image<unsigned short, 3U>;
-    auto image_in1 = GenerateRandImage<unsigned short, 3U>();
-    const auto image_in2 = GenerateRandImage<unsigned short, 3U>();
-    auto add_filter =
-        itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
-    add_filter->SetInput1(image_in1);
-    add_filter->SetConstant2(17);
-    add_filter->Update();
-    image_in1 = add_filter->GetOutput();
+    const auto image_in1 = GenerateRandImage<unsigned short, 3U>(69, 0, 4096);
+    const auto image_in2 = GenerateRandImage<unsigned short, 3U>(69, 0, 1024);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto image_ocl = OpenCL_divide3Dby3D_OutOfPlace(image_in1, image_in2);
+    const auto image_ocl =
+        OpenCL_divide3Dby3D_loginv_OutOfPlace(image_in1, image_in2);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -422,10 +461,17 @@ int main(const int argc, char **argv) {
               << " ms\n";
 
     const auto start_itk_time = std::chrono::steady_clock::now();
-    auto div_filter = itk::DivideImageFilter<ImageType, ImageType,
-                                             itk::Image<float, 3U>>::New();
-    div_filter->SetInput1(image_in1);
-    div_filter->SetInput2(image_in2);
+    using loginv_filter_type =
+        itk::UnaryFunctorImageFilter<ImageType, FloatImageType, LogInvFunctor>;
+    auto loginv_filter = loginv_filter_type::New();
+    loginv_filter->SetInput(image_in1);
+    auto loginv_filter_2 = loginv_filter_type::New();
+    loginv_filter_2->SetInput(image_in2);
+
+    auto div_filter = itk::DivideImageFilter<FloatImageType, FloatImageType,
+                                             FloatImageType>::New();
+    div_filter->SetInput1(loginv_filter->GetOutput());
+    div_filter->SetInput2(loginv_filter_2->GetOutput());
     div_filter->Update();
     const auto image_itk = div_filter->GetOutput();
     const auto end_itk_time = std::chrono::steady_clock::now();
@@ -438,7 +484,7 @@ int main(const int argc, char **argv) {
 
     const auto result = CheckImage<itk::Image<float, 3U>>(image_ocl, image_itk);
     if (result != 0) {
-      return result;
+      return -2;
     }
   } else if (filter_str == "padding_filter") {
   } else if (filter_str == "subtract_2Dfrom3D_filter") {
@@ -483,6 +529,144 @@ int main(const int argc, char **argv) {
       std::cerr << "Test pixel was not 1059, it was: " << image->GetPixel(index)
                 << "\n";
       return -3;
+    }
+
+  } else if (filter_str == "ItoLogI_subtract_median_filter") {
+    using ImageType = itk::Image<float, 2U>;
+    const auto median_radius = 3U;
+
+    const auto proj_raw = GenerateRandImage<float, 2U>(69, 1.0f, 5.0f);
+
+    const auto proj_scatter = GenerateRandImage<float, 2U>(6969, 5.0f, 5.3f);
+
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
+        proj_raw, proj_scatter, median_radius);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    auto convert_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter->SetInput(proj_raw);
+    auto convert_filter_2 =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter_2->SetInput(proj_scatter);
+
+    auto subtract_filter =
+        itk::SubtractImageFilter<ImageType, ImageType>::New();
+    subtract_filter->SetInput1(convert_filter->GetOutput());
+    subtract_filter->SetInput2(convert_filter_2->GetOutput());
+
+    auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
+    median_filter->SetInput(subtract_filter->GetOutput());
+    median_filter->SetRadius(median_radius);
+
+    auto convert_back_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     Intensity2LineInt>::New();
+    convert_back_filter->SetInput(median_filter->GetOutput());
+    convert_back_filter->Update();
+    const auto itk_proj_corr = convert_back_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
+
+    const auto result = CheckImage<ImageType>(proj_corr, itk_proj_corr);
+    auto border_size = 0;
+    for (int i = 0; i < median_radius; ++i) {
+      border_size += 2 * (1024 - 2 * i + 768 - 2 * i - 2);
+    }
+    if (result > border_size) {
+      return -2;
+    } else {
+      std::cerr << "ITK handles the border differently."
+                   "So we only fail if more than the border is wrong\n";
+    }
+  } else if (filter_str == "ItoLogI_subtract_median_gaussian_filter") {
+    using ImageType = itk::Image<float, 2U>;
+
+    const auto proj_prim = GenerateRandImage<float, 2U>(69, 1.5f, 5.0f);
+    const auto proj_rand = GenerateRandImage<float, 2U>(6969, 0.0f, -0.5f);
+
+    auto add_filter =
+        itk::AddImageFilter<ImageType, ImageType, ImageType>::New();
+    add_filter->SetInput1(proj_prim);
+    add_filter->SetInput2(proj_rand);
+    add_filter->Update();
+    const auto proj_raw = add_filter->GetOutput();
+
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    const auto proj_scatter = OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+        proj_raw, proj_prim, 3, 1.5);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    auto convert_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter->SetInput(proj_raw);
+
+    auto convert_filter_2 =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter_2->SetInput(proj_prim);
+
+    auto subtract_filter =
+        itk::SubtractImageFilter<ImageType, ImageType>::New();
+    subtract_filter->SetInput1(convert_filter->GetOutput());
+    subtract_filter->SetInput2(convert_filter_2->GetOutput());
+
+    auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
+    median_filter->SetInput(subtract_filter->GetOutput());
+    median_filter->SetRadius(3);
+
+    auto gaussian_filter =
+        itk::SmoothingRecursiveGaussianImageFilter<ImageType, ImageType>::New();
+    gaussian_filter->SetInput(median_filter->GetOutput());
+
+    itk::SmoothingRecursiveGaussianImageFilter<
+        ImageType, ImageType>::SigmaArrayType gauss_sigma;
+    gauss_sigma[0] = 1.5;
+    gauss_sigma[1] = gauss_sigma[0] * 0.75;
+    gaussian_filter->SetSigmaArray(gauss_sigma);
+
+    auto convert_back_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     Intensity2LineInt>::New();
+    convert_back_filter->SetInput(gaussian_filter->GetOutput());
+    convert_back_filter->Update();
+    auto itk_proj_scatter = convert_back_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
+
+    saveImageAsMHA<ImageType>(itk_proj_scatter, "itk_submedgauss.mha");
+    saveImageAsMHA<ImageType>(proj_scatter, "ocl_submedgauss.mha");
+    const auto result = CheckImage<ImageType>(proj_scatter, itk_proj_scatter);
+    if (result != 0) {
+      return -2;
     }
 
   } else {

@@ -2,10 +2,10 @@
 // it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
 // http://www.viva64.com
 
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 #include "OpenCL/cl2.hpp"
 #include "OpenCL/device_picker.hpp"
-#include "OpenCL/err_code.h"
+#include "OpenCL/err_code.hpp"
 
 int main(int argc, char **argv) {
 

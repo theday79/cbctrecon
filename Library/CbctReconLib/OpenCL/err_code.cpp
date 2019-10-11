@@ -1,4 +1,4 @@
-#include "OpenCL/err_code.h"
+#include "OpenCL/err_code.hpp"
 
 std::string ocl_err_code(const cl_int err_in) {
   switch (err_in) {

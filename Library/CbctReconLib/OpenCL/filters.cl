@@ -113,12 +113,12 @@ __kernel void subtract_kernel2D(__global float *input, uint4 inputDimension,
 }
 
 // Actually is divide ln(65535/X) by ln(65535/Y)
-__kernel void divide_kernel3D_Ushort(__global ushort *input,
-                                     __global ushort *divImg,
-                                     __global float *output) {
+__kernel void divide_kernel3D_loginv_Ushort(__global ushort *input,
+                                            __global ushort *divImg,
+                                            __global float *output) {
   const unsigned int idx = get_global_id(0);
   // mu_t = ln(65535/I)
-  const float short_lim = log(65535.0f);
+  const float short_lim = log((float)USHRT_MAX);
   const float mu_in = short_lim - log((float)input[idx]);
   const float mu_div = short_lim - log((float)divImg[idx]);
   output[idx] = mu_in / mu_div;
@@ -134,7 +134,7 @@ __kernel void add_const_kernel(__global float *input, float value) {
 
 // Adds value to input or assigns to 0 or ln(65535) if outside bounds.
 __kernel void add_const_with_thresh_kernel(__global float *input, float value) {
-  const float short_lim = log(65535.0f);
+  const float short_lim = log((float)USHRT_MAX);
   const unsigned int idx = get_global_id(0);
   const float out_val = input[idx] + value;
 
@@ -160,7 +160,7 @@ __kernel void add_mul_const_kernel(__global float *input, const float add_value,
 __kernel void add_mul_const_with_thresh_kernel(__global float *input,
                                                const float add_value,
                                                const float mul_value) {
-  const float short_lim = log(65535.0f);
+  const float short_lim = log((float)USHRT_MAX);
   const unsigned int idx = get_global_id(0);
   const float out_val = (input[idx] + add_value) * mul_value;
   if (out_val < 0.0f) {
@@ -266,7 +266,7 @@ inline int wn_PnPoly(const float2 P, __constant float2 *V, const ulong n) {
   int wn = 0; // the  winding number counter
 
   // loop through all edges of the polygon
-  for (ulong i = 0; i < n; i++) {            // edge from V[i] to  V[i+1]
+  for (ulong i = 0; i < n; i++) {          // edge from V[i] to  V[i+1]
     if (V[i].y <= P.y) {                   // start y <= P.y
       if (V[i + 1].y > P.y)                // an upward crossing
         if (isLeft(V[i], V[i + 1], P) > 0) // P left of  edge
@@ -282,10 +282,10 @@ inline int wn_PnPoly(const float2 P, __constant float2 *V, const ulong n) {
 //===================================================================
 
 // Crop everything outside structure
-__kernel void crop_by_struct_kernel(__global ushort *dev_vol,
-                                    __constant float2 *structure,
-                                    const ulong number_of_verti, const ulong4 vol_dim,
-                                    const float2 vol_offset, const float2 vol_spacing) {
+__kernel void
+crop_by_struct_kernel(__global ushort *dev_vol, __constant float2 *structure,
+                      const ulong number_of_verti, const ulong4 vol_dim,
+                      const float2 vol_offset, const float2 vol_spacing) {
   const ulong id = get_global_id(0);
 
   if (id >= vol_dim.x * vol_dim.y) {
@@ -313,3 +313,70 @@ __kernel void crop_by_struct_kernel(__global ushort *dev_vol,
   }
 }
 
+float median_by_bubble_sort(float list[], const uint n) {
+  uint n_i = n;
+  while (n_i >= n / 2) {
+    uint new_n = 0;
+    for (uint i = 1; i < n_i; ++i) {
+      if (list[i - 1] > list[i]) {
+        // Swap
+        float t = list[i];
+        list[i] = list[i - 1];
+        list[i - 1] = t;
+        new_n = i;
+      }
+    }
+    n_i = new_n;
+  }
+  return list[n / 2];
+}
+
+// Convert input to intensity, then take the difference and apply a median
+// filter
+__kernel void i_to_log_i_subtract_median_i_to_log_i(
+    __global const float *proj_raw, __global const float *proj_sca,
+    __global float *proj_corr, const ulong2 size, const uint median_radius) {
+  const ulong id = get_global_id(0);
+
+  if (id >= size.x * size.y) {
+    return;
+  }
+  const long j = id / size.x;
+  const long i = id - j * size.x;
+
+  float unsorted_vector[64];
+  uint i_uv = 0;
+
+  for (int y = -median_radius; y <= (int)median_radius; ++y) {
+    const int jy = j + y;
+    if (jy < 0 || jy > size.y) {
+      continue;
+    }
+    const ulong id_jy = jy * size.x;
+    for (int x = -median_radius; x <= (int)median_radius; ++x) {
+      const int ix = i + x;
+      if (ix < 0 || ix > size.x) {
+        continue;
+      }
+      const ulong r_id = ix + id_jy;
+      const float raw_val = proj_raw[r_id];
+
+      // assuming *_val is not < 0, then *_i is in [0; 1]
+      const float raw_i = exp(-raw_val);
+
+      const float sca_val = proj_sca[r_id];
+      const float sca_i = exp(-sca_val);
+
+      unsorted_vector[i_uv++] = raw_i - sca_i;
+    }
+  }
+
+  // lowest possible value of i_uv should be median_radius^2
+  const float median = median_by_bubble_sort(unsorted_vector, i_uv);
+
+  if (median > 0.0) {
+    proj_corr[id] = -log(median);
+  } else {
+    proj_corr[id] = FLT_MAX;
+  }
+}

@@ -4,7 +4,7 @@
 
 #include <cassert>
 
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 
 #include "OpenCL/cl2.hpp"
 #include "OpenCL/device_picker.hpp"
@@ -23,14 +23,15 @@ enum enKernel {
   en_multiply_kernel,
   en_multiply_kernel2D,
   en_subtract_kernel2D,
-  en_divide_kernel3D_ushort,
+  en_divide_kernel3D_loginv_ushort,
   en_add_const_kernel,
   en_add_const_with_thresh_kernel,
   en_add_mul_const_kernel,
   en_add_mul_const_with_thresh_kernel,
   en_min_max_kernel,
   en_min_max_kernel2,
-  en_crop_by_struct_kernel
+  en_crop_by_struct_kernel,
+  en_LogItoI_subtract_median_ItoLogI
 };
 
 class KernelMan {
@@ -156,8 +157,8 @@ public:
         return "multiply_kernel2D";
       case en_subtract_kernel2D:
         return "subtract_kernel2D";
-      case en_divide_kernel3D_ushort:
-        return "divide_kernel3D_Ushort";
+      case en_divide_kernel3D_loginv_ushort:
+        return "divide_kernel3D_loginv_Ushort";
       case en_add_const_kernel:
         return "add_const_kernel";
       case en_add_const_with_thresh_kernel:
@@ -172,6 +173,10 @@ public:
         return "min_max_kernel2";
       case en_crop_by_struct_kernel:
         return "crop_by_struct_kernel";
+      case en_LogItoI_subtract_median_ItoLogI:
+        return "log_i_to_i_subtract_median_i_to_log_i";
+      case en_LogItoI_subtract_median_gaussian_ItoLogI:
+        return "log_i_to_i_subtract_median_gaussian_i_to_log_i";
       };
     };
 
@@ -352,32 +357,22 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   checkError(err, "Sub, copy back from device");
 }
 
-itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
+itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Num3D,
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
-  const auto region = Num3D->GetLargestPossibleRegion();
+  const auto region = Num3D->GetBufferedRegion();
   const auto buffer = Num3D->GetBufferPointer();
   auto inputSize = region.GetSize();
+
   const auto sub_buffer = Denum3D->GetBufferPointer();
   auto subSize = Denum3D->GetLargestPossibleRegion().GetSize();
 
   auto outImage = itk::Image<float, 3U>::New();
-  const auto projCT_size = region.GetSize();
-  const auto projCT_idxStart = region.GetIndex();
-  const auto projCT_spacing = Num3D->GetSpacing();
-  const auto projCT_origin = Num3D->GetOrigin();
-
-  itk::Image<float, 3U>::RegionType projCT_region;
-  projCT_region.SetSize(projCT_size);
-  projCT_region.SetIndex(projCT_idxStart);
-
-  outImage->SetRegions(projCT_region);
-  outImage->SetSpacing(projCT_spacing);
-  outImage->SetOrigin(projCT_origin);
-
+  outImage->SetRegions(region);
   outImage->Allocate();
-  auto *out_buffer = outImage->GetBufferPointer();
+
+  auto out_buffer = outImage->GetBufferPointer();
 
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_ushort);
@@ -403,15 +398,15 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_OutOfPlace(
       ctx, out_buffer, out_buffer + memorySizeInput, false, true, nullptr);
 
   // Create program
-  auto divide_kernel3D_Ushort =
+  auto divide_kernel3D_loginv_Ushort =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer>(
-          kernel_man.getKernel(en_divide_kernel3D_ushort));
+          kernel_man.getKernel(en_divide_kernel3D_loginv_ushort));
 
   const auto local_work_size =
       get_local_work_size_small(cl::Device::getDefault());
   const cl::NDRange global_work_size(memorySizeInput);
 
-  divide_kernel3D_Ushort(
+  divide_kernel3D_loginv_Ushort(
       cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
       deviceSubBuffer, deviceOutBuffer);
 
@@ -981,3 +976,152 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
     checkError(err, "Add, copy data back from device");
   }
 }
+
+FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
+    const FloatImage2DType::Pointer &proj_raw,
+    const FloatImage2DType::Pointer &proj_scatter,
+    const unsigned int median_radius) {
+  const auto inputSize = proj_raw->GetBufferedRegion().GetSize();
+  const cl_ulong2 in_size = {{inputSize[0], inputSize[1]}};
+  if (inputSize != proj_scatter->GetBufferedRegion().GetSize()) {
+    std::cerr << "Raw proj and scatter map was not the same size!\n";
+    return nullptr;
+  }
+  if (std::pow(median_radius * 2, 2) > 64) {
+    std::cerr
+        << "Oh no, the kernel doesn't support a median radius this big!\n";
+    return nullptr;
+  }
+
+  const auto raw_buffer = proj_raw->GetBufferPointer();
+  const auto sca_buffer = proj_scatter->GetBufferPointer();
+
+  const auto memorySizeInput = inputSize[0] * inputSize[1];
+
+  auto defines = std::string("");
+  kernel_man.initialize(defines, 2 * memorySizeInput * sizeof(cl_float));
+
+  auto err = CL_SUCCESS;
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
+
+  /* Prepare OpenCL memory objects and place data inside them. */
+  const auto deviceBuffer_raw =
+      cl::Buffer(raw_buffer, raw_buffer + memorySizeInput, true, true, &err);
+  checkError(err,
+             "Alloc device raw buffer, log_i_to_i_subtract_median_i_to_log_i");
+
+  const auto deviceBuffer_sca =
+      cl::Buffer(sca_buffer, sca_buffer + memorySizeInput, true, true, &err);
+  checkError(
+      err,
+      "Alloc device scatter buffer, log_i_to_i_subtract_median_i_to_log_i");
+
+  auto proj_corr = FloatImage2DType::New();
+  proj_corr->SetRegions(proj_raw->GetBufferedRegion());
+  proj_corr->Allocate();
+
+  auto out_buffer = proj_corr->GetBufferPointer();
+  auto deviceOutBuffer =
+      cl::Buffer(out_buffer, out_buffer + memorySizeInput, false, true, &err);
+  checkError(
+      err, "Alloc device output buffer, log_i_to_i_subtract_median_i_to_log_i");
+
+  auto log_i_to_i_subtract_median_i_to_log_i_kernel =
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
+          kernel_man.getKernel(en_LogItoI_subtract_median_ItoLogI));
+
+  const auto local_work_size =
+      get_local_work_size_small(cl::Device::getDefault());
+  const auto global_work_size = cl::NDRange(memorySizeInput);
+
+  log_i_to_i_subtract_median_i_to_log_i_kernel(
+      cl::EnqueueArgs(queue, global_work_size, local_work_size),
+      deviceBuffer_raw, deviceBuffer_sca, deviceOutBuffer, in_size,
+      static_cast<cl_uint>(median_radius), err);
+  checkError(err,
+             "Enqueue kernel and args, log_i_to_i_subtract_median_i_to_log_i");
+
+  err = queue.finish();
+  checkError(err, "Finish log_i_to_i_subtract_median_i_to_log_i queue");
+
+  /* Fetch results of calculations. */
+  err = cl::copy(queue, deviceOutBuffer, out_buffer,
+                 out_buffer + memorySizeInput);
+  checkError(
+      err, "log_i_to_i_subtract_median_i_to_log_i, copy data back from device");
+
+  return proj_corr;
+}
+
+FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+    const FloatImage2DType::Pointer &proj_raw,
+    const FloatImage2DType::Pointer &proj_prim,
+    const unsigned int median_radius, const float gaussian_sigma) {
+
+  const auto inputSize = proj_raw->GetBufferedRegion().GetSize();
+  const cl_ulong2 in_size = {{inputSize[0], inputSize[1]}};
+
+  if (inputSize != proj_prim->GetBufferedRegion().GetSize()) {
+    std::cerr << "Raw proj and scatter map was not the same size!\n";
+    return nullptr;
+  }
+  if (std::pow(median_radius * 2, 2) > 64) {
+    std::cerr
+        << "Oh no, the kernel doesn't support a median radius this big!\n";
+    return nullptr;
+  }
+
+  const auto raw_buffer = proj_raw->GetBufferPointer();
+  const auto pri_buffer = proj_prim->GetBufferPointer();
+
+  const auto memorySizeInput = inputSize[0] * inputSize[1];
+
+  auto defines = std::string("");
+  kernel_man.initialize(defines, 2 * memorySizeInput * sizeof(cl_float));
+
+  auto err = CL_SUCCESS;
+  const auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
+
+  /* Prepare OpenCL memory objects and place data inside them. */
+  const auto deviceBuffer_raw = cl::Buffer(
+      ctx, raw_buffer, raw_buffer + memorySizeInput, true, true, nullptr);
+
+  const auto deviceBuffer_pri = cl::Buffer(
+      ctx, pri_buffer, pri_buffer + memorySizeInput, true, true, nullptr);
+
+  auto proj_sca = FloatImage2DType::New();
+  proj_sca->SetRegions(proj_raw->GetBufferedRegion());
+  proj_sca->Allocate();
+
+  auto out_buffer = proj_sca->GetBufferPointer();
+  const auto deviceOutBuffer = cl::Buffer(
+      ctx, out_buffer, out_buffer + memorySizeInput, false, true, nullptr);
+
+  auto log_i_to_i_subtract_median_i_to_log_i_kernel =
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
+          kernel_man.getKernel(en_LogItoI_subtract_median_ItoLogI));
+
+  const auto local_work_size =
+      get_local_work_size_small(cl::Device::getDefault());
+  const auto global_work_size = cl::NDRange(memorySizeInput);
+
+  log_i_to_i_subtract_median_i_to_log_i_kernel(
+      cl::EnqueueArgs(queue, global_work_size, local_work_size),
+      deviceBuffer_raw, deviceBuffer_pri, deviceOutBuffer, in_size,
+      median_radius);
+
+  err = queue.finish();
+  checkError(err, "Finish log_i_to_i_subtract_median_i_to_log_i queue");
+
+  /* Fetch results of calculations. */
+  err = cl::copy(queue, deviceOutBuffer, out_buffer,
+                 out_buffer + memorySizeInput);
+  checkError(err, "Add, copy data back from device");
+
+  return proj_sca;
+}
+

@@ -33,6 +33,7 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Check Instruction set available and set intel compiler flags
 include(feature_defs OPTIONAL)
 include(Sanitize)
+include(CodeCoverage)
 
 option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" OFF)
 option(HUNTER_ENABLED "Enable hunter for dependency management" OFF)
@@ -64,13 +65,6 @@ if (RTK_USE_OPENCL)
   add_definitions(-DRTK_USE_OPENCL)
   add_definitions(-DSLAB_SIZE=${SLAB_SIZE})
 endif()
-
-if(CMAKE_COMPILER_IS_GNUCXX AND ${CBCTRECON_BUILD_TESTS} AND ${USE_CUDA})
-  set(TMP_COVERAGE ON)  # gcov requires gcc and tests to be build.
-  # CUDA is to only do this on private GitLab runners and to enable most routes
-endif()
-OPTION(CBCTRECON_COVERAGE "Get test coverage report for CbctReconLib" ${TMP_COVERAGE})
-
 
 OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
 if(NOT WIN32)
@@ -250,15 +244,15 @@ set(CBCTRECON_DEP_LIBS
   OpenCL::OpenCL
 )
 
+# ITK should be covered by it's own tests.
+# Testing IS the tests
+# Applications cannot be tested on CI (QtApplication requires a screen)
+add_code_coverage_all_targets(EXCLUDE Testing/* ITK/* Applications/*)
+
 add_subdirectory(Library)
 add_subdirectory(Applications)
 
 if(CBCTRECON_BUILD_TESTS)
-  # enable code coverage generation (only with GCC for now)
-  if(${CBCTRECON_COVERAGE} AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    add_definitions(-fprofile-arcs -ftest-coverage)
-  endif()
-
   include(${CbctRecon_SOURCE_DIR}/cmake/ctest_setup.cmake)
   message(STATUS "Configuring CbctRecon tests...")
   add_subdirectory(Testing)

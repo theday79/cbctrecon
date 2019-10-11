@@ -33,7 +33,7 @@
 
 #include "cbctrecon_config.h"
 
-#include "OpenCL/err_code.h"
+#include "OpenCL/err_code.hpp"
 
 #ifndef CL_DEVICE_BOARD_NAME_AMD
 #define CL_DEVICE_BOARD_NAME_AMD 0x4038

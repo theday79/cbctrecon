@@ -64,11 +64,6 @@ function(add_cbctrecon_test)
     target_link_libraries(${ARGS_TARGET} cbctrecon_test)
   endif()
 
-  # link with coverage library
-  if(${CBCTRECON_COVERAGE} AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-      target_link_libraries(${ARGS_TARGET} -fprofile-arcs -ftest-coverage)
-  endif()
-
   # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
   set_target_cpu_flags(${ARGS_TARGET})
 

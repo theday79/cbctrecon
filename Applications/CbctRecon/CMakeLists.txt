@@ -67,7 +67,9 @@ add_executable(CbctRecon
 
 # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
 set_target_cpu_flags(CbctRecon)
+
 print_target_compiler_options(CbctRecon)
+
 if(CBCTRECON_SANITIZE)
   sanitize_build(CbctRecon)
 endif()

@@ -36,7 +36,7 @@
 #include <synthetic_vf.h>
 #include <warp_parms.h>
 
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 #include "StructureSet.h"
 #include "cbctrecon.h"
 #include "cbctrecon_io.h"

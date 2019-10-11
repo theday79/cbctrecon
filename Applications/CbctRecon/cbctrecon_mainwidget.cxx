@@ -38,7 +38,7 @@
 // Local
 #include "DlgExternalCommand.h"
 #include "DlgRegistration.h"
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 #include "cbctrecon.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
@@ -1835,6 +1835,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
       scaMedian, scaGaussian,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
 
+  /*
   std::cout << "To account for the mAs values, the intensity scale factor of "
             << GetRawIntensityScaleFactor(this->m_cbctrecon->m_strRef_mAs,
                                           this->m_cbctrecon->m_strCur_mAs)
@@ -1844,6 +1845,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
   this->ui.lineEdit_CurmAs->setText(this->m_cbctrecon->m_strCur_mAs);
   this->ui.lineEdit_RefmAs->setText(this->m_cbctrecon->m_strRef_mAs);
+  */
 
   p_projimg->Initialize(); // memory saving
 

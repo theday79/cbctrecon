@@ -74,7 +74,7 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 
 // Local
 #include "AG17RGBAImage.h"
-#include "OpenCL/ImageFilters.h"
+#include "OpenCL/ImageFilters.hpp"
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"
@@ -1758,7 +1758,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
   size_t iNumSlice = 0;
 
-  if (i_req_slice < 0 || i_req_slice >= i_cnt_slice) {
+  if (i_req_slice >= i_cnt_slice) {
     return;
   }
 
@@ -2912,11 +2912,20 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
   for (auto i = 0; i < iSizeZ; i++) {
     FloatImage2DType::Pointer spImg2DRaw;
     FloatImage2DType::Pointer spImg2DScat;
-    FloatImage2DType::Pointer spImg2DCorr;
 
     Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, PLANE_AXIAL);
     Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, PLANE_AXIAL);
 
+    if (bHighResolMacro) {
+      postMedian = postMedian * 2;
+    }
+    if (postMedian >= 2) {
+      postMedian = qRound(postMedian / 2.0);
+    }
+
+    auto spImg2DCorr = OpenCL_LogItoI_subtract_median_ItoLogI(
+        spImg2DRaw, spImg2DScat, postMedian);
+    /*
     auto subtract_filter =
         itk::SubtractImageFilter<FloatImage2DType, FloatImage2DType,
                                  FloatImage2DType>::New();
@@ -2927,9 +2936,6 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
     // Post Median filtering
 
-    if (bHighResolMacro) {
-      postMedian = postMedian * 2.0;
-    }
 
     if (postMedian >= 2) // YK2015
     {
@@ -2945,7 +2951,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
       medianFilter->SetInput(spImg2DCorr);
       medianFilter->Update();
       spImg2DCorr = medianFilter->GetOutput();
-    }
+    }*/
 
     Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
                               PLANE_AXIAL); // float2D to USHORT

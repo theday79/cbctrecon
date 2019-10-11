@@ -35,7 +35,7 @@ bool CBCTRECON_API SaveDoseGrayImage(const char *filePath, int width,
                                      unsigned short *pData);
 
 template <typename ImageType>
-void saveImageAsMHA(typename ImageType::Pointer &image,
+void saveImageAsMHA(typename ImageType::Pointer const &image,
                     std::string filename = "Projections.mha") {
   using ImageWriterType = itk::ImageFileWriter<ImageType>;
   typename ImageWriterType::Pointer writer = ImageWriterType::New();
