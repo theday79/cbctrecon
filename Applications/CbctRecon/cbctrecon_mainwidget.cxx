@@ -906,7 +906,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity(
+      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(
           this->m_cbctrecon->m_spProjImg3DFloat);
   // if X not 1024 == input size: out_offset =
   // in_offset + (1024*res_f - X*res_f)*out_spacing     <- will still
@@ -2038,8 +2038,9 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
     return;
   }
 
-  const auto spIntensityRaw = this->m_cbctrecon->ConvertLineInt2Intensity(
-      this->m_cbctrecon->m_spProjImg3DFloat);
+  const auto spIntensityRaw =
+      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(
+          this->m_cbctrecon->m_spProjImg3DFloat);
 
   using ScatterFilterType =
       rtk::BoellaardScatterCorrectionImageFilter<UShortImageType,
@@ -2070,7 +2071,8 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
   UShortImageType::Pointer spIntensityUniformCorr = spScatFilter->GetOutput();
 
   this->m_cbctrecon->m_spProjImg3DFloat =
-      this->m_cbctrecon->ConvertIntensity2LineInt(spIntensityUniformCorr);
+      this->m_cbctrecon->ConvertIntensity2LineInt_ushort(
+          spIntensityUniformCorr);
 
   // ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
 
@@ -3977,7 +3979,7 @@ void CbctReconWidget::SLT_ReloadProjections() {
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity(p_projimg);
+      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(p_projimg);
   // if X not 1024 == input size: out_offset =
   // in_offset + (1024*res_f -
   // X*res_f)*out_spacing     <- will still

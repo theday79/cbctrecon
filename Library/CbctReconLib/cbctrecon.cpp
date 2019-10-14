@@ -49,15 +49,6 @@
 #include <itkSmoothingRecursiveGaussianImageFilter.h>
 #include <itkTimeProbe.h>
 
-#ifdef LOWPASS_FFT
-// ITK Low-pass fourier filter
-#include <itkFFTShiftImageFilter.h>
-#include <itkForwardFFTImageFilter.h>
-#include <itkGaussianImageSource.h>
-#include <itkInverseFFTImageFilter.h>
-#include <itkWrapPadImageFilter.h>
-#endif // LOWPASS_FFT
-
 // RTK includes
 #include <rtkConstantImageSource.h>
 #include <rtkFieldOfViewImageFilter.h>
@@ -2539,118 +2530,30 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
   std::cout << "Saving completed" << std::endl;
 }
 
-int divisible_by_235_const(const int size) {
-  auto input_size = size;
-  auto ok = true;
-  while (ok) {
-    if (input_size % 2 == 0) {
-      // ok so far
-      input_size /= 2; // compiler should optimize so division and modulo is
-                       // calculated simultaneously
-    } else if (input_size % 3 == 0) {
-      // ok so far
-      input_size /= 3;
-    } else if (input_size % 5 == 0) {
-      // ok so far
-      input_size /= 5;
-    } else {
-      ok = false;
+// From line integral to raw intensity
+class LineInt2Intensity {
+public:
+  LineInt2Intensity() = default;
+  ~LineInt2Intensity() = default;
+  float operator()(const float val) const {
+    float intensityVal = std::exp(-val) /* I_0=1 */;
+    return intensityVal;
+  }
+};
+// From raw intensity to line integral
+class Intensity2LineInt {
+public:
+  Intensity2LineInt() = default;
+  ~Intensity2LineInt() = default;
+  float operator()(const float val) const {
+    // mu = ln(I_0/I) OR mu = ln(I/I0)
+    float lineintVal = std::numeric_limits<float>::max();
+    if (val > 0) {
+      lineintVal = /* log(I_0=1) = 0 */ -std::log(val);
     }
+    return lineintVal;
   }
-  return input_size;
-}
-
-int get_padding(const int input_size) {
-  auto cur_padding = 0;
-  while (true) {
-    // Padding necessary
-    if (divisible_by_235_const(input_size + cur_padding) != 1) {
-      // While is broken if divisible, else more padding needed.
-      cur_padding += 2;
-    } else {
-      break;
-    }
-  }
-  return cur_padding;
-}
-
-#ifdef LOWPASS_FFT
-// template<typename T>
-FloatImage2DType::Pointer LowPassFFT(FloatImage2DType::Pointer &input,
-                                     const double sigmaValue) {
-  const auto Dimension = input->GetImageDimension();
-  using RealImageType = FloatImage2DType;
-
-  // Some FFT filter implementations, like VNL's, need the image size to be a
-  // multiple of small prime numbers.
-  using PadFilterType = itk::WrapPadImageFilter<RealImageType, RealImageType>;
-  auto padFilter = PadFilterType::New();
-  padFilter->SetInput(input);
-  PadFilterType::SizeType padding{};
-  auto input_size = input->GetLargestPossibleRegion().GetSize();
-
-  for (size_t dim = 0; dim < Dimension; dim++) {
-    padding[dim] = get_padding(input_size[dim]);
-    // Even though the size is usually 512 or 384 which gives padding 0,
-    // it would not really speed up the code much to have the checks for these
-    // sizes.
-  }
-  padFilter->SetPadUpperBound(padding);
-
-  using ForwardFFTFilterType = itk::ForwardFFTImageFilter<RealImageType>;
-  using ComplexImageType = ForwardFFTFilterType::OutputImageType;
-  auto forwardFFTFilter = ForwardFFTFilterType::New();
-  forwardFFTFilter->SetInput(padFilter->GetOutput());
-  forwardFFTFilter->UpdateOutputInformation();
-
-  // A Gaussian is used here to create a low-pass filter.
-  using GaussianSourceType = itk::GaussianImageSource<RealImageType>;
-  auto gaussianSource = GaussianSourceType::New();
-  gaussianSource->SetNormalized(false);
-  gaussianSource->SetScale(1.0);
-  const ComplexImageType::ConstPointer transformedInput =
-      forwardFFTFilter->GetOutput();
-  const auto inputRegion(transformedInput->GetLargestPossibleRegion());
-  const auto inputSize = inputRegion.GetSize();
-  const auto inputSpacing = transformedInput->GetSpacing();
-  const auto inputOrigin = transformedInput->GetOrigin();
-  const auto inputDirection = transformedInput->GetDirection();
-  gaussianSource->SetSize(inputSize);
-  gaussianSource->SetSpacing(inputSpacing);
-  gaussianSource->SetOrigin(inputOrigin);
-  gaussianSource->SetDirection(inputDirection);
-  GaussianSourceType::ArrayType sigma;
-  GaussianSourceType::PointType mean;
-  sigma.Fill(sigmaValue);
-  for (size_t ii = 0; ii < Dimension; ++ii) {
-    const auto halfLength = inputSize[ii] * inputSpacing[ii] / 2.0;
-    sigma[ii] *= halfLength;
-    mean[ii] = inputOrigin[ii] + halfLength;
-  }
-  mean = inputDirection * mean;
-  gaussianSource->SetSigma(sigma);
-  gaussianSource->SetMean(mean);
-
-  using FFTShiftFilterType =
-      itk::FFTShiftImageFilter<RealImageType, RealImageType>;
-  auto fftShiftFilter = FFTShiftFilterType::New();
-  fftShiftFilter->SetInput(gaussianSource->GetOutput());
-
-  using MultiplyFilterType =
-      itk::MultiplyImageFilter<ComplexImageType, RealImageType,
-                               ComplexImageType>;
-  auto multiplyFilter = MultiplyFilterType::New();
-  multiplyFilter->SetInput1(forwardFFTFilter->GetOutput());
-  multiplyFilter->SetInput2(fftShiftFilter->GetOutput());
-
-  using InverseFilterType =
-      itk::InverseFFTImageFilter<ComplexImageType, RealImageType>;
-  auto inverseFFTFilter = InverseFilterType::New();
-  inverseFFTFilter->SetInput(multiplyFilter->GetOutput());
-  inverseFFTFilter->Update();
-  return inverseFFTFilter->GetOutput();
-}
-#endif
+};
 
 // spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value
 // (0-65535)
@@ -2710,70 +2613,74 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
   // dimension of the spProjRaw3D
   const int iSizeZ = imgSize[2];
+  using ImageType = FloatImage2DType;
 
   for (auto i = 0; i < iSizeZ; i++) {
-    FloatImage2DType::Pointer spImg2DRaw;
-    FloatImage2DType::Pointer spImg2DPrim;
-    FloatImage2DType::Pointer spImg2DScat;
+    ImageType::Pointer spImg2DRaw;
+    ImageType::Pointer spImg2DPrim;
 
     Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i,
                 PLANE_AXIAL); // simple conversion between ushort 3D to float 2D
                               // (using casting, not log): input/output: 0-65535
     Get2DFrom3D(spProjCT3D, spImg2DPrim, i, PLANE_AXIAL);
 
-    // Dimension should be matched
-    AllocateByRef<FloatImage2DType, FloatImage2DType>(spImg2DRaw, spImg2DScat);
+    // The OpenCL version: ~49ms CPU ~76ms
+    ImageType::Pointer spImg2DScat =
+        OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+            spImg2DRaw, spImg2DPrim, medianRadius, gaussianSigma);
+
+    /* // CPU version if OpenCL is causing problems:
+    using convert_filter_type =
+      itk::UnaryFunctorImageFilter<ImageType, ImageType, LineInt2Intensity>;
+    auto convert_filter = convert_filter_type::New();
+    convert_filter->SetInput(spImg2DRaw);
+
+    auto convert_filter_2 =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter_2->SetInput(spImg2DPrim);
 
     auto subtract_filter =
-        itk::SubtractImageFilter<FloatImage2DType, FloatImage2DType,
-                                 FloatImage2DType>::New();
-    subtract_filter->SetInput(0, spImg2DRaw);
-    subtract_filter->SetInput(1, spImg2DPrim);
+        itk::SubtractImageFilter<ImageType, ImageType>::New();
+    subtract_filter->SetInput1(convert_filter->GetOutput());
+    subtract_filter->SetInput2(convert_filter_2->GetOutput());
 
-#ifdef LOWPASS_FFT
-    subtract_filter->Update();
-    spImg2DScat = subtract_filter->GetOutput();
-    spImg2DScat = LowPassFFT(spImg2DScat, gaussianSigma);
-#else
-    // ResampleItkImage2D(spImg2DScat, spImg2DScat, resF2D);
-    using MedianFilterType =
-        itk::MedianImageFilter<FloatImage2DType, FloatImage2DType>;
-
-    MedianFilterType::Pointer medianFilterX = MedianFilterType::New();
-    MedianFilterType::InputSizeType radiusX{};
-    radiusX[0] = medianRadius;
-    radiusX[1] = 0;
-    medianFilterX->SetRadius(radiusX);
-    medianFilterX->SetInput(subtract_filter->GetOutput());
-
-    MedianFilterType::Pointer medianFilterY = MedianFilterType::New();
+    using MedianFilterType = itk::MedianImageFilter<ImageType, ImageType>;
     MedianFilterType::InputSizeType radiusY{};
     radiusY[0] = 0;
-    radiusY[1] = medianRadius;
+    radiusY[1] = median_radius;
     medianFilterY->SetRadius(radiusY);
-    medianFilterY->SetInput(medianFilterX->GetOutput());
-    medianFilterY->Update();
-    spImg2DScat = medianFilterY->GetOutput();
+    medianFilterY->SetInput(subtract_filter->GetOutput());
 
-    using SmoothingFilterType =
-        itk::SmoothingRecursiveGaussianImageFilter<FloatImage2DType,
-                                                   FloatImage2DType>;
-    SmoothingFilterType::Pointer gaussianFilter = SmoothingFilterType::New();
-    // gaussianFilter->SetInput(medianFilterY->GetOutput());
-    gaussianFilter->SetInput(spImg2DScat);
-    if (this->m_projFormat == HIS_FORMAT) {
-      gaussianFilter->SetSigma(
-          gaussianSigma); // filter specific setting for 512x 512 image
+    auto medianFilterX = MedianFilterType::New();
+    MedianFilterType::InputSizeType radiusX{};
+    radiusX[0] = median_radius;
+    radiusX[1] = 0;
+    medianFilterX->SetRadius(radiusX);
+    medianFilterX->SetInput(medianFilterY->GetOutput());
+
+    auto gaussian_filter =
+        itk::SmoothingRecursiveGaussianImageFilter<ImageType,
+    ImageType>::New(); gaussian_filter->SetInput(medianFilteriXGetOutput());
+
+    itk::SmoothingRecursiveGaussianImageFilter<
+        ImageType, ImageType>::SigmaArrayType gauss_sigma;
+    const auto sca_size = spImg2DRaw->GetBufferedRegion().GetSize();
+    if (sca_size[0] == sca_size[1]) {
+      gauss_sigma[0] = gaussianSigma;
+      gauss_sigma[1] = gauss_sigma[0] * 0.75;
+      gaussian_filter->SetSigmaArray(gauss_sigma);
     } else {
-      SmoothingFilterType::SigmaArrayType gaussianSigmaArray;
-      gaussianSigmaArray[0] = gaussianSigma;
-      gaussianSigmaArray[1] = .75 * gaussianSigma;
-      gaussianFilter->SetSigmaArray(
-          gaussianSigmaArray); // filter specific setting for 512x384 (varian/2)
+      gaussian_filter->SetSigma(gaussianSigma);
     }
-    gaussianFilter->Update();
-    spImg2DScat = gaussianFilter->GetOutput();
-#endif
+
+    auto convert_back_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     Intensity2LineInt>::New();
+    convert_back_filter->SetInput(gaussian_filter->GetOutput());
+    convert_back_filter->Update();
+    ImageType::Pointer spImg2DScat = convert_back_filter->GetOutput();
+    */
 
     // float to unsigned short
     Set2DTo3D<FloatImageType>(
@@ -3011,10 +2918,10 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
   // spProjScat3D->Initialize(); //memory release
 }
 
-class LineInt2Intensity {
+class LineInt2Intensity_ushort {
 public:
-  LineInt2Intensity() = default;
-  ~LineInt2Intensity() = default;
+  LineInt2Intensity_ushort() = default;
+  ~LineInt2Intensity_ushort() = default;
   float operator()(const float val) const {
     const auto max_ushort = std::numeric_limits<unsigned short>::max();
     float intensityVal =
@@ -3032,8 +2939,8 @@ public:
 };
 // From line integral to raw intensity
 // bkIntensity is usually 65535
-UShortImageType::Pointer
-CbctRecon::ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D) {
+UShortImageType::Pointer CbctRecon::ConvertLineInt2Intensity_ushort(
+    FloatImageType::Pointer &spProjLineInt3D) {
   if (spProjLineInt3D == nullptr) {
     return nullptr;
   }
@@ -3041,16 +2948,16 @@ CbctRecon::ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D) {
 
   auto convert_filter =
       itk::UnaryFunctorImageFilter<FloatImageType, UShortImageType,
-                                   LineInt2Intensity>::New();
+                                   LineInt2Intensity_ushort>::New();
   convert_filter->SetInput(spProjLineInt3D);
   convert_filter->Update();
   return convert_filter->GetOutput();
 }
 
-template <typename Tinput> class Intensity2LineInt {
+template <typename Tinput> class Intensity2LineInt_ushort {
 public:
-  Intensity2LineInt() = default;
-  ~Intensity2LineInt() = default;
+  Intensity2LineInt_ushort() = default;
+  ~Intensity2LineInt_ushort() = default;
   float operator()(const Tinput val) const {
     const auto max_ushort = std::numeric_limits<unsigned short>::max();
     // mu = ln(I_0/I) OR mu = ln(I/I0)
@@ -3061,27 +2968,27 @@ public:
   }
 };
 
-FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt(
+FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt_ushort(
     UShortImageType::Pointer &spProjIntensity3D) {
   if (spProjIntensity3D == nullptr) {
     return nullptr;
   }
-  auto convert_filter =
-      itk::UnaryFunctorImageFilter<UShortImageType, FloatImageType,
-                                   Intensity2LineInt<unsigned short>>::New();
+  auto convert_filter = itk::UnaryFunctorImageFilter<
+      UShortImageType, FloatImageType,
+      Intensity2LineInt_ushort<unsigned short>>::New();
   convert_filter->SetInput(spProjIntensity3D);
   convert_filter->Update();
   return convert_filter->GetOutput();
 }
 
-FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt(
+FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt_ushort(
     FloatImageType::Pointer &spProjIntensity3D) {
   if (spProjIntensity3D == nullptr) {
     return nullptr;
   }
   auto convert_filter =
       itk::UnaryFunctorImageFilter<FloatImageType, FloatImageType,
-                                   Intensity2LineInt<float>>::New();
+                                   Intensity2LineInt_ushort<float>>::New();
   convert_filter->SetInput(spProjIntensity3D);
   convert_filter->Update();
   return convert_filter->GetOutput();

@@ -596,6 +596,8 @@ int main(const int argc, char **argv) {
     }
   } else if (filter_str == "ItoLogI_subtract_median_gaussian_filter") {
     using ImageType = itk::Image<float, 2U>;
+    const auto median_radius = 12U;
+    const auto gaussian_sigma = 1.5f;
 
     const auto proj_prim = GenerateRandImage<float, 2U>(69, 1.5f, 5.0f);
     const auto proj_rand = GenerateRandImage<float, 2U>(6969, 0.0f, -0.5f);
@@ -609,7 +611,7 @@ int main(const int argc, char **argv) {
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto proj_scatter = OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
-        proj_raw, proj_prim, 3, 1.5);
+        proj_raw, proj_prim, median_radius, gaussian_sigma);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -634,17 +636,28 @@ int main(const int argc, char **argv) {
     subtract_filter->SetInput1(convert_filter->GetOutput());
     subtract_filter->SetInput2(convert_filter_2->GetOutput());
 
-    auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
-    median_filter->SetInput(subtract_filter->GetOutput());
-    median_filter->SetRadius(3);
+    using MedianFilterType = itk::MedianImageFilter<ImageType, ImageType>;
+    auto medianFilterY = MedianFilterType::New();
+    MedianFilterType::InputSizeType radiusY{};
+    radiusY[0] = 0;
+    radiusY[1] = median_radius;
+    medianFilterY->SetRadius(radiusY);
+    medianFilterY->SetInput(subtract_filter->GetOutput());
+
+    auto medianFilterX = MedianFilterType::New();
+    MedianFilterType::InputSizeType radiusX{};
+    radiusX[0] = median_radius;
+    radiusX[1] = 0;
+    medianFilterX->SetRadius(radiusX);
+    medianFilterX->SetInput(medianFilterY->GetOutput());
 
     auto gaussian_filter =
         itk::SmoothingRecursiveGaussianImageFilter<ImageType, ImageType>::New();
-    gaussian_filter->SetInput(median_filter->GetOutput());
+    gaussian_filter->SetInput(medianFilterX->GetOutput());
 
     itk::SmoothingRecursiveGaussianImageFilter<
         ImageType, ImageType>::SigmaArrayType gauss_sigma;
-    gauss_sigma[0] = 1.5;
+    gauss_sigma[0] = gaussian_sigma;
     gauss_sigma[1] = gauss_sigma[0] * 0.75;
     gaussian_filter->SetSigmaArray(gauss_sigma);
 
@@ -665,8 +678,16 @@ int main(const int argc, char **argv) {
     saveImageAsMHA<ImageType>(itk_proj_scatter, "itk_submedgauss.mha");
     saveImageAsMHA<ImageType>(proj_scatter, "ocl_submedgauss.mha");
     const auto result = CheckImage<ImageType>(proj_scatter, itk_proj_scatter);
-    if (result != 0) {
+
+    auto border_size = 0;
+    for (int i = 0; i < median_radius; ++i) {
+      border_size += 2 * (1024 - 2 * i + 768 - 2 * i - 2);
+    }
+    if (result > border_size) {
       return -2;
+    } else {
+      std::cerr << "ITK handles the border differently."
+                   "So we only fail if more than the border is wrong\n";
     }
 
   } else {

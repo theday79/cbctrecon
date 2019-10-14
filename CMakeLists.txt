@@ -51,7 +51,7 @@ OPTION(USE_ITK_GDCM "Toggle GDCM on or off" ON)
 OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
 OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 option(USE_ITK_GDCM "Use the ITK implementation instead of downloading (Windows only)" OFF)
-OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" ON)
+OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" OFF) # Missing tests, so prefer not to use
 option(RTK_USE_OPENCL "Use the custom RTK OpenCL extensions (require device image support)" OFF)
 OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)

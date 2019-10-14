@@ -10,10 +10,10 @@
 
 // Local
 #include "AG17RGBAImage.h"
+#include "StructureSet.h"
 #include "WEPL.h"
 #include "YK16GrayImage.h"
 #include "cbctrecon_types.h"
-#include "StructureSet.h"
 
 class QFileInfo;
 class QString;
@@ -156,13 +156,13 @@ public:
       const; // arrYKImage include HIS header and original file name
 
   static UShortImageType::Pointer
-  ConvertLineInt2Intensity(FloatImageType::Pointer &spProjLineInt3D);
+  ConvertLineInt2Intensity_ushort(FloatImageType::Pointer &spProjLineInt3D);
 
   static FloatImageType::Pointer
-  ConvertIntensity2LineInt(UShortImageType::Pointer &spProjIntensity3D);
+  ConvertIntensity2LineInt_ushort(UShortImageType::Pointer &spProjIntensity3D);
 
   static FloatImageType::Pointer
-  ConvertIntensity2LineInt(FloatImageType::Pointer &spProjIntensity3D);
+  ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D);
 
   // void ResampleItkImage(OutputImageType::Pointer& spImgFloat, double
   // resampleF);  Resample proj images

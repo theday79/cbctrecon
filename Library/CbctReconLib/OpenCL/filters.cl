@@ -332,8 +332,8 @@ float median_by_bubble_sort(float list[], const uint n) {
 }
 
 // Convert input to intensity, then take the difference and apply a median
-// filter
-__kernel void i_to_log_i_subtract_median_i_to_log_i(
+// filter then convert back to line integral
+__kernel void log_i_to_i_subtract_median_i_to_log_i(
     __global const float *proj_raw, __global const float *proj_sca,
     __global float *proj_corr, const ulong2 size, const uint median_radius) {
   const ulong id = get_global_id(0);
@@ -344,6 +344,7 @@ __kernel void i_to_log_i_subtract_median_i_to_log_i(
   const long j = id / size.x;
   const long i = id - j * size.x;
 
+  // Optimized for small median radius, like 3
   float unsorted_vector[64];
   uint i_uv = 0;
 
@@ -378,5 +379,89 @@ __kernel void i_to_log_i_subtract_median_i_to_log_i(
     proj_corr[id] = -log(median);
   } else {
     proj_corr[id] = FLT_MAX;
+  }
+}
+
+// Convert input to intensity, then take the difference and apply a median
+// filter first in y direction, then x (the other way around is harder to
+// imagine)
+__kernel void log_i_to_i_subtract_median_y_x(__global const float *proj_raw,
+                                             __global const float *proj_prim,
+                                             __global float *proj_sca,
+                                             const ulong2 size,
+                                             const uint median_radius) {
+  const ulong local_id = get_local_id(0);
+  const ulong group_id = get_group_id(0);
+  const uint actual_local_size = (size.x * size.y) / get_num_groups(0);
+
+  const long first_id_in_group = actual_local_size * group_id - median_radius;
+  const long id = first_id_in_group + local_id;
+
+  if (id >= size.x * size.y || id < 0) {
+    return;
+  }
+  const long j = id / size.x;
+  const long i = id - j * size.x;
+
+  __local float
+      localbuffer[128];      // must be >= actual_local_size + 2*median_radius
+  float unsorted_vector[64]; // must be larger than 2*median_radius + 1
+  uint i_uv = 0;
+
+  for (int y = -median_radius; y <= (int)median_radius; ++y) {
+    const int jy = j + y;
+    if (jy < 0 || jy >= size.y) {
+      continue;
+    }
+    const ulong r_id = i + jy * size.x;
+
+    const float raw_val = proj_raw[r_id];
+    // assuming *_val is not < 0, then *_i is in [0; 1]
+    const float raw_i = exp(-raw_val);
+
+    const float prim_val = proj_prim[r_id];
+    const float prim_i = exp(-prim_val);
+
+    unsorted_vector[i_uv++] = raw_i - prim_i;
+  }
+
+  // lowest possible value of i_uv should be median_radius^2
+  localbuffer[local_id] = median_by_bubble_sort(unsorted_vector, i_uv);
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  if (local_id < median_radius ||
+      local_id >= (median_radius + actual_local_size)) {
+    return;
+  }
+
+  i_uv = 0;
+  for (int x = -median_radius; x <= (int)median_radius; ++x) {
+    const int ix = local_id + x;
+    if (ix < 0 || ix >= 128) {
+      continue;
+    }
+    unsorted_vector[i_uv++] = localbuffer[ix];
+  }
+
+  // lowest possible value of i_uv should be median_radius^2
+  const float median = median_by_bubble_sort(unsorted_vector, i_uv);
+
+  // Do not convert back, we need the data in intensity for median_y and the
+  // gaussian
+  proj_sca[id] = median;
+}
+
+__kernel void i_to_log_i_kernel(__global float *proj_sca, const ulong2 size) {
+  const ulong id = get_global_id(0);
+  if (id >= size.x * size.y) {
+    return;
+  }
+
+  const float i_val = proj_sca[id];
+  if (i_val > 0.0) {
+    proj_sca[id] = -log(i_val);
+  } else {
+    proj_sca[id] = FLT_MAX;
   }
 }

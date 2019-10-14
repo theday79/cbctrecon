@@ -243,7 +243,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity(proj_ref);
+      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(proj_ref);
 
   this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
@@ -299,7 +299,7 @@ void CbctReconTest::test_ReloadProjections() {
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity(p_projimg);
+      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(p_projimg);
   // if X not 1024 == input size: out_offset =
   // in_offset + (1024*res_f -
   // X*res_f)*out_spacing     <- will still
@@ -535,7 +535,11 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
   const auto scaMedian =
       12.0; // this->ui.lineEdit_scaMedian->text().toDouble();
   const auto scaGaussian =
-      0.05; // this->ui.lineEdit_scaGaussian->text().toDouble();
+#ifdef LOWPASS_FFT
+      0.05f; // this->ui.lineEdit_scaGaussian->text().toDouble();
+#else
+      1.5f;
+#endif
 
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 

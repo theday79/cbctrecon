@@ -18,6 +18,18 @@
 // On Linux with intel opencl runtime, you can debug opencl kernels:
 // #define DEBUG_OPENCL
 
+#ifdef LOWPASS_FFT
+// ITK Low-pass fourier filter
+#include <itkFFTShiftImageFilter.h>
+#include <itkForwardFFTImageFilter.h>
+#include <itkGaussianImageSource.h>
+#include <itkInverseFFTImageFilter.h>
+#include <itkMultiplyImageFilter.h>
+#include <itkWrapPadImageFilter.h>
+#else
+#include "itkSmoothingRecursiveGaussianImageFilter.h"
+#endif // LOWPASS_FFT
+
 enum enKernel {
   en_padding_kernel,
   en_multiply_kernel,
@@ -31,7 +43,9 @@ enum enKernel {
   en_min_max_kernel,
   en_min_max_kernel2,
   en_crop_by_struct_kernel,
-  en_LogItoI_subtract_median_ItoLogI
+  en_LogItoI_subtract_median_ItoLogI,
+  en_LogItoI_subtract_median_y_x,
+  en_ItoLogI
 };
 
 class KernelMan {
@@ -175,8 +189,12 @@ public:
         return "crop_by_struct_kernel";
       case en_LogItoI_subtract_median_ItoLogI:
         return "log_i_to_i_subtract_median_i_to_log_i";
-      case en_LogItoI_subtract_median_gaussian_ItoLogI:
-        return "log_i_to_i_subtract_median_gaussian_i_to_log_i";
+      case en_LogItoI_subtract:
+        return "log_i_to_i_subtract";
+      case en_median_filter:
+        return "median_filter";
+      case en_ItoLogI:
+        return "i_to_log_i_kernel";
       };
     };
 
@@ -200,10 +218,10 @@ public:
     // It seems linux always has the kernels in order, probably it's just
     // windows which doesn't
     auto &out_kernel = m_kernel_list.at(kernel);
-    const auto &kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
 #endif
 
 #ifdef DEBUG_OPENCL
+    const auto &kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
     std::cerr << kernel_name << "\n";
 #endif
     return out_kernel;
@@ -1054,6 +1072,145 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
   return proj_corr;
 }
 
+#ifdef LOWPASS_FFT
+
+int divisible_by_235_const(const int size) {
+  auto input_size = size;
+  auto ok = true;
+  while (ok) {
+    if (input_size % 2 == 0) {
+      // ok so far
+      input_size /= 2; // compiler should optimize so division and modulo is
+                       // calculated simultaneously
+    } else if (input_size % 3 == 0) {
+      // ok so far
+      input_size /= 3;
+    } else if (input_size % 5 == 0) {
+      // ok so far
+      input_size /= 5;
+    } else {
+      ok = false;
+    }
+  }
+  return input_size;
+}
+
+int get_padding(const int input_size) {
+  auto cur_padding = 0;
+  while (true) {
+    // Padding necessary
+    if (divisible_by_235_const(input_size + cur_padding) != 1) {
+      // While is broken if divisible, else more padding needed.
+      cur_padding += 2;
+    } else {
+      break;
+    }
+  }
+  return cur_padding;
+}
+
+// template<typename T>
+FloatImage2DType::Pointer gaussian_filter(FloatImage2DType::Pointer input,
+                                          const double sigmaValue) {
+  using RealImageType = FloatImage2DType;
+  using GaussianSourceType = itk::GaussianImageSource<RealImageType>;
+  using PadFilterType = itk::WrapPadImageFilter<RealImageType, RealImageType>;
+  using ForwardFFTFilterType = itk::ForwardFFTImageFilter<RealImageType>;
+  using ComplexImageType = ForwardFFTFilterType::OutputImageType;
+  using FFTShiftFilterType =
+      itk::FFTShiftImageFilter<RealImageType, RealImageType>;
+  using MultiplyFilterType =
+      itk::MultiplyImageFilter<ComplexImageType, RealImageType,
+                               ComplexImageType>;
+  using InverseFilterType =
+      itk::InverseFFTImageFilter<ComplexImageType, RealImageType>;
+
+  const auto Dimension = input->GetImageDimension();
+
+  // Some FFT filter implementations, like VNL's, need the image size to be a
+  // multiple of small prime numbers.
+  auto padFilter = PadFilterType::New();
+  padFilter->SetInput(input);
+  PadFilterType::SizeType padding{};
+  auto input_size = input->GetLargestPossibleRegion().GetSize();
+
+  for (size_t dim = 0; dim < Dimension; dim++) {
+    padding[dim] = get_padding(input_size[dim]);
+    // Even though the size is usually 512 or 384 which gives padding 0,
+    // it would not really speed up the code much to have the checks for these
+    // sizes.
+  }
+  padFilter->SetPadUpperBound(padding);
+
+  auto forwardFFTFilter = ForwardFFTFilterType::New();
+  forwardFFTFilter->SetInput(padFilter->GetOutput());
+  forwardFFTFilter->UpdateOutputInformation();
+
+  // A Gaussian is used here to create a low-pass filter.
+  auto gaussianSource = GaussianSourceType::New();
+  gaussianSource->SetNormalized(false);
+  gaussianSource->SetScale(1.0);
+  const ComplexImageType::ConstPointer transformedInput =
+      forwardFFTFilter->GetOutput();
+  const auto inputRegion(transformedInput->GetLargestPossibleRegion());
+
+  const auto inputSize = inputRegion.GetSize();
+  gaussianSource->SetSize(inputSize);
+  const auto inputSpacing = transformedInput->GetSpacing();
+  gaussianSource->SetSpacing(inputSpacing);
+  const auto inputOrigin = transformedInput->GetOrigin();
+  gaussianSource->SetOrigin(inputOrigin);
+  const auto inputDirection = transformedInput->GetDirection();
+  gaussianSource->SetDirection(inputDirection);
+
+  GaussianSourceType::ArrayType sigma;
+  GaussianSourceType::PointType mean;
+  sigma.Fill(sigmaValue);
+  for (size_t ii = 0; ii < Dimension; ++ii) {
+    const auto halfLength = inputSize[ii] * inputSpacing[ii] / 2.0;
+    sigma[ii] *= halfLength;
+    mean[ii] = inputOrigin[ii] + halfLength;
+  }
+  mean = inputDirection * mean;
+  gaussianSource->SetSigma(sigma);
+  gaussianSource->SetMean(mean);
+
+  auto fftShiftFilter = FFTShiftFilterType::New();
+  fftShiftFilter->SetInput(gaussianSource->GetOutput());
+
+  auto multiplyFilter = MultiplyFilterType::New();
+  multiplyFilter->SetInput1(forwardFFTFilter->GetOutput());
+  multiplyFilter->SetInput2(fftShiftFilter->GetOutput());
+
+  auto inverseFFTFilter = InverseFilterType::New();
+  inverseFFTFilter->SetInput(multiplyFilter->GetOutput());
+  inverseFFTFilter->Update();
+  return inverseFFTFilter->GetOutput();
+}
+#else
+FloatImage2DType::Pointer gaussian_filter(FloatImage2DType::Pointer input,
+                                          const double sigmaValue) {
+  using SmoothingFilterType =
+      itk::SmoothingRecursiveGaussianImageFilter<FloatImage2DType,
+                                                 FloatImage2DType>;
+  SmoothingFilterType::Pointer gaussianFilter = SmoothingFilterType::New();
+  gaussianFilter->SetInput(input);
+  const auto input_size = input->GetBufferedRegion().GetSize();
+  if (input_size[0] == input_size[1]) {
+    gaussianFilter->SetSigma(
+        sigmaValue); // filter specific setting for 512x 512 image
+  } else {
+    SmoothingFilterType::SigmaArrayType gaussianSigmaArray;
+    gaussianSigmaArray[0] = sigmaValue;
+    gaussianSigmaArray[1] = .75 * sigmaValue;
+    gaussianFilter->SetSigmaArray(
+        gaussianSigmaArray); // filter specific setting for 512x384 (varian/2)
+  }
+  gaussianFilter->Update();
+  return gaussianFilter->GetOutput();
+}
+#endif
+
 FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_prim,
@@ -1066,7 +1223,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
     std::cerr << "Raw proj and scatter map was not the same size!\n";
     return nullptr;
   }
-  if (std::pow(median_radius * 2, 2) > 64) {
+  if (median_radius * 2 + 64 > 128) {
     std::cerr
         << "Oh no, the kernel doesn't support a median radius this big!\n";
     return nullptr;
@@ -1097,28 +1254,62 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
   proj_sca->SetRegions(proj_raw->GetBufferedRegion());
   proj_sca->Allocate();
 
-  auto out_buffer = proj_sca->GetBufferPointer();
-  const auto deviceOutBuffer = cl::Buffer(
-      ctx, out_buffer, out_buffer + memorySizeInput, false, true, nullptr);
+  auto sca_buffer = proj_sca->GetBufferPointer();
+  auto deviceBuffer_sca = cl::Buffer(
+      ctx, sca_buffer, sca_buffer + memorySizeInput, false, true, nullptr);
 
-  auto log_i_to_i_subtract_median_i_to_log_i_kernel =
+  auto log_i_to_i_subtract_median_y_x_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
-          kernel_man.getKernel(en_LogItoI_subtract_median_ItoLogI));
+          kernel_man.getKernel(en_LogItoI_subtract_median_y_x));
 
-  const auto local_work_size =
-      get_local_work_size_small(cl::Device::getDefault());
-  const auto global_work_size = cl::NDRange(memorySizeInput);
+  auto actual_work_size = 64; // bench test what is optimal
+  while (memorySizeInput % actual_work_size != 0) {
+    actual_work_size /= 2;
+  }
+  const auto n_work_groups = memorySizeInput / actual_work_size;
+  const auto super_global_work_size =
+      cl::NDRange((2 * median_radius + actual_work_size) * n_work_groups);
+  const auto super_local_work_size =
+      cl::NDRange(2 * median_radius + actual_work_size);
 
-  log_i_to_i_subtract_median_i_to_log_i_kernel(
-      cl::EnqueueArgs(queue, global_work_size, local_work_size),
-      deviceBuffer_raw, deviceBuffer_pri, deviceOutBuffer, in_size,
+  log_i_to_i_subtract_median_y_x_kernel(
+      cl::EnqueueArgs(queue, super_global_work_size, super_local_work_size),
+      deviceBuffer_raw, deviceBuffer_pri, deviceBuffer_sca, in_size,
       median_radius);
 
   err = queue.finish();
-  checkError(err, "Finish log_i_to_i_subtract_median_i_to_log_i queue");
+  checkError(err, "Finish log_i_to_i_subtract_median_y_x queue");
+
+  // Gaussian filter
+  // We could use pinned/unified memory or SVM here, but
+  // the allocations may be more expensive than the copy.
+  /* Fetch results of calculations. */
+  err = cl::copy(queue, deviceBuffer_sca, sca_buffer,
+                 sca_buffer + memorySizeInput);
+  checkError(err, "log_i_to_i_subtract_median, copy data back from device");
+
+  proj_sca = gaussian_filter(proj_sca, gaussian_sigma);
+
+  auto out_buffer = proj_sca->GetBufferPointer();
+  auto deviceBuffer_out = cl::Buffer(
+      ctx, out_buffer, out_buffer + memorySizeInput, false, true, nullptr);
+
+  // And finally transform i back to log i
+  auto i_to_log_i_kernel = cl::KernelFunctor<cl::Buffer, cl_ulong2>(
+      kernel_man.getKernel(en_ItoLogI));
+
+  const auto local_work_size_small =
+      get_local_work_size_small(cl::Device::getDefault());
+  const auto global_work_size = cl::NDRange(memorySizeInput);
+  i_to_log_i_kernel(
+      cl::EnqueueArgs(queue, global_work_size, local_work_size_small),
+      deviceBuffer_out, in_size);
+
+  err = queue.finish();
+  checkError(err, "Finish i_to_log_i queue");
 
   /* Fetch results of calculations. */
-  err = cl::copy(queue, deviceOutBuffer, out_buffer,
+  err = cl::copy(queue, deviceBuffer_out, out_buffer,
                  out_buffer + memorySizeInput);
   checkError(err, "Add, copy data back from device");
 
