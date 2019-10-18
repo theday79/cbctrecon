@@ -548,6 +548,7 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
       scaMedian, scaGaussian,
       bExportProj_Scat); // void GenScatterMap2D_PriorCT()
 
+  /*
   std::cout << "To account for the mAs values, the intensity scale factor of "
             << GetRawIntensityScaleFactor(this->m_cbctrecon->m_strRef_mAs,
                                           this->m_cbctrecon->m_strCur_mAs)
@@ -557,13 +558,14 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
 
   // this->ui.lineEdit_CurmAs->setText(this->m_cbctrecon->m_strCur_mAs);
   // this->ui.lineEdit_RefmAs->setText(this->m_cbctrecon->m_strRef_mAs);
+  */
 
   p_projimg->Initialize(); // memory saving
 
   std::cout << "Scatter correction is in progress..." << std::endl;
 
   const auto postScatMedianSize =
-      3.0; // this->ui.lineEdit_scaPostMedian->text().toInt();
+      3; // this->ui.lineEdit_scaPostMedian->text().toInt();
   this->m_cbctrecon->ScatterCorr_PrioriCT(spProjImg3DFloat,
                                           this->m_cbctrecon->m_spProjImgScat3D,
                                           this->m_cbctrecon->m_spProjImgCorr3D,
@@ -577,7 +579,7 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
   // this->ui.pushButton_DoRecon->setEnabled(true);
   // this->ui.spinBoxImgIdx->setMinimum(0);
   const auto iSizeZ =
-      this->m_cbctrecon->m_spProjImg3DFloat->GetRequestedRegion().GetSize()[2];
+      this->m_cbctrecon->m_spProjImg3DFloat->GetBufferedRegion().GetSize()[2];
   // this->ui.spinBoxImgIdx->setMaximum(iSizeZ - 1);
   // this->ui.spinBoxImgIdx->setValue(0);
   this->m_cbctrecon
@@ -631,8 +633,7 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
-  m_dlgRegistration
-      ->SLT_DoLowerMaskIntensity(); // it will check the check button.
+  // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check button.
 
   // SLT_DrawProjImages();
 

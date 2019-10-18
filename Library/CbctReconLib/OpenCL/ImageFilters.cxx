@@ -189,10 +189,8 @@ public:
         return "crop_by_struct_kernel";
       case en_LogItoI_subtract_median_ItoLogI:
         return "log_i_to_i_subtract_median_i_to_log_i";
-      case en_LogItoI_subtract:
-        return "log_i_to_i_subtract";
-      case en_median_filter:
-        return "median_filter";
+      case en_LogItoI_subtract_median_y_x:
+        return "log_i_to_i_subtract_median_y_x";
       case en_ItoLogI:
         return "i_to_log_i_kernel";
       };
@@ -1268,9 +1266,9 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
   }
   const auto n_work_groups = memorySizeInput / actual_work_size;
   const auto super_global_work_size =
-      cl::NDRange((2 * median_radius + actual_work_size) * n_work_groups);
+      cl::NDRange((2 * static_cast<cl_ulong>(median_radius) + actual_work_size) * n_work_groups);
   const auto super_local_work_size =
-      cl::NDRange(2 * median_radius + actual_work_size);
+      cl::NDRange(2 * static_cast<cl_ulong>(median_radius) + actual_work_size);
 
   log_i_to_i_subtract_median_y_x_kernel(
       cl::EnqueueArgs(queue, super_global_work_size, super_local_work_size),

@@ -371,6 +371,7 @@ __kernel void log_i_to_i_subtract_median_i_to_log_i(
       unsorted_vector[i_uv++] = raw_i - sca_i;
     }
   }
+  barrier(CLK_LOCAL_MEM_FENCE); // unnecessary, just to confuse nvidia less
 
   // lowest possible value of i_uv should be median_radius^2
   const float median = median_by_bubble_sort(unsorted_vector, i_uv);

@@ -1245,7 +1245,7 @@ void CbctRegistrationTest::SLT_gPMCrecalc(std::vector<QString> &dcm_plans,
     plan_filepath = dcm_plans.at(0);
   } else {
     plan_filepath = dcm_plans.at(0);
-    for (auto i = 1U; i < dcm_plans.size(); ++i) {
+    for (size_t i = 1U; i < dcm_plans.size(); ++i) {
       plan_filepath = QString("%1,%2").arg(plan_filepath, dcm_plans.at(i));
     }
   }
@@ -1267,7 +1267,7 @@ void CbctRegistrationTest::SLT_gPMCrecalc(std::vector<QString> &dcm_plans,
   const auto n_plans = dcm_plans.size();
 
   const auto success = m_cbctregistration->CallingGPMCcommand(
-      gPMC_device, n_sims, n_plans, plan_filepath, m_spFixed, m_spMoving,
+      gPMC_device, static_cast<int>(n_sims), static_cast<int>(n_plans), plan_filepath, m_spFixed, m_spMoving,
       m_spFixedDose, m_spMovingDose);
   if (!success) {
     std::cerr << "Dose calc failed, due to the RNG in goPMC you may want to "

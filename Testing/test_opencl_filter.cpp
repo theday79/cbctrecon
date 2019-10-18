@@ -97,6 +97,37 @@ template <typename T, size_t DIM> auto GenerateImage(const T init_val = 1) {
   return image;
 }
 
+template <typename T, size_t DIM> auto GenerateImage_small(const T init_val = 1) {
+  using ImageType = itk::Image<T, DIM>;
+  auto image = ImageType::New();
+  typename ImageType::IndexType origin;
+  origin[0] = 0.0;
+  origin[1] = 0.0;
+  if (DIM == 3) {
+    origin[2] = 0.0;
+  }
+  typename ImageType::SizeType size;
+  size[0] = 512;
+  size[1] = 384;
+  if (DIM == 3) {
+    size[2] = 600;
+  }
+  typename ImageType::RegionType region;
+  region.SetIndex(origin);
+  region.SetSize(size);
+
+  image->SetRegions(region);
+  image->Allocate();
+
+  itk::ImageRegionIterator<ImageType> ImageIter(image, region);
+  while (!ImageIter.IsAtEnd()) {
+    ImageIter.Set(init_val);
+    ++ImageIter;
+  }
+
+  return image;
+}
+
 template <typename T, size_t DIM>
 auto GenerateRandImage(const int seed = 69, const T min_val = 0,
                        const T max_val = std::numeric_limits<T>::max()) {
@@ -111,6 +142,43 @@ auto GenerateRandImage(const int seed = 69, const T min_val = 0,
   typename ImageType::SizeType size;
   size[0] = 1024;
   size[1] = 512 + 256;
+  if (DIM == 3) {
+    size[2] = 600;
+  }
+  typename ImageType::RegionType region;
+  region.SetIndex(origin);
+  region.SetSize(size);
+
+  image->SetRegions(region);
+  image->Allocate();
+
+  std::srand(seed); // RNG seed
+  const auto norm_factor = (max_val - min_val) / static_cast<double>(RAND_MAX);
+
+  itk::ImageRegionIterator<ImageType> ImageIter(image, region);
+  while (!ImageIter.IsAtEnd()) {
+    // rand is between 0 and RAND_MAX, which is implementation dependend
+    ImageIter.Set(static_cast<T>(std::rand() * norm_factor + min_val));
+    ++ImageIter;
+  }
+
+  return image;
+}
+
+template <typename T, size_t DIM>
+auto GenerateRandImage_small(const int seed = 69, const T min_val = 0,
+                       const T max_val = std::numeric_limits<T>::max()) {
+  using ImageType = itk::Image<T, DIM>;
+  auto image = ImageType::New();
+  typename ImageType::IndexType origin;
+  origin[0] = 0.0;
+  origin[1] = 0.0;
+  if (DIM == 3) {
+    origin[2] = 0.0;
+  }
+  typename ImageType::SizeType size;
+  size[0] = 512;
+  size[1] = 384;
   if (DIM == 3) {
     size[2] = 600;
   }
@@ -538,6 +606,69 @@ int main(const int argc, char **argv) {
     const auto proj_raw = GenerateRandImage<float, 2U>(69, 1.0f, 5.0f);
 
     const auto proj_scatter = GenerateRandImage<float, 2U>(6969, 5.0f, 5.3f);
+
+    const auto start_ocl_time = std::chrono::steady_clock::now();
+    const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
+        proj_raw, proj_scatter, median_radius);
+    const auto end_ocl_time = std::chrono::steady_clock::now();
+
+    std::cerr << "OpenCL: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_ocl_time - start_ocl_time)
+                     .count()
+              << " ms\n";
+
+    const auto start_itk_time = std::chrono::steady_clock::now();
+    auto convert_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter->SetInput(proj_raw);
+    auto convert_filter_2 =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     LineInt2Intensity>::New();
+    convert_filter_2->SetInput(proj_scatter);
+
+    auto subtract_filter =
+        itk::SubtractImageFilter<ImageType, ImageType>::New();
+    subtract_filter->SetInput1(convert_filter->GetOutput());
+    subtract_filter->SetInput2(convert_filter_2->GetOutput());
+
+    auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
+    median_filter->SetInput(subtract_filter->GetOutput());
+    median_filter->SetRadius(median_radius);
+
+    auto convert_back_filter =
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     Intensity2LineInt>::New();
+    convert_back_filter->SetInput(median_filter->GetOutput());
+    convert_back_filter->Update();
+    const auto itk_proj_corr = convert_back_filter->GetOutput();
+    const auto end_itk_time = std::chrono::steady_clock::now();
+
+    std::cerr << "ITKCPU:   "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     end_itk_time - start_itk_time)
+                     .count()
+              << " ms\n";
+
+    const auto result = CheckImage<ImageType>(proj_corr, itk_proj_corr);
+    auto border_size = 0;
+    for (int i = 0; i < median_radius; ++i) {
+      border_size += 2 * (1024 - 2 * i + 768 - 2 * i - 2);
+    }
+    if (result > border_size) {
+      return -2;
+    } else {
+      std::cerr << "ITK handles the border differently."
+                   "So we only fail if more than the border is wrong\n";
+    }
+  } else if (filter_str == "ItoLogI_subtract_median_filter_small") {
+    using ImageType = itk::Image<float, 2U>;
+    const auto median_radius = 3U;
+
+    const auto proj_raw = GenerateRandImage_small<float, 2U>(69, 1.0f, 5.0f);
+
+    const auto proj_scatter = GenerateRandImage_small<float, 2U>(6969, 5.0f, 5.3f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(

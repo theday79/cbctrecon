@@ -159,6 +159,12 @@ add_test(
   )
 
 add_test(
+    NAME ${test_target}_ItoLogI_subtract_median_small
+    COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_filter_small
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+
+add_test(
     NAME ${test_target}_ItoLogI_subtract_median_gaussian
     COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_gaussian_filter
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
