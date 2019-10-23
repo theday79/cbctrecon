@@ -113,7 +113,7 @@ private:
       const auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
       checkError(*err, "Get device type");
 
-      if (device_type != CL_DEVICE_TYPE_CPU &&
+      if (device_type == CL_DEVICE_TYPE_GPU && // Xeon Phi is much too slow compared with a GPU
           avail_dev_alloc > req_dev_alloc) {
         device = dev;
         good_device_found = true;
@@ -240,7 +240,7 @@ cl::NDRange get_local_work_size_small(const cl::Device &device) {
   if (device_name == "Intel(R) Iris(TM) Pro Graphics 5200") {
     return {16};
   } else if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
-    return {32};
+    return {16};
   }
   return {128};
 }
@@ -249,7 +249,7 @@ cl::NDRange get_local_work_size_large(const cl::Device &device) {
   if (device_name == "Intel(R) Iris(TM) Pro Graphics 5200") {
     return {32};
   } else if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
-    return {64};
+    return {128};
   }
   return {128};
 }
@@ -1044,7 +1044,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
       err, "Alloc device output buffer, log_i_to_i_subtract_median_i_to_log_i");
 
   auto log_i_to_i_subtract_median_i_to_log_i_kernel =
-      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_int>(
           kernel_man.getKernel(en_LogItoI_subtract_median_ItoLogI));
 
   const auto local_work_size =
@@ -1054,7 +1054,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
   log_i_to_i_subtract_median_i_to_log_i_kernel(
       cl::EnqueueArgs(queue, global_work_size, local_work_size),
       deviceBuffer_raw, deviceBuffer_sca, deviceOutBuffer, in_size,
-      static_cast<cl_uint>(median_radius), err);
+      static_cast<cl_int>(median_radius), err);
   checkError(err,
              "Enqueue kernel and args, log_i_to_i_subtract_median_i_to_log_i");
 
@@ -1257,23 +1257,24 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
       ctx, sca_buffer, sca_buffer + memorySizeInput, false, true, nullptr);
 
   auto log_i_to_i_subtract_median_y_x_kernel =
-      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_int>(
           kernel_man.getKernel(en_LogItoI_subtract_median_y_x));
 
-  auto actual_work_size = 64; // bench test what is optimal
-  while (memorySizeInput % actual_work_size != 0) {
-    actual_work_size /= 2;
+  auto local_work_size = 128U; // bench test what is optimal
+  while (memorySizeInput % local_work_size != 0) {
+    local_work_size /= 2;
   }
+  const auto actual_work_size = local_work_size - 2 * median_radius;
   const auto n_work_groups = memorySizeInput / actual_work_size;
   const auto super_global_work_size =
-      cl::NDRange((2 * static_cast<cl_ulong>(median_radius) + actual_work_size) * n_work_groups);
+      cl::NDRange(local_work_size * n_work_groups);
   const auto super_local_work_size =
-      cl::NDRange(2 * static_cast<cl_ulong>(median_radius) + actual_work_size);
+      cl::NDRange(local_work_size);
 
   log_i_to_i_subtract_median_y_x_kernel(
       cl::EnqueueArgs(queue, super_global_work_size, super_local_work_size),
       deviceBuffer_raw, deviceBuffer_pri, deviceBuffer_sca, in_size,
-      median_radius);
+      static_cast<cl_int>(median_radius));
 
   err = queue.finish();
   checkError(err, "Finish log_i_to_i_subtract_median_y_x queue");
