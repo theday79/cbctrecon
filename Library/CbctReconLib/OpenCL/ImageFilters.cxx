@@ -944,7 +944,7 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
   const cl::NDRange global_work_size(memorySizeInput);
 
   std::vector<cl::Buffer> deviceBuffer(inputSize[2]);
-  for (auto slice = 0ul; slice < inputSize[2]; ++slice) {
+  for (size_t slice = 0; slice < inputSize[2]; ++slice) {
     auto *buffer = ct_image->GetBufferPointer() + slice * memorySizeInput;
 
     /* Prepare OpenCL memory objects and place data inside them. */
