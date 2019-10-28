@@ -6,12 +6,13 @@ function(add_cbctrecon_example)
     ARGS
     ""
     "TARGET"
-    ""
+    "GGO_FILES"
     ${ARGN}
     )
 
   set(SRC_FILES
     ${ARGS_TARGET}.cpp
+    ${ARGS_GGO_FILES}
     )
 
   if(CBCTRECON_BUILD_SHARED_LIBS)
@@ -47,4 +48,25 @@ add_cbctrecon_example(
 
 add_cbctrecon_example(
   TARGET apply_affine
+  )
+
+# On The Fly CB reconstruction:
+find_package(Gengetopt)
+
+# Common revision info between applications
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+if(GIT_SHA1 MATCHES ".*NOTFOUND")
+    set(CBCTRECON_VERSION_HASH "")
+else()
+    set(CBCTRECON_VERSION_HASH ", git hash ${GIT_SHA1}")
+endif()
+
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/CbctReconVersion.ggo.in ${CMAKE_CURRENT_BINARY_DIR}/CbctReconVersion.ggo)
+
+WRAP_GGO(onthefly_recon_GGO_C onthefly_recon.ggo cbctreconinputprojections_section.ggo CbctRecon3Doutputimage_section.ggo ${CMAKE_CURRENT_BINARY_DIR}/CbctReconVersion.ggo)
+
+add_cbctrecon_example(
+  TARGET onthefly_recon
+  GGO_FILES ${onthefly_recon_GGO_C}
   )
