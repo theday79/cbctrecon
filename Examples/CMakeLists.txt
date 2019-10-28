@@ -51,7 +51,7 @@ add_cbctrecon_example(
   )
 
 # On The Fly CB reconstruction:
-find_package(Gengetopt)
+find_package(Gengetopt REQUIRED)
 
 # Common revision info between applications
 include(GetGitRevisionDescription)
