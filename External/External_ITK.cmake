@@ -47,6 +47,9 @@ set(Module_RTK ON CACHE BOOL "" FORCE)
 set(RTK_BUILD_APPLICATIONS OFF CACHE BOOL "")
 set(RTK_USE_CUDA ${USE_CUDA} CACHE BOOL "")
 set(Module_ITKCudaCommon ${USE_CUDA} CACHE BOOL "")
+if (BUILD_EXAMPLES)
+  set(RTK_BUILD_APPLICATIONS ON CACHE BOOL "RTK applications triggers gengetopts, which is required for examples")
+endif()
 # The RTK tag ITK uses has a bug in some macros, fixed in master:
 set(REMOTE_GIT_TAG_RTK "master" CACHE BOOL "")
 
