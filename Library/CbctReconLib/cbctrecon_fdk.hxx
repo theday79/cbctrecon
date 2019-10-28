@@ -314,7 +314,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
                "DICOM coordinate"
             << std::endl;
 
-  using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, ImageType>;
+  using FOVfilterType = rtk::FieldOfViewImageFilter<ImageType, FloatImageType>;
   typename FOVfilterType::Pointer FOVfilter = FOVfilterType::New();
   FOVfilter->SetGeometry(m_spCustomGeometry);
   FOVfilter->SetInput(0, targetImg);
@@ -354,8 +354,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   region_trans.SetIndex(start_trans);
 
   /* 2) Prepare Target image */
-  // ImageType::Pointer
-  targetImg = FOVfilter->GetOutput(); // streamerBP->GetOutput();
+  // FloatImageType::Pointer
+  // targetImg = FOVfilter->GetOutput(); // streamerBP->GetOutput();
 
   /* 3) Configure transform */
   //                            | 0  1  0 |
@@ -382,21 +382,23 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   transform->SetMatrix(CoordChangeMatrix);
   transform->SetOffset(offset);
 
-  using ResampleFilterType = itk::ResampleImageFilter<ImageType, ImageType>;
+  using ResampleFilterType =
+      itk::ResampleImageFilter<FloatImageType, FloatImageType>;
   typename ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 
-  resampler->SetInput(targetImg);
+  resampler->SetInput(FOVfilter->GetOutput());
   resampler->SetSize(size_trans);
   resampler->SetOutputOrigin(Origin_trans);   // Lt Top Inf of Large Canvas
   resampler->SetOutputSpacing(spacing_trans); // 1 1 1
-  resampler->SetOutputDirection(targetImg->GetDirection()); // image normal?
+  resampler->SetOutputDirection(
+      FOVfilter->GetOutput()->GetDirection()); // image normal?
   resampler->SetTransform(transform);
   // resampler->Update();//yktemp Error 2
 
   // LR flip
 
   std::cout << "Flip filter is being applied" << std::endl;
-  using FlipFilterType = itk::FlipImageFilter<ImageType>;
+  using FlipFilterType = itk::FlipImageFilter<FloatImageType>;
   typename FlipFilterType::Pointer flipFilter = FlipFilterType::New();
   using FlipAxesArrayType = typename FlipFilterType::FlipAxesArrayType;
   FlipAxesArrayType arrFlipAxes;
@@ -406,20 +408,21 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   flipFilter->SetFlipAxes(arrFlipAxes);
   flipFilter->SetInput(resampler->GetOutput());
 
-  using AbsImageFilterType = itk::AbsImageFilter<ImageType, ImageType>;
+  using AbsImageFilterType =
+      itk::AbsImageFilter<FloatImageType, FloatImageType>;
   typename AbsImageFilterType::Pointer absImgFilter = AbsImageFilterType::New();
   absImgFilter->SetInput(
       flipFilter
           ->GetOutput()); // 20140206 modified it was a buug
                           // absImgFilter->SetInput(resampler->GetOutput());
 
-  using MultiplyImageFilterType = itk::MultiplyImageFilter<ImageType>;
+  using MultiplyImageFilterType = itk::MultiplyImageFilter<FloatImageType>;
   typename MultiplyImageFilterType::Pointer multiplyImageFilter =
       MultiplyImageFilterType::New();
   multiplyImageFilter->SetInput(absImgFilter->GetOutput());
   multiplyImageFilter->SetConstant(65536); // calculated already
 
-  using CastFilterType = itk::CastImageFilter<ImageType, UShortImageType>;
+  using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
   typename CastFilterType::Pointer castFilter = CastFilterType::New();
   castFilter->SetInput(multiplyImageFilter->GetOutput());
   try {
