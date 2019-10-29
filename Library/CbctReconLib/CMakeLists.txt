@@ -110,7 +110,7 @@ if (CBCTRECON_SANITIZE)
   sanitize_build(CbctReconLib)
 endif()
 
-target_code_coverage(CbctReconLib AUTO ALL)
+# target_code_coverage(CbctReconLib AUTO ALL)
 
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)

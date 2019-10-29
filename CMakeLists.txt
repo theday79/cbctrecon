@@ -33,7 +33,6 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Check Instruction set available and set intel compiler flags
 include(feature_defs OPTIONAL)
 include(Sanitize)
-include(CodeCoverage)
 
 option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" OFF)
 option(HUNTER_ENABLED "Enable hunter for dependency management" OFF)
@@ -247,7 +246,48 @@ set(CBCTRECON_DEP_LIBS
 # ITK should be covered by it's own tests.
 # Testing IS the tests
 # Applications cannot be tested on CI (QtApplication requires a screen)
-add_code_coverage_all_targets(EXCLUDE Testing/* ITK/* Applications/*)
+# add_code_coverage_all_targets(EXCLUDE Testing/* ITK/* Applications/*)
+
+if(CBCTRECON_COVERAGE)
+    # from github.com/nlohmann/json
+    message(STATUS "Building test suite with coverage information")
+    if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        message(FATAL_ERROR "cbctrecon_Coverage requires GCC.")
+    endif()
+
+    # enable profiling
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -g -O0 -fprofile-arcs -ftest-coverage")
+
+    # from https://github.com/RWTH-HPC/CMake-codecov/blob/master/cmake/FindGcov.cmake
+    get_filename_component(COMPILER_PATH "${CMAKE_CXX_COMPILER}" PATH)
+    string(REGEX MATCH "^[0-9]+" GCC_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
+    find_program(GCOV_BIN NAMES gcov-${GCC_VERSION} gcov HINTS ${COMPILER_PATH})
+
+    # collect all source files from the chosen include dir
+    file(GLOB_RECURSE SOURCE_H_FILES ${CbctRecon_SOURCE_DIR}/Library/*.h*)
+    file(GLOB_RECURSE SOURCE_CPP_FILES ${CbctRecon_SOURCE_DIR}/Library/*.c[xp][xp])
+    set(SOURCE_FILES
+        ${SOURCE_H_FILES}
+        ${SOURCE_CPP_FILES}
+        )
+
+    # add target to collect coverage information and generate HTML file
+    # (filter script from https://stackoverflow.com/a/43726240/266378)
+    add_custom_target(lcov_html
+        COMMAND lcov --directory . --capture --output-file cbctrecon.info --rc lcov_branch_coverage=1
+        COMMAND lcov -e cbctrecon.info ${SOURCE_FILES} --output-file cbctrecon.info.filtered --gcov-tool ${GCOV_BIN} --rc lcov_branch_coverage=1
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/imapdl/filterbr.py cbctrecon.info.filtered > cbctrecon.info.filtered.noexcept
+        COMMAND genhtml --title "CbctRecon" --legend --demangle-cpp --output-directory html --show-details --branch-coverage cbctrecon.info.filtered.noexcept
+        COMMENT "Generating HTML report html/index.html"
+    )
+
+    add_custom_target(fastcov_html
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/fastcov/fastcov.py --branch-coverage --lcov -o cbctrecon.info --gcov ${GCOV_BIN} --compiler-directory ${CMAKE_BINARY_DIR} --source-files ${SOURCE_FILES}
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/imapdl/filterbr.py cbctrecon.info > cbctrecon.info.noexcept
+        COMMAND genhtml --title "CbctRecon" --legend --demangle-cpp --output-directory html --show-details --branch-coverage cbctrecon.info.noexcept
+        COMMENT "Generating HTML report html/index.html"
+    )
+endif()
 
 add_subdirectory(Library)
 add_subdirectory(Applications)

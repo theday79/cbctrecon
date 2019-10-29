@@ -8,7 +8,7 @@ mkdir -p build && cd build
 
 echo Test building: $BUILD_TESTING
 
-export COMMON_FLAGS=".. -GNinja -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON -DRTK_USE_OPENCL=ON"
+export COMMON_FLAGS=".. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="/home/user/" -DBUILD_TESTING=OFF -DCBCTRECON_BUILD_TESTS=ON -DRTK_USE_OPENCL=ON"
 # Eigen should be included in ITK if necessary:
 export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DUSE_SYSTEM_DCMTK=ON -DHUNTER_ENABLED=OFF -DUSE_SYSTEM_Plastimatch=OFF"
 
@@ -27,9 +27,9 @@ else
 fi
 
 if [[ "$COVERAGE" = "YES" ]]; then
-    export COVERAGE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCBCTRECON_COVERAGE=ON"
+    export COVERAGE_FLAGS="-DCBCTRECON_COVERAGE=ON"
 else
-    export COVERAGE_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCBCTRECON_COVERAGE=OFF"
+    export COVERAGE_FLAGS="-DCBCTRECON_COVERAGE=OFF"
 fi
 
 cmake $COMMON_FLAGS $COMMON_SYSTEM_LIBS $COMMON_NONSYSTEM_ITK $CUDA_FLAGS $COVERAGE_FLAGS
@@ -39,6 +39,7 @@ cmake --build .
 ctest -VV
 
 if [[ "$COVERAGE" = "YES" ]]; then
-  lcov --directory Testing --base-directory ../Library/CbctReconLib/ --capture --output-file coverage.info
-  lcov --summary coverage.info
+    cmake --build . --target fastcov_html
+#  lcov --directory Testing --base-directory ../Library/CbctReconLib/ --capture --output-file coverage.info
+#  lcov --summary coverage.info
 fi

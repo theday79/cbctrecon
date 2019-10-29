@@ -38,6 +38,19 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
     script:
       - ./ci/ci.sh
 
+Ubuntu-gcc7-Debug-coverage:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - gpu
+    image: andreasga/cbctrecon:gcc-7-x86_64
+    variables:
+      COVERAGE: "YES"
+    script:
+      - ./ci/ci.sh
+
+
 #Ubuntu-clang6:
 #    stage: test
 #    tags:
