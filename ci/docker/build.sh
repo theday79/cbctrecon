@@ -19,6 +19,10 @@ DCMIRTK="libDCMTK-ITKv5-RTK"
 docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK}
 
+CC="gcc-9-x86_64"
+docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
+docker push ${REPO}/${NAME}:${CC}-${DCMIRTK}
+
 CC="gcc-7-CUDA-x86_64"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
