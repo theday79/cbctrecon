@@ -982,7 +982,7 @@ void YK16GrayImage::EditImage_Flip() const {
     return;
   }
 
-  //������ �ӽ� buffer ����
+  // buffer
   auto pPrevImg = std::valarray<unsigned short>(imgSize);
 
   int i, j;
@@ -1016,7 +1016,7 @@ void YK16GrayImage::EditImage_Mirror() const {
 
   auto pPrevImg = std::valarray<unsigned short>(imgSize);
 
-  //��ȯ �� �̹����� copy
+  // copy
 
   for (auto i = 0; i < m_iHeight; i++) {
     for (auto j = 0; j < m_iWidth; j++) {

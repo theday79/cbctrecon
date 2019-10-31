@@ -253,7 +253,7 @@ inline void fill_index(const size_t i, const size_t j, const size_t m_iWidth,
 }
 
 bool AG17RGBAImage::FillPixMap(const int winMid,
-                               const int winWidth) // 0-65535 중 window level
+                               const int winWidth) // 0-65535 window level
 {
   if (m_pData.size() == 0) {
     return false;
@@ -306,7 +306,7 @@ bool AG17RGBAImage::FillPixMap(const int winMid,
 }
 
 bool AG17RGBAImage::FillPixMapMinMax(int winMin,
-                                     int winMax) // 0-65535 중 window level
+                                     int winMax) // 0-65535 window level
 {
   if (winMin < 0 || winMax > 65535 || winMin > winMax) {
     winMin = 0;
@@ -772,7 +772,7 @@ void AG17RGBAImage::EditImage_Mirror() {
   // auto p_prev_img = std::valarray<unsigned short>(imgSize); should copy even
   // if not preallocated
 
-  //변환 전 이미지를 copy
+  // copy
   auto p_prev_img = m_pData;
 
   for (auto i = 0; i < m_iHeight; i++) {

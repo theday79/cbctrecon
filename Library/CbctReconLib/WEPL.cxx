@@ -433,6 +433,25 @@ public:
                   std::pair<float, double>(41.46, 1.048674),
                   std::pair<float, double>(NLMAX(float), 0.005011) // wtf?
   };*/
+  /*// Data from TRiP: 19990218.hlut
+           std::pair<short, double>(std::numeric_limits<short>::min(), 0.0),
+           std::pair<short, double>(-1000, 0.041),
+           std::pair<short, double>(-798, 0.244),
+           std::pair<short, double>(-750, 0.297),
+           std::pair<short, double>(-108, 0.943),
+           std::pair<short, double>(-75, 0.977),
+           std::pair<short, double>(0, 1.0),
+           std::pair<short, double>(40, 1.042),
+           std::pair<short, double>(55, 1.049),
+           std::pair<short, double>(67, 1.065),
+           std::pair<short, double>(262, 1.095),
+           std::pair<short, double>(1033, 1.468),
+           std::pair<short, double>(1432, 1.634),
+           std::pair<short, double>(1974, 1.778),
+           std::pair<short, double>(3000, 2.051),
+           std::pair<short, double>(std::numeric_limits<short>::max(),
+                                    2.051)}
+                                    */
 
   hu_to_dedx_functor() = default;
   ~hu_to_dedx_functor() = default;
@@ -441,24 +460,20 @@ public:
     /**** Convert CT to dEdx ****/
     constexpr static const auto lookup =
         std::array<std::pair<short, double>, 16>{
-            {// Data from TRiP: 19990218.hlut
-             std::pair<short, double>(std::numeric_limits<short>::min(), 0.0),
-             std::pair<short, double>(-1000, 0.041),
-             std::pair<short, double>(-798, 0.244),
-             std::pair<short, double>(-750, 0.297),
-             std::pair<short, double>(-108, 0.943),
-             std::pair<short, double>(-75, 0.977),
-             std::pair<short, double>(0, 1.0),
-             std::pair<short, double>(40, 1.042),
-             std::pair<short, double>(55, 1.049),
-             std::pair<short, double>(67, 1.065),
-             std::pair<short, double>(262, 1.095),
-             std::pair<short, double>(1033, 1.468),
-             std::pair<short, double>(1432, 1.634),
-             std::pair<short, double>(1974, 1.778),
-             std::pair<short, double>(3000, 2.051),
+            // DCPT Dual energy CT, "TB Large"
+            {std::pair<short, double>(std::numeric_limits<short>::min(), 0.0),
+             // std::pair<short, double>(-1024, 0.0f),
+             std::pair<short, double>(-1000, 0.0),
+             std::pair<short, double>(-850, 0.108),
+             std::pair<short, double>(-266, 0.710),
+             std::pair<short, double>(-166, 0.879),
+             std::pair<short, double>(147, 1.117),
+             std::pair<short, double>(172, 1.117),
+             std::pair<short, double>(2500, 2.473),
+             std::pair<short, double>(2950, 3.165),
+             // std::pair<short, double>(3300, 3.165f),
              std::pair<short, double>(std::numeric_limits<short>::max(),
-                                      2.051)}};
+                                      3.165)}};
 
     const auto lookup_cond = [&val](const std::pair<short, double> cur_pair) {
       return val < cur_pair.first;

@@ -4,7 +4,7 @@ variables:
     CUDA_AVAILABLE: "NO"
 
 
-Ubuntu-gcc7:
+Ubuntu-gcc7-superbuild:
     stage: test
     tags:
       - linux
@@ -28,15 +28,20 @@ Ubuntu-gcc7:
 #    script:
 #      - ./ci/ci.sh
 
-Ubuntu-gcc7-prebuild-DCM-I-RTK:
+Ubuntu-gcc9-coverage-prebuild-deps:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:gcc-7-x86_64-libDCMTK-ITKv5-RTK
+    image: andreasga/cbctrecon:gcc-9-x86_64-libDCMTK-ITKv5-RTK
+    variables:
+      COVERAGE: "YES"
     script:
+      - export CC=/usr/bin/gcc-9
+      - export CXX=/usr/bin/g++-9
       - ./ci/ci.sh
+
 
 #Ubuntu-clang6:
 #    stage: test
@@ -50,7 +55,7 @@ Ubuntu-gcc7-prebuild-DCM-I-RTK:
 #      - export CXX=clang++
 #      - ./ci/ci.sh
 
-Ubuntu-clang6-prebuild-DCM-I-RTK:
+Ubuntu-clang6-prebuild-deps:
     stage: test
     tags:
       - linux

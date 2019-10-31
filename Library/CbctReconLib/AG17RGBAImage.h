@@ -37,11 +37,11 @@ public:
   bool CreateImage(int width, int height, unsigned short usVal);
 
   bool FillPixMap(int winMid, int winWidth);
-  bool FillPixMapMinMax(int winMin, int winMax); // 0-65535 Сп window level
+  bool FillPixMapMinMax(int winMin, int winMax); // 0-65535 window level
 
   bool FillPixMapDual(int winMid1, int winMid2, int winWidth1, int winWidth2);
   bool FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
-                            int winMax2); // 0-65535 Сп window level
+                            int winMax2); // 0-65535 window level
 
   bool IsEmpty() const;
   bool ReleaseBuffer();
