@@ -365,8 +365,9 @@ __kernel void log_i_to_i_subtract_median_i_to_log_i(
       // assuming *_val is not < 0, then *_i is in [0; 1]
       const float raw_i = exp(-raw_val);
 
-      const float sca_val = proj_sca[r_id];
-      const float sca_i = exp(-sca_val);
+	  // scatter should already be in intensity
+      const float sca_i = proj_sca[r_id];
+      // const float sca_i = exp(-sca_val);
 
       unsorted_vector[i_uv++] = raw_i - sca_i;
     }
@@ -453,16 +454,16 @@ __kernel void log_i_to_i_subtract_median_y_x(__global const float *proj_raw,
   proj_sca[id] = median;
 }
 
-__kernel void i_to_log_i_kernel(__global float *proj_sca, const ulong2 size) {
+__kernel void i_to_log_i_kernel(__global float *proj, const ulong2 size) {
   const ulong id = get_global_id(0);
   if (id >= size.x * size.y) {
     return;
   }
 
-  const float i_val = proj_sca[id];
+  const float i_val = proj[id];
   if (i_val > 0.0) {
-    proj_sca[id] = -log(i_val);
+    proj[id] = -log(i_val);
   } else {
-    proj_sca[id] = FLT_MAX;
+    proj[id] = FLT_MAX;
   }
 }

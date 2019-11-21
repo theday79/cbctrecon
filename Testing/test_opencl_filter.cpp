@@ -35,7 +35,7 @@ public:
   ~LineInt2Intensity() = default;
   float operator()(const float val) const {
     float intensityVal = std::exp(-val) /* I_0=1 */;
-    return intensityVal;
+    return intensityVal; // [0; inf]
   }
 };
 // From raw intensity to line integral
@@ -49,7 +49,7 @@ public:
     if (val > 0) {
       lineintVal = /* log(I_0=1) = 0 */ -std::log(val);
     }
-    return lineintVal;
+    return lineintVal; // [inf (float max); -inf]
   }
 };
 
@@ -605,11 +605,12 @@ int main(const int argc, char **argv) {
 
     const auto proj_raw = GenerateRandImage<float, 2U>(69, 1.0f, 5.0f);
 
-    const auto proj_scatter = GenerateRandImage<float, 2U>(6969, 5.0f, 5.3f);
+    // -1 may be a bit extreme for negative scatter intensity, but a good test
+    const auto proj_scatter_intensity = GenerateRandImage<float, 2U>(6969, -1.0f, 1.0f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
-        proj_raw, proj_scatter, median_radius);
+        proj_raw, proj_scatter_intensity, median_radius);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -623,15 +624,11 @@ int main(const int argc, char **argv) {
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      LineInt2Intensity>::New();
     convert_filter->SetInput(proj_raw);
-    auto convert_filter_2 =
-        itk::UnaryFunctorImageFilter<ImageType, ImageType,
-                                     LineInt2Intensity>::New();
-    convert_filter_2->SetInput(proj_scatter);
 
     auto subtract_filter =
         itk::SubtractImageFilter<ImageType, ImageType>::New();
     subtract_filter->SetInput1(convert_filter->GetOutput());
-    subtract_filter->SetInput2(convert_filter_2->GetOutput());
+    subtract_filter->SetInput2(proj_scatter_intensity);
 
     auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
     median_filter->SetInput(subtract_filter->GetOutput());
@@ -651,6 +648,9 @@ int main(const int argc, char **argv) {
                      .count()
               << " ms\n";
 
+    // saveImageAsMHA<ImageType>(itk_proj_corr, "itk_submed.mha");
+    // saveImageAsMHA<ImageType>(proj_corr, "ocl_submed.mha");
+
     const auto result = CheckImage<ImageType>(proj_corr, itk_proj_corr);
     auto border_size = 0;
     for (int i = 0; i < median_radius; ++i) {
@@ -667,12 +667,13 @@ int main(const int argc, char **argv) {
     const auto median_radius = 3U;
 
     const auto proj_raw = GenerateRandImage_small<float, 2U>(69, 1.0f, 5.0f);
-
-    const auto proj_scatter = GenerateRandImage_small<float, 2U>(6969, 5.0f, 5.3f);
+	
+	// -1 may be a bit extreme for negative scatter intensity, but a good test
+    const auto proj_scatter_intensity = GenerateRandImage_small<float, 2U>(6969, -1.0f, 1.0f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
-        proj_raw, proj_scatter, median_radius);
+        proj_raw, proj_scatter_intensity, median_radius);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -686,15 +687,11 @@ int main(const int argc, char **argv) {
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      LineInt2Intensity>::New();
     convert_filter->SetInput(proj_raw);
-    auto convert_filter_2 =
-        itk::UnaryFunctorImageFilter<ImageType, ImageType,
-                                     LineInt2Intensity>::New();
-    convert_filter_2->SetInput(proj_scatter);
 
     auto subtract_filter =
         itk::SubtractImageFilter<ImageType, ImageType>::New();
     subtract_filter->SetInput1(convert_filter->GetOutput());
-    subtract_filter->SetInput2(convert_filter_2->GetOutput());
+    subtract_filter->SetInput2(proj_scatter_intensity);
 
     auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
     median_filter->SetInput(subtract_filter->GetOutput());
@@ -741,7 +738,7 @@ int main(const int argc, char **argv) {
     const auto proj_raw = add_filter->GetOutput();
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_scatter = OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+    const auto proj_scatter = OpenCL_LogItoI_subtract_median_gaussian(
         proj_raw, proj_prim, median_radius, gaussian_sigma);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -792,12 +789,14 @@ int main(const int argc, char **argv) {
     gauss_sigma[1] = gauss_sigma[0] * 0.75;
     gaussian_filter->SetSigmaArray(gauss_sigma);
 
+    /* back conversition was removed as considered redundant, see GenScatterMap_PriorCT
     auto convert_back_filter =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      Intensity2LineInt>::New();
     convert_back_filter->SetInput(gaussian_filter->GetOutput());
-    convert_back_filter->Update();
-    auto itk_proj_scatter = convert_back_filter->GetOutput();
+    convert_back_filter->Update(); */
+    auto itk_proj_scatter =
+        gaussian_filter->GetOutput(); // convert_back_filter->GetOutput();
     const auto end_itk_time = std::chrono::steady_clock::now();
 
     std::cerr << "ITKCPU:   "
@@ -806,8 +805,6 @@ int main(const int argc, char **argv) {
                      .count()
               << " ms\n";
 
-    saveImageAsMHA<ImageType>(itk_proj_scatter, "itk_submedgauss.mha");
-    saveImageAsMHA<ImageType>(proj_scatter, "ocl_submedgauss.mha");
     const auto result = CheckImage<ImageType>(proj_scatter, itk_proj_scatter);
 
     auto border_size = 0;

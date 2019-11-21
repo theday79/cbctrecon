@@ -83,11 +83,11 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
 CBCTRECON_API
 FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
     const FloatImage2DType::Pointer &proj_raw,
-    const FloatImage2DType::Pointer &proj_scatter,
+    const FloatImage2DType::Pointer &proj_scatter_intensity,
     const unsigned int median_radius);
 
 CBCTRECON_API
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_prim,
     const unsigned int median_radius, const float gaussian_sigma);

@@ -262,7 +262,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   auto err = CL_SUCCESS;
 
   const auto pv_size =
-      static_cast<size_t>(paddingSize.x * paddingSize.y * paddingSize.z);
+      static_cast<size_t>(paddingSize.x) * paddingSize.y * paddingSize.z;
   const auto pv_buffer_size = pv_size * sizeof(float);
 
   auto defines = std::string("");
@@ -995,11 +995,11 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
 
 FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
     const FloatImage2DType::Pointer &proj_raw,
-    const FloatImage2DType::Pointer &proj_scatter,
+    const FloatImage2DType::Pointer &proj_scatter_intensity,
     const unsigned int median_radius) {
   const auto inputSize = proj_raw->GetBufferedRegion().GetSize();
   const cl_ulong2 in_size = {{inputSize[0], inputSize[1]}};
-  if (inputSize != proj_scatter->GetBufferedRegion().GetSize()) {
+  if (inputSize != proj_scatter_intensity->GetBufferedRegion().GetSize()) {
     std::cerr << "Raw proj and scatter map was not the same size!\n";
     return nullptr;
   }
@@ -1010,7 +1010,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
   }
 
   const auto raw_buffer = proj_raw->GetBufferPointer();
-  const auto sca_buffer = proj_scatter->GetBufferPointer();
+  const auto sca_buffer = proj_scatter_intensity->GetBufferPointer();
 
   const auto memorySizeInput = inputSize[0] * inputSize[1];
 
@@ -1209,7 +1209,7 @@ FloatImage2DType::Pointer gaussian_filter(FloatImage2DType::Pointer input,
 }
 #endif
 
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_prim,
     const unsigned int median_radius, const float gaussian_sigma) {
@@ -1289,6 +1289,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
 
   proj_sca = gaussian_filter(proj_sca, gaussian_sigma);
 
+  /* No need to convert back, see GenScatterMap_PrioriCT
   auto out_buffer = proj_sca->GetBufferPointer();
   auto deviceBuffer_out = cl::Buffer(
       ctx, out_buffer, out_buffer + memorySizeInput, false, true, nullptr);
@@ -1307,11 +1308,11 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
   err = queue.finish();
   checkError(err, "Finish i_to_log_i queue");
 
-  /* Fetch results of calculations. */
+  // Fetch results of calculations.
   err = cl::copy(queue, deviceBuffer_out, out_buffer,
                  out_buffer + memorySizeInput);
   checkError(err, "Add, copy data back from device");
-
+  */
   return proj_sca;
 }
 

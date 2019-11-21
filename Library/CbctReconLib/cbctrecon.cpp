@@ -496,10 +496,12 @@ CbctRecon::BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg) {
 
   for (auto &it : m_vPixelReplMap) {
     const auto tmpData = it;
-    const auto oriIdx = static_cast<size_t>(
-        tmpData.BadPixY) * DEFAULT_ELEKTA_PROJ_WIDTH + tmpData.BadPixX;
-    const auto replIdx = static_cast<size_t>(
-        tmpData.ReplPixY) * DEFAULT_ELEKTA_PROJ_WIDTH + tmpData.ReplPixX;
+    const auto oriIdx =
+        static_cast<size_t>(tmpData.BadPixY) * DEFAULT_ELEKTA_PROJ_WIDTH +
+        tmpData.BadPixX;
+    const auto replIdx =
+        static_cast<size_t>(tmpData.ReplPixY) * DEFAULT_ELEKTA_PROJ_WIDTH +
+        tmpData.ReplPixX;
     targetImg->m_pData[oriIdx] = targetImg->m_pData[replIdx];
   }
 
@@ -2633,7 +2635,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     // CPU version if OpenCL is causing problems:
     using convert_filter_type =
-      itk::UnaryFunctorImageFilter<ImageType, ImageType, LineInt2Intensity>;
+        itk::UnaryFunctorImageFilter<ImageType, ImageType, LineInt2Intensity>;
     auto convert_filter = convert_filter_type::New();
     convert_filter->SetInput(spImg2DRaw);
 
@@ -2663,8 +2665,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     medianFilterX->SetInput(medianFilterY->GetOutput());
 
     auto gaussian_filter =
-        itk::SmoothingRecursiveGaussianImageFilter<ImageType,
-    ImageType>::New(); gaussian_filter->SetInput(medianFilterX->GetOutput());
+        itk::SmoothingRecursiveGaussianImageFilter<ImageType, ImageType>::New();
+    gaussian_filter->SetInput(medianFilterX->GetOutput());
 
     itk::SmoothingRecursiveGaussianImageFilter<
         ImageType, ImageType>::SigmaArrayType gauss_sigma;
@@ -2676,13 +2678,14 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     } else {
       gaussian_filter->SetSigma(gaussianSigma);
     }
-
-    auto convert_back_filter =
+    /* Converting back seems like a waste of compute power and may cause
+    problems with log(<0) auto convert_back_filter =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      Intensity2LineInt>::New();
     convert_back_filter->SetInput(gaussian_filter->GetOutput());
     convert_back_filter->Update();
-    ImageType::Pointer spImg2DScat = convert_back_filter->GetOutput();
+        */
+    ImageType::Pointer spImg2DScat = gaussian_filter->GetOutput();
 #endif
 
     // float to unsigned short
@@ -2755,6 +2758,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     if (m_projFormat == HIS_FORMAT) {
       SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder,
                          m_fResampleF);
+      std::cerr << "Scatter saved in Intensity values as HIS at: "
+                << strSavingFolder.toStdString() << "\n";
     } else {
       using imagewritertype = itk::ImageFileWriter<FloatImageType>;
       auto imagewriter = imagewritertype::New();
@@ -2762,6 +2767,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       imagewriter->SetFileName(
           QString(strSavingFolder + "/scatter.mha").toStdString());
       imagewriter->Update();
+      std::cerr << "Scatter saved in Intensity values as mha at: "
+                << strSavingFolder.toStdString() << "\n";
     }
   }
 }
@@ -2833,24 +2840,25 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
       postMedian = qRound(postMedian / 2.0);
     }
 
-	#ifndef _WIN32
+#ifndef _WIN32
     auto spImg2DCorr = OpenCL_LogItoI_subtract_median_ItoLogI(
         spImg2DRaw, spImg2DScat, postMedian);
-	#else
-	using ImageType = FloatImage2DType;
+#else
+    using ImageType = FloatImage2DType;
     auto convert_filter =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      LineInt2Intensity>::New();
     convert_filter->SetInput(spImg2DRaw);
-    auto convert_filter_2 =
+    /* The conversion seems redundant, see comment in GenScatterMap
+        auto convert_filter_2 =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      LineInt2Intensity>::New();
-    convert_filter_2->SetInput(spImg2DScat);
+    convert_filter_2->SetInput(spImg2DScat);*/
 
     auto subtract_filter =
         itk::SubtractImageFilter<ImageType, ImageType>::New();
     subtract_filter->SetInput1(convert_filter->GetOutput());
-    subtract_filter->SetInput2(convert_filter_2->GetOutput());
+    subtract_filter->SetInput2(spImg2DScat); // convert_filter_2->GetOutput());
 
     auto median_filter = itk::MedianImageFilter<ImageType, ImageType>::New();
     median_filter->SetInput(subtract_filter->GetOutput());
@@ -2862,7 +2870,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     convert_back_filter->SetInput(median_filter->GetOutput());
     convert_back_filter->Update();
     ImageType::Pointer spImg2DCorr = convert_back_filter->GetOutput();
-	#endif
+#endif
     /*
     auto subtract_filter =
         itk::SubtractImageFilter<FloatImage2DType, FloatImage2DType,
