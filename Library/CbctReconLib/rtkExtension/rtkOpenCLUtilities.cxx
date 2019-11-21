@@ -55,8 +55,24 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
                                        nullptr));
   }
 
-  // If not a good device, switch to CPU.
-  if (bImageSupport == 0u) {
+  // If not a good device, switch to Accelerator.
+  if (!bImageSupport) {
+    const auto err_acc = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 0, nullptr,
+                                      &numberOfDevices);
+
+    if (err_acc != -1) { // -1 means we didn't fins an accelerator
+      deviceList.resize(numberOfDevices);
+      OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR,
+                                        numberOfDevices, &deviceList[0],
+                                        nullptr));
+      OPENCL_CHECK_ERROR(clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
+                                         sizeof(cl_bool), &bImageSupport,
+                                         nullptr));
+    }
+  }
+
+  // If still not a good device, switch to CPU.
+  if (!bImageSupport) {
     OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, nullptr,
                                       &numberOfDevices));
     deviceList.resize(numberOfDevices);

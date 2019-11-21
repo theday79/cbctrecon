@@ -113,7 +113,7 @@ private:
       const auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
       checkError(*err, "Get device type");
 
-      if (device_type != CL_DEVICE_TYPE_CPU &&
+      if (device_type == CL_DEVICE_TYPE_GPU && // Xeon Phi is much too slow compared with a GPU
           avail_dev_alloc > req_dev_alloc) {
         device = dev;
         good_device_found = true;
@@ -240,7 +240,7 @@ cl::NDRange get_local_work_size_small(const cl::Device &device) {
   if (device_name == "Intel(R) Iris(TM) Pro Graphics 5200") {
     return {16};
   } else if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
-    return {32};
+    return {16};
   }
   return {128};
 }
@@ -249,7 +249,7 @@ cl::NDRange get_local_work_size_large(const cl::Device &device) {
   if (device_name == "Intel(R) Iris(TM) Pro Graphics 5200") {
     return {32};
   } else if (device_name == "Intel(R) Many Integrated Core Acceleration Card") {
-    return {64};
+    return {128};
   }
   return {128};
 }
@@ -262,7 +262,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   auto err = CL_SUCCESS;
 
   const auto pv_size =
-      static_cast<size_t>(paddingSize.x * paddingSize.y * paddingSize.z);
+      static_cast<size_t>(paddingSize.x) * paddingSize.y * paddingSize.z;
   const auto pv_buffer_size = pv_size * sizeof(float);
 
   auto defines = std::string("");
@@ -995,11 +995,11 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
 
 FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
     const FloatImage2DType::Pointer &proj_raw,
-    const FloatImage2DType::Pointer &proj_scatter,
+    const FloatImage2DType::Pointer &proj_scatter_intensity,
     const unsigned int median_radius) {
   const auto inputSize = proj_raw->GetBufferedRegion().GetSize();
   const cl_ulong2 in_size = {{inputSize[0], inputSize[1]}};
-  if (inputSize != proj_scatter->GetBufferedRegion().GetSize()) {
+  if (inputSize != proj_scatter_intensity->GetBufferedRegion().GetSize()) {
     std::cerr << "Raw proj and scatter map was not the same size!\n";
     return nullptr;
   }
@@ -1010,7 +1010,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
   }
 
   const auto raw_buffer = proj_raw->GetBufferPointer();
-  const auto sca_buffer = proj_scatter->GetBufferPointer();
+  const auto sca_buffer = proj_scatter_intensity->GetBufferPointer();
 
   const auto memorySizeInput = inputSize[0] * inputSize[1];
 
@@ -1044,7 +1044,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
       err, "Alloc device output buffer, log_i_to_i_subtract_median_i_to_log_i");
 
   auto log_i_to_i_subtract_median_i_to_log_i_kernel =
-      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_int>(
           kernel_man.getKernel(en_LogItoI_subtract_median_ItoLogI));
 
   const auto local_work_size =
@@ -1054,7 +1054,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
   log_i_to_i_subtract_median_i_to_log_i_kernel(
       cl::EnqueueArgs(queue, global_work_size, local_work_size),
       deviceBuffer_raw, deviceBuffer_sca, deviceOutBuffer, in_size,
-      static_cast<cl_uint>(median_radius), err);
+      static_cast<cl_int>(median_radius), err);
   checkError(err,
              "Enqueue kernel and args, log_i_to_i_subtract_median_i_to_log_i");
 
@@ -1209,7 +1209,7 @@ FloatImage2DType::Pointer gaussian_filter(FloatImage2DType::Pointer input,
 }
 #endif
 
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
+FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_prim,
     const unsigned int median_radius, const float gaussian_sigma) {
@@ -1257,23 +1257,24 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
       ctx, sca_buffer, sca_buffer + memorySizeInput, false, true, nullptr);
 
   auto log_i_to_i_subtract_median_y_x_kernel =
-      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_uint>(
+      cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_int>(
           kernel_man.getKernel(en_LogItoI_subtract_median_y_x));
 
-  auto actual_work_size = 64; // bench test what is optimal
-  while (memorySizeInput % actual_work_size != 0) {
-    actual_work_size /= 2;
+  auto local_work_size = 128U; // bench test what is optimal
+  while (memorySizeInput % local_work_size != 0) {
+    local_work_size /= 2;
   }
+  const auto actual_work_size = local_work_size - 2 * median_radius;
   const auto n_work_groups = memorySizeInput / actual_work_size;
   const auto super_global_work_size =
-      cl::NDRange((2 * static_cast<cl_ulong>(median_radius) + actual_work_size) * n_work_groups);
+      cl::NDRange(local_work_size * n_work_groups);
   const auto super_local_work_size =
-      cl::NDRange(2 * static_cast<cl_ulong>(median_radius) + actual_work_size);
+      cl::NDRange(local_work_size);
 
   log_i_to_i_subtract_median_y_x_kernel(
       cl::EnqueueArgs(queue, super_global_work_size, super_local_work_size),
       deviceBuffer_raw, deviceBuffer_pri, deviceBuffer_sca, in_size,
-      median_radius);
+      static_cast<cl_int>(median_radius));
 
   err = queue.finish();
   checkError(err, "Finish log_i_to_i_subtract_median_y_x queue");
@@ -1288,6 +1289,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
 
   proj_sca = gaussian_filter(proj_sca, gaussian_sigma);
 
+  /* No need to convert back, see GenScatterMap_PrioriCT
   auto out_buffer = proj_sca->GetBufferPointer();
   auto deviceBuffer_out = cl::Buffer(
       ctx, out_buffer, out_buffer + memorySizeInput, false, true, nullptr);
@@ -1306,11 +1308,11 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
   err = queue.finish();
   checkError(err, "Finish i_to_log_i queue");
 
-  /* Fetch results of calculations. */
+  // Fetch results of calculations.
   err = cl::copy(queue, deviceBuffer_out, out_buffer,
                  out_buffer + memorySizeInput);
   checkError(err, "Add, copy data back from device");
-
+  */
   return proj_sca;
 }
 

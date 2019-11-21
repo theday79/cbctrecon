@@ -313,7 +313,7 @@ crop_by_struct_kernel(__global ushort *dev_vol, __constant float2 *structure,
   }
 }
 
-float median_by_bubble_sort(float list[], const uint n) {
+inline float median_by_bubble_sort(float list[], const uint n) {
   uint n_i = n;
   while (n_i >= n / 2) {
     uint new_n = 0;
@@ -335,7 +335,7 @@ float median_by_bubble_sort(float list[], const uint n) {
 // filter then convert back to line integral
 __kernel void log_i_to_i_subtract_median_i_to_log_i(
     __global const float *proj_raw, __global const float *proj_sca,
-    __global float *proj_corr, const ulong2 size, const uint median_radius) {
+    __global float *proj_corr, const ulong2 size, const int median_radius) {
   const ulong id = get_global_id(0);
 
   if (id >= size.x * size.y) {
@@ -348,13 +348,13 @@ __kernel void log_i_to_i_subtract_median_i_to_log_i(
   float unsorted_vector[64];
   uint i_uv = 0;
 
-  for (int y = -median_radius; y <= (int)median_radius; ++y) {
+  for (int y = -median_radius; y <= median_radius; ++y) {
     const int jy = j + y;
     if (jy < 0 || jy > size.y) {
       continue;
     }
     const ulong id_jy = jy * size.x;
-    for (int x = -median_radius; x <= (int)median_radius; ++x) {
+    for (int x = -median_radius; x <= median_radius; ++x) {
       const int ix = i + x;
       if (ix < 0 || ix > size.x) {
         continue;
@@ -365,8 +365,9 @@ __kernel void log_i_to_i_subtract_median_i_to_log_i(
       // assuming *_val is not < 0, then *_i is in [0; 1]
       const float raw_i = exp(-raw_val);
 
-      const float sca_val = proj_sca[r_id];
-      const float sca_i = exp(-sca_val);
+	  // scatter should already be in intensity
+      const float sca_i = proj_sca[r_id];
+      // const float sca_i = exp(-sca_val);
 
       unsorted_vector[i_uv++] = raw_i - sca_i;
     }
@@ -453,16 +454,16 @@ __kernel void log_i_to_i_subtract_median_y_x(__global const float *proj_raw,
   proj_sca[id] = median;
 }
 
-__kernel void i_to_log_i_kernel(__global float *proj_sca, const ulong2 size) {
+__kernel void i_to_log_i_kernel(__global float *proj, const ulong2 size) {
   const ulong id = get_global_id(0);
   if (id >= size.x * size.y) {
     return;
   }
 
-  const float i_val = proj_sca[id];
+  const float i_val = proj[id];
   if (i_val > 0.0) {
-    proj_sca[id] = -log(i_val);
+    proj[id] = -log(i_val);
   } else {
-    proj_sca[id] = FLT_MAX;
+    proj[id] = FLT_MAX;
   }
 }
