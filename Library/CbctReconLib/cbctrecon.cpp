@@ -2639,9 +2639,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     auto convert_filter = convert_filter_type::New();
     convert_filter->SetInput(spImg2DRaw);
 
-    auto convert_filter_2 =
-        itk::UnaryFunctorImageFilter<ImageType, ImageType,
-                                     LineInt2Intensity>::New();
+    auto convert_filter_2 = convert_filter_type::New();
     convert_filter_2->SetInput(spImg2DPrim);
 
     auto subtract_filter =
@@ -2685,6 +2683,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     convert_back_filter->SetInput(gaussian_filter->GetOutput());
     convert_back_filter->Update();
         */
+    gaussian_filter->Update();
     ImageType::Pointer spImg2DScat = gaussian_filter->GetOutput();
 #endif
 
