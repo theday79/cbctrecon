@@ -46,6 +46,7 @@
 
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
+#include "cbctrecon_io.h"
 
 #ifdef RTK_USE_OPENCL
 template <typename ImageType>
