@@ -2549,7 +2549,9 @@ public:
   ~Intensity2LineInt() = default;
   float operator()(const float val) const {
     // mu = ln(I_0/I) OR mu = ln(I/I0)
-    float lineintVal = std::numeric_limits<float>::max();
+    constexpr auto I_0_div_I_air = 1.0 / (0.1541 * 1.225e-3 * 10.0);
+    float lineintVal = std::log(I_0_div_I_air); // 10 cm of air
+    
     if (val > 0) {
       lineintVal = /* log(I_0=1) = 0 */ -std::log(val);
     }
@@ -2927,9 +2929,12 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     QDir crntDir(strCrntDir);
 
     if (!crntDir.exists()) {
-      std::cout << "File save error: The specified folder does not exist."
-                << std::endl;
-      return;
+      // Probably IMAGES subdir didn't exist, let's just use the selected dir anyway
+      crntDir = QDir(m_strPathPatientDir);
+      if (!crntDir.exists()) {
+        std::cerr << "File save error: The specified folder does not exist.\n";
+        return;
+      }
     }
 
     const auto scatDirName = "cor_" + m_strDCMUID;
@@ -2943,13 +2948,18 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                 << std::endl;
     }
 
-    auto strSavingFolder = strCrntDir + "/" + scatDirName;
+    auto strSavingFolder = crntDir.absolutePath() + "/" + scatDirName;
 
-    if (!bHighResolMacro) {
-      SaveProjImageAsHIS(m_spProjCorr3D, m_arrYKBufProj, strSavingFolder,
-                         m_fResampleF);
+    if (m_projFormat == HIS_FORMAT) {
+      if (!bHighResolMacro) {
+        SaveProjImageAsHIS(m_spProjCorr3D, m_arrYKBufProj, strSavingFolder,
+                           m_fResampleF);
+      } else {
+        SaveProjImageAsHIS(m_spProjCorr3D, m_arrYKBufProj, strSavingFolder,
+                           1.0);
+      }
     } else {
-      SaveProjImageAsHIS(m_spProjCorr3D, m_arrYKBufProj, strSavingFolder, 1.0);
+      saveImageAsMHA<FloatImageType>(m_spProjCorr3D, strSavingFolder.toStdString() + "/corr_proj.mha");
     }
   }
   // spProjScat3D->Initialize(); //memory release
@@ -2960,9 +2970,9 @@ public:
   LineInt2Intensity_ushort() = default;
   ~LineInt2Intensity_ushort() = default;
   float operator()(const float val) const {
-    const auto max_ushort = std::numeric_limits<unsigned short>::max();
-    float intensityVal =
-        exp(static_cast<double>(val) * -1.0) * static_cast<double>(max_ushort);
+    constexpr auto max_ushort = std::numeric_limits<unsigned short>::max();
+    float intensityVal = std::exp(static_cast<double>(val) * -1.0) *
+                         static_cast<double>(max_ushort);
 
     if (intensityVal <= 1.0) {
       intensityVal = 1.0;
@@ -2996,7 +3006,7 @@ public:
   Intensity2LineInt_ushort() = default;
   ~Intensity2LineInt_ushort() = default;
   float operator()(const Tinput val) const {
-    const auto max_ushort = std::numeric_limits<unsigned short>::max();
+    constexpr auto max_ushort = std::numeric_limits<unsigned short>::max();
     // mu = ln(I_0/I) OR mu = ln(I/I0)
     const float mu_t_val =
         log(static_cast<double>(max_ushort) / static_cast<double>(val));

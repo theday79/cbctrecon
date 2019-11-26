@@ -571,29 +571,30 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
     std::cout << " Patient DIR Path: "
-              << this->m_strPathPatientDir.toLocal8Bit().constData()
+              << this->m_strPathPatientDir.toStdString()
               << std::endl;
 
-    auto manuallySelectedDir = false; // <- just to make sure I don't break
+    auto manuallySelectedDir = true; // <- just to make sure I don't break
                                       // usecases of the older version.
-    if (this->m_strPathPatientDir.isEmpty()) {
-      std::cout << "File save error!: No patient DIR name" << std::endl;
 
-      if (this->m_strPathPatientDir.length() <= 1) {
-        return spProj3D;
-      }
-      manuallySelectedDir = true;
+    if (this->m_strPathPatientDir.length() <= 1) {
+      std::cerr << "No patient DIR name, using plm_tmp\n";
+      manuallySelectedDir = false;
+    }
+
+	if (!manuallySelectedDir) {
+      this->m_strPathPatientDir = "plm_tmp";
     }
 
     // Get current folder
-    const auto subdir_images("IMAGES");
+    const QString subdir_images("IMAGES");
     const auto strCrntDir =
         this->m_strPathPatientDir + "/" + subdir_images; // current Proj folder
 
     // Make a sub directory
     QDir crntDir(strCrntDir);
 
-    if (!crntDir.exists()) {
+    if (!crntDir.exists() && m_projFormat == HIS_FORMAT) {
       if (manuallySelectedDir) {
         QDir current_dir(this->m_strPathPatientDir);
         const auto success = current_dir.mkdir(subdir_images);
@@ -602,9 +603,16 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
                     << std::endl;
           return spProj3D;
         }
-      } else {
+      } else if (m_projFormat == HIS_FORMAT) {
         std::cout << "File save error: The specified folder does not exist."
                   << std::endl;
+        return spProj3D;
+      }
+    } else {
+      // Odds are that just the IMAGES subdirectory didn't exists
+      crntDir = QDir(this->m_strPathPatientDir);
+      if (!crntDir.exists()) {
+        std::cerr << "Non-existent path provided, not saving fwd projs\n";
         return spProj3D;
       }
     }
@@ -620,9 +628,18 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
                 << std::endl;
     }
 
-    auto strSavingFolder = strCrntDir + "/" + fwdDirName;
-    this->SaveProjImageAsHIS(spProj3D, this->m_arrYKBufProj, strSavingFolder,
-                             this->m_fResampleF);
+    auto strSavingFolder = crntDir.absolutePath() + "/" + fwdDirName;
+    if (m_projFormat == HIS_FORMAT) {
+      this->SaveProjImageAsHIS(spProj3D, this->m_arrYKBufProj, strSavingFolder,
+                               this->m_fResampleF);
+    } else {
+      auto fn_fwd_prj = "fwd_proj.mha";
+      if (m_spRawReconImg->GetBufferPointer() == spVolImg3D->GetBufferPointer()) {
+        fn_fwd_prj = "fwd_proj_rawrec.mha";
+      }
+      saveImageAsMHA<FloatImageType>(spProj3D, strSavingFolder.toStdString() +
+                                                   "/" + fn_fwd_prj);
+    }
   }
   return spProj3D;
 }

@@ -491,12 +491,9 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
     return;
   }
 
-  const auto bExportProj_Fwd =
-      false; // this->ui.checkBox_ExportFwd->isChecked();
-  const auto bExportProj_Scat =
-      false; // this->ui.checkBox_ExportScat->isChecked();
-  const auto bExportProj_Cor =
-      false; // this->ui.checkBox_ExportCor->isChecked();
+  const auto bExportProj_Fwd = false; // this->ui.checkBox_ExportFwd->isChecked();
+  const auto bExportProj_Scat = false; // this->ui.checkBox_ExportScat->isChecked();
+  const auto bExportProj_Cor = false; // this->ui.checkBox_ExportCor->isChecked();
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
@@ -633,7 +630,8 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
       0, REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
 
-  // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check button.
+  // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check
+  // button.
 
   // SLT_DrawProjImages();
 

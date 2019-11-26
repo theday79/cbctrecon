@@ -380,7 +380,7 @@ __kernel void log_i_to_i_subtract_median_i_to_log_i(
   if (median > 0.0) {
     proj_corr[id] = -log(median);
   } else {
-    proj_corr[id] = FLT_MAX;
+    proj_corr[id] = 6.3; // ~10cm of air
   }
 }
 
@@ -464,6 +464,6 @@ __kernel void i_to_log_i_kernel(__global float *proj, const ulong2 size) {
   if (i_val > 0.0) {
     proj[id] = -log(i_val);
   } else {
-    proj[id] = FLT_MAX;
+    proj[id] = 6.3; // ~10 cm of air
   }
 }
