@@ -2628,9 +2628,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     // The OpenCL version: ~49ms CPU ~76ms
 #ifndef _WIN32
-    ImageType::Pointer spImg2DScat =
-        OpenCL_LogItoI_subtract_median_gaussian_ItoLogI(
-            spImg2DRaw, spImg2DPrim, medianRadius, gaussianSigma);
+    ImageType::Pointer spImg2DScat = OpenCL_LogItoI_subtract_median_gaussian(
+        spImg2DRaw, spImg2DPrim, medianRadius, gaussianSigma);
 #else
 
     // CPU version if OpenCL is causing problems:

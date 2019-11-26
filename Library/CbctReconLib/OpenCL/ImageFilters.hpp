@@ -15,12 +15,12 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 #endif
 
-#include "OpenCL/cl2.hpp"
+#include "cbctrecon_config.h"
+#include "cbctrecon_types.h"
 
 #include "itkImage.h"
 
-#include "cbctrecon_config.h"
-#include "cbctrecon_types.h"
+#include "OpenCL/cl2.hpp"
 
 struct Rtss_roi_modern;
 
