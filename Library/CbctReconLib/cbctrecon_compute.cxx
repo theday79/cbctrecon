@@ -6,6 +6,11 @@
 #include "cbctrecon_compute.h"
 #include "cbctrecon.h"
 
+// std
+#include <algorithm>
+#include <optional>
+#include <string>
+
 // Qt
 #include <qxmlstream.h>
 
@@ -53,8 +58,8 @@ double GetMaxAndMinValueOfProjectionImage(
 }
 
 /*
-ui.lineEdit_CurmAs->setText(QString("%1,20").arg((64 * 40 / 20) / ScaleFactor));
-ui.lineEdit_RefmAs->setText(QString("64,40"));
+ui.lineEdit_CurmAs->setText(std::string("%1,20").arg((64 * 40 / 20) /
+ScaleFactor)); ui.lineEdit_RefmAs->setText(std::string("64,40"));
 */
 double
 CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
@@ -190,8 +195,8 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
 
   for (auto i = 0; i < z_size && !it_3D.IsAtEnd(); i++) {
     /*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
-    QString crntFileName = crntFileInfo.fileName();
-    QString crntPath = strSavingFolder + "/" + crntFileName;*/
+    std::string crntFileName = crntFileInfo.fileName();
+    std::string crntPath = strSavingFolder + "/" + crntFileName;*/
     // Search matching slice using slice iterator for m_spProjCTImg
     // std::cout << "Get2DFrom3D: Slide= " << i  << " ";
 
@@ -213,28 +218,35 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
   // std::cout << "cnt = " << cnt << " TotCnt " << cntTot << std::endl;
   /*YK16GrayImage tmpYK;
   tmpYK.UpdateFromItkImageFloat(spTargetImg2D);
-  QString str = QString("D:\\testYK\\InsideFunc_%1.raw").arg(idx);
+  std::string str = std::string("D:\\testYK\\InsideFunc_%1.raw").arg(idx);
   tmpYK.SaveDataAsRaw(str.toLocal8Bit().constData());*/
 }
 
-double GetRawIntensityScaleFactor(QString &strRef_mAs, QString &strCur_mAs) {
+
+template <typename T>
+std::optional<T> mAs_string_to_value(std::string &mas_string) {
+  const auto listmAs = split_string<','>(mas_string);
+
+  if (listmAsRef.size() == 2) {
+    const auto o_mA = from_string<T>(listmAsRef.at(0));
+    const auto o_sec = from_string<T>(listmAsRef.at(1));
+    if (o_mA.has_value() && o_sec.has_value()) {
+      return o_mA.value() * o_sec.value();
+    }
+  }
+  return std::nullopt;
+}
+
+double GetRawIntensityScaleFactor(std::string &strRef_mAs,
+                                  std::string &strCur_mAs) {
   // GetRawIntensity Scale Factor
   auto rawIntensityScaleF = 1.0;
 
-  auto fRef_mAs = 0.0;
-  auto fCur_mAs = 0.0;
-  // QString strRef_mAs = ui.lineEdit_RefmAs->text();
-  auto listmAsRef = strRef_mAs.split(",");
-  if (listmAsRef.length() == 2) {
-    fRef_mAs = listmAsRef.at(0).toDouble() * listmAsRef.at(1).toDouble();
-  }
-  // QString strCur_mAs = ui.lineEdit_CurmAs->text();
-  auto listmAsCur = strCur_mAs.split(",");
-  if (listmAsCur.length() == 2) {
-    fCur_mAs = listmAsCur.at(0).toDouble() * listmAsCur.at(1).toDouble();
-  }
-  if (fabs(fRef_mAs * fCur_mAs) > 0.0001) {
-    rawIntensityScaleF = fRef_mAs / fCur_mAs;
+  auto fRef_mAs = mAs_string_to_value<double>(strRef_mAs);
+  auto fCur_mAs = mAs_string_to_value<double>(strCur_mAs);
+
+  if (fCur_mAs.has_value() && fRef_mAs.has_value()) {
+    rawIntensityScaleF = fRef_mAs.value() / fCur_mAs.value();
   }
 
   return rawIntensityScaleF;
@@ -340,8 +352,8 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   spSrcTarg = flipFilter->GetOutput();
 }
 
-QString XML_GetSingleItemString(QXmlStreamReader &xml) {
-  QString strResult = "";
+std::string XML_GetSingleItemString(QXmlStreamReader &xml) {
+  std::string strResult = "";
   /* We need a start element, like <foo> */
   if (xml.tokenType() != QXmlStreamReader::StartElement) {
     return strResult;
@@ -358,7 +370,7 @@ QString XML_GetSingleItemString(QXmlStreamReader &xml) {
   if (xml.tokenType() != QXmlStreamReader::Characters) {
     return strResult;
   }
-  strResult = xml.text().toString();
+  strResult = xml.text().toString().toStdString();
   return strResult;
 }
 

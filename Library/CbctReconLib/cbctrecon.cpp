@@ -21,10 +21,10 @@
 #endif
 
 #include <cstdio>
+#include <filesystem>
 #include <valarray>
 
 // Qt
-#include <qdir.h>
 #include <qinputdialog.h>
 #include <qxmlstream.h>
 
@@ -103,19 +103,18 @@ CbctRecon::CbctRecon() {
   // m_fProjSpacingX = 0.4; // DEFAULT, will be updated during Load Proj
   // selected m_fProjSpacingY = 0.4;
 
-  m_strPathDirDefault = QDir::currentPath();
-  std::cout << "Current Default Dir: "
-            << m_strPathDirDefault.toLocal8Bit().constData() << std::endl;
+  m_strPathDirDefault = std::filesystem::current_path();
+  std::cout << "Current Default Dir: " << m_strPathDirDefault << std::endl;
 
   // shell test
-  // QString strCurFolder = "H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release";
-  // QString strCommand = QString("explorer %1").arg(strCurFolder);
+  // std::string strCurFolder = "H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release";
+  // std::string strCommand = std::string("explorer %1").arg(strCurFolder);
   // std::cout << strCommand.toLocal8Bit().constData() << std::endl;
   //::system(strCommand.toLocal8Bit().constData());
   //::system("rtkfdk");
 
   //	if
-  //(QProcess::execute(QString("H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release\\rtkfdk"))
+  //(QProcess::execute(std::string("H:\\lib\\rtk\\NightlyBUILD64\\bin\\Release\\rtkfdk"))
   //< 0) 	qDebug() << "Failed to run";
   m_bMacroContinue = true;
 }
@@ -134,16 +133,17 @@ void CbctRecon::ReleaseMemory() {
 
 // Hexa name ->decimal name
 
-void CbctRecon::RenameFromHexToDecimal(QStringList &filenameList) const {
+void CbctRecon::RenameFromHexToDecimal(std::vector<std::filesystem::path> &filenameList) const {
   const auto size = filenameList.size();
 
   for (auto i = 0; i < size; i++) {
     const auto &crntFilePath = filenameList.at(i);
-    auto fileInfo = QFileInfo(crntFilePath);
-    auto dir = fileInfo.absoluteDir();
-    auto fileBase = fileInfo.baseName();
+    auto dir = std::filesystem::absolute(crntFilePath);
+    auto str_filename = crntFilePath.filename().string();
+    auto ext_pos = str_filename.find_last_of('.');
+    auto fileBase = str_filename.substr(0, ext_pos + 1);
     auto newBaseName = HexStr2IntStr(fileBase);
-    auto extStr = fileInfo.completeSuffix();
+    auto extStr = str_filename.substr(ext_pos + 1);
 
     auto newFileName = newBaseName.append(".").append(extStr);
     auto newPath = dir.absolutePath() + "/" + newFileName;
@@ -227,7 +227,7 @@ int hex_to_int(const char ch) {
   return -1;
 }
 
-QString CbctRecon::HexStr2IntStr(QString &str_hex) const {
+std::string CbctRecon::HexStr2IntStr(std::string &str_hex) const {
   auto hex_str = str_hex.toStdString();
   std::reverse(std::begin(hex_str), std::end(hex_str));
   auto tmpDecimal = 0;
@@ -238,7 +238,7 @@ QString CbctRecon::HexStr2IntStr(QString &str_hex) const {
     tmpDecimal += tmp_num * static_cast<int>(pow(16.0, inv_i--));
   }
 
-  auto int_str = QString("%1").arg(tmpDecimal);
+  auto int_str = std::string("%1").arg(tmpDecimal);
 
   return int_str;
   // return tmpDecimal;
@@ -399,7 +399,7 @@ CbctRecon::ApplyCalibrationMaps(YK16GrayImage *const &rawImg,
   return corrImg;
 }
 
-QString CbctRecon::CorrectSingleFile(const char *filePath, const bool DarkCorr,
+std::string CbctRecon::CorrectSingleFile(const char *filePath, const bool DarkCorr,
                                      const bool GainCorr,
                                      const bool DefectCorr) {
   // Load raw file
@@ -411,9 +411,9 @@ QString CbctRecon::CorrectSingleFile(const char *filePath, const bool DarkCorr,
   const auto corrImg =
       ApplyCalibrationMaps(rawImg.get(), DarkCorr, GainCorr, DefectCorr);
   // filePath
-  // QString exportName = filePath;
+  // std::string exportName = filePath;
   // corrImg.SaveDataAsRaw();
-  const auto endFix = QString("_CORR");
+  const auto endFix = std::string("_CORR");
 
   auto srcFileInfo = QFileInfo(filePath);
   auto dir = srcFileInfo.absoluteDir();
@@ -462,7 +462,7 @@ void CbctRecon::LoadBadPixelMap(const char *filePath) {
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = QString(&str[0]);
+    auto tmpStr = std::string(&str[0]);
 
     if (tmpStr.contains("#ORIGINAL_X")) {
       break;
@@ -472,7 +472,7 @@ void CbctRecon::LoadBadPixelMap(const char *filePath) {
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = QString(&str[0]);
+    auto tmpStr = std::string(&str[0]);
 
     auto strList = tmpStr.split("	");
 
@@ -508,7 +508,7 @@ CbctRecon::BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg) {
   return targetImg;
 }
 
-void CbctRecon::SetProjDir(QString &strProjPath) {
+void CbctRecon::SetProjDir(std::string &strProjPath) {
   m_strPathGeomXML.clear();
   m_strPathDirDefault = strProjPath;
 
@@ -522,7 +522,7 @@ void CbctRecon::SetProjDir(QString &strProjPath) {
 }
 
 std::vector<std::string>
-CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
+CbctRecon::GetProjFileNames(std::string &dirPath) // main loading fuction for
                                               // projection images
 {
 
@@ -1068,7 +1068,7 @@ void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
 }
 
 void CbctRecon::GetExcludeIndexByNames(
-    const QString &outlierListPath, std::vector<std::string> &vProjFileFullPath,
+    const std::string &outlierListPath, std::vector<std::string> &vProjFileFullPath,
     std::vector<int> &vExcludeIdx) const {
   std::ifstream fin;
   fin.open(outlierListPath.toLocal8Bit().constData(), std::ios::in);
@@ -1160,7 +1160,7 @@ bool CbctRecon::IsFileNameOrderCorrect(
 
   size_t index = 0;
   while (index < size) {
-    QString crntFilePath = vFileNames.at(index++).c_str();
+    std::string crntFilePath = vFileNames.at(index++).c_str();
     auto fileInfo = QFileInfo(crntFilePath);
     auto dir = fileInfo.absoluteDir();
     auto file_basename = fileInfo.baseName();
@@ -1541,7 +1541,7 @@ double fullFan_Function(const double a, const double b, const double c,
 }
 
 void CbctRecon::BowtieByFit(const bool fullfan,
-                            const QStringList &params) const {
+                            const std::stringList &params) const {
   if (params.length() != 4 && !fullfan) {
     std::cout << "Wrong number of arguments!" << std::endl
               << "Must be a;b;c;d -> d. / (1 + exp(-b.*(x - a))) + c"
@@ -2082,11 +2082,23 @@ void CbctRecon::RegisterImgDuplication(const enREGI_IMAGES src,
   }
   // Duplication for : End
 }
+
+template <size_t N>
+constexpr bool any_of_str_in_str(const std::array<std::string, N> &test_strings,
+                                 const std::string &string_to_search) {
+  for (auto &&test_str : test_strings) {
+    if (string_to_search.find(test_str) != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void CbctRecon::FindAllRelevantPaths(
-    const QString &pathProjHisDir) // called following SLT_SetHisDir
+    const std::string &pathProjHisDir) // called following SLT_SetHisDir
 {
   // in case of eletka, img_UID
-  // QString aa;
+  // std::string aa;
   // std::cout<< "ddd " << aa.toLocal8Bit().constData() << std::endl;
 
   m_strDCMUID.clear();
@@ -2100,32 +2112,32 @@ void CbctRecon::FindAllRelevantPaths(
   m_strPathRS_CBCT.clear();
   m_strPathElektaINI.clear();
   m_strPathElektaINIXVI2.clear();
-
   m_strPathPlan.clear();
-
   m_strPathIMAGES.clear();
 
-  QDir curHisDir(pathProjHisDir);
-  QDir movingDir(pathProjHisDir);
+  auto curHisDir = std::filesystem::path(pathProjHisDir.toStdString());
+  auto movingDir = std::filesystem::path(pathProjHisDir.toStdString());
   m_projFormat = enProjFormat::HIS_FORMAT;
 
-  const auto cur_his_path = curHisDir.dirName();
-  if (!cur_his_path.contains("img_", Qt::CaseSensitive) &&
-      !cur_his_path.contains("fwd_", Qt::CaseSensitive) &&
-      !cur_his_path.contains("sca_", Qt::CaseSensitive) &&
-      !cur_his_path.contains("cor_", Qt::CaseSensitive)) {
-    if (cur_his_path.contains("Scan0", Qt::CaseSensitive)) {
+  const auto cur_his_path_str = curHisDir.string();
+
+  std::array<std::string, 4> dir_prefixes{{"img_", "fwd_", "sca_", "cor_"}};
+
+  if (!any_of_str_in_str(dir_prefixes, cur_his_path_str)) {
+    if (cur_his_path_str.find("Scan0") != std::string::npos) {
       std::cout << "XML set by guessing: Scan0/../ProjectionInfo.xml"
                 << std::endl;
-      m_strPathGeomXML =
-          curHisDir.absolutePath() + "/../" + "ProjectionInfo.xml";
+      m_strPathGeomXML = std::filesystem::absolute(curHisDir).parent_path() /
+                         "ProjectionInfo.xml";
       std::cout << "Patient DIR set to: Scan0/../../" << std::endl;
       m_projFormat = enProjFormat::HND_FORMAT;
       return;
     }
-    if (curHisDir.absolutePath().contains("Acquisitions", Qt::CaseSensitive)) {
+    if (std::filesystem::absolute(curHisDir).string.find("Acquisitions")) {
       std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
-      m_strPathGeomXML = curHisDir.absolutePath() + "/../../" + "Scan.xml";
+      m_strPathGeomXML =
+          std::filesystem::absolute(curHisDir).parent_path().parent_path() /
+          "Scan.xml";
       std::cout << "Patient DIR set to: Acquisitions/../../../" << std::endl;
       m_projFormat = enProjFormat::XIM_FORMAT;
       return;
@@ -2136,59 +2148,56 @@ void CbctRecon::FindAllRelevantPaths(
     return;
   }
 
-  const auto &tmpStr = cur_his_path;
-  auto strListDir = tmpStr.split("_");
-  m_strDCMUID = strListDir.at(1);
+  const auto underscore_pos = cur_his_path_str.find("_");
+  m_strDCMUID = cur_his_path_str.substr(underscore_pos);
 
   // m_strDCMUID = cur_his_path.right(cur_his_path.length() - 4);
 
-  if (!movingDir.cdUp()) // projDir ==> IMAGES
+  if (!movingDir.has_parent_path()) // projDir ==> IMAGES
   {
     std::cout << "no upper dir" << std::endl;
     return;
   }
-  QDir tmpDir_IMAGES(movingDir.absolutePath());
-  m_strPathIMAGES = tmpDir_IMAGES.absolutePath();
+  m_strPathIMAGES = std::filesystem::absolute(movingDir);
 
-  if (!movingDir.cdUp()) // IMAGES ==> patient_402-02-78
+  if (!movingDir.parent_path()
+           .has_parent_path()) // IMAGES ==> patient_402-02-78
   {
     std::cout << "no upper dir" << std::endl;
     return;
   }
-  QDir tmpDir_PatientFolder(movingDir.absolutePath());
+  auto tmpDir_PatientFolder{
+      std::filesystem::absolute(movingDir.parent_path().parent_path())};
 
-  if (!movingDir
-           .cdUp()) // patient_402-02-78 ==> Data folder where DBF files are.
+  if (!movingDir.parent_path()
+           .parent_path()
+           .has_parent_path()) // patient_402-02-78 ==> Data folder where DBF
+                               // files are.
   {
     std::cout << "no upper dir" << std::endl;
     return;
   }
 
-  m_strPatientDirName = tmpDir_PatientFolder.dirName();
-  m_strPathPatientDir = tmpDir_PatientFolder.absolutePath();
+  m_strPatientDirName = tmpDir_PatientFolder.parent_path().filename();
+  m_strPathPatientDir = std::filesystem::absolute(tmpDir_PatientFolder.parent_path());
 
-  QDir tmpDir_RootFolder(movingDir.absolutePath()); // root folder
 
-  if (tmpDir_RootFolder.absolutePath().length() > 1) {
-    m_strPathDirDefault = tmpDir_RootFolder.absolutePath();
+  if (tmpDir_PatientFolder.has_parent_path() ) {
+    m_strPathDirDefault = m_strPathPatientDir;
   }
 
   // option 1: already made rtk xml file
-  const auto tmpPathRTKGeometry = tmpDir_RootFolder.absolutePath() + "/" +
-                                  "ElektaGeom_" + m_strDCMUID + ".xml";
-  QFileInfo rtkGeomInfo(tmpPathRTKGeometry);
+  const auto tmpPathRTKGeometry = m_strPathPatientDir / std::string("ElektaGeom_" + m_strDCMUID + ".xml");
 
   // option 2
   const auto pathXVIGeometryXML =
-      curHisDir.absolutePath() + "/" + "_Frames.xml";
-  QFileInfo xviGeomInfo(pathXVIGeometryXML);
+      std::filesystem::absolute(curHisDir) / "_Frames.xml";
 
-  if (rtkGeomInfo
-          .exists()) // The best option: rtk geometry file is already existing
+  if (std::filesystem::exists(tmpPathRTKGeometry)) // The best option: rtk geometry file is already existing
   {
     std::cout << "RTK XLM file is found" << std::endl;
     m_strPathGeomXML = tmpPathRTKGeometry;
-  } else if (xviGeomInfo.exists()) // 2nd option:_Frames.xml already exists in
+  } else if (std::filesystem::exists(pathXVIGeometryXML)) // 2nd option:_Frames.xml already exists in
                                    // each projection folder for > XVI5.0.2
   {
     std::cout << "XVI XLM file is found" << std::endl;
@@ -2211,21 +2220,21 @@ void CbctRecon::FindAllRelevantPaths(
 
     // 1st priority: DBF files saved in each "patient" folder --> just in case
     // data are collected separately
-    auto fInfo_FrameDBF = QFileInfo(tmpStrPath1.append("/FRAME.DBF"));
-    auto fInfo_ImageDBF = QFileInfo(tmpStrPath2.append("/IMAGE.DBF"));
+    auto fInfo_FrameDBF = tmpStrPath1 / "FRAME.DBF";
+    auto fInfo_ImageDBF = tmpStrPath2 / "IMAGE.DBF";
 
-    if (!fInfo_FrameDBF.exists() || !fInfo_ImageDBF.exists()) {
+    if (!std::filesystem::exists(fInfo_FrameDBF) || !std::filesystem::exists(fInfo_ImageDBF)) {
       std::cout << "No found in the patient folder. DBF files can be saved in "
                    "each individual patient as well. Continues to search them "
                    "again in root folder(standard)"
                 << std::endl;
 
       fInfo_FrameDBF =
-          QFileInfo(tmpDir_RootFolder.absolutePath().append("/FRAME.DBF"));
+          m_strPathPatientDir / "FRAME.DBF";
       fInfo_ImageDBF =
-          QFileInfo(tmpDir_RootFolder.absolutePath().append("/IMAGE.DBF"));
+          m_strPathPatientDir / "IMAGE.DBF";
 
-      if (!fInfo_FrameDBF.exists() || !fInfo_ImageDBF.exists()) {
+      if (!std::filesystem::exists(fInfo_FrameDBF) || !std::filesystem::exists(fInfo_ImageDBF)) {
         std::cout << "DBF files were not found" << std::endl;
         std::cout << "XML file cannot be made" << std::endl;
         return;
@@ -2234,13 +2243,14 @@ void CbctRecon::FindAllRelevantPaths(
       std::cout << "DBF files are found in the individual patient directory."
                 << std::endl;
     }
-    m_strPathFRAME_DBF = fInfo_FrameDBF.absoluteFilePath();
-    m_strPathIMAGE_DBF = fInfo_ImageDBF.absoluteFilePath();
+    m_strPathFRAME_DBF = std::filesystem::absolute(fInfo_FrameDBF);
+    m_strPathIMAGE_DBF = std::filesystem::absolute(fInfo_ImageDBF);
 
     m_strPathGeomXML.clear();
-    m_strPathGeomXML = MakeElektaXML(
-        m_strPathIMAGE_DBF, m_strPathFRAME_DBF,
-        m_strDCMUID); // if DBF files exist but UID is not found, it will crash
+    m_strPathGeomXML =
+        MakeElektaXML(m_strPathIMAGE_DBF.string(), m_strPathFRAME_DBF.string(),
+                      m_strDCMUID); // if DBF files exist but UID is not
+                                    // found, it will crash
 
     if (m_strPathGeomXML.length() < 1) {
       std::cout << "No releated data in DBF file" << std::endl;
@@ -2281,7 +2291,7 @@ void CbctRecon::FindAllRelevantPaths(
     }
   }
 
-  // QString strPathCTSet = m_strPathIMAGES.append("/CT_SET");
+  // std::string strPathCTSet = m_strPathIMAGES.append("/CT_SET");
 
   // switch (enDirStructure_Type)
   // {
@@ -2312,7 +2322,7 @@ void CbctRecon::FindAllRelevantPaths(
   // {
   ////std::cout << listDir.at(i).absolutePath().toLocal8Bit().constData() <<
   /// std::endl; //this returns Dir, not itself
-  // QString tmpPath = listDir.at(i).absoluteFilePath();
+  // std::string tmpPath = listDir.at(i).absoluteFilePath();
   // }
 
   auto listFile = tmpDIR_CTSET.entryInfoList(
@@ -2409,7 +2419,7 @@ void CbctRecon::FindAllRelevantPaths(
     auto iMaxNameLength = 0;
     auto iCnt_INIXVI = 0;
 
-    QString strPathINIXVI_long;
+    std::string strPathINIXVI_long;
     for (const auto &i : listFileAcqParam) {
       // suffix:*.tar.gz ==> gz only
       if (i.suffix().contains("INI", Qt::CaseInsensitive)) {
@@ -2468,7 +2478,7 @@ void CbctRecon::FindAllRelevantPaths(
 
 void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                                    std::vector<YK16GrayImage> arrYKImage,
-                                   QString &strSavingFolder,
+                                   std::string &strSavingFolder,
                                    const double resampleF) const {
   std::cout << "Starting Saving files" << std::endl;
   FILE *fd = nullptr;
@@ -2627,9 +2637,9 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     ImageType::Pointer spImg2DPrim;
 
     Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i,
-                enPLANE::PLANE_AXIAL); // simple conversion between ushort 3D to
-                                       // float 2D (using casting, not log):
-                                       // input/output: 0-65535
+                enPLANE::PLANE_AXIAL); // simple conversion between ushort 3D
+                                       // to float 2D (using casting, not
+                                       // log): input/output: 0-65535
     Get2DFrom3D(spProjCT3D, spImg2DPrim, i, enPLANE::PLANE_AXIAL);
 
     // The OpenCL version: ~49ms CPU ~76ms
@@ -2695,8 +2705,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     // float to unsigned short
     Set2DTo3D<FloatImageType>(
         spImg2DScat, spProjScat3D, i,
-        enPLANE::PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno mu_t
-                               // to intensity converion is involved
+        enPLANE::PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno
+                               // mu_t to intensity converion is involved
 
     const auto unit = qRound(iSizeZ / 10.0);
     if (i % unit == 0) {
@@ -2719,7 +2729,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     }
 
     // Get current folder
-    QString strCrntDir;
+    std::string strCrntDir;
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
       strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; // current Proj folder
     } else {
@@ -2750,8 +2760,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     const auto scatDirName = "sca_" + m_strDCMUID;
 
-    const auto tmpResult = crntDir.mkdir(scatDirName); // what if the directory
-                                                       // exists?
+    const auto tmpResult = crntDir.mkdir(scatDirName); // what if the
+                                                       // directory exists?
 
     if (!tmpResult) {
       std::cout << "Scatter map directory seems to exist already. Files will "
@@ -2770,7 +2780,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       auto imagewriter = imagewritertype::New();
       imagewriter->SetInput(spProjScat3D);
       imagewriter->SetFileName(
-          QString(strSavingFolder + "/scatter.mha").toStdString());
+          std::string(strSavingFolder + "/scatter.mha").toStdString());
       imagewriter->Update();
       std::cerr << "Scatter saved in Intensity values as mha at: "
                 << strSavingFolder.toStdString() << "\n";
@@ -2945,8 +2955,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
     const auto scatDirName = "cor_" + m_strDCMUID;
 
-    const auto tmpResult = crntDir.mkdir(scatDirName); // what if the directory
-                                                       // exists?
+    const auto tmpResult = crntDir.mkdir(scatDirName); // what if the
+                                                       // directory exists?
 
     if (!tmpResult) {
       std::cout << "Corrected projection directory seems to exist already. "
@@ -3056,7 +3066,8 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer &spSrcImg,
     return;
   }
 
-  //  std::cout << "original Origin: " << spSrcImg2D->GetOrigin() << std::endl;
+  //  std::cout << "original Origin: " << spSrcImg2D->GetOrigin() <<
+  //  std::endl;
   using ResampleImageFilterType =
       itk::ResampleImageFilter<FloatImageType, FloatImageType, float>;
   auto resample = ResampleImageFilterType::New();
@@ -3118,7 +3129,8 @@ void CbctRecon::ResampleItkImage(UShortImageType::Pointer &spSrcImg,
     return;
   }
 
-  //  std::cout << "original Origin: " << spSrcImg2D->GetOrigin() << std::endl;
+  //  std::cout << "original Origin: " << spSrcImg2D->GetOrigin() <<
+  //  std::endl;
   using ResampleImageFilterType =
       itk::ResampleImageFilter<UShortImageType, UShortImageType, float>;
   auto resample = ResampleImageFilterType::New();
@@ -3174,7 +3186,8 @@ void CbctRecon::ResampleItkImage2D(FloatImage2DType::Pointer &spSrcImg2D,
     return;
   }
 
-  //  std::cout << "original Origin: " << spSrcImg2D->GetOrigin() << std::endl;
+  //  std::cout << "original Origin: " << spSrcImg2D->GetOrigin() <<
+  //  std::endl;
   using ResampleImageFilterType =
       itk::ResampleImageFilter<FloatImage2DType, FloatImage2DType, float>;
   auto resample = ResampleImageFilterType::New();
@@ -3235,7 +3248,8 @@ void CbctRecon::ResampleItkImage2D(FloatImage2DType::Pointer &spSrcImg2D,
   // resample->GetOutput()->SetOrigin(prevOrigin);
   spTarImg2D = resample->GetOutput(); // is it copied? or replaced?
 
-  // std::cout << "resampled Origin: " << spTarImg2D->GetOrigin() << std::endl;
+  // std::cout << "resampled Origin: " << spTarImg2D->GetOrigin() <<
+  // std::endl;
 }
 
 void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
@@ -3270,7 +3284,7 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
     const auto strCrntDir = m_strPathPatientDir + "/" + "IMAGES" + "/" +
                             "cor_" + m_strDCMUID; // current Proj folder
     QDir crntDir(strCrntDir);
-    const auto SubDirName = QString("Reconstruction");
+    const auto SubDirName = std::string("Reconstruction");
     const auto tmpResult =
         crntDir.mkdir(SubDirName); // what if the directory exists?
     if (!tmpResult) {
@@ -3279,7 +3293,7 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
           << std::endl;
     }
     auto strSavingFolder = strCrntDir + "/" + SubDirName;
-    auto updated_text_ct = QString("PriorCT_ScatterCorr");
+    auto updated_text_ct = std::string("PriorCT_ScatterCorr");
     SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, updated_text_ct,
                             strSavingFolder);
     // Export as DICOM (using plastimatch) folder?
@@ -3380,7 +3394,7 @@ int CbctRecon::CropSkinUsingThreshold(const int threshold,
 }
 
 // Below version is optimized for many points and much faster
-void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput,
+void CbctRecon::ExportAngularWEPL_byFile(std::string &strPathOutput,
                                          const double fAngleStart,
                                          const double fAngleEnd,
                                          const double fAngleGap) {
@@ -3422,7 +3436,8 @@ void CbctRecon::ExportAngularWEPL_byFile(QString &strPathOutput,
 #pragma omp section
     {
       GetAngularWEPL_window(m_spRawReconImg, fAngleGap, fAngleStart, fAngleEnd,
-                            vOutputWEPL_rawCBCT, true); // mandatory
+                            vOutputWEPL_rawCBCT,
+                            true); // mandatory
       std::cout << "Done: (RAW)";
     }
 #pragma omp section
@@ -3735,12 +3750,12 @@ void CbctRecon::GeneratePOIData(const bool AnteriorToPosterior,
             << last_point.y << ", " << last_point.z << "]" << std::endl;
 }
 
-void CbctRecon::LoadExternalFloatImage(QString &strPath,
+void CbctRecon::LoadExternalFloatImage(std::string &strPath,
                                        const bool bConversion) {
   using ReaderType = itk::ImageFileReader<FloatImageType>;
   auto reader = ReaderType::New();
 
-  // QString filePath = strPath;
+  // std::string filePath = strPath;
 
   reader->SetFileName(strPath.toLocal8Bit().constData());
   reader->Update();
@@ -3791,7 +3806,7 @@ void CbctRecon::MedianFilterByGUI(
   std::cout << "median filtering has been done" << std::endl;
 }
 
-void CbctRecon::Export2DDoseMapAsMHA(QString &strPath) const {
+void CbctRecon::Export2DDoseMapAsMHA(std::string &strPath) const {
   if (m_dspYKReconImage == nullptr) {
     return;
   }
@@ -3865,7 +3880,7 @@ void CbctRecon::Export2DDoseMapAsMHA(QString &strPath) const {
   std::cout << "File was exported successfully" << std::endl;
 }
 
-void CbctRecon::ExportProjGeometryTXT(QString &strPath) const {
+void CbctRecon::ExportProjGeometryTXT(std::string &strPath) const {
   // if (!m_spFullGeometry)
   //	return;
 
@@ -3906,7 +3921,8 @@ void CbctRecon::ExportProjGeometryTXT(QString &strPath) const {
        << "PanelShiftY(mm)" << std::endl;
 
   for (auto &itAng : m_spCustomGeometry->GetGantryAngles()) {
-    fout << itAng << "	" << *itShiftX << "	" << *itShiftY << std::endl;
+    fout << itAng << "	" << *itShiftX << "	" << *itShiftY
+         << std::endl;
 
     ++itShiftX;
     ++itShiftY;
@@ -3916,7 +3932,7 @@ void CbctRecon::ExportProjGeometryTXT(QString &strPath) const {
 }
 
 bool CbctRecon::LoadXVIGeometryFile(const char *filePath) {
-  const auto strFilePath = QString(filePath);
+  const auto strFilePath = std::string(filePath);
 
   m_spFullGeometry = GeometryType::New();
 
@@ -3928,7 +3944,7 @@ bool CbctRecon::LoadXVIGeometryFile(const char *filePath) {
   }
   /* QXmlStreamReader takes any QIODevice. */
   QXmlStreamReader xml(file);
-  // QList< QMap<QString, QString> > persons;
+  // QList< QMap<std::string, std::string> > persons;
   /* We'll parse the XML until we reach end of it.*/
 
   m_vExcludeProjIdx.clear();
@@ -4074,7 +4090,8 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer &spImg,
 
   itk::ImageSliceIteratorWithIndex<UShortImageType> it(
       spImg, spImg->GetBufferedRegion());
-  // UShortImageType::SizeType imgSize = spImg->GetRequestedRegion().GetSize();
+  // UShortImageType::SizeType imgSize =
+  // spImg->GetRequestedRegion().GetSize();
   // //1016x1016 x z
 
   // int width = imgSize[0];
@@ -4173,8 +4190,8 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer &spImg,
 }
 
 bool CbctRecon::ResortCBCTProjection(
-    std::vector<int> &vIntPhaseBinSelected, QString &strPathForXML,
-    QString &strPathProjRoot, QString &strUID,
+    std::vector<int> &vIntPhaseBinSelected, std::string &strPathForXML,
+    std::string &strPathProjRoot, std::string &strUID,
     std::vector<float> &vFloatPhaseFull, GeometryType::Pointer &spGeomFull,
     std::vector<std::string> &vProjPathsFull) const {
   if (vIntPhaseBinSelected.empty()) {
@@ -4208,11 +4225,11 @@ bool CbctRecon::ResortCBCTProjection(
   }
   const auto iNumOfSelPhase = vIntPhaseBinSelected.size();
 
-  QString strUID_Endfix = "P";
+  std::string strUID_Endfix = "P";
   const QChar zero('0');
   for (size_t i = 0; i < iNumOfSelPhase; i++) {
-    QString strNum;
-    strNum = QString("%1").arg(vIntPhaseBinSelected.at(i), 2, 10, zero);
+    std::string strNum;
+    strNum = std::string("%1").arg(vIntPhaseBinSelected.at(i), 2, 10, zero);
     strUID_Endfix = strUID_Endfix + strNum;
   }
   strUID_Endfix = strUID_Endfix + "P"; // UID...P00102030405060P
@@ -4303,7 +4320,7 @@ bool CbctRecon::ResortCBCTProjection(
   // Copy selected his files to a different folder
 
   for (auto &itIdx : vSelectedIdxFin) {
-    QString strPathProjOriginal = vProjPathsFull.at(itIdx).c_str();
+    std::string strPathProjOriginal = vProjPathsFull.at(itIdx).c_str();
     // Copy this file to target dir
 
     QFileInfo fInfo(strPathProjOriginal);
@@ -4311,8 +4328,8 @@ bool CbctRecon::ResortCBCTProjection(
     QFile::copy(fInfo.absoluteFilePath(), strPathProjNew);
   }
 
-  //    std::vector<float>& vFloatPhaseFull, GeometryType::Pointer& spGeomFull,
-  //    std::vector<std::string>& vProjPathsFull
+  //    std::vector<float>& vFloatPhaseFull, GeometryType::Pointer&
+  //    spGeomFull, std::vector<std::string>& vProjPathsFull
   std::cout << vSelectedIdxFin.size() << " files were copied." << std::endl;
 
   return true;
@@ -4357,7 +4374,7 @@ void CbctRecon::AppendInPhaseIndex(const int iPhase,
   }
 }
 
-void CbctRecon::LoadShort3DImage(QString &filePath,
+void CbctRecon::LoadShort3DImage(std::string &filePath,
                                  const enREGI_IMAGES enTarget) {
   QFileInfo fInfo(filePath);
   if (!fInfo.exists()) {
@@ -4421,7 +4438,7 @@ void CbctRecon::LoadShort3DImage(QString &filePath,
   m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 }
 
-void CbctRecon::GetWEPLDataFromSingleFile(const QString &filePath,
+void CbctRecon::GetWEPLDataFromSingleFile(const std::string &filePath,
                                           std::vector<VEC3D> &vPOI,
                                           std::vector<WEPLData> &vOutputWEPL,
                                           const double fAngleStart,
@@ -4465,24 +4482,26 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   }
 
   // Find the mask file
-  // QString strPath_mskSkinCT_final;
-  // QString strPath_mskSkinCT_autoRegi_exp =
-  // m_pDlgRegistration->m_strPathPlastimatch + "/msk_skin_CT_autoRegi_exp.mha";
-  // QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
+  // std::string strPath_mskSkinCT_final;
+  // std::string strPath_mskSkinCT_autoRegi_exp =
+  // m_pDlgRegistration->m_strPathPlastimatch +
+  // "/msk_skin_CT_autoRegi_exp.mha"; QFileInfo
+  // maskInfoAuto(strPath_mskSkinCT_autoRegi_exp);
 
-  // QString strPath_mskSkinCT_manualRegi_exp =
-  // m_pDlgRegistration->m_strPathPlastimatch + "/msk_skin_CT_manRegi_exp.mha";
-  // QFileInfo maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
+  // std::string strPath_mskSkinCT_manualRegi_exp =
+  // m_pDlgRegistration->m_strPathPlastimatch +
+  // "/msk_skin_CT_manRegi_exp.mha"; QFileInfo
+  // maskInfoManual(strPath_mskSkinCT_manualRegi_exp);
 
-  // if (maskInfoAuto.exists()) //if the mask file is not prepared, give up the
-  // skin removal
+  // if (maskInfoAuto.exists()) //if the mask file is not prepared, give up
+  // the skin removal
   //{
   //    strPath_mskSkinCT_final = strPath_mskSkinCT_autoRegi_exp;
   //}
   // else
   //{
-  //    std::cout << "Mask file of auto-registration is not prepared. Use manual
-  //    regi-mask instead" << std::endl;
+  //    std::cout << "Mask file of auto-registration is not prepared. Use
+  //    manual regi-mask instead" << std::endl;
 
   //    if (maskInfoManual.exists())
   //    {
@@ -4490,8 +4509,8 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   //    }
   //    else
   //    {
-  //        std::cout << "Mask file of manual registration is not prepared. Skip
-  //        skin removal!" << std::endl; return;
+  //        std::cout << "Mask file of manual registration is not prepared.
+  //        Skip skin removal!" << std::endl; return;
   //    }
   //}
 
@@ -4500,8 +4519,8 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
 
   // if (m_pDlgRegistration->m_strPathPlastimatch.length() < 1)
   //{
-  //    std::cout << "NO plastimatch Dir was defined. CorrCBCT will not be saved
-  //    automatically" << std::endl; return;
+  //    std::cout << "NO plastimatch Dir was defined. CorrCBCT will not be
+  //    saved automatically" << std::endl; return;
   //}
   // Forward proj
 
@@ -4560,7 +4579,8 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   for (auto i = 0; i < iCntRefVol; i++) {
     // Load volume: Short image
     auto spOutputShort_raw = ShortImageType::New();
-    // ShortImageType::Pointer spOutputShort_threshold = ShortImageType::New();
+    // ShortImageType::Pointer spOutputShort_threshold =
+    // ShortImageType::New();
     auto spOutputUshort = UShortImageType::New();
     // UShortImageType::Pointer spOutputUshort_register =
     // UShortImageType::New();
@@ -4640,7 +4660,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
 }
 
 // double CbctRecon::CropSkinUsingRS(UShortImageType::Pointer& spImgUshort,
-// QString& strPathRS, double cropMargin )
+// std::string& strPathRS, double cropMargin )
 //{
 //   //if (m_pParent->m_strPathRS.isEmpty())
 //	//return;
@@ -4652,8 +4672,9 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
 //  --referenced-ct E:\PlastimatchData\DicomEg\OLD\CT
 //
 //  //plm_clp_parse (&parms, &parse_fn, &usage_fn, argc, argv, 1)
-//  //plastimatch segment --input E:\PlastimatchData\DicomEg\OLD\CT --output-img
-//  E:\PlastimatchData\DicomEg\OLD\msk_bubbles_oldCT.mha --lower-threshold -600
+//  //plastimatch segment --input E:\PlastimatchData\DicomEg\OLD\CT
+//  --output-img E:\PlastimatchData\DicomEg\OLD\msk_bubbles_oldCT.mha
+//  --lower-threshold -600
 //
 //  //do_command_warp(argc, argv);
 //

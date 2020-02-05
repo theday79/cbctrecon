@@ -4,6 +4,7 @@
 
 // std
 #include <memory> // unique_, shared_ and weak_ptr
+#include <filesystem>
 
 // Qt
 #include <QDir>
@@ -15,9 +16,6 @@
 #include "YK16GrayImage.h"
 #include "cbctrecon_types.h"
 
-class QFileInfo;
-class QString;
-class QStringList;
 class QXmlStreamReader;
 
 class CBCTRECON_API CbctRecon {
@@ -33,13 +31,13 @@ public:
 
   bool FillProjForDisplay(int slice_number);
   void LoadCalibData(std::string &filepath, enCalibType calib_type);
-  void RenameFromHexToDecimal(QStringList &filenameList) const;
-  QString HexStr2IntStr(QString &str_hex) const;
+  void RenameFromHexToDecimal(std::vector<std::string> &filenameList) const;
+  std::string HexStr2IntStr(std::string &str_hex) const;
 
   std::unique_ptr<YK16GrayImage>
   ApplyCalibrationMaps(YK16GrayImage *const &rawImg, bool DarkCorr,
                        bool GainCorr, bool DefectCorr);
-  QString CorrectSingleFile(const char *filePath, bool DarkCorr, bool GainCorr,
+  std::string CorrectSingleFile(const char *filePath, bool DarkCorr, bool GainCorr,
                             bool DefectCorr);
   void CorrectSingleFile(YK16GrayImage *pYKRawImg, bool DarkCorr, bool GainCorr,
                          bool DefectCorr);
@@ -51,7 +49,7 @@ public:
 
   void LoadRTKGeometryFile(const char *filePath);
 
-  std::vector<std::string> GetProjFileNames(QString &dirPath);
+  std::vector<std::string> GetProjFileNames(std::string &dirPath);
   bool LoadGeometry(QFileInfo &geomFileInfo, std::vector<std::string> &names);
   std::vector<size_t> GetExcludeProjFiles(bool bManAngleGap,
                                           double gantryAngleInterval);
@@ -60,12 +58,12 @@ public:
   void saveHisHeader();
   void NormalizeProjections(const FloatImageType::Pointer &reader_output);
   bool ResampleProjections(double &resample_factor);
-  void BowtieByFit(bool fullfan, const QStringList &params) const;
+  void BowtieByFit(bool fullfan, const std::vector<std::string> &params) const;
   int CropSkinUsingThreshold(int threshold, int erode_radius,
                              int dilate_radius);
   void GeneratePOIData(bool AnteriorToPosterior, double table_posY);
-  void Export2DDoseMapAsMHA(QString &strPath) const;
-  void ExportProjGeometryTXT(QString &strPath) const;
+  void Export2DDoseMapAsMHA(std::string &strPath) const;
+  void ExportProjGeometryTXT(std::string &strPath) const;
   void ScatterCorPerProjRef(double scaMedian, double scaGaussian,
                             int postScatMedianSize, bool use_cuda,
                             bool use_opencl, bool save_dicom,
@@ -73,7 +71,7 @@ public:
 
   // void GetSelectedIndices(const std::vector<double>& vFullAngles,
   // std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW);
-  void GetExcludeIndexByNames(const QString &outlierListPath,
+  void GetExcludeIndexByNames(const std::string &outlierListPath,
                               std::vector<std::string> &vProjFileFullPath,
                               std::vector<int> &vExcludeIdx) const;
   void GetSelectedIndices(const std::vector<double> &vFullAngles,
@@ -114,13 +112,13 @@ public:
   void RegisterImgDuplication(enREGI_IMAGES src, enREGI_IMAGES target);
 
   // plastimatch skin / bubble-remover
-  // QString getPathCTDir(enMachineType enType);//DICOM Dir
-  // QString getPathRS(enMachineType enType);//RS path
-  // bool loadPlanCTFromDCM(QString& strCTDirPath, QString& strRSPath);//using
+  // std::string getPathCTDir(enMachineType enType);//DICOM Dir
+  // std::string getPathRS(enMachineType enType);//RS path
+  // bool loadPlanCTFromDCM(std::string& strCTDirPath, std::string& strRSPath);//using
   // plastimatch, prepare m_spRefCTImg. Remove air, RS is needed  Skin will be
   // removed, bubble will be filled
 
-  void FindAllRelevantPaths(const QString &pathProjHisDir);
+  void FindAllRelevantPaths(const std::string &pathProjHisDir);
 
   template <typename CTImageType>
   FloatImageType::Pointer
@@ -151,7 +149,7 @@ public:
   // His file export from 3D proj file
   void SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                           std::vector<YK16GrayImage> arrYKImage,
-                          QString &strSavingFolder,
+                          std::string &strSavingFolder,
                           double resampleF)
       const; // arrYKImage include HIS header and original file name
 
@@ -188,8 +186,8 @@ public:
   // void CudaDoReconstructionFDK(enREGI_IMAGES target);
   // void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
 
-  // void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, QString&
-  // strPatientID, QString& strPatientName);//ushort image --> short image -->
+  // void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, std::string&
+  // strPatientID, std::string& strPatientName);//ushort image --> short image -->
 
   // void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int
   // angleGap, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>&
@@ -206,9 +204,9 @@ public:
                              std::vector<WEPLData> &vOutputWEPLData,
                              bool bAppend);
 
-  //	void UpdateUIAfterLoading(QString& imgName);
+  //	void UpdateUIAfterLoading(std::string& imgName);
 
-  void LoadExternalFloatImage(QString &strPath, bool bConversion);
+  void LoadExternalFloatImage(std::string &strPath, bool bConversion);
 
   void MedianFilterByGUI(const UShortImageType::SizeType
                              &indexRadius); // params are given at the UI
@@ -220,9 +218,9 @@ public:
                                              // XVI v >5.0.2. _Frames.xml is
                                              // in every projection folder
 
-  void SetProjDir(QString &strProjPath);
+  void SetProjDir(std::string &strProjPath);
 
-  void ExportAngularWEPL_byFile(QString &strPathOutput, double fAngleStart,
+  void ExportAngularWEPL_byFile(std::string &strPathOutput, double fAngleStart,
                                 double fAngleEnd, double fAngleGap);
 
   /*Temporary implementation for XVI5 xml*/
@@ -231,7 +229,7 @@ public:
   //	void cudaMedianFilter2DITK(OutputImageType2D::Pointer& spUshortImage,
   // int wndSizeX, int wndSizeY);
 
-  // double CropSkinUsingRS(USHORT_ImageType::Pointer& spImgUshort, QString&
+  // double CropSkinUsingRS(USHORT_ImageType::Pointer& spImgUshort, std::string&
   // strPathRS, double cropMargin);
 
   // void AuditMemory();
@@ -249,8 +247,8 @@ public:
                          float *sdIntensity = nullptr) const;
 
   bool ResortCBCTProjection(std::vector<int> &vIntPhaseBinSelected,
-                            QString &strPathForXML, QString &strPathProjRoot,
-                            QString &strUID,
+                            std::string &strPathForXML, std::string &strPathProjRoot,
+                            std::string &strUID,
                             std::vector<float> &vFloatPhaseFull,
                             GeometryType::Pointer &spGeomFull,
                             std::vector<std::string> &vProjPathsFull) const;
@@ -259,9 +257,9 @@ public:
                           std::vector<size_t> &vOutputIndex,
                           int margin = 5) const;
 
-  void LoadShort3DImage(QString &filePath, enREGI_IMAGES enTarget);
+  void LoadShort3DImage(std::string &filePath, enREGI_IMAGES enTarget);
 
-  void GetWEPLDataFromSingleFile(const QString &filePath,
+  void GetWEPLDataFromSingleFile(const std::string &filePath,
                                  std::vector<VEC3D> &vPOI,
                                  std::vector<WEPLData> &vOutputWEPL,
                                  double fAngleStart, double fAngleEnd) const;
@@ -273,7 +271,7 @@ public:
                                FloatImageType::Pointer &spProjImg3D,
                                int iSliceIdx) const;
 
-  bool ReadDicomDir(QString &dirPath);
+  bool ReadDicomDir(std::string &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
@@ -354,27 +352,27 @@ public:
   // 1) Find DICOM UID by subtracting "img_" from whole proj path name
 
   // Below paths will be decided after the Find... Func.
-  QString m_strDCMUID;
-  QString m_strPathPatientDir; // full path of patient Directory
-  QString m_strPatientDirName; // just the name --> later I can extract the
+  std::string m_strDCMUID;
+  std::filesystem::path m_strPathPatientDir; // full path of patient Directory
+  std::filesystem::path m_strPatientDirName; // just the name --> later I can extract the
                                // patient ID from here
-  QString m_strPathFRAME_DBF;
-  QString m_strPathIMAGE_DBF;
-  QString m_strPathGeomXML; // after Generation of the XML from DBF files
-  QString m_strPathPlanCTDir;
-  QString m_strPathRS;            // for body and lung contours
-  QString m_strPathPlan;          // for isocenter position
-  QString m_strPathDirDefault;    // QFileDialog default starting point
-  QString m_strPathRS_CBCT;       // QFileDialog default starting point
-  QString m_strPathElektaINI;     // for mAs values
-  QString m_strPathIMAGES;        // upper folder of projection files (His)
-  QString m_strPathElektaINIXVI2; // this includes couch shift values. longer
+  std::filesystem::path m_strPathFRAME_DBF;
+  std::filesystem::path m_strPathIMAGE_DBF;
+  std::filesystem::path m_strPathGeomXML; // after Generation of the XML from DBF files
+  std::filesystem::path m_strPathPlanCTDir;
+  std::filesystem::path m_strPathRS;            // for body and lung contours
+  std::filesystem::path m_strPathPlan;          // for isocenter position
+  std::filesystem::path m_strPathDirDefault;    // QFileDialog default starting point
+  std::filesystem::path m_strPathRS_CBCT;       // QFileDialog default starting point
+  std::filesystem::path m_strPathElektaINI;     // for mAs values
+  std::filesystem::path m_strPathIMAGES;        // upper folder of projection files (His)
+  std::filesystem::path m_strPathElektaINIXVI2; // this includes couch shift values. longer
                                   // INI.XVI file
-  QString m_strCur_mAs;           // QString("20,20")
-  QString m_strRef_mAs;           // QString("64,40")
-  QString m_strError;
+  std::string m_strCur_mAs;           // std::string("20,20")
+  std::string m_strRef_mAs;           // std::string("64,40")
+  std::string m_strError;
 
-  QDir m_dcm_dir;
+  std::filesystem::path m_dcm_dir;
 
   int m_iFixedOffset_ScatterMap; // fixed! allows negative value of scatter
   double m_fResampleF; // typically 0.5. this is updated during LoadSelectedProj
@@ -391,9 +389,9 @@ public:
 
   std::vector<float> m_vPhaseFloat{};
 
-  QStringList m_strListPerProjRefVol;
+  std::vector<std::string> m_strListPerProjRefVol;
 
-  QString m_strPathDefaultConfigFile;
+  std::string m_strPathDefaultConfigFile;
 
   std::vector<int> m_vExcludeProjIdx{}; // if kVON (exposed_ tag is false
 

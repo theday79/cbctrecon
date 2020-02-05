@@ -6,6 +6,7 @@
 #include "cbctrecon.h"
 
 // std
+#include <filesystem>
 #include <iostream> // for operator<<, basic_o...
 #include <string>   // for string
 #include <vector>   // for vector
@@ -55,9 +56,10 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
 
-QString MakeElektaXML(const QString &filePath_ImageDBF,
-                      const QString &filePath_FrameDBF,
-                      const QString &DICOM_UID) {
+std::filesystem::path
+MakeElektaXML(const std::filesystem::path &filePath_ImageDBF,
+              const std::filesystem::path &filePath_FrameDBF,
+              const std::string &DICOM_UID) {
   std::cout << "Elekta geometry XML file is being generated." << std::endl;
   // Define FRAME.DBF path
   auto reader = rtk::ElektaSynergyGeometryReader::New();
@@ -66,22 +68,22 @@ QString MakeElektaXML(const QString &filePath_ImageDBF,
   // string strDbfImg = filePath_ImageDBF.toStdString();
   // string strDbfFrame = filePath_FrameDBF.toStdString();
 
-  auto info = QFileInfo(filePath_ImageDBF);
-  const auto dirPath = info.absolutePath();
+  const auto dirPath =
+      std::filesystem::absolute(filePath_ImageDBF.parent_path());
 
   const auto fileName = "ElektaGeom_" + DICOM_UID + ".xml";
 
-  auto str_output = dirPath + "/" + fileName;
+  auto str_output = dirPath / fileName;
 
-  reader->SetDicomUID(DICOM_UID.toLocal8Bit().constData());
-  reader->SetImageDbfFileName(filePath_ImageDBF.toLocal8Bit().constData());
-  reader->SetFrameDbfFileName(filePath_FrameDBF.toLocal8Bit().constData());
+  reader->SetDicomUID(DICOM_UID);
+  reader->SetImageDbfFileName(filePath_ImageDBF.string());
+  reader->SetFrameDbfFileName(filePath_FrameDBF.string());
 
   reader->UpdateOutputData();
 
   // Write
   auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-  xmlWriter->SetFilename(str_output.toLocal8Bit().constData());
+  xmlWriter->SetFilename(str_output.string());
   xmlWriter->SetObject(reader->GetGeometry());
   xmlWriter->WriteFile();
 
@@ -117,10 +119,10 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
   while (!(xml.tokenType() == QXmlStreamReader::EndElement &&
            xml.name() == "Frame")) {
     auto tmpXmlName = xml.name();
-    // auto strTmpXMLName = QString(tmpXmlName.toLocal8Bit().constData());
+    // auto strTmpXMLName = std::string(tmpXmlName.toLocal8Bit().constData());
     // int tmpType = (int)(xml.tokenType());
 
-    QString tmpStr;
+    std::string tmpStr;
     if (xml.tokenType() == QXmlStreamReader::StartElement) {
       /* We've found first name. */
       if (xml.name() == "Seq") {
@@ -139,7 +141,7 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
         tmpStr = XML_GetSingleItemString(xml);
       } else if (xml.name() == "GantryAngle") {
         tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fGanAngle = tmpStr.toFloat();
+        tmpResult.fGanAngle = from_string<float>(tmpStr).value_or(0.0f);
       } else if (xml.name() == "Exposed") {
         tmpStr = XML_GetSingleItemString(xml);
         if (tmpStr == "True") {
@@ -164,10 +166,10 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
         }
       } else if (xml.name() == "UCentre") {
         tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fPanelOffsetX = tmpStr.toFloat();
+        tmpResult.fPanelOffsetX = from_string<float>(tmpStr).value_or(0.0f);
       } else if (xml.name() == "VCentre") {
         tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fPanelOffsetY = tmpStr.toFloat();
+        tmpResult.fPanelOffsetY = from_string<float>(tmpStr).value_or(0.0f);
       } else if (xml.name() == "Inactive") {
         tmpStr = XML_GetSingleItemString(xml);
       }
@@ -248,19 +250,19 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
             << std::endl;
 }
 
-bool LoadShortImageToUshort(QString &strPath,
+bool LoadShortImageToUshort(std::string &strPath,
                             UShortImageType::Pointer &pUshortImage) {
   using ReaderType = itk::ImageFileReader<ShortImageType>;
   auto reader = ReaderType::New();
 
-  // QString fileName = QFileDialog::getOpenFileName(this, "Open Image","",
+  // std::string fileName = QFileDialog::getOpenFileName(this, "Open Image","",
   // "Plan CT file (*.mha)",0,0);
 
   if (strPath.length() < 1) {
     return false;
   }
 
-  reader->SetFileName(strPath.toLocal8Bit().constData());
+  reader->SetFileName(strPath);
   reader->Update();
 
   // Figure out whether this is NKI
@@ -331,7 +333,7 @@ bool LoadShortImageToUshort(QString &strPath,
 }
 
 void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
-                         QString &outputFilePath) {
+                         std::string &outputFilePath) {
   if (spUsImage == nullptr) {
     std::cout << " no image to export" << std::endl;
     return;
@@ -391,22 +393,21 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   */
   using WriterType = itk::ImageFileWriter<ShortImageType>;
   auto writer = WriterType::New();
-  writer->SetFileName(outputFilePath.toLocal8Bit().constData());
+  writer->SetFileName(outputFilePath);
   // writer->SetUseCompression(true);
   writer->SetUseCompression(false); // for plastimatch
   writer->SetInput(spRescaleFilter->GetOutput());
 
-  std::cout << "Writing is under progress...: "
-            << outputFilePath.toLocal8Bit().constData() << std::endl;
+  std::cout << "Writing is under progress...: " << outputFilePath << std::endl;
   writer->Update();
   std::cout << "Writing was successfully done" << std::endl;
 }
 
-DCM_MODALITY get_dcm_modality(const QString &filename) {
+DCM_MODALITY get_dcm_modality(const std::string &filename) {
   gdcm::Reader reader;
-  reader.SetFileName(filename.toLocal8Bit().constData());
+  reader.SetFileName(filename.c_str());
   if (!reader.Read()) {
-    std::cerr << "Reading dicom: " << filename.toStdString() << " failed!\n";
+    std::cerr << "Reading dicom: " << filename << " failed!\n";
     return DCM_MODALITY::RTUNKNOWN;
   }
   auto &file = reader.GetFile();
@@ -583,11 +584,9 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       // "," << color[1] << "," << color[2] << std::endl;
     }
     if (hasColor) {
-      rt_struct->slist.at(pd).color =
-          QString("%1 %2 %3")
-              .arg(QString::number(color[0]), QString::number(color[1]),
-                   QString::number(color[2]))
-              .toStdString();
+      rt_struct->slist.at(pd).color = std::to_string(color[0]) + " " +
+                                      std::to_string(color[1]) + " " +
+                                      std::to_string(color[2]);
     } else {
       rt_roi.color = "255 0 0";
     }
@@ -725,9 +724,10 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
     OFString roi_name;
     // ROI name: 3006, 0026
     ss_item.getROIName(roi_name);
-    const auto trimmed_roi_name = QString(rt_roi.name.c_str()).trimmed();
-    const auto trimmed_roi_name_dcm = QString(roi_name.c_str()).trimmed();
-    if (!trimmed_roi_name.contains("WEPL", Qt::CaseSensitive)) {
+    const auto trimmed_roi_name = trim_string(rt_roi.name);
+    const auto trimmed_roi_name_dcm =
+        trim_string(std::string(roi_name.c_str()));
+    if (trimmed_roi_name.find("WEPL") != std::string::npos) {
       roi_seq.gotoNextItem();
       ss_seq.gotoNextItem();
       continue;
@@ -773,13 +773,12 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
   return true;
 }
 
-std::unique_ptr<Rtss_modern> load_rtstruct(const QString &filename) {
+std::unique_ptr<Rtss_modern> load_rtstruct(const std::string &filename) {
 
   auto reader = gdcm::Reader();
-  reader.SetFileName(filename.toLocal8Bit().constData());
+  reader.SetFileName(filename.c_str());
   if (!reader.Read()) {
-    std::cerr << "Reading dicom rtstruct: " << filename.toStdString()
-              << " failed!\n";
+    std::cerr << "Reading dicom rtstruct: " << filename << " failed!\n";
     return nullptr;
   }
 
@@ -807,7 +806,7 @@ double get_dcm_offset_z(const std::string &filename) {
   return position[2];
 }
 
-std::vector<std::string> get_dcm_image_files(QDir &dir) {
+std::vector<std::string> get_dcm_image_files(std::filesystem::path &dir) {
 
   using NamesGeneratorType = itk::GDCMSeriesFileNames;
   auto nameGenerator = NamesGeneratorType::New();
@@ -815,14 +814,15 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
   nameGenerator->SetUseSeriesDetails(true);
   nameGenerator->AddSeriesRestriction("0008|0021");
   nameGenerator->SetGlobalWarningDisplay(false);
-  nameGenerator->SetDirectory(dir.absolutePath().toStdString());
+  nameGenerator->SetDirectory(std::filesystem::absolute(dir).string());
 
   const auto &seriesUID = nameGenerator->GetSeriesUIDs();
   auto seriesItr = seriesUID.begin();
   const auto seriesEnd = seriesUID.end();
 
   if (seriesItr == seriesEnd) {
-    std::cerr << "No DICOMs in: " << dir.absolutePath().toStdString() << "\n";
+    std::cerr << "No DICOMs in: " << std::filesystem::absolute(dir).string()
+              << "\n";
     return {};
   }
 
@@ -839,7 +839,8 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
 
   std::vector<size_t> idxtopop;
   for (size_t i = 0; i < fileNames.size(); ++i) {
-    const auto modality = get_dcm_modality(QString(fileNames.at(i).c_str()));
+    const auto modality =
+        get_dcm_modality(std::string(fileNames.at(i).c_str()));
     switch (modality) {
     case DCM_MODALITY::RTIMAGE:
       break;
@@ -863,25 +864,29 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
   return fileNames;
 }
 
-bool CbctRecon::ReadDicomDir(QString &dirPath) {
+bool CbctRecon::ReadDicomDir(std::string &dirPath) {
 
-  auto dir = QDir(dirPath);
+  auto dir = std::filesystem::path(dirPath);
   const auto filenamelist = get_dcm_image_files(dir);
 
-  for (auto &&filename : dir.entryList(QDir::Files)) {
-    if (filename.contains("-hash-stamp")) {
+  for (auto &&filename : std::filesystem::directory_iterator(dir)) {
+    if (!filename.is_regular_file ||
+        !filename.is_symlink) { // I guess symlinks should be allowed?
+      continue;
+    }
+    if (filename.path().string().find("-hash-stamp") != std::string::npos) {
       continue; // Just so the test data is less annoying.
     }
-    const auto fullfilename = dir.absolutePath() + "/" + filename;
-    const auto modality = get_dcm_modality(fullfilename);
+    const auto fullfilename = filename.path();
+    const auto modality = get_dcm_modality(fullfilename.string());
     switch (modality) {
     case DCM_MODALITY::RTIMAGE:
       break;
-    case DCM_MODALITY::RTDOSE :
+    case DCM_MODALITY::RTDOSE:
       // filenamelist.push_back(fullfilename.toStdString());
       break;
     case DCM_MODALITY::RTSTRUCT:
-      m_structures->set_planCT_ss(load_rtstruct(fullfilename));
+      m_structures->set_planCT_ss(load_rtstruct(fullfilename.string()));
       m_strPathRS = fullfilename;
       break;
     case DCM_MODALITY::RTPLAN:
@@ -889,7 +894,7 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     case DCM_MODALITY::RTRECORD:
       break; // I haven't ever seen one IRL
     case DCM_MODALITY::RTUNKNOWN:
-      std::cerr << "File: " << fullfilename.toStdString()
+      std::cerr << "File: " << fullfilename.string()
                 << " was not of a recognizeable modality type!\n";
       break;
     }
@@ -1020,11 +1025,12 @@ void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
   spOutputImgUshort = spRescaleFilter->GetOutput();
 }
 
-QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
-                                QString &strPatientID, QString &strPatientName,
-                                QString &strPathTargetDir) {
+std::filesystem::path SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
+                                              std::string &strPatientID,
+                                              std::string &strPatientName,
+                                              std::string &strPathTargetDir) {
   if (spImg == nullptr) {
-    return QString();
+    return std::string();
   }
 
   ShortImageType::Pointer spShortImg;
@@ -1032,31 +1038,30 @@ QString SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
 
   auto plm_img = Plm_image::New(spShortImg);
 
-  auto newDirPath = strPathTargetDir + "/" + strPatientID + "_DCM";
-  // QString newDirPath =
+  auto newDirPath =
+      std::filesystem::path(strPathTargetDir + "/" + strPatientID + "_DCM");
+  // std::string newDirPath =
   //  strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
 
-  QDir dirNew(newDirPath);
-  if (!dirNew.exists()) {
-    if (!dirNew.mkdir(".")) {
+  if (!std::filesystem::exists(newDirPath)) {
+    if (!std::filesystem::create_directory(newDirPath)) {
       std::cerr << "Could not create dir for dicom" << std::endl;
-      return QString();
+      return {};
     }
   }
 
   auto rsm = Rt_study_metadata::New();
-  rsm->set_patient_id(strPatientID.toStdString());
-  rsm->set_patient_name(strPatientName.toStdString());
+  rsm->set_patient_id(strPatientID);
+  rsm->set_patient_name(strPatientName);
 
-  dicom_save_short(newDirPath.toStdString(), plm_img, rsm);
+  dicom_save_short(newDirPath.string(), plm_img, rsm);
 
-  return newDirPath.toLocal8Bit().constData();
+  return newDirPath;
 }
 
-QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
-                                        QString &strPatientID,
-                                        QString &strPatientName,
-                                        QString &strPathTargetDir) {
+std::filesystem::path SaveUSHORTAsSHORT_DICOM_gdcmITK(
+    UShortImageType::Pointer &spImg, std::string &strPatientID,
+    std::string &strPatientName, std::string &strPathTargetDir) {
   if (spImg == nullptr) {
     return "";
   }
@@ -1064,21 +1069,19 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
-  auto newDirPath =
-      strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
+  auto newDirPath = std::filesystem::path(
+      strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM");
 
-  QDir dirNew(newDirPath);
-  if (!dirNew.exists()) {
-    if (!dirNew.mkdir(".")) {
+  if (!std::filesystem::exists(newDirPath)) {
+    if (!std::filesystem::create_directory(newDirPath)) {
       std::cerr << "Could not create dir for gdcm dicom" << std::endl;
-      return QString();
+      return {};
     }
   } else {
-    if (dirNew.removeRecursively()) {
-      QDir dirReNew(newDirPath);
-      if (!dirReNew.mkdir(".")) {
+    if (std::filesystem::remove_all(newDirPath) != 0) {
+      if (!std::filesystem::create_directory(newDirPath)) {
         std::cerr << "Could not create dir for gdcm dicom (2)" << std::endl;
-        return QString();
+        return {};
       }
     }
   }
@@ -1122,8 +1125,8 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
   namesGenerator->SetEndIndex(static_cast<itk::SizeValueType>(start[2]) +
                               size[2] - 1);
   namesGenerator->SetIncrementIndex(1);
-  namesGenerator->SetSeriesFormat(newDirPath.toStdString() + "/CT." + studyUID +
-                                  ".%d.dcm");
+  namesGenerator->SetSeriesFormat(
+      (newDirPath / std::string("CT." + studyUID + ".%d.dcm")).string());
 
   using SeriesWriterType =
       itk::ImageSeriesWriter<ShortImageType, OutputImageType>;
@@ -1140,52 +1143,64 @@ QString SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
     return ""; // EXIT_FAILURE;
   }
   std::cerr << "Alledgedly writing the series was successful to dir: "
-            << newDirPath.toStdString() << std::endl;
-  return newDirPath.toLocal8Bit().constData();
+            << newDirPath << std::endl;
+  return newDirPath;
 }
 
-QString get_output_options(const UShortImageType::Pointer &m_spFixed) {
+template <typename T> std::string stringify(T arg) {
+  return std::to_string(arg);
+}
 
+template<> std::string stringify(const std::string& arg) { return arg; }
+
+template <char SEP, typename... Args> std::string make_sep_str(Args&&... arg) {
+  return ((stringify(std::forward<Args>(arg)) + SEP) + ...);
+}
+
+std::string get_output_options(const UShortImageType::Pointer &m_spFixed) {
+
+  // done per image because CT might be different
+  // from reconstructed CBCT
   const auto str_fixed_origin =
-      QString("%1,%2,%3") // done per image because CT might be different from
-                          // reconstructed CBCT
-          .arg(m_spFixed->GetOrigin()[0])
-          .arg(m_spFixed->GetOrigin()[1])
-          .arg(m_spFixed->GetOrigin()[2]);
-  const auto out_size = m_spFixed->GetBufferedRegion().GetSize();
-  const auto str_fixed_dimension =
-      QString("%1,%2,%3").arg(out_size[0]).arg(out_size[1]).arg(out_size[2]);
-  const auto out_spacing = m_spFixed->GetSpacing();
-  const auto str_fixed_spacing = QString("%1,%2,%3")
-                                     .arg(out_spacing[0])
-                                     .arg(out_spacing[1])
-                                     .arg(out_spacing[2]);
-  const auto out_direction = m_spFixed->GetDirection();
-  const auto str_fixed_direction = QString("%1,%2,%3,%4,%5,%6,%7,%8,%9")
-                                       .arg(out_direction[0][0])
-                                       .arg(out_direction[0][1])
-                                       .arg(out_direction[0][2])
-                                       .arg(out_direction[1][0])
-                                       .arg(out_direction[1][1])
-                                       .arg(out_direction[1][2])
-                                       .arg(out_direction[2][0])
-                                       .arg(out_direction[2][1])
-                                       .arg(out_direction[2][2]);
+      make_sep_str<','>(m_spFixed->GetOrigin()[0], m_spFixed->GetOrigin()[1],
+                         m_spFixed->GetOrigin()[2]);
 
-  return QString(" --origin %1 --spacing %2 --dimension %3 --direction %4")
-      .arg(str_fixed_origin, str_fixed_spacing, str_fixed_dimension,
-           str_fixed_direction);
+  const auto out_size = m_spFixed->GetBufferedRegion().GetSize();
+  const auto str_fixed_dimension = make_sep_str<','>(
+                                       out_size[0],
+                                       out_size[1],
+                                       out_size[2]);
+  const auto out_spacing = m_spFixed->GetSpacing();
+  const auto str_fixed_spacing = make_sep_str<','>(
+                                     out_spacing[0],
+                                     out_spacing[1],
+                                     out_spacing[2]);
+  const auto out_direction = m_spFixed->GetDirection();
+  const auto str_fixed_direction = make_sep_str<','>(
+                                       out_direction[0][0],
+                                       out_direction[0][1],
+                                       out_direction[0][2],
+                                       out_direction[1][0],
+                                       out_direction[1][1],
+                                       out_direction[1][2],
+                                       out_direction[2][0],
+                                       out_direction[2][1],
+                                       out_direction[2][2]);
+
+  return make_sep_str<' '>(
+      " --origin", str_fixed_origin, "--spacing", str_fixed_spacing,
+      "--dimension", str_fixed_dimension, "--direction", str_fixed_direction);
 }
 
-bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
+bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI, VEC3D *pTrans,
                              VEC3D *pRot) {
-  QFileInfo fInfo(strPathINIXVI);
-  if (!fInfo.exists()) {
+  std::filesystem::path fInfo(strPathINIXVI);
+  if (!std::filesystem::exists(fInfo)) {
     return false;
   }
 
   std::ifstream fin;
-  fin.open(strPathINIXVI.toLocal8Bit().constData());
+  fin.open(strPathINIXVI);
 
   if (fin.fail()) {
     return false;
@@ -1205,30 +1220,30 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = QString(&str[0]);
-    auto strListParam = tmpStr.split("=");
+    auto tmpStr = std::string(&str[0]);
+    auto strListParam = split_string<'='>(tmpStr);
 
-    QString tagName, strVal;
+    std::string tagName, strVal;
 
-    if (strListParam.count() == 2) {
+    if (strListParam.size() == 2) {
       tagName = strListParam.at(0);
       strVal = strListParam.at(1);
-      tagName = tagName.trimmed();
-      strVal = strVal.trimmed();
+      tagName = trim_string(tagName);
+      strVal = trim_string(strVal);
 
       if (tagName == "CouchShiftLat") {
-        couch_Lat_cm = strVal.toFloat();
+        couch_Lat_cm = from_string<float>(strVal).value_or(0.0f);
         bFound = true;
       } else if (tagName == "CouchShiftLong") {
-        couch_Long_cm = strVal.toFloat();
+        couch_Long_cm = from_string<float>(strVal).value_or(0.0f);
       } else if (tagName == "CouchShiftHeight") {
-        couch_Vert_cm = strVal.toFloat();
+        couch_Vert_cm = from_string<float>(strVal).value_or(0.0f);
       } else if (tagName == "CouchPitch") {
-        couch_Pitch = strVal.toFloat();
+        couch_Pitch = from_string<float>(strVal).value_or(0.0f);
       } else if (tagName == "CouchRoll") {
-        couch_Yaw = strVal.toFloat();
+        couch_Yaw = from_string<float>(strVal).value_or(0.0f);
       } else if (tagName == "CouchYaw") {
-        couch_Roll = strVal.toFloat();
+        couch_Roll = from_string<float>(strVal).value_or(0.0f);
       }
     }
   }
@@ -1255,15 +1270,15 @@ bool GetCouchShiftFromINIXVI(QString &strPathINIXVI, VEC3D *pTrans,
   return true;
 }
 
-bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
+bool GetXrayParamFromINI(std::string &strPathINI, float &kVp, float &mA,
                          float &ms) {
-  auto info = QFileInfo(strPathINI);
+  auto info = std::filesystem::path(strPathINI);
 
   kVp = 0.0f;
   mA = 0.0f;
   ms = 0.0f;
 
-  if (!info.exists()) {
+  if (!std::filesystem::exists(info)) {
     return false;
   }
 
@@ -1271,7 +1286,7 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
   // TubeKV = 120.0000
   // TubeKVLength = 40.0000
   std::ifstream fin;
-  fin.open(strPathINI.toLocal8Bit().constData());
+  fin.open(strPathINI);
 
   if (fin.fail()) {
     return false;
@@ -1282,26 +1297,26 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = QString(&str[0]);
-    auto strListParam = tmpStr.split("=");
+    auto tmpStr = std::string(&str[0]);
+    auto strListParam = split_string<'='>(tmpStr);
 
-    QString tagName;
-    QString strVal;
+    std::string tagName;
+    std::string strVal;
 
-    if (strListParam.count() == 2) {
+    if (strListParam.size() == 2) {
       tagName = strListParam.at(0);
       strVal = strListParam.at(1);
-      tagName = tagName.trimmed();
-      strVal = strVal.trimmed();
+      tagName = trim_string(tagName);
+      strVal = trim_string(strVal);
 
       if (tagName == "TubeMA") {
-        mA = strVal.toFloat();
+        mA = from_string<float>(strVal).value_or(0.0f);
       }
       if (tagName == "TubeKVLength") {
-        ms = strVal.toFloat();
+        ms = from_string<float>(strVal).value_or(0.0f);
       }
       if (tagName == "TubeKV") {
-        kVp = strVal.toFloat();
+        kVp = from_string<float>(strVal).value_or(0.0f);
       }
     }
   }
@@ -1311,15 +1326,14 @@ bool GetXrayParamFromINI(QString &strPathINI, float &kVp, float &mA,
 }
 
 // Dir or File
-bool LoadShortImageDirOrFile(QString &strPathDir,
+bool LoadShortImageDirOrFile(std::filesystem::path &strPathDir,
                              ShortImageType::Pointer &spOutputShortImg) {
-  QFileInfo fInfo(strPathDir);
-  if (!fInfo.exists()) {
+  if (!std::filesystem::exists(strPathDir)) {
     return false;
   }
 
   Plm_image plmImg;
-  plmImg.load_native(strPathDir.toLocal8Bit().constData());
+  plmImg.load_native(strPathDir.string());
   const auto spShortImg = plmImg.itk_short();
 
   // Thresholding
