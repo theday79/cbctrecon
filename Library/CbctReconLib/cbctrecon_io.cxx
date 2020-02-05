@@ -407,7 +407,7 @@ DCM_MODALITY get_dcm_modality(const QString &filename) {
   reader.SetFileName(filename.toLocal8Bit().constData());
   if (!reader.Read()) {
     std::cerr << "Reading dicom: " << filename.toStdString() << " failed!\n";
-    return RTUNKNOWN;
+    return DCM_MODALITY::RTUNKNOWN;
   }
   auto &file = reader.GetFile();
   auto &ds = file.GetDataSet();
@@ -416,22 +416,22 @@ DCM_MODALITY get_dcm_modality(const QString &filename) {
       ds.GetDataElement(gdcm::Attribute<0x8, 0x60>::GetTag()));
   const auto modality = at_modality.GetValue();
   if (modality == "RTIMAGE" || modality == "CT" || modality == "MR") {
-    return RTIMAGE;
+    return DCM_MODALITY::RTIMAGE;
   }
   if (modality == "RTDOSE") {
-    return RTDOSE;
+    return DCM_MODALITY::RTDOSE;
   }
   if (modality == "RTSTRUCT") {
-    return RTSTRUCT;
+    return DCM_MODALITY::RTSTRUCT;
   }
   if (modality == "RTPLAN") {
-    return RTPLAN;
+    return DCM_MODALITY::RTPLAN;
   }
   if (modality == "RTRECORD") {
-    return RTRECORD;
+    return DCM_MODALITY::RTRECORD;
   }
   std::cerr << "Modality was: " << modality << "\n";
-  return RTUNKNOWN;
+  return DCM_MODALITY::RTUNKNOWN;
 }
 
 bool check_rtss_dicom_integrity(const gdcm::DataSet &ds) {
@@ -841,7 +841,7 @@ std::vector<std::string> get_dcm_image_files(QDir &dir) {
   for (size_t i = 0; i < fileNames.size(); ++i) {
     const auto modality = get_dcm_modality(QString(fileNames.at(i).c_str()));
     switch (modality) {
-    case RTIMAGE:
+    case DCM_MODALITY::RTIMAGE:
       break;
     default:
       idxtopop.push_back(i);
@@ -875,19 +875,20 @@ bool CbctRecon::ReadDicomDir(QString &dirPath) {
     const auto fullfilename = dir.absolutePath() + "/" + filename;
     const auto modality = get_dcm_modality(fullfilename);
     switch (modality) {
-    case RTIMAGE:
-    case RTDOSE:
+    case DCM_MODALITY::RTIMAGE:
+      break;
+    case DCM_MODALITY::RTDOSE :
       // filenamelist.push_back(fullfilename.toStdString());
       break;
-    case RTSTRUCT:
+    case DCM_MODALITY::RTSTRUCT:
       m_structures->set_planCT_ss(load_rtstruct(fullfilename));
       m_strPathRS = fullfilename;
       break;
-    case RTPLAN:
+    case DCM_MODALITY::RTPLAN:
       break; // Maybe some pre-loading for gPMC could be useful?
-    case RTRECORD:
+    case DCM_MODALITY::RTRECORD:
       break; // I haven't ever seen one IRL
-    case RTUNKNOWN:
+    case DCM_MODALITY::RTUNKNOWN:
       std::cerr << "File: " << fullfilename.toStdString()
                 << " was not of a recognizeable modality type!\n";
       break;

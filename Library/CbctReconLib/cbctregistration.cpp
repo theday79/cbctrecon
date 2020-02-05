@@ -1232,7 +1232,7 @@ void CbctRegistration::PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT,
     return;
   }
 
-  auto ss = this->m_pParent->m_structures->get_ss(RIGID_CT);
+  auto ss = this->m_pParent->m_structures->get_ss(ctType::RIGID_CT);
   if (!ss) {
     std::cerr << "No structure set available, skipping post skin removal\n";
     return;

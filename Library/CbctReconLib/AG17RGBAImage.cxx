@@ -185,7 +185,7 @@ inline uchar val_to_blue(const double val) {
     return 255;
   }
   // x={.5,...,.25}:a=255/(.25-.5)=-4*255 & b=-255*0.5/(0.25-0.5)=4/2*255=2*255
-  return static_cast<uchar>(val * -4.0 * 255.0 + 2 * 255);
+  return static_cast<uchar>(val * -4.0 * 255.0 + 2.0 * 255.0);
 }
 
 inline uchar val_to_green(const double val) {
@@ -197,7 +197,7 @@ inline uchar val_to_green(const double val) {
   }
   // if (val > .75) // x={.75,...,1}:a=255/(.75-.5)=4*255 &
   // b=-255*0.5/(0.75-0.5)=-4/2*255=-2*255
-  return static_cast<uchar>(val * -4.0 * 255.0 - 2 * 255);
+  return static_cast<uchar>(val * -4.0 * 255.0 - 2.0 * 255.0);
 }
 
 inline uchar val_to_red(const double val) {
@@ -209,7 +209,7 @@ inline uchar val_to_red(const double val) {
   }
   // x={0.5,...,0.75}:a=255/(0.75-0.5)=4*255 &
   // b=-255*0.5/(0.75-0.5)=-4/2*255=-2*255
-  return static_cast<uchar>(val * 4.0 * 255.0 - 2 * 255);
+  return static_cast<uchar>(val * 4.0 * 255.0 - 2.0 * 255.0);
 }
 
 inline QRgb val_to_rgba_scale(const double val) {
@@ -633,12 +633,12 @@ void AG17RGBAImage::GetProfileData(const int dataX, const int dataY,
 
   vTarget.clear();
 
-  if (direction == DIRECTION_HOR) {
+  if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
     for (auto j = 0; j < m_iWidth; j++) {
       vTarget.push_back(m_pData[m_iWidth * fixedY + j]);
     }
-  } else if (direction == DIRECTION_VER) {
+  } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
@@ -662,12 +662,12 @@ void AG17RGBAImage::GetProfileData(QVector<double> &vTarget,
 
   vTarget.clear();
 
-  if (direction == DIRECTION_HOR) {
+  if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
     for (auto j = 0; j < m_iWidth; j++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * fixedY + j]));
     }
-  } else if (direction == DIRECTION_VER) {
+  } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
@@ -697,7 +697,7 @@ bool AG17RGBAImage::ConstituteFromTwo(AG17RGBAImage &YKImg1,
 
   int i, j;
   switch (m_enSplitOption) {
-  case PRI_LEFT_TOP:
+  case enSplitOption::PRI_LEFT_TOP:
     for (i = 0; i < centerY; i++) {
       for (j = 0; j < centerX; j++) {
         m_pData[width * i + j] = YKImg1.m_pData[width * i + j];
@@ -825,7 +825,7 @@ bool AG17RGBAImage::FillPixMapDual(const int winMid1, const int winMid2,
 
   // It takes 0.4 s in Release mode
 
-  if (m_enSplitOption != PRI_LEFT_TOP) {
+  if (m_enSplitOption != enSplitOption::PRI_LEFT_TOP) {
     return false;
   }
 
@@ -919,7 +919,7 @@ bool AG17RGBAImage::isPtInFirstImage(const int dataX, const int dataY) const {
     return false;
   }
 
-  if (m_enSplitOption == PRI_LEFT_TOP && !IsEmpty()) {
+  if (m_enSplitOption == enSplitOption::PRI_LEFT_TOP && !IsEmpty()) {
     return (dataX < m_ptSplitCenter.x() && dataY < m_ptSplitCenter.y()) ||
            (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
             dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);

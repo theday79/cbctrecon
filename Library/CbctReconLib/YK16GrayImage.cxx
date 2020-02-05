@@ -71,7 +71,7 @@ YK16GrayImage::YK16GrayImage() {
   m_iOffsetX = 0;
   m_iOffsetY = 0;
 
-  m_enSplitOption = PRI_LEFT_TOP;
+  m_enSplitOption = enSplitOption::PRI_LEFT_TOP;
   m_fResampleFactor = 1.0;
 }
 
@@ -119,7 +119,7 @@ YK16GrayImage::YK16GrayImage(const int width, const int height) {
   m_iOffsetY = 0;
 
   // m_pQImage = nullptr;
-  m_enSplitOption = PRI_LEFT_TOP;
+  m_enSplitOption = enSplitOption::PRI_LEFT_TOP;
   m_fResampleFactor = 1.0;
 
   CreateImage(width, height, 0);
@@ -874,12 +874,12 @@ void YK16GrayImage::GetProfileData(const int dataX, const int dataY,
 
   vTarget.clear();
 
-  if (direction == DIRECTION_HOR) {
+  if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
     for (auto j = 0; j < m_iWidth; j++) {
       vTarget.push_back(m_pData[m_iWidth * fixedY + j]);
     }
-  } else if (direction == DIRECTION_VER) {
+  } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
@@ -903,12 +903,12 @@ void YK16GrayImage::GetProfileData(QVector<double> &vTarget,
 
   vTarget.clear();
 
-  if (direction == DIRECTION_HOR) {
+  if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
     for (auto j = 0; j < m_iWidth; j++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * fixedY + j]));
     }
-  } else if (direction == DIRECTION_VER) {
+  } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
@@ -937,7 +937,7 @@ bool YK16GrayImage::ConstituteFromTwo(YK16GrayImage &YKImg1,
   const auto centerY = m_ptSplitCenter.y();
 
   switch (m_enSplitOption) {
-  case PRI_LEFT_TOP:
+  case enSplitOption::PRI_LEFT_TOP:
     for (auto i = 0; i < centerY; i++) {
       for (auto j = 0; j < centerX; j++) {
         m_pData[width * i + j] = YKImg1.m_pData[width * i + j];
@@ -1077,7 +1077,7 @@ bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,
 
   // It takes 0.4 s in Release mode
 
-  if (m_enSplitOption != PRI_LEFT_TOP) {
+  if (m_enSplitOption != enSplitOption::PRI_LEFT_TOP) {
     return false;
   }
 
@@ -1180,7 +1180,7 @@ bool YK16GrayImage::isPtInFirstImage(const int dataX, const int dataY) const {
     return false;
   }
 
-  if (m_enSplitOption == PRI_LEFT_TOP && !IsEmpty()) {
+  if (m_enSplitOption == enSplitOption::PRI_LEFT_TOP && !IsEmpty()) {
     return (dataX < m_ptSplitCenter.x() && dataY < m_ptSplitCenter.y()) ||
            (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
             dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);

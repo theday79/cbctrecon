@@ -102,17 +102,17 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
   auto idxZ = 0;
 
   switch (iDirection) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     idx_hor = 0;
     idxVer = 1;
     idxZ = 2;
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     idx_hor = 0;
     idxVer = 2;
     idxZ = 1;
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     idx_hor = 1;
     idxVer = 2;
     idxZ = 0;

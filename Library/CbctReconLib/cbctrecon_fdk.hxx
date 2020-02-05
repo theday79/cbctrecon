@@ -110,7 +110,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
                                     const FDK_options &fdk_options) {
-  if (Tdev == CUDA_DEVT) {
+  if (Tdev == enDeviceType::CUDA_DEVT) {
 #if USE_CUDA
     using CUDAFloatImageType = itk::CudaImage<float, 3U>;
     using DDFType = rtk::CudaDisplacedDetectorImageFilter;
@@ -232,7 +232,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   }
 
   auto trunc_factor = fdk_options.TruncCorFactor;
-  if (fdk_options.TruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
+  if (fdk_options.TruncCorFactor > 0.0 &&
+      target == enREGI_IMAGES::REGISTER_COR_CBCT) {
     std::cout << "Warning! Truncation factor is " << fdk_options.TruncCorFactor
               << ". Regardless of previous setting, this factor should not be "
                  "0 for scatter corrected CBCT. Now zero value is applied."
@@ -242,7 +243,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
   typename ImageType::Pointer targetImg;
 
-  if (Tdev == OPENCL_DEVT) {
+  if (Tdev == enDeviceType::OPENCL_DEVT) {
 #ifdef RTK_USE_OPENCL
     std::cout << "Starting RTK fdk" << std::endl;
     targetImg = RTKOpenCLFDK<ImageType>(spCurImg, m_spCustomGeometry, spacing,
@@ -483,11 +484,11 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   // By default CanRunInPlace checks whether the input and output image type
   // match.
   switch (target) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     m_spRawReconImg = std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spRawReconImg;
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     m_spScatCorrReconImg =
         std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spScatCorrReconImg;
@@ -572,18 +573,17 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
     std::cout << " Patient DIR Path: "
-              << this->m_strPathPatientDir.toStdString()
-              << std::endl;
+              << this->m_strPathPatientDir.toStdString() << std::endl;
 
     auto manuallySelectedDir = true; // <- just to make sure I don't break
-                                      // usecases of the older version.
+                                     // usecases of the older version.
 
     if (this->m_strPathPatientDir.length() <= 1) {
       std::cerr << "No patient DIR name, using plm_tmp\n";
       manuallySelectedDir = false;
     }
 
-	if (!manuallySelectedDir) {
+    if (!manuallySelectedDir) {
       this->m_strPathPatientDir = "plm_tmp";
     }
 
@@ -595,7 +595,7 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
     // Make a sub directory
     QDir crntDir(strCrntDir);
 
-    if (!crntDir.exists() && m_projFormat == HIS_FORMAT) {
+    if (!crntDir.exists() && m_projFormat == enProjFormat::HIS_FORMAT) {
       if (manuallySelectedDir) {
         QDir current_dir(this->m_strPathPatientDir);
         const auto success = current_dir.mkdir(subdir_images);
@@ -604,7 +604,7 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
                     << std::endl;
           return spProj3D;
         }
-      } else if (m_projFormat == HIS_FORMAT) {
+      } else if (m_projFormat == enProjFormat::HIS_FORMAT) {
         std::cout << "File save error: The specified folder does not exist."
                   << std::endl;
         return spProj3D;
@@ -630,12 +630,13 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
     }
 
     auto strSavingFolder = crntDir.absolutePath() + "/" + fwdDirName;
-    if (m_projFormat == HIS_FORMAT) {
+    if (m_projFormat == enProjFormat::HIS_FORMAT) {
       this->SaveProjImageAsHIS(spProj3D, this->m_arrYKBufProj, strSavingFolder,
                                this->m_fResampleF);
     } else {
       auto fn_fwd_prj = "fwd_proj.mha";
-      if (m_spRawReconImg->GetBufferPointer() == spVolImg3D->GetBufferPointer()) {
+      if (m_spRawReconImg->GetBufferPointer() ==
+          spVolImg3D->GetBufferPointer()) {
         fn_fwd_prj = "fwd_proj_rawrec.mha";
       }
       saveImageAsMHA<FloatImageType>(spProj3D, strSavingFolder.toStdString() +

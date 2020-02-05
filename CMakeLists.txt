@@ -208,6 +208,12 @@ if(USE_SYSTEM_RTK)
   include(${RTK_USE_FILE})
 endif()
 
+# Plastimatch may link to an external dlib, then we'll need that:
+find_package(dlib)
+if(dlib_FOUND)
+  set(DLIB_LIB dlib::dlib)
+endif()
+
 set(PLM_TARGETS
   plmbase
   plmutil
@@ -240,6 +246,7 @@ set(CBCTRECON_DEP_LIBS
   ${CLFFT_LIBRARIES}
   ${QT_LIBRARIES}
   ${TBB_LIBRARIES}
+  ${DLIB_LIB}
   OpenCL::OpenCL
 )
 

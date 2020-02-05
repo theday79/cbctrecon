@@ -276,7 +276,7 @@ int main(const int argc, char *argv[]) {
   std::cout << "Images saved" << std::endl;
 
   /* Structure test: */
-  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(ctType::RIGID_CT);
 
   auto voi = std::string();
 

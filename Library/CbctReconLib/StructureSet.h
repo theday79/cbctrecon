@@ -32,11 +32,11 @@ public:
 
   template <ctType CT_TYPE> bool is_ss_null() const {
     switch (CT_TYPE) {
-    case PLAN_CT:
+    case ctType::PLAN_CT:
       return m_plan_ss == nullptr;
-    case RIGID_CT:
+    case ctType::RIGID_CT:
       return m_rigid_ss == nullptr;
-    case DEFORM_CT:
+    case ctType::DEFORM_CT:
       return m_deform_ss == nullptr;
     }
     return true;
@@ -50,13 +50,13 @@ public:
   template <ctType CT_TYPE>
   void ApplyVectorTransform_InPlace(const FloatVector &vec) {
     switch (CT_TYPE) {
-    case PLAN_CT:
+    case ctType::PLAN_CT:
       transform_by_vector(CT_TYPE, vec, m_plan_ss);
       break;
-    case RIGID_CT:
+    case ctType::RIGID_CT:
       transform_by_vector(CT_TYPE, vec, m_rigid_ss);
       break;
-    case DEFORM_CT:
+    case ctType::DEFORM_CT:
       transform_by_vector(CT_TYPE, vec, m_deform_ss);
       break;
     }
@@ -64,17 +64,17 @@ public:
 
   template <ctType CT_TYPE> bool ApplyTransformTo(const QFile &transform_file) {
     switch (CT_TYPE) {
-    case PLAN_CT:
+    case ctType::PLAN_CT:
       if (m_plan_ss == nullptr) {
         return false;
       }
       break;
-    case RIGID_CT:
+    case ctType::RIGID_CT:
       if (m_rigid_ss == nullptr) {
         return false;
       }
       break;
-    case DEFORM_CT:
+    case ctType::DEFORM_CT:
       if (m_deform_ss == nullptr) {
         return false;
       }
@@ -90,11 +90,12 @@ public:
 
     if (transform != nullptr) {
       switch (CT_TYPE) {
-      case PLAN_CT:
+      case ctType::PLAN_CT:
         transform_by_Lambda(CT_TYPE, transform, m_rigid_ss);
         break;
-      case RIGID_CT:
-      case DEFORM_CT:
+      case ctType::RIGID_CT:
+        [[fallthrough]];
+      case ctType::DEFORM_CT:
         transform_by_Lambda(CT_TYPE, transform, m_deform_ss);
         break;
       }

@@ -32,10 +32,10 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
     return nullptr;
   }
   switch (struct_set) {
-  case PLAN_CT:
+  case ctType::PLAN_CT:
     m_plan_ss->wait();
     return m_plan_ss.get();
-  case RIGID_CT:
+  case ctType::RIGID_CT:
     if (m_rigid_ss == nullptr) {
       std::cerr << "Rigid reg. structs not ready, falling back to plan CT!\n";
       m_plan_ss->wait();
@@ -43,7 +43,7 @@ Rtss_modern *StructureSet::get_ss(const ctType struct_set) const {
     }
     m_rigid_ss->wait();
     return m_rigid_ss.get();
-  case DEFORM_CT:
+  case ctType::DEFORM_CT:
     m_deform_ss->wait();
     return m_deform_ss.get();
   }

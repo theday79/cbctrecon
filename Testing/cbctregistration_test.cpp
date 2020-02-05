@@ -79,8 +79,8 @@ void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
   UpdateListOfComboBox(0);
   UpdateListOfComboBox(1);
   // if not found, just skip
-  SelectComboExternal(0, REGISTER_RAW_CBCT);     // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID); // WILL BE IGNORED
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT);     // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID); // WILL BE IGNORED
 }
 
 void CbctRegistrationTest::LoadImgFromComboBox(
@@ -139,14 +139,14 @@ void CbctRegistrationTest::LoadImgFromComboBox(
 void CbctRegistrationTest::LoadVOIFromComboBox(
     int /*idx*/, QString &strSelectedComboTxt) const {
 
-  auto ct_type = PLAN_CT;
+  auto ct_type = ctType::PLAN_CT;
   const auto ct = this->ui_comboBoxImgMoving->currentText().toStdString();
   if (ct == std::string("REF_CT")) {
     // ct_type = PLAN_CT;
   } else if (ct == std::string("AUTO_RIGID_CT")) {
-    ct_type = RIGID_CT;
+    ct_type = ctType::RIGID_CT;
   } else if (ct == std::string("DEFORMED_CT_FINAL")) {
-    ct_type = DEFORM_CT;
+    ct_type = ctType::DEFORM_CT;
   } else {
     std::cout << "This moving image does not own any VOIs" << std::endl;
     return;
@@ -373,15 +373,15 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 
   // If rigid structure already exists copy it to plan-ct structure before
   // applying rigid again.
-  if (!m_cbctregistration->m_pParent->m_structures->is_ss_null<RIGID_CT>()) {
+  if (!m_cbctregistration->m_pParent->m_structures->is_ss_null<ctType::RIGID_CT>()) {
     auto rigid_ss = std::make_unique<Rtss_modern>(
-        *(m_cbctregistration->m_pParent->m_structures->get_ss(RIGID_CT)));
+        *(m_cbctregistration->m_pParent->m_structures->get_ss(ctType::RIGID_CT)));
     m_cbctregistration->m_pParent->m_structures->set_planCT_ss(
         std::move(rigid_ss));
   }
 
   const auto transform_success =
-      m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
+      m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<ctType::PLAN_CT>(
           xform_file);
   if (transform_success) {
     std::cout << "7: Contours registered" << std::endl;
@@ -390,8 +390,8 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_AUTO_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_AUTO_RIGID);
 
   m_cbctregistration->m_strPathXFAutoRigid = filePathXform; // for further use
 }
@@ -470,7 +470,7 @@ void CbctRegistrationTest::SLT_KeyMoving(
 {
   if (bChecked) {
     SelectComboExternal(1,
-                        REGISTER_MANUAL_RIGID); // should be
+                        enREGI_IMAGES::REGISTER_MANUAL_RIGID); // should be
   }
 }
 
@@ -479,7 +479,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
 // comboIdx 0: fixed, 1: moving
 {
   switch (option) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     if (m_pParent->m_cbctrecon->m_spRawReconImg != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("RAW_CBCT");
@@ -488,7 +488,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_REF_CT:
+  case enREGI_IMAGES::REGISTER_REF_CT:
     if (m_pParent->m_cbctrecon->m_spRefCTImg != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("REF_CT");
@@ -497,7 +497,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     if (m_pParent->m_cbctrecon->m_spManualRigidCT != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("MANUAL_RIGID_CT");
@@ -506,7 +506,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     if (m_pParent->m_cbctrecon->m_spAutoRigidCT != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("AUTO_RIGID_CT");
@@ -515,7 +515,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_DEFORM1:
+  case enREGI_IMAGES::REGISTER_DEFORM1:
     if (m_pParent->m_cbctrecon->m_spDeformedCT1 != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("DEFORMED_CT1");
@@ -524,7 +524,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_DEFORM2:
+  case enREGI_IMAGES::REGISTER_DEFORM2:
     if (m_pParent->m_cbctrecon->m_spDeformedCT2 != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("DEFORMED_CT2");
@@ -533,7 +533,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_DEFORM3:
+  case enREGI_IMAGES::REGISTER_DEFORM3:
     if (m_pParent->m_cbctrecon->m_spDeformedCT3 != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("DEFORMED_CT3");
@@ -543,7 +543,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
     }
     break;
 
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     if (m_pParent->m_cbctrecon->m_spDeformedCT_Final != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("DEFORMED_CT_FINAL");
@@ -552,7 +552,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     if (m_pParent->m_cbctrecon->m_spScatCorrReconImg != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("COR_CBCT");
@@ -561,7 +561,7 @@ void CbctRegistrationTest::AddImageToCombo(const int comboIdx,
       }
     }
     break;
-  case REGISTER_DEFORM_SKIP_AUTORIGID:
+  case enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID:
     if (m_pParent->m_cbctrecon->m_spScatCorrReconImg != nullptr) {
       if (comboIdx == 0) {
         this->ui_comboBoxImgFixed->addItem("REGISTER_DEFORM_SKIP_AUTORIGID");
@@ -589,34 +589,34 @@ void CbctRegistrationTest::SelectComboExternal(const int idx,
 
   auto findIndx = -1;
   switch (iImage) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     findIndx = crntCombo->findText("RAW_CBCT");
     break;
-  case REGISTER_REF_CT:
+  case enREGI_IMAGES::REGISTER_REF_CT:
     findIndx = crntCombo->findText("REF_CT");
     break;
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     findIndx = crntCombo->findText("MANUAL_RIGID_CT");
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     findIndx = crntCombo->findText("AUTO_RIGID_CT");
     break;
-  case REGISTER_DEFORM1:
+  case enREGI_IMAGES::REGISTER_DEFORM1:
     findIndx = crntCombo->findText("DEFORMED_CT1");
     break;
-  case REGISTER_DEFORM2:
+  case enREGI_IMAGES::REGISTER_DEFORM2:
     findIndx = crntCombo->findText("DEFORMED_CT2");
     break;
-  case REGISTER_DEFORM3:
+  case enREGI_IMAGES::REGISTER_DEFORM3:
     findIndx = crntCombo->findText("DEFORMED_CT3");
     break;
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     findIndx = crntCombo->findText("DEFORMED_CT_FINAL");
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     findIndx = crntCombo->findText("COR_CBCT");
     break;
-  case REGISTER_DEFORM_SKIP_AUTORIGID:
+  case enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID:
     findIndx = crntCombo->findText("REGISTER_DEFORM_SKIP_AUTORIGID");
     break;
   }
@@ -642,19 +642,19 @@ void CbctRegistrationTest::SelectComboExternal(const int idx,
 
 ctType get_ctType(const QString &selText) {
   if (selText.compare("REF_CT") == 0) {
-    return PLAN_CT;
+    return ctType::PLAN_CT;
   }
   if (selText.compare("MANUAL_RIGID_CT") == 0 ||
       selText.compare("AUTO_RIGID_CT") == 0) {
-    return RIGID_CT;
+    return ctType::RIGID_CT;
   }
   if (selText.compare("DEFORMED_CT1") == 0 ||
       selText.compare("DEFORMED_CT2") == 0 ||
       selText.compare("DEFORMED_CT3") == 0 ||
       selText.compare("DEFORMED_CT_FINAL") == 0) {
-    return DEFORM_CT;
+    return ctType::DEFORM_CT;
   }
-  return PLAN_CT;
+  return ctType::PLAN_CT;
 }
 
 void CbctRegistrationTest::SLT_FixedImageSelected(QString selText) {
@@ -689,9 +689,9 @@ void CbctRegistrationTest::UpdateVOICombobox(const ctType ct_type) const {
 }
 
 void CbctRegistrationTest::SLT_RestoreMovingImg() {
-  m_cbctregistration->m_pParent->RegisterImgDuplication(REGISTER_REF_CT,
-                                                        REGISTER_MANUAL_RIGID);
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  m_cbctregistration->m_pParent->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
+                                                        enREGI_IMAGES::REGISTER_MANUAL_RIGID);
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void CbctRegistrationTest::SLT_PreProcessCT() {
@@ -766,8 +766,8 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
   // if not found, just skip
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 
   std::cout << "FINISHED!: Pre-processing of CT image" << std::endl;
 
@@ -1030,7 +1030,7 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<RIGID_CT>(
+  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<ctType::RIGID_CT>(
       xform_file);
 
   std::cout << "8: Contours deformed" << std::endl;
@@ -1038,8 +1038,8 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_DEFORM_FINAL);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_DEFORM_FINAL);
 
   std::cout << "FINISHED!: Deformable image registration. Proceed to scatter "
                "correction"
@@ -1071,8 +1071,8 @@ void CbctRegistrationTest::SLT_DoLowerMaskIntensity() {
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_COR_CBCT);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 }
 
 void CbctRegistrationTest::SLT_ManualMoveByDCMPlan() {
@@ -1093,13 +1093,13 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlan() {
                                    static_cast<float>(final_iso_pos[1]),
                                    static_cast<float>(final_iso_pos[2])};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+  structs->ApplyVectorTransform_InPlace<ctType::PLAN_CT>(trn_vec);
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
@@ -1138,13 +1138,13 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
       FloatVector{static_cast<float>(planIso.x), static_cast<float>(planIso.y),
                   static_cast<float>(planIso.z)};
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+  structs->ApplyVectorTransform_InPlace<ctType::PLAN_CT>(trn_vec);
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void CbctRegistrationTest::SLT_Override(const int sliderPosIdxX,
@@ -1366,7 +1366,7 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
                   static_cast<float>(-trn[-2])};
 
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+  structs->ApplyVectorTransform_InPlace<ctType::PLAN_CT>(trn_vec);
 
   ImageManualMoveOneShot(static_cast<float>(-trn[0]),
                          static_cast<float>(-trn[1]),
@@ -1377,8 +1377,8 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
@@ -1411,13 +1411,13 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
                                    static_cast<float>(-fShift[1]),
                                    static_cast<float>(-fShift[2])};
   m_cbctregistration->m_pParent->m_structures
-      ->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+      ->ApplyVectorTransform_InPlace<ctType::PLAN_CT>(trn_vec);
 
   if (this->ui_checkBoxCropBkgroundCT) {
 
     // RIGID_CT structs should be created above
     auto structures =
-        m_cbctregistration->m_pParent->m_structures->get_ss(RIGID_CT);
+        m_cbctregistration->m_pParent->m_structures->get_ss(ctType::RIGID_CT);
     const auto voi_name = this->ui_comboBox_VOItoCropBy->currentText();
     if (structures != nullptr) {
       const auto voi = structures->get_roi_ref_by_name(voi_name.toStdString());
@@ -1430,8 +1430,8 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
     UpdateListOfComboBox(0); // combo selection signalis called
     UpdateListOfComboBox(1);
 
-    SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-    SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+    SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+    SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 
   // Export final xform file
@@ -1480,5 +1480,5 @@ void CbctRegistrationTest::SLT_IntensityNormCBCT(const float fROI_Radius) {
   auto update_message =
       QString("Added_%1")
           .arg(static_cast<int>(meanIntensityMov - meanIntensityFix));
-  SelectComboExternal(0, REGISTER_RAW_CBCT);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT);
 }

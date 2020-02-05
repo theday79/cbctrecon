@@ -71,7 +71,7 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
   answers = std::make_tuple(true, true);
 
   switch (this->m_cbctrecon->m_projFormat) {
-  case XIM_FORMAT:
+  case enProjFormat::XIM_FORMAT:
     bowtiePath = getBowtiePath(calDir);
     if (bowtiePath.length() > 1) {
       std::cerr << "loading bowtie-filter..."
@@ -111,7 +111,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
     return false;
   }
 
-  if (this->m_cbctrecon->m_projFormat == HIS_FORMAT &&
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HIS_FORMAT &&
       !this->m_cbctrecon->IsFileNameOrderCorrect(names)) {
     std::cerr << "Check the file name order"
               << "\n";
@@ -150,7 +150,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   }
 
   if (iFullGeoDataSize != fullCnt) {
-    if (this->m_cbctrecon->m_projFormat != XIM_FORMAT) {
+    if (this->m_cbctrecon->m_projFormat != enProjFormat::XIM_FORMAT) {
       std::cerr << "Size of geometry data and file numbers are not same! Check "
                    "and retry"
                 << "\n";
@@ -230,7 +230,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
     assert(fabs(after_bowtie_test_value - (test_value - bowtie_test_value)) <
            0.01f);
   }
-  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HND_FORMAT) {
     std::cerr << "Fitted bowtie-filter correction ongoing..."
               << "\n";
     test_DoBowtieCorrection();
@@ -293,7 +293,7 @@ void CbctReconTest::test_ReloadProjections() {
                              // pixels too few in x and y
   }
 
-  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HND_FORMAT) { // -> hnd
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     test_DoBowtieCorrection();
   }
@@ -354,8 +354,8 @@ void CbctReconTest::test_LoadDICOMdir() const {
   }
 
   if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
-    this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                              REGISTER_MANUAL_RIGID);
+    this->m_cbctrecon->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
+                                              enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 }
 
@@ -438,13 +438,13 @@ void CbctReconTest::test_DoReconstruction() {
 #endif
 
   if (use_cuda) {
-    this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CUDA_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
                                                       fdk_options);
   } else if (use_opencl) {
-    this->m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::OPENCL_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
                                                         fdk_options);
   } else {
-    this->m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT,
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CPU_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
                                                      fdk_options);
   }
 
@@ -627,8 +627,8 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
                                               // called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 
   // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check
   // button.

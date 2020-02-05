@@ -297,7 +297,7 @@ public:
   GeometryType::Pointer m_spFullGeometry; // sp = smart pointer
   GeometryType::Pointer m_spCustomGeometry;
 
-  enProjFormat m_projFormat = HIS_FORMAT;
+  enProjFormat m_projFormat = enProjFormat::HIS_FORMAT;
   bool m_bScanDirectionCW;
 
   FloatImageType::Pointer

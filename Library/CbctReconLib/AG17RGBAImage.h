@@ -116,7 +116,7 @@ public:
   QPoint m_ptSplitCenter; // Fixed image with Moving image. center is based on
                           // dataPt.//Fixed Image: Left Top + Right Bottom,
                           // Moving: Right Top + Left Bottom
-  int m_enSplitOption{};
+  enSplitOption m_enSplitOption{};
   // This cetner is moved while Left Dragging //All split and crosshair are data
   // point based!
   void SetSplitOption(const enSplitOption option) { m_enSplitOption = option; }

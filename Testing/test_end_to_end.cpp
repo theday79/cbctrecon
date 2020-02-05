@@ -127,7 +127,7 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
     std::cerr << "Scatter corrected recon image was null\n";
     return -1;
   }
-  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
   for (auto &structure : ss->slist) {
     std::cerr << structure.name << "\n";
   }

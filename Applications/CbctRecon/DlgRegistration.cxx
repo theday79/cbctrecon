@@ -128,8 +128,10 @@ void DlgRegistration::initDlgRegistration(QString &strDCMUID) {
   UpdateListOfComboBox(0);
   UpdateListOfComboBox(1);
   // if not found, just skip
-  SelectComboExternal(0, REGISTER_RAW_CBCT);     // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID); // WILL BE IGNORED
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1,
+                      enREGI_IMAGES::REGISTER_MANUAL_RIGID); // WILL BE IGNORED
 }
 
 void DlgRegistration::SLT_CrntPosGo() const {
@@ -182,15 +184,15 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
   auto x_scale = 1.0 / static_cast<double>(wnd_width);
   auto y_scale = 1.0 / static_cast<double>(wnd_height);
   switch (plane) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     x_scale *= imgSpacing[0] * imgSize[0];
     y_scale *= imgSpacing[1] * imgSize[1];
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     x_scale *= imgSpacing[0] * imgSize[0];
     y_scale *= imgSpacing[2] * imgSize[2];
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     x_scale *= imgSpacing[1] * imgSize[1];
     y_scale *= imgSpacing[2] * imgSize[2];
   }
@@ -202,7 +204,7 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
     const auto first_point = contour.coordinates.at(0);
     // Axial
     if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
-        first_point.z < curPhysPos[0] + imgSpacing[2] && plane == PLANE_AXIAL) {
+        first_point.z < curPhysPos[0] + imgSpacing[2] && plane == enPLANE::PLANE_AXIAL) {
       for (auto point : contour.coordinates) {
         Wnd_contour->emplace_back((point.x - imgOriginFixed[0]) / x_scale,
                                   (point.y - imgOriginFixed[1]) / y_scale);
@@ -211,14 +213,14 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
     for (auto &point : contour.coordinates) {
       // Frontal
       if (point.y > curPhysPos[1] - imgSpacing[1] &&
-          point.y < curPhysPos[1] + imgSpacing[1] && plane == PLANE_FRONTAL) {
+          point.y < curPhysPos[1] + imgSpacing[1] && plane == enPLANE::PLANE_FRONTAL) {
         Wnd_contour->emplace_back((point.x - imgOriginFixed[0]) / x_scale,
                                   wnd_height -
                                       (point.z - imgOriginFixed[2]) / y_scale);
       }
       // Sagittal
       if (point.x > curPhysPos[2] - imgSpacing[0] &&
-          point.x < curPhysPos[2] + imgSpacing[0] && plane == PLANE_SAGITTAL) {
+          point.x < curPhysPos[2] + imgSpacing[0] && plane == enPLANE::PLANE_SAGITTAL) {
         Wnd_contour->emplace_back((point.y - imgOriginFixed[1]) / x_scale,
                                   wnd_height -
                                       (point.z - imgOriginFixed[2]) / y_scale);
@@ -322,44 +324,44 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
 
   if (m_spMoving != nullptr) {
     m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-        m_spFixed, m_spMoving, PLANE_AXIAL, curPhysPos[0], m_YKImgFixed[0],
-        m_YKImgMoving[0]);
+        m_spFixed, m_spMoving, enPLANE::PLANE_AXIAL, curPhysPos[0],
+        m_YKImgFixed[0], m_YKImgMoving[0]);
     m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-        m_spFixed, m_spMoving, PLANE_FRONTAL, curPhysPos[1], m_YKImgFixed[1],
-        m_YKImgMoving[1]);
+        m_spFixed, m_spMoving, enPLANE::PLANE_FRONTAL, curPhysPos[1],
+        m_YKImgFixed[1], m_YKImgMoving[1]);
     m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-        m_spFixed, m_spMoving, PLANE_SAGITTAL, curPhysPos[2], m_YKImgFixed[2],
-        m_YKImgMoving[2]);
+        m_spFixed, m_spMoving, enPLANE::PLANE_SAGITTAL, curPhysPos[2],
+        m_YKImgFixed[2], m_YKImgMoving[2]);
     if (m_cbctregistration->dose_loaded) {
       m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-          m_spFixedDose, m_spMovingDose, PLANE_AXIAL, curPhysPos[0],
+          m_spFixedDose, m_spMovingDose, enPLANE::PLANE_AXIAL, curPhysPos[0],
           m_DoseImgFixed[0], m_DoseImgMoving[0]);
       m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-          m_spFixedDose, m_spMovingDose, PLANE_FRONTAL, curPhysPos[1],
+          m_spFixedDose, m_spMovingDose, enPLANE::PLANE_FRONTAL, curPhysPos[1],
           m_DoseImgFixed[1], m_DoseImgMoving[1]);
       m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-          m_spFixedDose, m_spMovingDose, PLANE_SAGITTAL, curPhysPos[2],
+          m_spFixedDose, m_spMovingDose, enPLANE::PLANE_SAGITTAL, curPhysPos[2],
           m_DoseImgFixed[2], m_DoseImgMoving[2]);
     }
   } else {
     m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-        m_spFixed, m_spFixed, PLANE_AXIAL, curPhysPos[0], m_YKImgFixed[0],
-        m_YKImgMoving[0]);
+        m_spFixed, m_spFixed, enPLANE::PLANE_AXIAL, curPhysPos[0],
+        m_YKImgFixed[0], m_YKImgMoving[0]);
     m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-        m_spFixed, m_spFixed, PLANE_FRONTAL, curPhysPos[1], m_YKImgFixed[1],
-        m_YKImgMoving[1]);
+        m_spFixed, m_spFixed, enPLANE::PLANE_FRONTAL, curPhysPos[1],
+        m_YKImgFixed[1], m_YKImgMoving[1]);
     m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-        m_spFixed, m_spFixed, PLANE_SAGITTAL, curPhysPos[2], m_YKImgFixed[2],
-        m_YKImgMoving[2]);
+        m_spFixed, m_spFixed, enPLANE::PLANE_SAGITTAL, curPhysPos[2],
+        m_YKImgFixed[2], m_YKImgMoving[2]);
     if (m_cbctregistration->dose_loaded) {
       m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-          m_spFixedDose, m_spFixedDose, PLANE_AXIAL, curPhysPos[0],
+          m_spFixedDose, m_spFixedDose, enPLANE::PLANE_AXIAL, curPhysPos[0],
           m_DoseImgFixed[0], m_DoseImgMoving[0]);
       m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-          m_spFixedDose, m_spFixedDose, PLANE_FRONTAL, curPhysPos[1],
+          m_spFixedDose, m_spFixedDose, enPLANE::PLANE_FRONTAL, curPhysPos[1],
           m_DoseImgFixed[1], m_DoseImgMoving[1]);
       m_pParent->m_cbctrecon->Draw2DFrom3DDouble(
-          m_spFixedDose, m_spFixedDose, PLANE_SAGITTAL, curPhysPos[2],
+          m_spFixedDose, m_spFixedDose, enPLANE::PLANE_SAGITTAL, curPhysPos[2],
           m_DoseImgFixed[2], m_DoseImgMoving[2]);
     }
   }
@@ -396,15 +398,15 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   if (m_cbctregistration->cur_voi != nullptr) {
     const auto p_cur_voi = m_cbctregistration->cur_voi.get();
 
-    set_points_by_slice<UShortImageType, PLANE_AXIAL, RED>(
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_AXIAL, RED>(
         arr_wnd.at(refIdx % 3), p_cur_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
 
-    set_points_by_slice<UShortImageType, PLANE_FRONTAL, RED>(
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL, RED>(
         arr_wnd.at((refIdx + 1) % 3), p_cur_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
 
-    set_points_by_slice<UShortImageType, PLANE_SAGITTAL, RED>(
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_SAGITTAL, RED>(
         arr_wnd.at((refIdx + 2) % 3), p_cur_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
   }
@@ -412,15 +414,15 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   if (m_cbctregistration->WEPL_voi != nullptr) {
     const auto p_wepl_voi = m_cbctregistration->WEPL_voi.get();
 
-    set_points_by_slice<UShortImageType, PLANE_AXIAL, GREEN>(
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_AXIAL, GREEN>(
         arr_wnd.at(refIdx % 3), p_wepl_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
 
-    set_points_by_slice<UShortImageType, PLANE_FRONTAL, GREEN>(
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL, GREEN>(
         arr_wnd.at((refIdx + 1) % 3), p_wepl_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
 
-    set_points_by_slice<UShortImageType, PLANE_SAGITTAL, GREEN>(
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_SAGITTAL, GREEN>(
         arr_wnd.at((refIdx + 2) % 3), p_wepl_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
   }
@@ -530,7 +532,7 @@ void DlgRegistration::SLT_DrawImageInFixedSlice() const
       m_YKDisp[i].SetSpacing(m_YKImgFixed[i + idxAdd].m_fSpacingX,
                              m_YKImgFixed[i + idxAdd].m_fSpacingY);
 
-      m_YKDisp[i].SetSplitOption(PRI_LEFT_TOP);
+      m_YKDisp[i].SetSplitOption(enSplitOption::PRI_LEFT_TOP);
       // m_YKDisp[i].SetSplitCenter(QPoint dataPt);//From mouse event
       if (!m_YKDisp[i].ConstituteFromTwo(m_YKImgFixed[i + idxAdd],
                                          m_YKImgMoving[i + idxAdd])) {
@@ -560,7 +562,7 @@ void DlgRegistration::SLT_DrawImageInFixedSlice() const
         m_AGDisp_Overlay[i].SetSpacing(m_DoseImgFixed[i + idxAdd].m_fSpacingX,
                                        m_DoseImgFixed[i + idxAdd].m_fSpacingY);
 
-        m_AGDisp_Overlay[i].SetSplitOption(PRI_LEFT_TOP);
+        m_AGDisp_Overlay[i].SetSplitOption(enSplitOption::PRI_LEFT_TOP);
         if (!m_AGDisp_Overlay[i].ConstituteFromTwo(
                 m_DoseImgFixed[i + idxAdd], m_DoseImgMoving[i + idxAdd])) {
           std::cout << "Dose Image error " << i + 1 << " th view" << std::endl;
@@ -1004,14 +1006,14 @@ void DlgRegistration::LoadImgFromComboBox(
 void DlgRegistration::LoadVOIFromComboBox(int /*idx*/,
                                           QString &strSelectedComboTxt) {
 
-  auto ct_type = PLAN_CT;
+  auto ct_type = ctType::PLAN_CT;
   const auto ct = this->ui.comboBoxImgMoving->currentText().toStdString();
   if (ct == std::string("REF_CT")) {
     // ct_type = PLAN_CT;
   } else if (ct == std::string("AUTO_RIGID_CT")) {
-    ct_type = RIGID_CT;
+    ct_type = ctType::RIGID_CT;
   } else if (ct == std::string("DEFORMED_CT_FINAL")) {
-    ct_type = DEFORM_CT;
+    ct_type = ctType::DEFORM_CT;
   } else {
     std::cout << "This moving image does not own any VOIs" << std::endl;
     return;
@@ -1239,16 +1241,17 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
 
   // If rigid structure already exists copy it to plan-ct structure before
   // applying rigid again.
-  if (!m_cbctregistration->m_pParent->m_structures->is_ss_null<RIGID_CT>()) {
-    auto rigid_ss = std::make_unique<Rtss_modern>(
-        *(m_cbctregistration->m_pParent->m_structures->get_ss(RIGID_CT)));
+  if (!m_cbctregistration->m_pParent->m_structures
+           ->is_ss_null<ctType::RIGID_CT>()) {
+    auto rigid_ss = std::make_unique<Rtss_modern>(*(
+        m_cbctregistration->m_pParent->m_structures->get_ss(ctType::RIGID_CT)));
     m_cbctregistration->m_pParent->m_structures->set_planCT_ss(
         std::move(rigid_ss));
   }
 
   const auto transform_success =
-      m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<PLAN_CT>(
-          xform_file);
+      m_cbctregistration->m_pParent->m_structures
+          ->ApplyTransformTo<ctType::PLAN_CT>(xform_file);
   if (transform_success) {
     std::cout << "7: Contours registered" << std::endl;
   }
@@ -1256,8 +1259,9 @@ void DlgRegistration::SLT_DoRegistrationRigid() // plastimatch auto registration
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_AUTO_RIGID);
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_AUTO_RIGID);
 
   m_cbctregistration->m_strPathXFAutoRigid = filePathXform; // for further use
 }
@@ -1422,7 +1426,7 @@ void DlgRegistration::SLT_KeyMoving(const bool bChecked) // Key Moving check box
   this->ui.lineEditMovingResol->setDisabled(bChecked);
   if (bChecked) {
     SelectComboExternal(1,
-                        REGISTER_MANUAL_RIGID); // should be
+                        enREGI_IMAGES::REGISTER_MANUAL_RIGID); // should be
   }
   this->ui.comboBoxImgFixed->setDisabled(bChecked);
   this->ui.comboBoxImgMoving->setDisabled(bChecked);
@@ -1443,53 +1447,53 @@ void DlgRegistration::AddImageToCombo(const int comboIdx,
   auto &combo_box = get_combo_box_FixMov(comboIdx);
 
   switch (option) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     if (m_pParent->m_cbctrecon->m_spRawReconImg != nullptr) {
       combo_box->addItem("RAW_CBCT");
     }
     break;
-  case REGISTER_REF_CT:
+  case enREGI_IMAGES::REGISTER_REF_CT:
     if (m_pParent->m_cbctrecon->m_spRefCTImg != nullptr) {
       combo_box->addItem("REF_CT");
     }
     break;
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     if (m_pParent->m_cbctrecon->m_spManualRigidCT != nullptr) {
       combo_box->addItem("MANUAL_RIGID_CT");
     }
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     if (m_pParent->m_cbctrecon->m_spAutoRigidCT != nullptr) {
       combo_box->addItem("AUTO_RIGID_CT");
     }
     break;
-  case REGISTER_DEFORM1:
+  case enREGI_IMAGES::REGISTER_DEFORM1:
     if (m_pParent->m_cbctrecon->m_spDeformedCT1 != nullptr) {
       combo_box->addItem("DEFORMED_CT1");
     }
     break;
-  case REGISTER_DEFORM2:
+  case enREGI_IMAGES::REGISTER_DEFORM2:
     if (m_pParent->m_cbctrecon->m_spDeformedCT2 != nullptr) {
       combo_box->addItem("DEFORMED_CT2");
     }
     break;
-  case REGISTER_DEFORM3:
+  case enREGI_IMAGES::REGISTER_DEFORM3:
     if (m_pParent->m_cbctrecon->m_spDeformedCT3 != nullptr) {
       combo_box->addItem("DEFORMED_CT3");
     }
     break;
 
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     if (m_pParent->m_cbctrecon->m_spDeformedCT_Final != nullptr) {
       combo_box->addItem("DEFORMED_CT_FINAL");
     }
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     if (m_pParent->m_cbctrecon->m_spScatCorrReconImg != nullptr) {
       combo_box->addItem("COR_CBCT");
     }
     break;
-  case REGISTER_DEFORM_SKIP_AUTORIGID:
+  case enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID:
     if (m_pParent->m_cbctrecon->m_spScatCorrReconImg != nullptr) {
       combo_box->addItem("REGISTER_DEFORM_SKIP_AUTORIGID");
     }
@@ -1513,34 +1517,34 @@ void DlgRegistration::SelectComboExternal(const int idx,
 
   auto findIndx = -1;
   switch (iImage) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     findIndx = crntCombo->findText("RAW_CBCT");
     break;
-  case REGISTER_REF_CT:
+  case enREGI_IMAGES::REGISTER_REF_CT:
     findIndx = crntCombo->findText("REF_CT");
     break;
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     findIndx = crntCombo->findText("MANUAL_RIGID_CT");
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     findIndx = crntCombo->findText("AUTO_RIGID_CT");
     break;
-  case REGISTER_DEFORM1:
+  case enREGI_IMAGES::REGISTER_DEFORM1:
     findIndx = crntCombo->findText("DEFORMED_CT1");
     break;
-  case REGISTER_DEFORM2:
+  case enREGI_IMAGES::REGISTER_DEFORM2:
     findIndx = crntCombo->findText("DEFORMED_CT2");
     break;
-  case REGISTER_DEFORM3:
+  case enREGI_IMAGES::REGISTER_DEFORM3:
     findIndx = crntCombo->findText("DEFORMED_CT3");
     break;
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     findIndx = crntCombo->findText("DEFORMED_CT_FINAL");
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     findIndx = crntCombo->findText("COR_CBCT");
     break;
-  case REGISTER_DEFORM_SKIP_AUTORIGID:
+  case enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID:
     findIndx = crntCombo->findText("REGISTER_DEFORM_SKIP_AUTORIGID");
     break;
   }
@@ -1572,19 +1576,19 @@ void DlgRegistration::SLT_FixedImageSelected(QString selText) {
 
 ctType get_ctType(const QString &selText) {
   if (selText.compare("REF_CT") == 0) {
-    return PLAN_CT;
+    return ctType::PLAN_CT;
   }
   if (selText.compare("MANUAL_RIGID_CT") == 0 ||
       selText.compare("AUTO_RIGID_CT") == 0) {
-    return RIGID_CT;
+    return ctType::RIGID_CT;
   }
   if (selText.compare("DEFORMED_CT1") == 0 ||
       selText.compare("DEFORMED_CT2") == 0 ||
       selText.compare("DEFORMED_CT3") == 0 ||
       selText.compare("DEFORMED_CT_FINAL") == 0) {
-    return DEFORM_CT;
+    return ctType::DEFORM_CT;
   }
-  return PLAN_CT;
+  return ctType::PLAN_CT;
 }
 
 void DlgRegistration::SLT_MovingImageSelected(QString selText) {
@@ -1614,11 +1618,11 @@ void DlgRegistration::UpdateVOICombobox(const ctType ct_type) const {
 }
 
 void DlgRegistration::SLT_RestoreMovingImg() {
-  m_cbctregistration->m_pParent->RegisterImgDuplication(REGISTER_REF_CT,
-                                                        REGISTER_MANUAL_RIGID);
+  m_cbctregistration->m_pParent->RegisterImgDuplication(
+      enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   this->ui.lineEditOriginChanged->setText(QString());
 
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   this->ui.pushButtonConfirmManualRegi->setDisabled(false);
 }
 
@@ -1696,8 +1700,9 @@ void DlgRegistration::SLT_PreProcessCT() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
   // if not found, just skip
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   SLT_DrawImageWhenSliceChange();
 
   std::cout << "FINISHED!: Pre-processing of CT image" << std::endl;
@@ -1948,7 +1953,7 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
   const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<RIGID_CT>(
+  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<ctType::RIGID_CT>(
       xform_file);
 
   std::cout << "8: Contours deformed" << std::endl;
@@ -1956,8 +1961,8 @@ void DlgRegistration::SLT_DoRegistrationDeform() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_DEFORM_FINAL);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_DEFORM_FINAL);
 
   std::cout << "FINISHED!: Deformable image registration. Proceed to scatter "
                "correction"
@@ -1998,8 +2003,8 @@ void DlgRegistration::SLT_DoLowerMaskIntensity() {
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_COR_CBCT);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 }
 
 void DlgRegistration::SLT_ExchangeRawRef() {}
@@ -2021,8 +2026,9 @@ void DlgRegistration::SLT_ManualMoveByDCMPlan() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
@@ -2071,8 +2077,8 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void DlgRegistration::SLT_Override() const {
@@ -2352,7 +2358,7 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
                   static_cast<float>(-trn[-2])};
 
   auto &structs = m_cbctregistration->m_pParent->m_structures;
-  structs->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+  structs->ApplyVectorTransform_InPlace<ctType::PLAN_CT>(trn_vec);
 
   this->ui.progressBar->setValue(99); // good ol' 99%
 
@@ -2365,8 +2371,8 @@ void DlgRegistration::SLT_DoRegistrationGradient() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 
   this->ui.progressBar->setValue(0);
 }
@@ -2402,11 +2408,11 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
                                    static_cast<float>(-fShift[2])};
 
   m_cbctregistration->m_pParent->m_structures
-      ->ApplyVectorTransform_InPlace<PLAN_CT>(trn_vec);
+      ->ApplyVectorTransform_InPlace<ctType::PLAN_CT>(trn_vec);
 
   if (this->ui.checkBoxCropBkgroundCT->isChecked()) {
     auto structures =
-        m_cbctregistration->m_pParent->m_structures->get_ss(RIGID_CT);
+        m_cbctregistration->m_pParent->m_structures->get_ss(ctType::RIGID_CT);
 
     // RIGID_CT structs should be created above
     const auto voi_name = this->ui.comboBox_VOItoCropBy->currentText();
@@ -2421,8 +2427,8 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
     UpdateListOfComboBox(0); // combo selection signalis called
     UpdateListOfComboBox(1);
 
-    SelectComboExternal(0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-    SelectComboExternal(1, REGISTER_MANUAL_RIGID);
+    SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+    SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 
   // Export final xform file
@@ -2470,5 +2476,5 @@ void DlgRegistration::SLT_IntensityNormCBCT() {
       QString("Added_%1")
           .arg(static_cast<int>(meanIntensityMov - meanIntensityFix));
   m_pParent->UpdateReconImage(m_spFixed, update_message);
-  SelectComboExternal(0, REGISTER_RAW_CBCT);
+  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT);
 }

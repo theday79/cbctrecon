@@ -185,17 +185,17 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
   auto idxHor = 0, idxVer = 0, idxZ = 0;
 
   switch (iDirection) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     idxHor = 0;
     idxVer = 1;
     idxZ = 2;
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     idxHor = 0;
     idxVer = 2;
     idxZ = 1;
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     idxHor = 1;
     idxVer = 2;
     idxZ = 0;

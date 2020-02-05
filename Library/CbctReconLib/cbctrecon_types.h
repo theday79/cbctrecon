@@ -66,12 +66,12 @@ struct BADPIXELMAP {
   int ReplPixY;
 };
 
-enum enProfileDirection {
+enum class enProfileDirection {
   DIRECTION_HOR = 0,
   DIRECTION_VER,
 };
 
-enum enSplitOption {
+enum class enSplitOption {
   PRI_LEFT_TOP = 0, // Primary Left Top
   PRI_RIGHT_TOP,    // Primary Left Top
   PRI_LEFT,
@@ -80,19 +80,19 @@ enum enSplitOption {
   PRI_BOTTOM,
 };
 
-enum enPLANE {
+enum class enPLANE {
   PLANE_AXIAL = 0,
   PLANE_FRONTAL,
   PLANE_SAGITTAL,
 };
 
-enum ctType {
+enum class ctType {
   PLAN_CT = 0,
   RIGID_CT = 1,
   DEFORM_CT = 2,
 };
 
-enum enREGI_IMAGES {
+enum class enREGI_IMAGES {
   REGISTER_RAW_CBCT = 0,
   REGISTER_REF_CT,       // manual moving image
   REGISTER_MANUAL_RIGID, // manual moving image
@@ -105,24 +105,24 @@ enum enREGI_IMAGES {
   REGISTER_DEFORM_SKIP_AUTORIGID,
 };
 
-enum enMachineType {
+enum class enMachineType {
   MACHINE_ELEKTA = 0,
   MACHINE_VARIAN,
 };
 
-enum enProjFormat {
+enum class enProjFormat {
   HIS_FORMAT,
   HND_FORMAT,
   XIM_FORMAT,
 };
 
-enum enCalibType {
+enum class enCalibType {
   GAIN_CALIB,
   OFFSET_CALIB,
   BADPIXEL_CALIB,
 };
 
-enum FWD_METHOD {
+enum class FWD_METHOD {
   en_Joseph = 0,
   en_CudaRayCast,
   // en_RayCastInterpolator, Deprecated in rtk 1.4
@@ -139,13 +139,13 @@ struct VEC3D {
   double z;
 };
 
-enum enDeviceType {
+enum class enDeviceType {
   CUDA_DEVT,
   CPU_DEVT,
   OPENCL_DEVT,
 };
 
-enum DCM_MODALITY {
+enum class DCM_MODALITY {
   RTIMAGE,
   RTDOSE,
   RTSTRUCT,

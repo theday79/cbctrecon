@@ -75,7 +75,7 @@ int main(const int argc, char *argv[]) {
   }
 
   /* Structure test: */
-  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(ctType::PLAN_CT);
   auto true_vois = std::begin(true_voi_names);
   auto true_super_sum = std::begin(true_super_sums);
   for (auto &structure : ss->slist) {

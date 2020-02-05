@@ -248,15 +248,15 @@ QString CbctRecon::HexStr2IntStr(QString &str_hex) const {
 void CbctRecon::LoadCalibData(std::string &filepath,
                               const enCalibType calib_type) {
   switch (calib_type) {
-  case GAIN_CALIB:
+  case enCalibType::GAIN_CALIB:
     m_pImgGain->LoadRawImage(filepath.c_str(), DEFAULT_ELEKTA_PROJ_WIDTH,
                              DEFAULT_ELEKTA_PROJ_HEIGHT);
     break;
-  case OFFSET_CALIB:
+  case enCalibType::OFFSET_CALIB:
     m_pImgOffset->LoadRawImage(filepath.c_str(), DEFAULT_ELEKTA_PROJ_WIDTH,
                                DEFAULT_ELEKTA_PROJ_HEIGHT);
     break;
-  case BADPIXEL_CALIB:
+  case enCalibType::BADPIXEL_CALIB:
     LoadBadPixelMap(filepath.c_str());
     break;
   default:
@@ -532,13 +532,13 @@ CbctRecon::GetProjFileNames(QString &dirPath) // main loading fuction for
 
   std::string regexp;
   switch (m_projFormat) {
-  case HIS_FORMAT:
+  case enProjFormat::HIS_FORMAT:
     regexp = "(.[0-9a-fA-F]).his";
     break;
-  case HND_FORMAT:
+  case enProjFormat::HND_FORMAT:
     regexp = "Proj_(.*).hnd";
     break;
-  case XIM_FORMAT:
+  case enProjFormat::XIM_FORMAT:
     regexp = "Proj_(.*).xim";
     break;
   }
@@ -787,7 +787,8 @@ void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
     const auto kVAng =
         curGantryAngle * 180.0 *
         itk::Math::one_over_pi; // 360 / 2 = 180 radians to degrees
-    auto MVAng = kVAng - (m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
+    auto MVAng =
+        kVAng - (m_projFormat == enProjFormat::HIS_FORMAT ? 0.0 : 90.0);
     if (MVAng < 0.0) {
       MVAng = MVAng + 360.0;
     }
@@ -839,7 +840,7 @@ void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
 }
 
 void CbctRecon::saveHisHeader() {
-  if (m_projFormat == HIS_FORMAT) {
+  if (m_projFormat == enProjFormat::HIS_FORMAT) {
     std::cout << "Copying the HIS info to buffer." << std::endl;
     m_arrYKBufProj.resize(m_vSelectedFileNames.size());
     auto it_selected = m_vSelectedFileNames.begin();
@@ -1464,16 +1465,16 @@ void CbctRecon::DoBeamHardeningCorrection() const {
   auto poly3_e = 1.47;
 
   switch (m_projFormat) {
-  case HIS_FORMAT:
+  case enProjFormat::HIS_FORMAT:
     poly3_a = 9.321e-05;
     poly3_b = -2.609e-03;
     poly3_c = 3.374e-02;
     poly3_d = 9.691e-01;
     poly3_e = 0.0;
     break;
-  case HND_FORMAT:
+  case enProjFormat::HND_FORMAT:
     break; // used to initialize
-  case XIM_FORMAT:
+  case enProjFormat::XIM_FORMAT:
     poly3_a = 6.0e-8;
     poly3_b = 9.0e-5;
     poly3_c = 1.0e-2;
@@ -1507,13 +1508,13 @@ void CbctRecon::DoBeamHardeningCorrection() const {
   const unsigned int nPix = pImgSize[0] * pImgSize[1] * pImgSize[2];
 
   switch (m_projFormat) {
-  case HIS_FORMAT:
+  case enProjFormat::HIS_FORMAT:
     hisBeamHardening(pImgBuffer, nPix);
     break;
-  case HND_FORMAT:
+  case enProjFormat::HND_FORMAT:
     hndBeamHardening(pImgBuffer, nPix);
     break;
-  case XIM_FORMAT:
+  case enProjFormat::XIM_FORMAT:
     ximBeamHardening(pImgBuffer, nPix);
     break;
   }
@@ -1670,7 +1671,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   auto movingSize = imgSize;
 
   switch (enPlane) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(1); // y?
 
@@ -1681,7 +1682,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     YKFixed.SetSpacing(imgSpacing[0], imgSpacing[1]);
 
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     width = imgSize[0];
     height = imgSize[2];
     i_cnt_slice = imgSize[1];
@@ -1695,7 +1696,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
     YKFixed.SetSpacing(imgSpacing[0], imgSpacing[2]);
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     width = imgSize[1];
     height = imgSize[2];
     i_cnt_slice = imgSize[0];
@@ -1737,7 +1738,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     YKMoving.m_pData[cnt] = itMoving.Get();
     ++cnt;
   }
-  if (enPlane != PLANE_AXIAL) {
+  if (enPlane != enPLANE::PLANE_AXIAL) {
     YKMoving.EditImage_Flip();
   }
 
@@ -1764,7 +1765,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
         while (!it.IsAtEndOfLine()) {
           const auto fixedImgVal = it.Get();
 
-          if (enPlane == PLANE_AXIAL) {
+          if (enPlane == enPLANE::PLANE_AXIAL) {
             YKFixed.m_pData[iNumWidth + width * iNumHeight] = fixedImgVal;
           } else {
             YKFixed.m_pData[iNumWidth + width * (height - iNumHeight - 1)] =
@@ -1844,7 +1845,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   auto movingSize = imgSize;
 
   switch (enPlane) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(1); // y?
 
@@ -1855,7 +1856,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     YKFixed.SetSpacing(imgSpacing[0], imgSpacing[1]);
 
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     width = imgSize[0];
     height = imgSize[2];
     iCntSlice = imgSize[1];
@@ -1869,7 +1870,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
     YKFixed.SetSpacing(imgSpacing[0], imgSpacing[2]);
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     width = imgSize[1];
     height = imgSize[2];
     iCntSlice = imgSize[0];
@@ -1911,7 +1912,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     YKMoving.m_pData[cnt] = itMoving.Get();
     ++cnt;
   }
-  if (enPlane != PLANE_AXIAL) {
+  if (enPlane != enPLANE::PLANE_AXIAL) {
     YKMoving.EditImage_Flip();
   }
 
@@ -1932,7 +1933,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
         while (!it.IsAtEndOfLine()) {
           const auto fixedImgVal = it.Get();
 
-          if (enPlane == PLANE_AXIAL) {
+          if (enPlane == enPLANE::PLANE_AXIAL) {
             YKFixed.m_pData[iNumWidth + width * iNumHeight] = fixedImgVal;
           } else {
             YKFixed.m_pData[iNumWidth + width * (height - iNumHeight - 1)] =
@@ -1978,12 +1979,12 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
   auto iReqSlice = qRound((pos - imgOrigin[2]) / imgSpacing[2]);
 
   switch (direction) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(1); // y?
     Output2D.SetSpacing(imgSpacing[0], imgSpacing[1]);
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     width = imgSize[0];
     height = imgSize[2];
     iCntSlice = imgSize[1];
@@ -1992,7 +1993,7 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
     it.SetSecondDirection(2); // y?
     Output2D.SetSpacing(imgSpacing[0], imgSpacing[2]);
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     width = imgSize[1];
     height = imgSize[2];
     iCntSlice = imgSize[0];
@@ -2027,7 +2028,7 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
           // double tmpVal = it.Get()*multiplyFactor;
           const double tmpVal = it.Get();
 
-          if (direction == PLANE_AXIAL) {
+          if (direction == enPLANE::PLANE_AXIAL) {
             Output2D.m_pData[iNumWidth + width * iNumHeight] = tmpVal;
           } else {
             Output2D.m_pData[iNumWidth + width * (height - iNumHeight - 1)] =
@@ -2053,7 +2054,7 @@ void CbctRecon::RegisterImgDuplication(const enREGI_IMAGES src,
   UShortImageType::Pointer tmpSrc;
 
   switch (src) {
-  case REGISTER_REF_CT:
+  case enREGI_IMAGES::REGISTER_REF_CT:
     tmpSrc = m_spRefCTImg;
     break;
   default:
@@ -2073,7 +2074,7 @@ void CbctRecon::RegisterImgDuplication(const enREGI_IMAGES src,
   duplicator->Update();
 
   switch (target) {
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     m_spManualRigidCT = duplicator->GetOutput();
     break;
   default:
@@ -2106,7 +2107,7 @@ void CbctRecon::FindAllRelevantPaths(
 
   QDir curHisDir(pathProjHisDir);
   QDir movingDir(pathProjHisDir);
-  m_projFormat = HIS_FORMAT;
+  m_projFormat = enProjFormat::HIS_FORMAT;
 
   const auto cur_his_path = curHisDir.dirName();
   if (!cur_his_path.contains("img_", Qt::CaseSensitive) &&
@@ -2119,14 +2120,14 @@ void CbctRecon::FindAllRelevantPaths(
       m_strPathGeomXML =
           curHisDir.absolutePath() + "/../" + "ProjectionInfo.xml";
       std::cout << "Patient DIR set to: Scan0/../../" << std::endl;
-      m_projFormat = HND_FORMAT;
+      m_projFormat = enProjFormat::HND_FORMAT;
       return;
     }
     if (curHisDir.absolutePath().contains("Acquisitions", Qt::CaseSensitive)) {
       std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
       m_strPathGeomXML = curHisDir.absolutePath() + "/../../" + "Scan.xml";
       std::cout << "Patient DIR set to: Acquisitions/../../../" << std::endl;
-      m_projFormat = XIM_FORMAT;
+      m_projFormat = enProjFormat::XIM_FORMAT;
       return;
     }
 
@@ -2506,27 +2507,29 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
 #else
     fd = fopen(crntPath.toLocal8Bit().constData(), "wb");
 #endif
-    fwrite(it->m_pElektaHisHeader, 100, 1,
-           fd); // this buffer only include header info
+    if (fd != nullptr) {
+      fwrite(it->m_pElektaHisHeader, 100, 1,
+             fd); // this buffer only include header info
 
-    // int imgSize = m_arrYKBufProj[i].m_iWidth * m_arrYKImage[i].m_iHeight;
+      // int imgSize = m_arrYKBufProj[i].m_iWidth * m_arrYKImage[i].m_iHeight;
 
-    // Search matching slice using slice iterator for m_spProjCTImg
-    while (!it_FwdProj.IsAtEndOfSlice()) {
-      while (!it_FwdProj.IsAtEndOfLine()) {
-        auto tmpVal = static_cast<unsigned short>(it_FwdProj.Get());
-        tmpVal = 65535 - tmpVal; // inverse is done here
+      // Search matching slice using slice iterator for m_spProjCTImg
+      while (!it_FwdProj.IsAtEndOfSlice()) {
+        while (!it_FwdProj.IsAtEndOfLine()) {
+          auto tmpVal = static_cast<unsigned short>(it_FwdProj.Get());
+          tmpVal = 65535 - tmpVal; // inverse is done here
 
-        fwrite(&tmpVal, 2, 1, fd);
-        ++it_FwdProj;
+          fwrite(&tmpVal, 2, 1, fd);
+          ++it_FwdProj;
+        }
+        it_FwdProj.NextLine();
       }
-      it_FwdProj.NextLine();
-    }
-    fclose(fd);
+      fclose(fd);
 
-    it_FwdProj.NextSlice();
-    // std::cout << "Now saving " << i+1 << " th file: " <<
-    // crntFileName.toLocal8Bit().constData() << std::endl;
+      it_FwdProj.NextSlice();
+      // std::cout << "Now saving " << i+1 << " th file: " <<
+      // crntFileName.toLocal8Bit().constData() << std::endl;
+    }
   }
 
   std::cout << "Saving completed" << std::endl;
@@ -2551,7 +2554,7 @@ public:
     // mu = ln(I_0/I) OR mu = ln(I/I0)
     constexpr auto I_0_div_I_air = 1.0 / (0.1541 * 1.225e-3 * 10.0);
     float lineintVal = std::log(I_0_div_I_air); // 10 cm of air
-    
+
     if (val > 0) {
       lineintVal = /* log(I_0=1) = 0 */ -std::log(val);
     }
@@ -2624,9 +2627,10 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     ImageType::Pointer spImg2DPrim;
 
     Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i,
-                PLANE_AXIAL); // simple conversion between ushort 3D to float 2D
-                              // (using casting, not log): input/output: 0-65535
-    Get2DFrom3D(spProjCT3D, spImg2DPrim, i, PLANE_AXIAL);
+                enPLANE::PLANE_AXIAL); // simple conversion between ushort 3D to
+                                       // float 2D (using casting, not log):
+                                       // input/output: 0-65535
+    Get2DFrom3D(spProjCT3D, spImg2DPrim, i, enPLANE::PLANE_AXIAL);
 
     // The OpenCL version: ~49ms CPU ~76ms
 #ifndef _WIN32
@@ -2691,8 +2695,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     // float to unsigned short
     Set2DTo3D<FloatImageType>(
         spImg2DScat, spProjScat3D, i,
-        PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno mu_t to
-                      // intensity converion is involved
+        enPLANE::PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno mu_t
+                               // to intensity converion is involved
 
     const auto unit = qRound(iSizeZ / 10.0);
     if (i % unit == 0) {
@@ -2708,14 +2712,15 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     std::cout << "Patient DIR Path: "
               << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
 
-    if (m_strPathPatientDir.isEmpty() && m_projFormat == HIS_FORMAT) {
+    if (m_strPathPatientDir.isEmpty() &&
+        m_projFormat == enProjFormat::HIS_FORMAT) {
       std::cout << "File save error!: No patient DIR name" << std::endl;
       return;
     }
 
     // Get current folder
     QString strCrntDir;
-    if (m_projFormat == HIS_FORMAT) {
+    if (m_projFormat == enProjFormat::HIS_FORMAT) {
       strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; // current Proj folder
     } else {
       // stolen from registration class: m_strPathPlastimatch definition
@@ -2755,7 +2760,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     }
 
     auto strSavingFolder = strCrntDir + "/" + scatDirName;
-    if (m_projFormat == HIS_FORMAT) {
+    if (m_projFormat == enProjFormat::HIS_FORMAT) {
       SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder,
                          m_fResampleF);
       std::cerr << "Scatter saved in Intensity values as HIS at: "
@@ -2830,8 +2835,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     FloatImage2DType::Pointer spImg2DRaw;
     FloatImage2DType::Pointer spImg2DScat;
 
-    Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, PLANE_AXIAL);
-    Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, PLANE_AXIAL);
+    Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, enPLANE::PLANE_AXIAL);
+    Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, enPLANE::PLANE_AXIAL);
 
     if (bHighResolMacro) {
       postMedian = postMedian * 2;
@@ -2900,7 +2905,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     }*/
 
     Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
-                              PLANE_AXIAL); // float2D to USHORT
+                              enPLANE::PLANE_AXIAL); // float2D to USHORT
 
     const auto unit = qRound(iSizeZ / 10.0);
     if (i % unit == 0) {
@@ -2929,7 +2934,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     QDir crntDir(strCrntDir);
 
     if (!crntDir.exists()) {
-      // Probably IMAGES subdir didn't exist, let's just use the selected dir anyway
+      // Probably IMAGES subdir didn't exist, let's just use the selected dir
+      // anyway
       crntDir = QDir(m_strPathPatientDir);
       if (!crntDir.exists()) {
         std::cerr << "File save error: The specified folder does not exist.\n";
@@ -2950,7 +2956,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
     auto strSavingFolder = crntDir.absolutePath() + "/" + scatDirName;
 
-    if (m_projFormat == HIS_FORMAT) {
+    if (m_projFormat == enProjFormat::HIS_FORMAT) {
       if (!bHighResolMacro) {
         SaveProjImageAsHIS(m_spProjCorr3D, m_arrYKBufProj, strSavingFolder,
                            m_fResampleF);
@@ -2959,7 +2965,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                            1.0);
       }
     } else {
-      saveImageAsMHA<FloatImageType>(m_spProjCorr3D, strSavingFolder.toStdString() + "/corr_proj.mha");
+      saveImageAsMHA<FloatImageType>(
+          m_spProjCorr3D, strSavingFolder.toStdString() + "/corr_proj.mha");
     }
   }
   // spProjScat3D->Initialize(); //memory release
@@ -3063,10 +3070,10 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer &spSrcImg,
       itk::NearestNeighborInterpolateImageFunction<FloatImageType, float>;
   const auto interpolator = InterpolatorType::New();
   resample->SetInterpolator(interpolator);
-  if ((m_projFormat == HIS_FORMAT &&
+  if ((m_projFormat == enProjFormat::HIS_FORMAT &&
        DEFAULT_ELEKTA_PROJ_HEIGHT ==
            spSrcImg->GetBufferedRegion().GetSize()[1]) ||
-      (m_projFormat != HIS_FORMAT &&
+      (m_projFormat != enProjFormat::HIS_FORMAT &&
        DEFAULT_VARIAN_PROJ_HEIGHT ==
            spSrcImg->GetBufferedRegion().GetSize()[1])) {
     resample->SetDefaultPixelValue(50);
@@ -3247,11 +3254,14 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
 
   // Truncation is invalidated inside the function
   if (use_cuda) {
-    DoReconstructionFDK<CUDA_DEVT>(REGISTER_COR_CBCT, fdk_options);
+    DoReconstructionFDK<enDeviceType::CUDA_DEVT>(
+        enREGI_IMAGES::REGISTER_COR_CBCT, fdk_options);
   } else if (use_opencl) {
-    DoReconstructionFDK<OPENCL_DEVT>(REGISTER_COR_CBCT, fdk_options);
+    DoReconstructionFDK<enDeviceType::OPENCL_DEVT>(
+        enREGI_IMAGES::REGISTER_COR_CBCT, fdk_options);
   } else {
-    DoReconstructionFDK<CPU_DEVT>(REGISTER_COR_CBCT, fdk_options);
+    DoReconstructionFDK<enDeviceType::CPU_DEVT>(
+        enREGI_IMAGES::REGISTER_COR_CBCT, fdk_options);
   }
 
   // Save Image as DICOM
@@ -3549,7 +3559,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
 
   const auto wepl_image = ConvertUshort2WeplFloat(spUshortImage);
 
-  const double fullAngle = fAngleEnd - fAngleStart;
+  const auto fullAngle = fAngleEnd - fAngleStart;
   const auto sizeAngles = qRound(fullAngle / fAngleGap);
 
   const std::array<double, 3> pixel_size = {{spUshortImage->GetSpacing()[0],
@@ -3559,7 +3569,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
   const auto couch = 0.0;
 
   for (auto i = 0; i < sizeAngles; ++i) {
-    const double gantry = fAngleStart + i * fAngleGap;
+    const auto gantry = fAngleStart + i * fAngleGap;
     const auto basis = get_basis_from_angles(gantry, couch);
     size_t loop_idx = 0;
     // int z_slice = -5000; // for progress and debug
@@ -3611,7 +3621,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
 
   const auto wepl_image = ConvertUshort2WeplFloat(spUshortImage);
 
-  const double fullAngle = fAngleEnd - fAngleStart;
+  const auto fullAngle = fAngleEnd - fAngleStart;
   const auto sizeAngles = static_cast<size_t>(qRound(fullAngle / fAngleGap));
 
   UShortImageType::PointType calc_point;
@@ -4361,19 +4371,19 @@ void CbctRecon::LoadShort3DImage(QString &filePath,
   }
 
   switch (enTarget) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     m_spRawReconImg = spImg;
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     m_spScatCorrReconImg = spImg;
     break;
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     m_spManualRigidCT = spImg;
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     m_spAutoRigidCT = spImg;
     break;
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     m_spDeformedCT_Final = spImg;
     break;
   default:
@@ -4868,7 +4878,7 @@ for (int i = 0; i < IFDSize; i++)
          fd); // Used to be 10 instead of 1, but that must've been a mistake
   fwrite(&m_rYPos, 8, 1, fd);
 
-  const auto iDummySize = static_cast<size_t>(1024 - (offsetY + 8));
+  const auto iDummySize = static_cast<size_t>(1024ull - (offsetY + 8));
 
   // char tmpDummy [802]; // 1024 -222
 

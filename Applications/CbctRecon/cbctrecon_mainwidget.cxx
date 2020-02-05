@@ -261,7 +261,7 @@ void CbctReconWidget::SLT_OpenOffsetFile() {
     return;
   }
   auto stdstr_path = strPath.toStdString();
-  this->m_cbctrecon->LoadCalibData(stdstr_path, OFFSET_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, enCalibType::OFFSET_CALIB);
 
   this->ui.lineEdit_offsetPath->setText(strPath);
 }
@@ -277,7 +277,7 @@ void CbctReconWidget::SLT_OpenGainFile() {
 
   this->ui.lineEdit_gainPath->setText(strPath);
   auto stdstr_path = strPath.toStdString();
-  this->m_cbctrecon->LoadCalibData(stdstr_path, GAIN_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, enCalibType::GAIN_CALIB);
 }
 
 void CbctReconWidget::SLT_OpenBadpixelFile() {
@@ -291,7 +291,7 @@ void CbctReconWidget::SLT_OpenBadpixelFile() {
 
   this->ui.lineEdit_badpixelPath->setText(strPath);
   auto stdstr_path = strPath.toStdString();
-  this->m_cbctrecon->LoadCalibData(stdstr_path, BADPIXEL_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, enCalibType::BADPIXEL_CALIB);
   // m_pImgGain->LoadRawImage(strPath.toLocal8Bit(),IMG_WIDTH, IMG_HEIGHT);
 }
 
@@ -475,13 +475,13 @@ void CbctReconWidget::SLT_DoReconstruction() {
   reconTimeProbe.Start();
 
   if (this->ui.radioButton_UseCUDA->isChecked()) {
-    this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CUDA_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
                                                       fdk_options);
   } else if (this->ui.radioButton_UseOpenCL->isChecked()) {
-    this->m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::OPENCL_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
                                                         fdk_options);
   } else {
-    this->m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT,
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CPU_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
                                                      fdk_options);
   }
 
@@ -697,11 +697,11 @@ std::tuple<bool, bool> CbctReconWidget::probeUser(const QString &guessDir) {
 
     if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
 
-      m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
+      m_dlgRegistration->UpdateVOICombobox(ctType::PLAN_CT);
       // UpdateReconImage(m_spRefCTImg, QString("DICOM reference image"));
 
-      this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                                REGISTER_MANUAL_RIGID);
+      this->m_cbctrecon->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
+                                                enREGI_IMAGES::REGISTER_MANUAL_RIGID);
       dcm_success = true;
     }
   }
@@ -733,7 +733,7 @@ CbctReconWidget::ReadBowtieFileWhileProbing(const QString &proj_path,
   QString bowtiePath;
 
   switch (this->m_cbctrecon->m_projFormat) {
-  case XIM_FORMAT:
+  case enProjFormat::XIM_FORMAT:
     bowtiePath = getBowtiePath(this, calDir);
     if (bowtiePath.length() > 1) {
       std::cout << "loading bowtie-filter..." << std::endl;
@@ -775,7 +775,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
 
   auto names = this->m_cbctrecon->GetProjFileNames(dirPath);
 
-  if (this->m_cbctrecon->m_projFormat == HIS_FORMAT &&
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HIS_FORMAT &&
       !this->m_cbctrecon->IsFileNameOrderCorrect(names)) {
     std::cout << "Check the file name order" << std::endl;
     QMessageBox::warning(this, "warning", "Error on File Name Sorting!");
@@ -812,7 +812,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   }
 
   if (iFullGeoDataSize != fullCnt) {
-    if (this->m_cbctrecon->m_projFormat != XIM_FORMAT) {
+    if (this->m_cbctrecon->m_projFormat != enProjFormat::XIM_FORMAT) {
       std::cout << "Size of geometry data and file numbers are not same! Check "
                    "and retry"
                 << std::endl;
@@ -893,7 +893,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   if (bowtie_reader != nullptr) {
     ApplyBowtie(proj, bowtie_proj);
   }
-  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HND_FORMAT) {
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     SLT_DoBowtieCorrection();
   }
@@ -1213,9 +1213,9 @@ void CbctReconWidget::SLT_UpdateTable() {
 
   QVector<qreal> vProfile;
   if (this->ui.radioButton_Profile_Hor->isChecked()) {
-    pYKImg->GetProfileData(vProfile, DIRECTION_HOR);
+    pYKImg->GetProfileData(vProfile, enProfileDirection::DIRECTION_HOR);
   } else {
-    pYKImg->GetProfileData(vProfile, DIRECTION_VER);
+    pYKImg->GetProfileData(vProfile, enProfileDirection::DIRECTION_VER);
   }
 
   // int i = fixedY;
@@ -1709,7 +1709,7 @@ void CbctReconWidget::SLT_DoBowtieCorrection() {
     return;
   }
 
-  if (this->m_cbctrecon->m_projFormat != HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat != enProjFormat::HND_FORMAT) {
     std::cout
         << "Bow tie filtering should not be used for His data or Xim data!!"
         << std::endl;
@@ -1906,8 +1906,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
                                               // called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 
   // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check
   // button.
@@ -1984,8 +1984,8 @@ void CbctReconWidget::SLT_LoadPlanCT_USHORT() {
   auto ref_ct = QString("RefCT");
   UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, ref_ct);
 
-  this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                            REGISTER_MANUAL_RIGID);
+  this->m_cbctrecon->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
+                                            enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
@@ -2203,9 +2203,10 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
   auto update_text = QString("RS-based skin cropped image");
   if (this->m_cbctrecon->m_spCrntReconImg ==
       this->m_cbctrecon->m_spRawReconImg) {
-    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
     if (!latest_structures) {
-      latest_structures = this->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+      latest_structures =
+          this->m_cbctrecon->m_structures->get_ss(ctType::RIGID_CT);
     }
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
@@ -2214,16 +2215,16 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
     UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spRefCTImg) {
-    auto structures = this->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+    auto structures = this->m_cbctrecon->m_structures->get_ss(ctType::PLAN_CT);
     const auto voi =
         structures->get_roi_ref_by_name(struct_to_crop.toStdString());
     OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRefCTImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spScatCorrReconImg) {
-    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
     if (!latest_structures) {
-      latest_structures = this->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+      latest_structures = this->m_cbctrecon->m_structures->get_ss(ctType::RIGID_CT);
     }
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
@@ -2480,12 +2481,12 @@ void CbctReconWidget::SLTM_LoadDICOMdir() {
 
   if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
 
-    m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
+    m_dlgRegistration->UpdateVOICombobox(ctType::PLAN_CT);
     auto update_text = QString("DICOM reference image");
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
 
-    this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                              REGISTER_MANUAL_RIGID);
+    this->m_cbctrecon->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
+                                              enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 }
 
@@ -2692,7 +2693,7 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     auto curGantryAngle = p_geometry->GetGantryAngles().at(i);
     const auto kVAng = curGantryAngle * 360. / (2. * itk::Math::pi);
     auto MVAng =
-        kVAng - (this->m_cbctrecon->m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
+        kVAng - (this->m_cbctrecon->m_projFormat == enProjFormat::HIS_FORMAT ? 0.0 : 90.0);
     if (MVAng < 0.0) {
       MVAng = MVAng + 360.0;
     }
@@ -2807,7 +2808,7 @@ void CbctReconWidget::SLTM_FullScatterCorrectionMacroAP() // single. should be
     return;
   }
 
-  const auto enRegImg = REGISTER_DEFORM_FINAL;
+  const auto enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
   const auto bFullResolForFinalRecon = false;
 
   const auto bIntensityShift = true;
@@ -2862,19 +2863,19 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
       "[2] manual-aligned CT(dcm_plan), [3] DeformedCT_skipAutoRigid",
       QLineEdit::Normal, "0", &ok);
 
-  auto enRegImg = REGISTER_DEFORM_FINAL;
+  auto enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
 
   if (ok && !text.isEmpty()) {
     const auto iRefImgVal = text.toInt();
 
     if (iRefImgVal == 0) {
-      enRegImg = REGISTER_DEFORM_FINAL;
+      enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
     } else if (iRefImgVal == 1) {
-      enRegImg = REGISTER_AUTO_RIGID;
+      enRegImg = enREGI_IMAGES::REGISTER_AUTO_RIGID;
     } else if (iRefImgVal == 2) {
-      enRegImg = REGISTER_MANUAL_RIGID;
+      enRegImg = enREGI_IMAGES::REGISTER_MANUAL_RIGID;
     } else if (iRefImgVal == 3) {
-      enRegImg = REGISTER_DEFORM_SKIP_AUTORIGID;
+      enRegImg = enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID;
       //} else {
       //  enRegImg = REGISTER_DEFORM_FINAL; <- initialized value
     }
@@ -3002,7 +3003,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
 
   QString strSuffix;
   switch (enFwdRefImg) {
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping for
                                                         // CBCT. only works when
@@ -3014,7 +3015,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     }
 
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
 
@@ -3032,7 +3033,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     m_dlgRegistration->SLT_DoRegistrationRigid();
     strSuffix = strSuffix + "_rigid";
     break;
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     std::cout << "REGISTER_DEFORM_FINAL was chosen." << std::endl;
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
@@ -3053,7 +3054,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     strSuffix = strSuffix + "_defrm";
     break;
 
-  case REGISTER_DEFORM_SKIP_AUTORIGID:
+  case enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
     // m_pDlgRegistration->SLT_DoRegistrationRigid();
@@ -3310,7 +3311,7 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
                                               // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, imagetype);
   // std::cout << m_spScatCorrReconImg->GetBufferedRegion().GetSize() <<
   // std::endl;
@@ -3319,15 +3320,15 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
 }
 
 void CbctReconWidget::SLT_LoadCBCTcorrMHA() {
-  LoadMHAfileAs<REGISTER_COR_CBCT>();
+  LoadMHAfileAs<enREGI_IMAGES::REGISTER_COR_CBCT>();
 }
 
 void CbctReconWidget::SLT_LoadCTrigidMHA() {
-  LoadMHAfileAs<REGISTER_AUTO_RIGID>();
+  LoadMHAfileAs<enREGI_IMAGES::REGISTER_AUTO_RIGID>();
 }
 
 void CbctReconWidget::SLT_LoadCTdeformMHA() {
-  LoadMHAfileAs<REGISTER_DEFORM_FINAL>();
+  LoadMHAfileAs<enREGI_IMAGES::REGISTER_DEFORM_FINAL>();
 }
 
 void CbctReconWidget::SLT_DoCouchCorrection() {
@@ -3374,8 +3375,8 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
                                               // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 
   this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spScatCorrReconImg;
   SLT_DrawReconImage();
@@ -3973,7 +3974,7 @@ void CbctReconWidget::SLT_ReloadProjections() {
                              // pixels too few in x and y
   }
 
-  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HND_FORMAT) { // -> hnd
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     SLT_DoBowtieCorrection();
   }
@@ -4064,8 +4065,8 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                            REGISTER_MANUAL_RIGID);
+  this->m_cbctrecon->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
+                                            enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRefCTImg;
 
   this->ui.lineEdit_Cur3DFileName->setText(fileName);
