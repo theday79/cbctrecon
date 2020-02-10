@@ -20,6 +20,7 @@
 #include <Windows.h>
 #endif
 
+#include <charconv>
 #include <cstdio>
 #include <filesystem>
 #include <valarray>
@@ -71,6 +72,7 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include "YK16GrayImage.h"
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
+#include "free_functions.h"
 #include <qlistview.h>
 
 CbctRecon::CbctRecon() {
@@ -84,8 +86,6 @@ CbctRecon::CbctRecon() {
   m_pImgGain = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
                                                DEFAULT_ELEKTA_PROJ_HEIGHT);
   // Prepare Raw image
-
-  m_bScanDirectionCW = true;
 
   m_iTmpIdx = 60;
 
@@ -133,23 +133,22 @@ void CbctRecon::ReleaseMemory() {
 
 // Hexa name ->decimal name
 
-void CbctRecon::RenameFromHexToDecimal(std::vector<std::filesystem::path> &filenameList) const {
+void RenameFromHexToDecimal(
+    const std::vector<std::filesystem::path> &filenameList) {
   const auto size = filenameList.size();
 
   for (auto i = 0; i < size; i++) {
     const auto &crntFilePath = filenameList.at(i);
     auto dir = std::filesystem::absolute(crntFilePath);
-    auto str_filename = crntFilePath.filename().string();
-    auto ext_pos = str_filename.find_last_of('.');
-    auto fileBase = str_filename.substr(0, ext_pos + 1);
-    auto newBaseName = HexStr2IntStr(fileBase);
-    auto extStr = str_filename.substr(ext_pos + 1);
+    auto fileBase = crntFilePath.stem();
+    auto newBaseName = crl::HexStr2IntStr(fileBase.string());
+    auto extStr = crntFilePath.extension();
 
-    auto newFileName = newBaseName.append(".").append(extStr);
-    auto newPath = dir.absolutePath() + "/" + newFileName;
+    auto newFileName = newBaseName.append(".").append(extStr.string());
+    auto newPath = std::filesystem::absolute(dir) / newFileName;
 
     // extract former part
-    QFile::rename(crntFilePath, newPath);
+    std::filesystem::rename(crntFilePath, newPath);
   }
   // Extract
 }
@@ -214,37 +213,6 @@ bool CbctRecon::FillProjForDisplay(const int slice_number) {
   return true;
 }
 
-int hex_to_int(const char ch) {
-  if (ch >= '0' && ch <= '9') {
-    return ch - '0';
-  }
-  if (ch >= 'A' && ch <= 'F') {
-    return ch - 'A' + 10;
-  }
-  if (ch >= 'a' && ch <= 'f') {
-    return ch - 'a' + 10;
-  }
-  return -1;
-}
-
-std::string CbctRecon::HexStr2IntStr(std::string &str_hex) const {
-  auto hex_str = str_hex.toStdString();
-  std::reverse(std::begin(hex_str), std::end(hex_str));
-  auto tmpDecimal = 0;
-  // int cnt = 0;
-  auto inv_i = hex_str.size() - 1;
-  for (auto &hex : hex_str) {
-    const auto tmp_num = hex_to_int(hex);
-    tmpDecimal += tmp_num * static_cast<int>(pow(16.0, inv_i--));
-  }
-
-  auto int_str = std::string("%1").arg(tmpDecimal);
-
-  return int_str;
-  // return tmpDecimal;
-  // m_str_10.Format("%d", tmpDecimal);
-}
-
 void CbctRecon::LoadCalibData(std::string &filepath,
                               const enCalibType calib_type) {
   switch (calib_type) {
@@ -257,255 +225,11 @@ void CbctRecon::LoadCalibData(std::string &filepath,
                                DEFAULT_ELEKTA_PROJ_HEIGHT);
     break;
   case enCalibType::BADPIXEL_CALIB:
-    LoadBadPixelMap(filepath.c_str());
+    crl::LoadBadPixelMap(m_vPixelReplMap, filepath);
     break;
   default:
     break;
   }
-}
-
-std::unique_ptr<YK16GrayImage>
-CbctRecon::ApplyCalibrationMaps(YK16GrayImage *const &rawImg,
-                                const bool DarkCorr, const bool GainCorr,
-                                const bool DefectCorr) {
-  auto corrImg = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
-                                                 DEFAULT_ELEKTA_PROJ_HEIGHT);
-
-  // m_pParent->m_pCurrImageRaw->m_pData[i]
-
-  if (!DarkCorr && !GainCorr) {
-    for (auto i = 0; i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT;
-         i++) {
-      corrImg->m_pData[i] = rawImg->m_pData[i]; // raw image
-    }
-  } else if (DarkCorr && !GainCorr) {
-    if (m_pImgOffset->IsEmpty()) {
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        corrImg->m_pData[i] = rawImg->m_pData[i]; // raw image
-      }
-    } else {
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        if (rawImg->m_pData[i] > m_pImgOffset->m_pData[i]) {
-          corrImg->m_pData[i] = rawImg->m_pData[i] - m_pImgOffset->m_pData[i];
-        } else {
-          corrImg->m_pData[i] = 0;
-        }
-      }
-    }
-  } else if (!DarkCorr && GainCorr) {
-    if (m_pImgGain->IsEmpty()) {
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        corrImg->m_pData[i] = rawImg->m_pData[i]; // raw image
-      }
-    } else {
-      // get a mean value for m_pGainImage
-      auto sum = 0.0;
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        sum = sum + m_pImgGain->m_pData[i];
-      }
-      const auto MeanVal =
-          sum / static_cast<double>(DEFAULT_ELEKTA_PROJ_WIDTH *
-                                    DEFAULT_ELEKTA_PROJ_HEIGHT);
-
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        if (m_pImgGain->m_pData[i] == 0) {
-          corrImg->m_pData[i] = rawImg->m_pData[i];
-        } else {
-          corrImg->m_pData[i] = static_cast<unsigned short>(
-              static_cast<double>(rawImg->m_pData[i]) /
-              static_cast<double>(m_pImgGain->m_pData[i]) * MeanVal);
-        }
-      }
-    }
-  }
-
-  else if (DarkCorr && GainCorr) {
-    auto bRawImage = false;
-    if (m_pImgOffset->IsEmpty()) {
-      bRawImage = true;
-    }
-    if (m_pImgGain->IsEmpty()) {
-      bRawImage = true;
-    }
-
-    if (bRawImage) {
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        corrImg->m_pData[i] = rawImg->m_pData[i]; // raw image
-      }
-    } else // if not raw image
-    {
-      // get a mean value for m_pGainImage
-      auto sum = 0.0;
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        sum = sum + (m_pImgGain->m_pData[i] - m_pImgOffset->m_pData[i]);
-      }
-      const auto MeanVal =
-          sum / static_cast<double>(DEFAULT_ELEKTA_PROJ_WIDTH *
-                                    DEFAULT_ELEKTA_PROJ_HEIGHT);
-
-      auto iDenomLessZero = 0;
-      auto iDenomLessZero_RawIsGreaterThanDark = 0;
-      auto iDenomLessZero_RawIsSmallerThanDark = 0;
-      auto iDenomOK_RawValueMinus = 0;
-      auto iValOutOfRange = 0;
-
-      for (auto i = 0;
-           i < DEFAULT_ELEKTA_PROJ_WIDTH * DEFAULT_ELEKTA_PROJ_HEIGHT; i++) {
-        const auto denom = static_cast<double>(m_pImgGain->m_pData[i] -
-                                               m_pImgOffset->m_pData[i]);
-
-        if (denom <= 0) {
-          iDenomLessZero++;
-
-          if (rawImg->m_pData[i] > m_pImgOffset->m_pData[i]) {
-            corrImg->m_pData[i] = rawImg->m_pData[i] - m_pImgOffset->m_pData[i];
-            iDenomLessZero_RawIsGreaterThanDark++;
-          } else {
-            corrImg->m_pData[i] = 0;
-            iDenomLessZero_RawIsSmallerThanDark++;
-          }
-        } else {
-          const auto tmpVal =
-              (rawImg->m_pData[i] - m_pImgOffset->m_pData[i]) / denom * MeanVal;
-
-          if (tmpVal < 0) {
-            corrImg->m_pData[i] = 0;
-            iDenomOK_RawValueMinus++;
-          } else {
-            if (tmpVal > 65535) { // 16bit max value
-              iValOutOfRange++;
-            }
-
-            corrImg->m_pData[i] = static_cast<unsigned short>(tmpVal);
-          }
-        }
-      } // end of for
-    }   // end if not bRawImage
-
-  } // else if (m_bDarkCorrApply && m_bGainCorrApply)
-
-  if (DefectCorr && !m_vPixelReplMap.empty()) // pixel replacement
-  {
-    corrImg = BadPixReplacement(std::move(corrImg));
-  }
-
-  return corrImg;
-}
-
-std::string CbctRecon::CorrectSingleFile(const char *filePath, const bool DarkCorr,
-                                     const bool GainCorr,
-                                     const bool DefectCorr) {
-  // Load raw file
-  auto rawImg = std::make_unique<YK16GrayImage>(DEFAULT_ELEKTA_PROJ_WIDTH,
-                                                DEFAULT_ELEKTA_PROJ_HEIGHT);
-  rawImg->LoadRawImage(filePath, DEFAULT_ELEKTA_PROJ_WIDTH,
-                       DEFAULT_ELEKTA_PROJ_HEIGHT);
-
-  const auto corrImg =
-      ApplyCalibrationMaps(rawImg.get(), DarkCorr, GainCorr, DefectCorr);
-  // filePath
-  // std::string exportName = filePath;
-  // corrImg.SaveDataAsRaw();
-  const auto endFix = std::string("_CORR");
-
-  auto srcFileInfo = QFileInfo(filePath);
-  auto dir = srcFileInfo.absoluteDir();
-  auto baseName = srcFileInfo.baseName();
-  const auto extName = srcFileInfo.completeSuffix();
-
-  const auto newFileName = baseName.append(endFix).append(".").append(extName);
-  auto newPath = dir.absolutePath() + "/" + newFileName;
-
-  if (!corrImg->SaveDataAsRaw(newPath.toLocal8Bit().constData())) {
-    std::cerr << "Could not save as Raw in: " << newPath.toStdString()
-              << std::endl;
-  }
-
-  return newPath;
-  // corrImg.ReleaseBuffer();
-}
-
-void CbctRecon::CorrectSingleFile(YK16GrayImage *pYKRawImg, const bool DarkCorr,
-                                  const bool GainCorr, const bool DefectCorr) {
-  if (pYKRawImg == nullptr) {
-    return;
-  }
-
-  const auto corrImg =
-      ApplyCalibrationMaps(pYKRawImg, DarkCorr, GainCorr, DefectCorr);
-
-  // Replace old buffer with new one.
-  pYKRawImg->CopyFromBuffer(corrImg->m_pData, corrImg->m_iWidth,
-                            corrImg->m_iHeight);
-}
-
-void CbctRecon::LoadBadPixelMap(const char *filePath) {
-  m_vPixelReplMap.clear();
-
-  std::ifstream fin;
-  fin.open(filePath);
-
-  if (fin.fail()) {
-    return;
-  }
-
-  char str[MAX_LINE_LENGTH];
-  // memset(str, 0, MAX_LINE_LENGTH);
-
-  while (!fin.eof()) {
-    memset(&str[0], 0, MAX_LINE_LENGTH);
-    fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = std::string(&str[0]);
-
-    if (tmpStr.contains("#ORIGINAL_X")) {
-      break;
-    }
-  }
-
-  while (!fin.eof()) {
-    memset(&str[0], 0, MAX_LINE_LENGTH);
-    fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = std::string(&str[0]);
-
-    auto strList = tmpStr.split("	");
-
-    if (strList.size() == 4) {
-      BADPIXELMAP tmpData{};
-      tmpData.BadPixX = strList.at(0).toInt();
-      tmpData.BadPixY = strList.at(1).toInt();
-      tmpData.ReplPixX = strList.at(2).toInt();
-      tmpData.ReplPixY = strList.at(3).toInt();
-      m_vPixelReplMap.push_back(tmpData);
-    }
-  }
-  fin.close();
-}
-
-std::unique_ptr<YK16GrayImage>
-CbctRecon::BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg) {
-  if (m_vPixelReplMap.empty()) {
-    return targetImg;
-  }
-
-  for (auto &it : m_vPixelReplMap) {
-    const auto tmpData = it;
-    const auto oriIdx =
-        static_cast<size_t>(tmpData.BadPixY) * DEFAULT_ELEKTA_PROJ_WIDTH +
-        tmpData.BadPixX;
-    const auto replIdx =
-        static_cast<size_t>(tmpData.ReplPixY) * DEFAULT_ELEKTA_PROJ_WIDTH +
-        tmpData.ReplPixX;
-    targetImg->m_pData[oriIdx] = targetImg->m_pData[replIdx];
-  }
-
-  return targetImg;
 }
 
 void CbctRecon::SetProjDir(std::string &strProjPath) {
@@ -521,58 +245,6 @@ void CbctRecon::SetProjDir(std::string &strProjPath) {
   FindAllRelevantPaths(strProjPath);
 }
 
-std::vector<std::string>
-CbctRecon::GetProjFileNames(std::string &dirPath) // main loading fuction for
-                                              // projection images
-{
-
-  m_iImgCnt = 0; // should be reset
-  m_iCntSelectedProj = 0;
-  ReleaseMemory(); // only reset mem for indepent projection images
-
-  std::string regexp;
-  switch (m_projFormat) {
-  case enProjFormat::HIS_FORMAT:
-    regexp = "(.[0-9a-fA-F]).his";
-    break;
-  case enProjFormat::HND_FORMAT:
-    regexp = "Proj_(.*).hnd";
-    break;
-  case enProjFormat::XIM_FORMAT:
-    regexp = "Proj_(.*).xim";
-    break;
-  }
-  auto regexpnames = itk::RegularExpressionSeriesFileNames::New();
-  regexpnames->SetDirectory(dirPath.toLocal8Bit().constData());
-  // regexpnames->SetNumericSort(false);
-  regexpnames->SetNumericSort(true); // doesn't work with hexadecimal. and
-                                     // [true/false] doesn't mean ascending or
-                                     // descending
-  regexpnames->SetRegularExpression(regexp);
-  const auto submatch = 1;
-  regexpnames->SetSubMatch(
-      submatch); // SetSubMatch(0) led to sorting from last digit of the name
-
-  auto names = regexpnames->GetFileNames();
-
-  rtk::RegisterIOFactories();
-  std::vector<size_t> idxtopop;
-  for (auto &fn : names) {
-    auto imageio = itk::ImageIOFactory::CreateImageIO(
-        fn.c_str(), itk::ImageIOFactory::ReadMode);
-
-    if (imageio.IsNull()) {
-      idxtopop.push_back(&fn - &names[0]);
-    }
-  }
-  std::reverse(idxtopop.begin(), idxtopop.end());
-  for (auto &id : idxtopop) {
-    names.erase(names.begin() + id);
-  }
-
-  return names;
-}
-
 bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
                              std::vector<std::string> &names) {
 
@@ -581,6 +253,8 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
               << std::endl;
     return false;
   }
+
+  const std::filesystem::path tmp_rtk_geom_file{"RTKgeometry.xml"};
 
   if (geomFileInfo.fileName() == "_Frames.xml") // this is XVI XML.
   {
@@ -605,12 +279,12 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     reader->UpdateOutputData();
     // Write
     auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-    xmlWriter->SetFilename("RTKgeometry.xml");
+    xmlWriter->SetFilename(tmp_rtk_geom_file.string());
     xmlWriter->SetObject(reader->GetGeometry());
     TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
     std::cout << "RTK standard Geometry XML File was created:"
-              << "RTKgeometry.xml" << std::endl;
-    LoadRTKGeometryFile("RTKgeometry.xml");
+              << tmp_rtk_geom_file << std::endl;
+    m_spFullGeometry = crl::LoadRTKGeometryFile(tmp_rtk_geom_file);
     // ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData());
     // //will generate m_spFullGeometry
   } else if (geomFileInfo.fileName() == "Scan.xml") // this is XIM XML.
@@ -625,12 +299,12 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     reader->UpdateOutputData();
     // Write
     auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
-    xmlWriter->SetFilename("RTKgeometry.xml");
+    xmlWriter->SetFilename(tmp_rtk_geom_file.string());
     xmlWriter->SetObject(reader->GetGeometry());
     xmlWriter->WriteFile();
     std::cout << "RTK standard Geometry XML File was created:"
-              << "RTKgeometry.xml" << std::endl;
-    LoadRTKGeometryFile("RTKgeometry.xml");
+              << tmp_rtk_geom_file << std::endl;
+    m_spFullGeometry = crl::LoadRTKGeometryFile(tmp_rtk_geom_file);
     std::cout << "Done!";
     // ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData());
     // //will generate m_spFullGeometry
@@ -638,133 +312,12 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     std::cout << "RTK standard Geometry XML File was found:"
               << geomFileInfo.absoluteFilePath().toLocal8Bit().constData()
               << std::endl;
-    LoadRTKGeometryFile(geomFileInfo.absoluteFilePath()
-                            .toLocal8Bit()
-                            .constData()); // will generate m_spFullGeometry
+    m_spFullGeometry = crl::LoadRTKGeometryFile(
+        geomFileInfo.absoluteFilePath()
+            .toLocal8Bit()
+            .constData()); // will generate m_spFullGeometry
   }
   return true;
-}
-
-std::vector<size_t>
-CbctRecon::GetExcludeProjFiles(const bool bManAngleGap,
-                               const double gantryAngleInterval) {
-  ///////////////////////////////////Exclude outlier projection files
-  auto angle_gaps =
-      m_spFullGeometry->GetAngularGaps(m_spFullGeometry->GetSourceAngles());
-
-  auto sum_gap =
-      std::accumulate(std::begin(angle_gaps), std::end(angle_gaps), 0.0);
-  sum_gap /= itk::Math::pi * 180.0;
-
-  auto &gantry_angles = m_spFullGeometry->GetGantryAngles();
-  std::vector<size_t> vSelectedIdx;
-  std::vector<size_t> vSelectedIdx_final;
-  std::vector<size_t> vExcludeIdx;
-
-  if (bManAngleGap) {
-    // Select indices for recon
-    // Generate norminal gantry values from the first angle
-    const auto firstAngle = gantry_angles.at(0);
-    const auto lastAngle = gantry_angles.at(gantry_angles.size() - 1);
-
-    std::vector<double> vNormAngles;
-
-    const auto multiSize = std::lround(sum_gap / gantryAngleInterval) + 2;
-
-    // CW only (179.xx -> 181.xx -> 359.xx --> 1.xx --> 179.xx), CCW should be
-    // checked later
-    for (auto i = 0; i < multiSize; i++) {
-      auto curAngle = 0.0;
-
-      if (m_bScanDirectionCW) {
-        curAngle = firstAngle + i * gantryAngleInterval;
-        if (curAngle >= 360.0) {
-          curAngle = curAngle - 360.0;
-        }
-      } else {
-        curAngle = firstAngle - i * gantryAngleInterval;
-        if (curAngle < 0.0) {
-          curAngle = curAngle + 360.0;
-        }
-      }
-      // Don't add last gantry angle if their intervals are too small.
-
-      // Last data will be added at the last part
-      if (i > multiSize - 5) // last parts of the data
-      {
-        if (m_bScanDirectionCW) {
-          if (curAngle <=
-              lastAngle - gantryAngleInterval / 2.0) // from 5 latest indices,
-          {
-            vNormAngles.push_back(curAngle);
-          }
-        } else {
-          if (curAngle >=
-              lastAngle - gantryAngleInterval / 2.0) // from 5 latest indices,
-          {
-            vNormAngles.push_back(curAngle);
-          }
-        }
-        // gantryAngleInterval/2.0 is given to remove "very near" value to the
-        // last value
-      } else {
-        vNormAngles.push_back(curAngle);
-      }
-    }
-    vNormAngles.push_back(lastAngle);
-
-    for (auto vNormAngle : vNormAngles) {
-      std::cout << "Nominal proj. angle: ";
-      std::cout << vNormAngle << std::endl;
-    }
-
-    // Collect appropriate indices
-    GetSelectedIndices(gantry_angles, vNormAngles, vSelectedIdx,
-                       m_bScanDirectionCW, vExcludeIdx);
-
-    for (auto &it_idx : vSelectedIdx) {
-      std::cout << "Index: " << it_idx << "     "
-                << "GantryAngle: " << gantry_angles.at(it_idx) << std::endl;
-    }
-  } else // not manual
-  {
-    for (size_t i = 0; i < gantry_angles.size(); i++) {
-      if (std::find(vExcludeIdx.begin(), vExcludeIdx.end(), i) ==
-          vExcludeIdx.end()) { // if i is not included in vExcludeIdx
-        vSelectedIdx.push_back(i);
-      }
-    }
-  }
-  // Another exlusion for kV off images
-
-  vSelectedIdx_final.clear();
-
-  // std::vector<int>::iterator itExclude;
-  // for (itExclude = m_vExcludeProjIdx.begin(); itExclude !=
-  // m_vExcludeProjIdx.end(); ++itExclude)
-  //{
-  //    int idx = (*itExclude);
-  //    //if (std::find(m_vExcludeProjIdx.begin(), m_vExcludeProjIdx.end(),
-  //    curIdx) == m_vExcludeProjIdx.end()) // if i is not included in
-  //    vExcludeIdx
-  //    //    vSelectedIdx_final.push_back(curIdx);
-
-  //    std::cout << "Exclude " << idx << std::endl;
-  //}
-
-  m_vExcludeProjIdx.clear();
-
-  for (auto &it_final : vSelectedIdx) {
-    if (std::find(m_vExcludeProjIdx.begin(), m_vExcludeProjIdx.end(),
-                  it_final) ==
-        m_vExcludeProjIdx.end()) { // if i is not included in vExcludeIdx
-      vSelectedIdx_final.push_back(it_final);
-    }
-  }
-
-  std::cout << "Total proj count: " << vSelectedIdx.size() << std::endl;
-
-  return vSelectedIdx_final;
 }
 
 void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
@@ -867,7 +420,7 @@ void CbctRecon::NormalizeProjections(
            pow(m_spCustomGeometry->GetSourceToDetectorDistances()[2], 2)) *
       0.1; // mm -> cm
 
-  const auto correctionValue = GetMaxAndMinValueOfProjectionImage(
+  const auto correctionValue = crl::GetMaxAndMinValueOfProjectionImage(
       originalMax, originalMin, reader_output); // , theoreticalMin);
   std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin
             << std::endl;
@@ -911,8 +464,8 @@ void CbctRecon::NormalizeProjections(
     // Reset min max:
     originalMax = -1.0;
     originalMin = -1.0;
-    if (GetMaxAndMinValueOfProjectionImage(originalMax, originalMin,
-                                           m_spProjImg3DFloat) > -1000.0) {
+    if (crl::GetMaxAndMinValueOfProjectionImage(originalMax, originalMin,
+                                                m_spProjImg3DFloat) > -1000.0) {
       std::cout << "Reader Max, Min=" << originalMax << "	" << originalMin
                 << std::endl;
     }
@@ -945,133 +498,12 @@ bool CbctRecon::ResampleProjections(double &resample_factor) {
   return true;
 }
 
-void CbctRecon::GetSelectedIndices(const std::vector<double> &vFullAngles,
-                                   std::vector<double> &vNormAngles,
-                                   std::vector<size_t> &vTargetIdx,
-                                   const bool bCW,
-                                   std::vector<size_t> &vExcludingIdx) const {
-  // projection time. Begins with 179.xxx (CW)
-  size_t latest_Idx = 0;
-
-  const auto sizeNom = vNormAngles.size();
-  const auto sizeFull = vFullAngles.size();
-
-  for (size_t i = 0; i < sizeNom; ++i) {
-    const auto tmpNominalValue = vNormAngles.at(i);
-
-    for (auto j = latest_Idx + 1; j < sizeFull - 1; j++) {
-      auto enExcludingMode = 0; // 0: safe,1: right is outlier, 2: left is
-                                // outlier, 3: both are outlier
-
-      // 1) Left point is outlier
-      if (std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j) !=
-              vExcludingIdx.end() &&
-          std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j + 1) ==
-              vExcludingIdx.end()) {
-        enExcludingMode = 2;
-      }
-      // 2) Right point is outlier
-      else if (std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j) ==
-                   vExcludingIdx.end() &&
-               std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j + 1) !=
-                   vExcludingIdx.end()) {
-        enExcludingMode = 1;
-      }
-      // 2) No outlier
-      else if (std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j) ==
-                   vExcludingIdx.end() &&
-               std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j + 1) ==
-                   vExcludingIdx.end()) {
-        enExcludingMode = 0;
-      }
-      // 3) Both are outliers
-      else if (std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j) !=
-                   vExcludingIdx.end() &&
-               std::find(vExcludingIdx.begin(), vExcludingIdx.end(), j + 1) !=
-                   vExcludingIdx.end()) {
-        enExcludingMode = 3;
-      }
-
-      auto cur_val = vFullAngles.at(j);
-      auto next_val = vFullAngles.at(j + 1);
-
-      if (bCW) {
-        // for full gantry angle value of 359.0 - 1.0 interface in CW
-        if (cur_val >
-            next_val + 0.2) // e.g.359)  - 0.5,, 0.2-->minimum angle diff.
-        {
-          if (tmpNominalValue < 100) {
-            cur_val = cur_val - 360.0;
-          } else if (tmpNominalValue > 260) {
-            next_val = next_val + 360.0;
-          }
-        }
-        if (tmpNominalValue >= cur_val && tmpNominalValue <= next_val) {
-
-          // Add filtering
-          // if j is among the excluding index list (e.g. outlier), just pass
-          // it.
-
-          const auto diff_cur = fabs(tmpNominalValue - cur_val);
-          const auto diff_next = fabs(tmpNominalValue - next_val);
-
-          if (diff_cur <= diff_next || enExcludingMode == 0 ||
-              enExcludingMode == 1) {
-            latest_Idx = j;
-            vTargetIdx.push_back(latest_Idx);
-          } else if (j != sizeFull - 2 && enExcludingMode == 2) {
-            latest_Idx = j + 1;
-            vTargetIdx.push_back(latest_Idx);
-          } else {
-            latest_Idx = j;
-            // Skip to pushback
-          }
-
-          break;
-        }
-      } else // in CCW case
-      {
-        // for full gantry angle value of 1.0 - 359.0 interface in CCW
-        if (cur_val <
-            next_val + 0.01) // e.g.359)  - 0.5,, 0.2-->minimum angle diff.
-        {
-          if (tmpNominalValue < 100) { // for redundant check
-            next_val = next_val - 360.0;
-          } else if (tmpNominalValue > 260) { // for redundant check
-            cur_val = cur_val + 360.0;
-          }
-        }
-
-        // in CCW, next value should be smaller than curVal
-        if (tmpNominalValue >= next_val && tmpNominalValue <= cur_val) {
-          const auto diffCur = fabs(tmpNominalValue - cur_val);
-          const auto diffNext = fabs(tmpNominalValue - next_val);
-
-          if (diffCur <= diffNext || enExcludingMode == 0 ||
-              enExcludingMode == 1) {
-            latest_Idx = j;
-            vTargetIdx.push_back(latest_Idx);
-          } else if (j != sizeFull - 2 && enExcludingMode == 2) {
-            latest_Idx = j + 1;
-            vTargetIdx.push_back(latest_Idx);
-          } else {
-            latest_Idx = j;
-            // Skip to pushback
-          }
-          break;
-        }
-      }
-    }
-  }
-  // vTargetIdx.push_back(sizeFull-1); //omit the last image --> should be same
-  // as first...
-}
-
 void CbctRecon::GetExcludeIndexByNames(
-    const std::string &outlierListPath, std::vector<std::string> &vProjFileFullPath,
+    const std::filesystem::path &outlierListPath,
+    std::vector<std::string> &vProjFileFullPath,
     std::vector<int> &vExcludeIdx) const {
   std::ifstream fin;
-  fin.open(outlierListPath.toLocal8Bit().constData(), std::ios::in);
+  fin.open(outlierListPath, std::ios::in);
   if (static_cast<int>(fin.fail()) == 1) {
     return;
   }
@@ -1143,43 +575,6 @@ void CbctRecon::SetMaxAndMinValueOfProjectionImage() // should be called
     }
     it.NextSlice();
   }
-}
-
-bool CbctRecon::IsFileNameOrderCorrect(
-    std::vector<std::string> &vFileNames) const {
-  // regardless of whether number or hexa codes,
-  // we can convert it from number to hexa number and compare the order
-
-  const auto size = vFileNames.size();
-
-  if (size < 2) {
-    return false;
-  }
-
-  std::vector<int> arrNum(size);
-
-  size_t index = 0;
-  while (index < size) {
-    std::string crntFilePath = vFileNames.at(index++).c_str();
-    auto fileInfo = QFileInfo(crntFilePath);
-    auto dir = fileInfo.absoluteDir();
-    auto file_basename = fileInfo.baseName();
-    auto newBaseName = HexStr2IntStr(file_basename);
-    arrNum.push_back(newBaseName.toInt());
-  }
-
-  /*bool bOrderOK = true;
-  for (int i = 0; i < size - 1; i++)
-  {
-      if (arrNum[i] >= arrNum[i + 1]) {
-          bOrderOK = false;
-              }
-  }*/
-
-  const auto index_of_nonascending =
-      std::adjacent_find(arrNum.begin(), arrNum.end(), std::greater<>());
-
-  return index_of_nonascending == arrNum.end();
 }
 
 void CbctRecon::PostApplyFOVDispParam(const float physPosX,
@@ -1322,128 +717,7 @@ void CbctRecon::CropSupInf(UShortImageType::Pointer &sp_Img,
 }
 
 // mm
-void CbctRecon::CropFOV3D(UShortImageType::Pointer &sp_Img,
-                          const float physPosX, const float physPosY,
-                          const float physRadius,
-                          const float physTablePosY) const {
-  if (sp_Img == nullptr) {
-    return;
-  }
-  // 1) region iterator, set 0 for all pixels outside the circle and below the
-  // table top, based on physical position
-  auto origin = sp_Img->GetOrigin();
-  auto spacing = sp_Img->GetSpacing();
 
-  itk::ImageSliceIteratorWithIndex<UShortImageType> it(
-      sp_Img, sp_Img->GetBufferedRegion());
-
-  it.SetFirstDirection(0);  // x?
-  it.SetSecondDirection(1); // y?
-  it.GoToBegin();
-
-  auto iNumSlice = 0;
-  while (!it.IsAtEnd()) {
-    auto iPosY = 0;
-    while (!it.IsAtEndOfSlice()) {
-      auto iPosX = 0;
-      while (!it.IsAtEndOfLine()) {
-        // Calculate physical position
-
-        const auto crntPhysX = iPosX * static_cast<double>(spacing[0]) +
-                               static_cast<double>(origin[0]);
-        const auto crntPhysY = iPosY * static_cast<double>(spacing[1]) +
-                               static_cast<double>(origin[1]);
-
-        if (pow(crntPhysX - physPosX, 2.0) + pow(crntPhysY - physPosY, 2.0) >=
-            pow(physRadius, 2.0)) {
-          //(*it) = (unsigned short)0; //air value
-          it.Set(0);
-        }
-
-        if (crntPhysY >= physTablePosY) {
-          it.Set(0);
-        }
-        ++it;
-        iPosX++;
-      }
-      it.NextLine();
-      iPosY++;
-    }
-    it.NextSlice();
-    iNumSlice++;
-  }
-}
-
-void CbctRecon::CopyDictionary(itk::MetaDataDictionary &fromDict,
-                               itk::MetaDataDictionary &toDict) const {
-  using DictionaryType = itk::MetaDataDictionary;
-
-  DictionaryType::ConstIterator itr = fromDict.Begin();
-  const DictionaryType::ConstIterator end = fromDict.End();
-  using MetaDataStringType = itk::MetaDataObject<std::string>;
-
-  while (itr != end) {
-    auto entry = itr->second;
-
-    MetaDataStringType::Pointer entryvalue =
-        dynamic_cast<MetaDataStringType *>(entry.GetPointer());
-    if (entryvalue != nullptr) {
-      auto tagkey = itr->first;
-      auto tagvalue = entryvalue->GetMetaDataObjectValue();
-      itk::EncapsulateMetaData<std::string>(toDict, tagkey, tagvalue);
-    }
-    ++itr;
-  }
-}
-
-inline float BeamHardModel(const double val, const double a, const double b,
-                           const double c, const double d) {
-  return a * pow(val, 3.0) + b * pow(val, 2.0) + c * val + d;
-}
-
-inline double HndBeamHardModel(const double val) {
-  // a * x^3 + b * x^2 + c * x + d
-  return 6.0e-08 * pow(val, 3.0) - 1.0e-08 * pow(val, 2.0) - 5.0e-07 * val +
-         8.0e-01;
-}
-
-inline double HisBeamHardModel(const double val) {
-  // a * x^3 + b * x^2 + c * x + d
-  return 9.321e-05 * pow(val, 3.0) - 2.609e-03 * pow(val, 2.0) +
-         3.374e-02 * val + 9.691e-01;
-}
-
-inline double
-XimBeamHardModel(const double val) { // a * x^3 + b * x^2 + c * x + d
-  return 6.0e-08 * pow(val, 3.0) + 9.0e-5 * pow(val, 2.0) + 1.0e-2 * val + 0.8;
-}
-
-void hndBeamHardening(float *pBuffer, const int nPix) {
-#pragma omp parallel for
-  for (auto i = 0; i < nPix; i++) {
-    pBuffer[i] = static_cast<float>(
-        (pBuffer[i] < 1.189 ? pBuffer[i]
-                            : pBuffer[i] * HndBeamHardModel(pBuffer[i])) +
-        1.47);
-  }
-}
-void hisBeamHardening(float *pBuffer, const int nPix) {
-#pragma omp parallel for
-  for (auto i = 0; i < nPix; i++) {
-    pBuffer[i] = static_cast<float>(
-        (pBuffer[i] < 1.189 ? pBuffer[i]
-                            : pBuffer[i] * HisBeamHardModel(pBuffer[i])));
-  }
-}
-void ximBeamHardening(float *pBuffer, const int nPix) {
-#pragma omp parallel for
-  for (auto i = 0; i < nPix; i++) {
-    pBuffer[i] = static_cast<float>(
-        (pBuffer[i] < 1.189 ? pBuffer[i]
-                            : pBuffer[i] * XimBeamHardModel(pBuffer[i])) -
-        1.47);
-  }
-}
 void CbctRecon::DoBeamHardeningCorrection() const {
   if (m_spProjImg3DFloat == nullptr) {
     return;
@@ -1454,7 +728,7 @@ void CbctRecon::DoBeamHardeningCorrection() const {
   // double crntVal = 0.0;
   // double corrF = 0.0;
 
-  // REMEMBER to change in above inlined functions, here is only for
+  // REMEMBER to change in the model functions in crl, here is only for
   // debug !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   // HND_FORMAT:
@@ -1509,59 +783,43 @@ void CbctRecon::DoBeamHardeningCorrection() const {
 
   switch (m_projFormat) {
   case enProjFormat::HIS_FORMAT:
-    hisBeamHardening(pImgBuffer, nPix);
+    crl::BeamHardening<enProjFormat::HIS_FORMAT>(pImgBuffer, nPix);
     break;
   case enProjFormat::HND_FORMAT:
-    hndBeamHardening(pImgBuffer, nPix);
+    crl::BeamHardening<enProjFormat::HND_FORMAT>(pImgBuffer, nPix);
     break;
   case enProjFormat::XIM_FORMAT:
-    ximBeamHardening(pImgBuffer, nPix);
+    crl::BeamHardening<enProjFormat::XIM_FORMAT>(pImgBuffer, nPix);
     break;
   }
 }
 
-double heaviside(const double x) { return .5 * sgn(x) + 0.5; }
-
-double fullFan_subFunction(const double a, const double b, const double c,
-                           const double d, const double x) {
-  return c - sqrt(abs(pow(a, 2) - pow(x * d - b, 2))) *
-                 heaviside(x * d - b + a) * heaviside(-(x * d - b - a));
-}
-
-double fullFan_Function(const double a, const double b, const double c,
-                        const double d, const double e, const double x) {
-  return (fullFan_subFunction(a, b, c, d, x - 3. * e) +
-          fullFan_subFunction(a, b, c, d, x - 2. * e) +
-          fullFan_subFunction(a, b, c, d, x - e) +
-          fullFan_subFunction(a, b, c, d, x) +
-          fullFan_subFunction(a, b, c, d, x + e) +
-          fullFan_subFunction(a, b, c, d, x + 2. * e) +
-          fullFan_subFunction(a, b, c, d, x + 3. * e)) *
-         .142857; // = 1/7
-}
-
 void CbctRecon::BowtieByFit(const bool fullfan,
-                            const std::stringList &params) const {
-  if (params.length() != 4 && !fullfan) {
+                            const std::vector<std::string> &params) const {
+  if (params.size() != 4 && !fullfan) {
     std::cout << "Wrong number of arguments!" << std::endl
               << "Must be a;b;c;d -> d. / (1 + exp(-b.*(x - a))) + c"
               << std::endl;
     return;
   }
-  if (params.length() != 5 && fullfan) {
+  if (params.size() != 5 && fullfan) {
     std::cout << "Wrong number of arguments!" << std::endl
               << "Must be a;b;c;d;e -> c - sqrt(abs(a^2-((x+/-e)*d-b)^2)) * "
                  "heaviside((x+/-e)*d-b+a) * heaviside(-((x+/-e)*d-b-a))"
               << std::endl;
     return;
   }
-  const auto poly3_a = params.at(0).toDouble(); // 264.6; //comboBox_fBTcor
-  const auto poly3_b = params.at(1).toDouble(); // 0.06258;
-  const auto poly3_c = params.at(2).toDouble(); // 2.502;
-  const auto poly3_d = params.at(3).toDouble(); // 1.455;
+  const auto poly3_a = crl::from_string<double>(params.at(0))
+                           .value_or(0.0); // 264.6; //comboBox_fBTcor
+  const auto poly3_b =
+      crl::from_string<double>(params.at(1)).value_or(0.0); // 0.06258;
+  const auto poly3_c =
+      crl::from_string<double>(params.at(2)).value_or(0.0); // 2.502;
+  const auto poly3_d =
+      crl::from_string<double>(params.at(3)).value_or(0.0); // 1.455;
   auto poly3_e = 0.0;
   if (fullfan) {
-    poly3_e = params.at(4).toDouble();
+    poly3_e = crl::from_string<double>(params.at(4)).value_or(0.0);
   }
 
   auto imgSize = m_spProjImg3DFloat->GetLargestPossibleRegion().GetSize();
@@ -1592,8 +850,8 @@ void CbctRecon::BowtieByFit(const bool fullfan,
                                 // to be consistent with downResFactor
       // if (crntVal > (poly3_c - poly3_a)), negative values are fine, don't
       // worry
-      const auto corrF =
-          fullFan_Function(poly3_a, poly3_b, poly3_c, poly3_d, poly3_e, x_idx);
+      const auto corrF = crl::fullFan_Function(poly3_a, poly3_b, poly3_c,
+                                               poly3_d, poly3_e, x_idx);
       it.Set(static_cast<float>(crntVal -
                                 corrF)); // (log(65535 / (crntVal - corrF))));
       ++it;
@@ -2115,8 +1373,8 @@ void CbctRecon::FindAllRelevantPaths(
   m_strPathPlan.clear();
   m_strPathIMAGES.clear();
 
-  auto curHisDir = std::filesystem::path(pathProjHisDir.toStdString());
-  auto movingDir = std::filesystem::path(pathProjHisDir.toStdString());
+  auto curHisDir = std::filesystem::path(pathProjHisDir);
+  auto movingDir = std::filesystem::path(pathProjHisDir);
   m_projFormat = enProjFormat::HIS_FORMAT;
 
   const auto cur_his_path_str = curHisDir.string();
@@ -2179,26 +1437,31 @@ void CbctRecon::FindAllRelevantPaths(
   }
 
   m_strPatientDirName = tmpDir_PatientFolder.parent_path().filename();
-  m_strPathPatientDir = std::filesystem::absolute(tmpDir_PatientFolder.parent_path());
+  m_strPathPatientDir =
+      std::filesystem::absolute(tmpDir_PatientFolder.parent_path());
 
-
-  if (tmpDir_PatientFolder.has_parent_path() ) {
+  if (tmpDir_PatientFolder.has_parent_path()) {
     m_strPathDirDefault = m_strPathPatientDir;
   }
 
   // option 1: already made rtk xml file
-  const auto tmpPathRTKGeometry = m_strPathPatientDir / std::string("ElektaGeom_" + m_strDCMUID + ".xml");
+  const auto tmpPathRTKGeometry =
+      m_strPathPatientDir / std::string("ElektaGeom_" + m_strDCMUID + ".xml");
 
   // option 2
   const auto pathXVIGeometryXML =
       std::filesystem::absolute(curHisDir) / "_Frames.xml";
 
-  if (std::filesystem::exists(tmpPathRTKGeometry)) // The best option: rtk geometry file is already existing
+  if (std::filesystem::exists(
+          tmpPathRTKGeometry)) // The best option: rtk geometry file is already
+                               // existing
   {
     std::cout << "RTK XLM file is found" << std::endl;
     m_strPathGeomXML = tmpPathRTKGeometry;
-  } else if (std::filesystem::exists(pathXVIGeometryXML)) // 2nd option:_Frames.xml already exists in
-                                   // each projection folder for > XVI5.0.2
+  } else if (std::filesystem::exists(
+                 pathXVIGeometryXML)) // 2nd option:_Frames.xml already exists
+                                      // in each projection folder for >
+                                      // XVI5.0.2
   {
     std::cout << "XVI XLM file is found" << std::endl;
     // YKdebug: Later, it
@@ -2223,18 +1486,18 @@ void CbctRecon::FindAllRelevantPaths(
     auto fInfo_FrameDBF = tmpStrPath1 / "FRAME.DBF";
     auto fInfo_ImageDBF = tmpStrPath2 / "IMAGE.DBF";
 
-    if (!std::filesystem::exists(fInfo_FrameDBF) || !std::filesystem::exists(fInfo_ImageDBF)) {
+    if (!std::filesystem::exists(fInfo_FrameDBF) ||
+        !std::filesystem::exists(fInfo_ImageDBF)) {
       std::cout << "No found in the patient folder. DBF files can be saved in "
                    "each individual patient as well. Continues to search them "
                    "again in root folder(standard)"
                 << std::endl;
 
-      fInfo_FrameDBF =
-          m_strPathPatientDir / "FRAME.DBF";
-      fInfo_ImageDBF =
-          m_strPathPatientDir / "IMAGE.DBF";
+      fInfo_FrameDBF = m_strPathPatientDir / "FRAME.DBF";
+      fInfo_ImageDBF = m_strPathPatientDir / "IMAGE.DBF";
 
-      if (!std::filesystem::exists(fInfo_FrameDBF) || !std::filesystem::exists(fInfo_ImageDBF)) {
+      if (!std::filesystem::exists(fInfo_FrameDBF) ||
+          !std::filesystem::exists(fInfo_ImageDBF)) {
         std::cout << "DBF files were not found" << std::endl;
         std::cout << "XML file cannot be made" << std::endl;
         return;
@@ -2247,12 +1510,12 @@ void CbctRecon::FindAllRelevantPaths(
     m_strPathIMAGE_DBF = std::filesystem::absolute(fInfo_ImageDBF);
 
     m_strPathGeomXML.clear();
-    m_strPathGeomXML =
-        MakeElektaXML(m_strPathIMAGE_DBF.string(), m_strPathFRAME_DBF.string(),
-                      m_strDCMUID); // if DBF files exist but UID is not
-                                    // found, it will crash
+    m_strPathGeomXML = crl::MakeElektaXML(
+        m_strPathIMAGE_DBF.string(), m_strPathFRAME_DBF.string(),
+        m_strDCMUID); // if DBF files exist but UID is not
+                      // found, it will crash
 
-    if (m_strPathGeomXML.length() < 1) {
+    if (m_strPathGeomXML.empty()) {
       std::cout << "No releated data in DBF file" << std::endl;
       return;
     }
@@ -2278,15 +1541,15 @@ void CbctRecon::FindAllRelevantPaths(
   // 2: NO CT image
 
   auto tmpDIR_CTSET =
-      QDir(tmpDir_PatientFolder.absolutePath().append("/CT_SET"));
+      std::filesystem::absolute(tmpDir_PatientFolder / "CT_SET");
 
-  if (tmpDIR_CTSET.exists()) {
+  if (std::filesystem::exists(tmpDIR_CTSET)) {
     enDirStructure_Type = 0;
   } else {
     auto tmpStrPathCTSET = m_strPathIMAGES;
-    tmpDIR_CTSET = QDir(tmpStrPathCTSET.append("/CT_SET"));
+    tmpDIR_CTSET = tmpStrPathCTSET / "CT_SET";
 
-    if (tmpDIR_CTSET.exists()) {
+    if (std::filesystem::exists(tmpDIR_CTSET)) {
       enDirStructure_Type = 1;
     }
   }
@@ -2308,13 +1571,10 @@ void CbctRecon::FindAllRelevantPaths(
   //
 
   if (enDirStructure_Type != 2) {
-    auto listDir = tmpDIR_CTSET.entryInfoList(QDir::Dirs, QDir::Name);
-    if (listDir.size() <= 2) // only /. and /.. exist
-    {
-      std::cout << "No CT DICOM folder exist. Proceeding w/o CT" << std::endl;
-    } else {
-      m_strPathPlanCTDir =
-          listDir.at(2).absoluteFilePath(); // . , .. , real DICOM folder
+    for (auto &listDir : std::filesystem::directory_iterator(tmpDIR_CTSET)) {
+      if (listDir.is_directory()) {
+        m_strPathPlanCTDir = listDir.path();
+      }
     }
   }
 
@@ -2325,17 +1585,12 @@ void CbctRecon::FindAllRelevantPaths(
   // std::string tmpPath = listDir.at(i).absoluteFilePath();
   // }
 
-  auto listFile = tmpDIR_CTSET.entryInfoList(
-      QDir::Files, QDir::Name); // search for DICOM RS file
-
-  if (listFile.empty()) {
-    std::cout << "No CT DICOM RS file exist. proceeding w/o RS" << std::endl;
-    // return;
-  } else {
-    for (const auto &i : listFile) {
-      if (i.suffix().contains("DCM", Qt::CaseInsensitive)) {
-        m_strPathRS = i.absoluteFilePath();
-        break;
+  for (auto &listFile : std::filesystem::directory_iterator(tmpDIR_CTSET)) {
+    if (listFile.is_regular_file()) {
+      auto ext = listFile.path().extension().string();
+      if (listFile.path().stem().string().find("RS") &&
+          (ext.compare("DCM") || ext.compare("dcm"))) {
+        m_strPathRS = listFile.path();
       }
     }
   }
@@ -2503,25 +1758,16 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
 
   for (auto it = arrYKImage.begin();
        it != arrYKImage.end() && !it_FwdProj.IsAtEnd(); ++it) {
-    QFileInfo crntFileInfo(it->m_strFilePath);
+    QFileInfo crntFileInfo();
 
-    auto crntFileName = crntFileInfo.fileName();
-    auto crntPath = strSavingFolder + "/" + crntFileName;
+    auto crntFileName = it->m_strFilePath.filename();
+    auto crntPath = strSavingFolder / crntFileName;
 
-#ifdef WIN32
-    if (fopen_s(&fd, crntPath.toLocal8Bit().constData(), "wb") == 0) {
-      std::cerr << "Could not open file: " << crntPath.toLocal8Bit().constData()
-                << " for writing!" << std::endl;
-      return;
-    }
-#else
-    fd = fopen(crntPath.toLocal8Bit().constData(), "wb");
-#endif
-    if (fd != nullptr) {
-      fwrite(it->m_pElektaHisHeader, 100, 1,
-             fd); // this buffer only include header info
-
-      // int imgSize = m_arrYKBufProj[i].m_iWidth * m_arrYKImage[i].m_iHeight;
+    {
+      std::ofstream fd(crntPath, std::ios::binary);
+      fd.write(it->m_pElektaHisHeader, sizeof(it->m_pElektaHisHeader));
+      // fwrite(it->m_pElektaHisHeader, 100, 1, fd);
+      // this buffer only include header info
 
       // Search matching slice using slice iterator for m_spProjCTImg
       while (!it_FwdProj.IsAtEndOfSlice()) {
@@ -2529,48 +1775,17 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
           auto tmpVal = static_cast<unsigned short>(it_FwdProj.Get());
           tmpVal = 65535 - tmpVal; // inverse is done here
 
-          fwrite(&tmpVal, 2, 1, fd);
+          fd << tmpVal;
           ++it_FwdProj;
         }
         it_FwdProj.NextLine();
       }
-      fclose(fd);
-
-      it_FwdProj.NextSlice();
-      // std::cout << "Now saving " << i+1 << " th file: " <<
-      // crntFileName.toLocal8Bit().constData() << std::endl;
-    }
+    } // fd.close
+    it_FwdProj.NextSlice();
   }
 
   std::cout << "Saving completed" << std::endl;
 }
-
-// From line integral to raw intensity
-class LineInt2Intensity {
-public:
-  LineInt2Intensity() = default;
-  ~LineInt2Intensity() = default;
-  float operator()(const float val) const {
-    float intensityVal = std::exp(-val) /* I_0=1 */;
-    return intensityVal;
-  }
-};
-// From raw intensity to line integral
-class Intensity2LineInt {
-public:
-  Intensity2LineInt() = default;
-  ~Intensity2LineInt() = default;
-  float operator()(const float val) const {
-    // mu = ln(I_0/I) OR mu = ln(I/I0)
-    constexpr auto I_0_div_I_air = 1.0 / (0.1541 * 1.225e-3 * 10.0);
-    float lineintVal = std::log(I_0_div_I_air); // 10 cm of air
-
-    if (val > 0) {
-      lineintVal = /* log(I_0=1) = 0 */ -std::log(val);
-    }
-    return lineintVal;
-  }
-};
 
 // spProjRaw3D: raw intensity value (0-65535), spProjCT3D: raw intensity value
 // (0-65535)
@@ -3921,8 +3136,7 @@ void CbctRecon::ExportProjGeometryTXT(std::string &strPath) const {
        << "PanelShiftY(mm)" << std::endl;
 
   for (auto &itAng : m_spCustomGeometry->GetGantryAngles()) {
-    fout << itAng << "	" << *itShiftX << "	" << *itShiftY
-         << std::endl;
+    fout << itAng << "	" << *itShiftX << "	" << *itShiftY << std::endl;
 
     ++itShiftX;
     ++itShiftY;
@@ -4682,256 +3896,3 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
 //
 //
 //}
-
-bool SaveDoseGrayImage(
-    const char *filePath, const int width, const int height,
-    const double spacingX, const double spacingY, const double originLeft_mm,
-    const double originTop_mm,
-    unsigned short *pData) // export dose array to a specified file (16bit TIF)
-{
-  // Global variables
-  const long m_iSubFileType = 0;
-  const short m_iWidth = width;
-  const short m_iHeight = height;
-  const short m_iBitsPerSample = 16;
-  const short m_iCompression = 1;
-  const short m_iPhotometric = 0;
-  const long m_iStripOffset = 1024;
-  const short m_iSamplePerPixel = 1;
-  const long m_iRowsPerStrip = height;
-  const long m_iStripByteCnts = qRound(width * height * 2.0);
-
-  const short m_iResolUnit = 2;
-  const short m_iPgNum = 0; // or 1?
-  const unsigned short m_iMinSampleVal = 0;
-  const unsigned short m_iMaxSampleVal = 65535U; // old: 255
-  const auto ten_mill = 10000000;
-  RATIONAL m_rXResol{static_cast<long>(qRound(1 / spacingX * 25.4 *
-                                              ten_mill)), // spacingX in dpi
-                     ten_mill};
-  RATIONAL m_rYResol{static_cast<long>(qRound(1 / spacingY * 25.4 * ten_mill)),
-                     ten_mill}; // spacingY
-
-  // double fLeftPosMM = -dataPt.x()*spacingX;
-  // double fTopPosMM = dataPt.y()*spacingY;
-  const auto fLeftPosMM = originLeft_mm;
-  const auto fTopPosMM = -originTop_mm;
-
-  RATIONAL m_rXPos{static_cast<long>(qRound(fLeftPosMM / 25.4 * ten_mill)),
-                   ten_mill};
-  RATIONAL m_rYPos{static_cast<long>(qRound(fTopPosMM / 25.4 * ten_mill)),
-                   ten_mill};
-
-  auto m_iNextOffset = 0;
-
-  if (pData == nullptr) {
-    return false;
-  }
-
-  // Set Center
-  QPoint dataPt;
-  dataPt.setX(qRound(m_iWidth / 2.0));
-  dataPt.setY(qRound(m_iHeight / 2.0));
-
-  FILE *fd = nullptr;
-
-#ifdef WIN32
-  if (fopen_s(&fd, filePath, "wb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
-  }
-#else
-  fd = fopen(filePath, "wb");
-  if (fd == nullptr) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
-  }
-#endif
-
-  long MarkerUpper;
-  long MarkerLower;
-
-  MarkerUpper = 0x002A4949;
-  MarkerLower = 0x00000008;
-
-  fwrite(&MarkerUpper, sizeof(long), 1, fd); // 4
-  fwrite(&MarkerLower, sizeof(long), 1, fd); // 8
-
-  // int IFDSize = GetValidIFDCnt();
-  auto IFDSize = 18;
-
-  fwrite(&IFDSize, sizeof(unsigned short), 1, fd); // 10
-
-  // auto* IFDArr = new TIFIFD[IFDSize];
-  std::vector<TIFIFD> IFDarr;
-  IFDarr.reserve(IFDSize);
-
-  int offsetX;
-  auto offsetY = 0;
-
-  /*int idx = 0;
-  int TagID = 0;
-  int dataType = 0;
-  int DataCnt = 0;
-  int dataVal = 0;
-      */
-
-  const unsigned short data_type = 3;
-  const auto data_cnt = 1;
-
-  if (m_iSubFileType >= 0) {
-    const auto tififd_tmp = TIFIFD{254, data_type, data_cnt, m_iSubFileType};
-    IFDarr.push_back(tififd_tmp);
-  }
-
-  if (m_iWidth >= 0) {
-    const auto tififd_tmp = TIFIFD{256, data_type, data_cnt, m_iWidth};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iHeight >= 0) {
-    const auto tififd_tmp = TIFIFD{257, data_type, data_cnt, m_iHeight};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iBitsPerSample >= 0) {
-    const auto tififd_tmp = TIFIFD{258, data_type, data_cnt, m_iBitsPerSample};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iCompression >= 0) {
-    const auto tififd_tmp = TIFIFD{259, data_type, data_cnt, m_iCompression};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iPhotometric >= 0) {
-    const auto tififd_tmp = TIFIFD{262, data_type, data_cnt, m_iPhotometric};
-    IFDarr.push_back(tififd_tmp); // 1로 강제 지정
-    // dataVal = 0; //0으로 강제 지정
-    // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iStripOffset >= 0) {
-    const auto tififd_tmp =
-        TIFIFD{273, 4, data_cnt, static_cast<int>(m_iStripOffset)};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iSamplePerPixel >= 0) {
-    const auto tififd_tmp = TIFIFD{277, data_type, data_cnt, m_iSamplePerPixel};
-    IFDarr.push_back(tififd_tmp);
-    // 1로강제지정
-    // dataVal = 1;
-    // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iRowsPerStrip >= 0) {
-    const auto tififd_tmp =
-        TIFIFD{278, data_type, data_cnt, static_cast<int>(m_iRowsPerStrip)};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iStripByteCnts >= 0) {
-    const auto tififd_tmp =
-        TIFIFD{279, 4, data_cnt, static_cast<int>(m_iStripByteCnts)};
-    IFDarr.push_back(tififd_tmp);
-    /*if (m_iSamplePerPixel == 1)
-    dataVal = m_iStripByteCnts;
-    else if (m_iSamplePerPixel == 3)
-    dataVal = (int)(m_iStripByteCnts/3.0);
-    */
-    // dataVal이 초기값이면 insert 안함
-  }
-  if (m_rXResol.a != 0) {
-    offsetX = 8 + 2 + 12 * IFDSize + 4;
-
-    const auto tififd_tmp = TIFIFD{282, 5, data_cnt, offsetX}; // maximum
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_rYResol.a != 0) {
-    offsetY = 8 + 2 + 12 * IFDSize + 4 + 8;
-
-    const auto tififd_tmp = TIFIFD{283, 5, data_cnt, offsetY};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-
-  // IFDSize 단위 데이터 몇개인지 나타냄
-  // 20111226추가 //center를 표시
-  if (m_rXPos.a != 0) {
-    offsetX = 8 + 2 + 12 * IFDSize + 4 + 8 + 8;
-
-    const auto tififd_tmp = TIFIFD{286, 5, data_cnt, offsetX}; // maximum
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_rYPos.a != 0) {
-    offsetY = 8 + 2 + 12 * IFDSize + 4 + 8 + 8 + 8;
-
-    const auto tififd_tmp = TIFIFD{287, 5, data_cnt, offsetY};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-
-  //////
-  if (m_iMinSampleVal >= 0) {
-    const auto tififd_tmp = TIFIFD{280, data_type, data_cnt, m_iMinSampleVal};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iMaxSampleVal >= 0) {
-    const auto tififd_tmp = TIFIFD{281, data_type, data_cnt, m_iMaxSampleVal};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iResolUnit >= 0) {
-    const auto tififd_tmp = TIFIFD{296, data_type, data_cnt, m_iResolUnit};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  if (m_iPgNum >= 0) {
-    const auto tififd_tmp = TIFIFD{297, data_type, 2, m_iPgNum};
-    IFDarr.push_back(tififd_tmp); // dataVal이 초기값이면 insert 안함
-  }
-  /*
-for (int i = 0; i < IFDSize; i++)
-{
-  fwrite(&IFDArr[i], sizeof(TIFIFD), 1, fd);
-}
-  */
-  for (auto &&it : IFDarr) {
-    fwrite(&it, sizeof(TIFIFD), 1, fd);
-  }
-  fwrite(&m_iNextOffset, 4, 1, fd);
-
-  fwrite(&m_rXResol, 8, 1, fd);
-  fwrite(&m_rYResol, 8, 1, fd);
-
-  fwrite(&m_rXPos, 8, 1,
-         fd); // Used to be 10 instead of 1, but that must've been a mistake
-  fwrite(&m_rYPos, 8, 1, fd);
-
-  const auto iDummySize = static_cast<size_t>(1024ull - (offsetY + 8));
-
-  // char tmpDummy [802]; // 1024 -222
-
-  // auto *tmpDummy = new char[iDummySize];
-  auto tmpDummy = std::valarray<char>(static_cast<char>(0), iDummySize);
-  // memset(tmpDummy, 0, iDummySize);
-  fwrite(&tmpDummy[0], sizeof(char), iDummySize, fd); //`까지 0으로 채움
-
-  // delete[] tmpDummy;
-  // delete[] IFDArr;
-
-  const auto imgSize = m_iWidth * m_iHeight;
-  // fwrite(m_pImage, imgSize, 1, fd);
-
-  //쓰기용 버퍼 생성
-  // unsigned short* writeBuf = new unsigned short[imgSize];
-
-  // for (int i = 0 ; i<imgSize ; i++)
-  //{
-  //	//fread(&m_pImage[i], 2, 1, fd);
-  //	if (pData[i] < 0)
-  //		writeBuf[i] = 0;
-  //	else if  (pData[i] > 65535)
-  //		writeBuf[i] = 65535;
-  //	else
-  //		writeBuf[i] = pData[i];  //gray 이미지를 건드는 것이다!
-  //}
-
-  for (auto i = 0; i < imgSize; i++) {
-    fwrite(&pData[i], 2, 1, fd);
-  }
-  fclose(fd);
-
-  return true;
-}

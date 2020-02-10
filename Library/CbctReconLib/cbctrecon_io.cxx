@@ -55,6 +55,9 @@
 #include "StructureSet.h"
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
+#include "free_functions.h"
+
+namespace crl {
 
 std::filesystem::path
 MakeElektaXML(const std::filesystem::path &filePath_ImageDBF,
@@ -180,22 +183,23 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
 }
 
 // Get the projection geometry
-void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
+[[nodiscard]] rtk::ThreeDCircularProjectionGeometry::Pointer
+LoadRTKGeometryFile(const std::filesystem::path &filePath) {
   auto geometryReader =
       rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
-  geometryReader->SetFilename(filePath);
+  geometryReader->SetFilename(filePath.string());
   geometryReader->GenerateOutputInformation();
   std::cout << "Geometry reading succeed" << std::endl;
 
-  m_spFullGeometry = geometryReader->GetOutputObject();
+  auto spFullGeometry = geometryReader->GetOutputObject();
 
   // fullGeometry->GetGantryAngles();
-  const auto angles = m_spFullGeometry->GetGantryAngles();
+  const auto angles = spFullGeometry->GetGantryAngles();
   const auto geoDataSize = angles.size(); // This is MV gantry angle!!!
   std::cout << "Geometry data size(projection gantry angles): " << geoDataSize
             << std::endl;
   if (geoDataSize < 1) {
-    return;
+    return nullptr;
   }
 
   // CW: continuously ascending except 360 - 0 interface, no negative value
@@ -231,23 +235,21 @@ void CbctRecon::LoadRTKGeometryFile(const char *filePath) {
   const auto iLowerIdx = static_cast<size_t>(geoDataSize * 1.0 / 3.0);
   const auto iUpperIdx = static_cast<size_t>(geoDataSize * 2.0 / 3.0);
 
+  auto bScanDirectionCW = false;
   if (vTempConvAngles.at(iLowerIdx) <
       vTempConvAngles.at(iUpperIdx)) // ascending
   {
-    m_bScanDirectionCW = true;
+    bScanDirectionCW = true;
     std::cout << "The scan direction is CW" << std::endl;
-  }
-
-  else {
-    m_bScanDirectionCW = false;
+  } else {
     std::cout << "The scan direction is CCW" << std::endl;
   }
 
   std::cout << "AngularGaps Size: "
-            << m_spFullGeometry
-                   ->GetAngularGaps(m_spFullGeometry->GetSourceAngles())
+            << spFullGeometry->GetAngularGaps(spFullGeometry->GetSourceAngles())
                    .size()
             << std::endl;
+  return spFullGeometry;
 }
 
 bool LoadShortImageToUshort(std::string &strPath,
@@ -864,9 +866,8 @@ std::vector<std::string> get_dcm_image_files(std::filesystem::path &dir) {
   return fileNames;
 }
 
-bool CbctRecon::ReadDicomDir(std::string &dirPath) {
+bool ReadDicomDir(CbctRecon *p_cr, std::filesystem::path &dir) {
 
-  auto dir = std::filesystem::path(dirPath);
   const auto filenamelist = get_dcm_image_files(dir);
 
   for (auto &&filename : std::filesystem::directory_iterator(dir)) {
@@ -886,8 +887,8 @@ bool CbctRecon::ReadDicomDir(std::string &dirPath) {
       // filenamelist.push_back(fullfilename.toStdString());
       break;
     case DCM_MODALITY::RTSTRUCT:
-      m_structures->set_planCT_ss(load_rtstruct(fullfilename.string()));
-      m_strPathRS = fullfilename;
+      p_cr->m_structures->set_planCT_ss(load_rtstruct(fullfilename.string()));
+      p_cr->m_strPathRS = fullfilename;
       break;
     case DCM_MODALITY::RTPLAN:
       break; // Maybe some pre-loading for gPMC could be useful?
@@ -910,7 +911,7 @@ bool CbctRecon::ReadDicomDir(std::string &dirPath) {
     dcm_reader->SetFileNames(filenamelist);
     dcm_reader->Update();
     spShortImg = dcm_reader->GetOutput();
-    m_dcm_dir = dir;
+    p_cr->m_dcm_dir = dir;
   }
 
   // Figure out whether this is NKI
@@ -948,7 +949,7 @@ bool CbctRecon::ReadDicomDir(std::string &dirPath) {
   spRescaleFilter->Update();
 
   // m_spRawReconImg = spRescaleFilter->GetOutput();
-  m_spRefCTImg = spRescaleFilter->GetOutput();
+  p_cr->m_spRefCTImg = spRescaleFilter->GetOutput();
   return true;
 }
 
@@ -1151,9 +1152,9 @@ template <typename T> std::string stringify(T arg) {
   return std::to_string(arg);
 }
 
-template<> std::string stringify(const std::string& arg) { return arg; }
+template <> std::string stringify(const std::string &arg) { return arg; }
 
-template <char SEP, typename... Args> std::string make_sep_str(Args&&... arg) {
+template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
   return ((stringify(std::forward<Args>(arg)) + SEP) + ...);
 }
 
@@ -1163,29 +1164,19 @@ std::string get_output_options(const UShortImageType::Pointer &m_spFixed) {
   // from reconstructed CBCT
   const auto str_fixed_origin =
       make_sep_str<','>(m_spFixed->GetOrigin()[0], m_spFixed->GetOrigin()[1],
-                         m_spFixed->GetOrigin()[2]);
+                        m_spFixed->GetOrigin()[2]);
 
   const auto out_size = m_spFixed->GetBufferedRegion().GetSize();
-  const auto str_fixed_dimension = make_sep_str<','>(
-                                       out_size[0],
-                                       out_size[1],
-                                       out_size[2]);
+  const auto str_fixed_dimension =
+      make_sep_str<','>(out_size[0], out_size[1], out_size[2]);
   const auto out_spacing = m_spFixed->GetSpacing();
-  const auto str_fixed_spacing = make_sep_str<','>(
-                                     out_spacing[0],
-                                     out_spacing[1],
-                                     out_spacing[2]);
+  const auto str_fixed_spacing =
+      make_sep_str<','>(out_spacing[0], out_spacing[1], out_spacing[2]);
   const auto out_direction = m_spFixed->GetDirection();
   const auto str_fixed_direction = make_sep_str<','>(
-                                       out_direction[0][0],
-                                       out_direction[0][1],
-                                       out_direction[0][2],
-                                       out_direction[1][0],
-                                       out_direction[1][1],
-                                       out_direction[1][2],
-                                       out_direction[2][0],
-                                       out_direction[2][1],
-                                       out_direction[2][2]);
+      out_direction[0][0], out_direction[0][1], out_direction[0][2],
+      out_direction[1][0], out_direction[1][1], out_direction[1][2],
+      out_direction[2][0], out_direction[2][1], out_direction[2][2]);
 
   return make_sep_str<' '>(
       " --origin", str_fixed_origin, "--spacing", str_fixed_spacing,
@@ -1220,8 +1211,8 @@ bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI, VEC3D *pTrans,
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    auto tmpStr = std::string(&str[0]);
-    auto strListParam = split_string<'='>(tmpStr);
+    std::string_view tmpStr{&str[0], MAX_LINE_LENGTH};
+    auto strListParam = split_string(tmpStr, "=");
 
     std::string tagName, strVal;
 
@@ -1298,25 +1289,22 @@ bool GetXrayParamFromINI(std::string &strPathINI, float &kVp, float &mA,
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
     auto tmpStr = std::string(&str[0]);
-    auto strListParam = split_string<'='>(tmpStr);
-
-    std::string tagName;
-    std::string strVal;
+    auto strListParam = split_string(tmpStr, "=");
 
     if (strListParam.size() == 2) {
-      tagName = strListParam.at(0);
-      strVal = strListParam.at(1);
+      auto tagName = strListParam.at(0);
+      auto strVal = strListParam.at(1);
       tagName = trim_string(tagName);
       strVal = trim_string(strVal);
 
       if (tagName == "TubeMA") {
-        mA = from_string<float>(strVal).value_or(0.0f);
+        mA = from_sv(strVal, mA);
       }
       if (tagName == "TubeKVLength") {
-        ms = from_string<float>(strVal).value_or(0.0f);
+        ms = from_sv(strVal, ms);
       }
       if (tagName == "TubeKV") {
-        kVp = from_string<float>(strVal).value_or(0.0f);
+        kVp = from_sv(strVal, kVp);
       }
     }
   }
@@ -1355,3 +1343,233 @@ bool LoadShortImageDirOrFile(std::filesystem::path &strPathDir,
 
   return true;
 }
+
+bool SaveDoseGrayImage(
+    const std::filesystem::path &filePath, const int width, const int height,
+    const double spacingX, const double spacingY, const double originLeft_mm,
+    const double originTop_mm,
+    unsigned short *pData) // export dose array to a specified file (16bit TIF)
+{
+  // Global variables
+  const long m_iSubFileType = 0;
+  const short m_iWidth = width;
+  const short m_iHeight = height;
+  const short m_iBitsPerSample = 16;
+  const short m_iCompression = 1;
+  const short m_iPhotometric = 0;
+  const long m_iStripOffset = 1024;
+  const short m_iSamplePerPixel = 1;
+  const long m_iRowsPerStrip = height;
+  const long m_iStripByteCnts = qRound(width * height * 2.0);
+
+  const short m_iResolUnit = 2;
+  const short m_iPgNum = 0; // or 1?
+  const unsigned short m_iMinSampleVal = 0;
+  const unsigned short m_iMaxSampleVal = 65535U; // old: 255
+  const auto ten_mill = 10000000;
+  RATIONAL m_rXResol{static_cast<long>(qRound(1 / spacingX * 25.4 *
+                                              ten_mill)), // spacingX in dpi
+                     ten_mill};
+  RATIONAL m_rYResol{static_cast<long>(qRound(1 / spacingY * 25.4 * ten_mill)),
+                     ten_mill}; // spacingY
+
+  // double fLeftPosMM = -dataPt.x()*spacingX;
+  // double fTopPosMM = dataPt.y()*spacingY;
+  const auto fLeftPosMM = originLeft_mm;
+  const auto fTopPosMM = -originTop_mm;
+
+  RATIONAL m_rXPos{static_cast<long>(qRound(fLeftPosMM / 25.4 * ten_mill)),
+                   ten_mill};
+  RATIONAL m_rYPos{static_cast<long>(qRound(fTopPosMM / 25.4 * ten_mill)),
+                   ten_mill};
+
+  auto m_iNextOffset = 0;
+
+  if (pData == nullptr) {
+    return false;
+  }
+
+  // Set Center
+  QPoint dataPt;
+  dataPt.setX(qRound(m_iWidth / 2.0));
+  dataPt.setY(qRound(m_iHeight / 2.0));
+
+  {
+    // FILE *fd = nullptr;
+    std::ofstream fd(filePath, std::ios::binary);
+
+    long MarkerUpper;
+    long MarkerLower;
+
+    MarkerUpper = 0x002A4949;
+    MarkerLower = 0x00000008;
+
+    fd << MarkerUpper << MarkerLower;
+    // fwrite(&MarkerUpper, sizeof(long), 1, fd); // 4
+    // fwrite(&MarkerLower, sizeof(long), 1, fd); // 8
+
+    constexpr auto IFDSize = 18;
+
+    fd << IFDSize;
+    // fwrite(&IFDSize, sizeof(unsigned short), 1, fd); // 10
+
+    std::array<TIFIFD, IFDSize> IFDarr;
+    // IFDarr.reserve(IFDSize);
+
+    int offsetX;
+    auto offsetY = 0;
+
+    const unsigned short data_type = 3;
+    const auto data_cnt = 1;
+
+    size_t i = 0;
+    if (m_iSubFileType >= 0) {
+      const auto tififd_tmp = TIFIFD{254, data_type, data_cnt, m_iSubFileType};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+
+    if (m_iWidth >= 0) {
+      const auto tififd_tmp = TIFIFD{256, data_type, data_cnt, m_iWidth};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iHeight >= 0) {
+      const auto tififd_tmp = TIFIFD{257, data_type, data_cnt, m_iHeight};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iBitsPerSample >= 0) {
+      const auto tififd_tmp =
+          TIFIFD{258, data_type, data_cnt, m_iBitsPerSample};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iCompression >= 0) {
+      const auto tififd_tmp = TIFIFD{259, data_type, data_cnt, m_iCompression};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iPhotometric >= 0) {
+      const auto tififd_tmp = TIFIFD{262, data_type, data_cnt, m_iPhotometric};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iStripOffset >= 0) {
+      const auto tififd_tmp =
+          TIFIFD{273, 4, data_cnt, static_cast<int>(m_iStripOffset)};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iSamplePerPixel >= 0) {
+      const auto tififd_tmp =
+          TIFIFD{277, data_type, data_cnt, m_iSamplePerPixel};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iRowsPerStrip >= 0) {
+      const auto tififd_tmp =
+          TIFIFD{278, data_type, data_cnt, static_cast<int>(m_iRowsPerStrip)};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iStripByteCnts >= 0) {
+      const auto tififd_tmp =
+          TIFIFD{279, 4, data_cnt, static_cast<int>(m_iStripByteCnts)};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+      /*if (m_iSamplePerPixel == 1)
+      dataVal = m_iStripByteCnts;
+      else if (m_iSamplePerPixel == 3)
+      dataVal = (int)(m_iStripByteCnts/3.0);
+      */
+    }
+    if (m_rXResol.a != 0) {
+      offsetX = 8 + 2 + 12 * IFDSize + 4;
+
+      const auto tififd_tmp = TIFIFD{282, 5, data_cnt, offsetX}; // maximum
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_rYResol.a != 0) {
+      offsetY = 8 + 2 + 12 * IFDSize + 4 + 8;
+
+      const auto tififd_tmp = TIFIFD{283, 5, data_cnt, offsetY};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+
+    if (m_rXPos.a != 0) {
+      offsetX = 8 + 2 + 12 * IFDSize + 4 + 8 + 8;
+
+      const auto tififd_tmp = TIFIFD{286, 5, data_cnt, offsetX}; // maximum
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_rYPos.a != 0) {
+      offsetY = 8 + 2 + 12 * IFDSize + 4 + 8 + 8 + 8;
+
+      const auto tififd_tmp = TIFIFD{287, 5, data_cnt, offsetY};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+
+    ////// Do not insert if dataVal is initial value
+    if (m_iMinSampleVal >= 0) {
+      const auto tififd_tmp = TIFIFD{280, data_type, data_cnt, m_iMinSampleVal};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iMaxSampleVal >= 0) {
+      const auto tififd_tmp = TIFIFD{281, data_type, data_cnt, m_iMaxSampleVal};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iResolUnit >= 0) {
+      const auto tififd_tmp = TIFIFD{296, data_type, data_cnt, m_iResolUnit};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    if (m_iPgNum >= 0) {
+      const auto tififd_tmp = TIFIFD{297, data_type, 2, m_iPgNum};
+      IFDarr.at(i) = tififd_tmp;
+      ++i;
+    }
+    for (auto &&it : IFDarr) {
+      fd.write(reinterpret_cast<char *>(&it), sizeof(TIFIFD));
+      // fwrite(&it, sizeof(TIFIFD), 1, fd);
+    }
+    fd << m_iNextOffset;
+    // fwrite(&m_iNextOffset, 4, 1, fd);
+
+    fd.write(reinterpret_cast<char *>(&m_rXResol), sizeof(RATIONAL));
+    fd.write(reinterpret_cast<char *>(&m_rYResol), sizeof(RATIONAL));
+    // fwrite(&m_rXResol, 8, 1, fd);
+    // fwrite(&m_rYResol, 8, 1, fd);
+
+    fd.write(reinterpret_cast<char *>(&m_rYPos), sizeof(RATIONAL));
+    fd.write(reinterpret_cast<char *>(&m_rXPos), sizeof(RATIONAL));
+    // fwrite(&m_rXPos, 8, 1, fd); // Used to be 10 instead of 1, but that
+    // must've been a mistake fwrite(&m_rYPos, 8, 1, fd);
+
+    const auto iDummySize = static_cast<size_t>(1024ull - (offsetY + 8));
+
+    auto tmpDummy = std::valarray<char>(static_cast<char>(0), iDummySize);
+    fd.write(&tmpDummy[0], sizeof(char) * iDummySize);
+    // fwrite(&tmpDummy[0], sizeof(char), iDummySize, fd); // "Padded with zeros
+    // until'"
+
+    const auto imgSize = m_iWidth * m_iHeight;
+
+    for (auto i = 0; i < imgSize; i++) {
+      // fwrite(&pData[i], 2, 1, fd);
+      fd.write(reinterpret_cast<char *>(&pData[i]), sizeof(pData[i]));
+    }
+
+    // fclose(fd);
+  }
+
+  return true;
+}
+
+} // namespace crl

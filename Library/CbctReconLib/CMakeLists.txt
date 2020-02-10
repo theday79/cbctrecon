@@ -1,6 +1,5 @@
 ### The main application ###
-set(CMAKE_CXX_STARDARD 14) # only for this sub directory
-# dlib headers are not ready for 17
+set(CMAKE_CXX_STARDARD 17) # only for this sub directory
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -56,6 +55,7 @@ SET(CbctReconLib_SOURCES
   OpenCL/ImageFilters.cxx
   OpenCL/device_picker.cpp
   OpenCL/err_code.cpp
+  free_functions.cpp
 )
 
 SET(CbctReconLib_HEADERS
@@ -69,6 +69,7 @@ SET(CbctReconLib_HEADERS
   cbctrecon_io.h
   cbctrecon_compute.h
   StructureSet.h
+  free_functions.h
   rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
   rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
   rtkExtension/rtkOpenCLFFTRampImageFilter.h

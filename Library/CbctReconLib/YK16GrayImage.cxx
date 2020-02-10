@@ -3,6 +3,7 @@
 // http://www.viva64.com
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 
 #include <QPixmap>
@@ -13,16 +14,6 @@
 #include "itkResampleImageFilter.h"
 
 #include "YK16GrayImage.h"
-
-#ifndef _WIN32
-int fopen_s(FILE **fp, const char *filename, const char *mode) {
-  *fp = fopen(filename, mode);
-  if (*fp == nullptr) {
-    return 0;
-  }
-  return 1;
-}
-#endif
 
 YK16GrayImage::YK16GrayImage() {
   m_iWidth = 0;
@@ -176,8 +167,8 @@ bool YK16GrayImage::CreateImage(const int width, const int height,
   return true;
 }
 
-bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
-                                 const int height) {
+bool YK16GrayImage::LoadRawImage(const std::filesystem::path &filePath,
+                                 const int width, const int height) {
   if (width < 1 || height < 1) {
     return false;
   }
@@ -197,24 +188,10 @@ bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
 
   // aqprintf("ImageInfo in LoadRawImage, w: %d  h: %d   %d  %d \n",width,
   // height, m_iWidth, m_iHeight);
-  FILE *fd = nullptr;
-  if (fopen_s(&fd, filePath, "rb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
-  }
-
-  if (fd == nullptr) {
-    return false;
-  }
+  std::ifstream fd(filePath, std::ios::binary);
 
   auto buf = std::valarray<unsigned short>(img_size);
-  if (fread(&buf[0], 2, img_size, fd) != img_size) {
-    std::cerr << "Could not read Raw Image" << std::endl;
-    return false;
-  }
-
-  fclose(fd);
+  fd.read(reinterpret_cast<char*>(&buf[0]), sizeof(buf[0])*img_size);
 
   std::copy_n(std::begin(buf), img_size, &m_pData[0]);
 
@@ -389,7 +366,7 @@ bool YK16GrayImage::FillPixMapMinMax(int winMin,
   return FillPixMap(midVal, widthVal);
 }
 
-bool YK16GrayImage::SaveDataAsRaw(const char *filePath) const
+bool YK16GrayImage::SaveDataAsRaw(const std::filesystem::path &filePath) const
 // save 16 bit gray raw file
 {
   if (m_pData == nullptr) {
@@ -398,18 +375,11 @@ bool YK16GrayImage::SaveDataAsRaw(const char *filePath) const
 
   const auto imgSize = m_iWidth * m_iHeight;
 
-  FILE *fd = nullptr;
-  if (fopen_s(&fd, filePath, "wb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
+  {
+    std::ofstream fd(filePath, std::ios::binary);
+    fd.write(reinterpret_cast<char *>(&m_pData[0]),
+             sizeof(m_pData[0]) * imgSize);
   }
-
-  for (auto i = 0; i < imgSize; i++) {
-    fwrite(&m_pData[i], 2, 1, fd);
-  }
-
-  fclose(fd);
   return true;
 }
 
@@ -502,7 +472,7 @@ void YK16GrayImage::Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB) {
   pImgB->m_strFilePath = tmpImg.m_strFilePath;
 }
 
-bool YK16GrayImage::SaveDataAsHis(const char *filePath,
+bool YK16GrayImage::SaveDataAsHis(const std::filesystem::path &filePath,
                                   const bool bInverse) const {
   if (m_pData == nullptr) {
     return false;
@@ -512,35 +482,31 @@ bool YK16GrayImage::SaveDataAsHis(const char *filePath,
     return false;
   }
 
-  FILE *fd = nullptr;
-  if (fopen_s(&fd, filePath, "wb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
-  }
-
-  fwrite(m_pElektaHisHeader, 100, 1, fd);
-
   const auto imgSize = m_iWidth * m_iHeight;
 
-  for (auto i = 0; i < imgSize; i++) {
-    unsigned short tmpVal = 0;
+  {
+    std::ofstream fd(filePath, std::ios::binary);
+    fd.write(m_pElektaHisHeader, sizeof(m_pElektaHisHeader));
+    // fwrite(m_pElektaHisHeader, 100, 1, fd);
 
-    if (bInverse) {
-      tmpVal = 65535 - m_pData[i];
-    } else {
-      tmpVal = m_pData[i];
+    for (auto i = 0; i < imgSize; i++) {
+      unsigned short tmpVal = 0;
+
+      if (bInverse) {
+        tmpVal = 65535 - m_pData[i];
+      } else {
+        tmpVal = m_pData[i];
+      }
+
+      fd << tmpVal;
+      // fwrite(&tmpVal, 2, 1, fd);
     }
-
-    fwrite(&tmpVal, 2, 1, fd);
   }
-
-  fclose(fd);
 
   return true;
 }
 
-void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
+void YK16GrayImage::CopyHisHeader(const std::filesystem::path& hisFilePath) {
   // open file
   std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
 
@@ -558,26 +524,6 @@ void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
                                         // = 100
   file.read(m_pElektaHisHeader, DEFAULT_ELEKTA_HIS_HEADER_SIZE);
 }
-//
-// void YK16GrayImage::Swap(YK16GrayImage* pImgA, YK16GrayImage* pImgB)
-//{
-//	if (pImgA == NULL || pImgB == NULL )
-//		return;
-//
-//	if (pImgA->IsEmpty() || pImgB->IsEmpty() )
-//		return;
-//
-//	YK16GrayImage tmpImg(pImgA->m_iWidth, pImgB->m_iHeight);
-//	tmpImg.CopyFromBuffer(pImgA->m_pData,pImgA->m_iWidth, pImgA->m_iHeight);
-//	tmpImg.m_strFilePath = pImgA->m_strFilePath;
-//
-//	pImgA->CopyFromBuffer(pImgB->m_pData,pImgB->m_iWidth, pImgB->m_iHeight);
-//	pImgA->m_strFilePath = pImgB->m_strFilePath;
-//
-//
-//	pImgB->CopyFromBuffer(tmpImg.m_pData,tmpImg.m_iWidth, tmpImg.m_iHeight);
-//	pImgB->m_strFilePath = tmpImg.m_strFilePath;
-//}
 
 void YK16GrayImage::CopyYKImage2ItkImage(
     YK16GrayImage *pYKImage, UShortImage2DType::Pointer &spTarImage) {

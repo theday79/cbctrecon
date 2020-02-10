@@ -31,34 +31,13 @@ public:
 
   bool FillProjForDisplay(int slice_number);
   void LoadCalibData(std::string &filepath, enCalibType calib_type);
-  void RenameFromHexToDecimal(std::vector<std::string> &filenameList) const;
-  std::string HexStr2IntStr(std::string &str_hex) const;
 
-  std::unique_ptr<YK16GrayImage>
-  ApplyCalibrationMaps(YK16GrayImage *const &rawImg, bool DarkCorr,
-                       bool GainCorr, bool DefectCorr);
-  std::string CorrectSingleFile(const char *filePath, bool DarkCorr, bool GainCorr,
-                            bool DefectCorr);
-  void CorrectSingleFile(YK16GrayImage *pYKRawImg, bool DarkCorr, bool GainCorr,
-                         bool DefectCorr);
-
-  void LoadBadPixelMap(const char *filePath);
-  // void BadPixReplacement(YK16GrayImage *targetImg);
-  std::unique_ptr<YK16GrayImage>
-  BadPixReplacement(std::unique_ptr<YK16GrayImage> targetImg);
-
-  void LoadRTKGeometryFile(const char *filePath);
-
-  std::vector<std::string> GetProjFileNames(std::string &dirPath);
   bool LoadGeometry(QFileInfo &geomFileInfo, std::vector<std::string> &names);
-  std::vector<size_t> GetExcludeProjFiles(bool bManAngleGap,
-                                          double gantryAngleInterval);
   void LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                         const std::vector<std::string> &names);
   void saveHisHeader();
   void NormalizeProjections(const FloatImageType::Pointer &reader_output);
   bool ResampleProjections(double &resample_factor);
-  void BowtieByFit(bool fullfan, const std::vector<std::string> &params) const;
   int CropSkinUsingThreshold(int threshold, int erode_radius,
                              int dilate_radius);
   void GeneratePOIData(bool AnteriorToPosterior, double table_posY);
@@ -71,32 +50,20 @@ public:
 
   // void GetSelectedIndices(const std::vector<double>& vFullAngles,
   // std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW);
-  void GetExcludeIndexByNames(const std::string &outlierListPath,
+  void GetExcludeIndexByNames(const std::filesystem::path &outlierListPath,
                               std::vector<std::string> &vProjFileFullPath,
                               std::vector<int> &vExcludeIdx) const;
-  void GetSelectedIndices(const std::vector<double> &vFullAngles,
-                          std::vector<double> &vNormAngles,
-                          std::vector<size_t> &vTargetIdx, bool bCW,
-                          std::vector<size_t> &vExcludingIdx) const;
 
   void SetMaxAndMinValueOfProjectionImage(); // scan m_spProjImg3D and update
                                              // m_fProjImgValueMin, max
 
-  bool IsFileNameOrderCorrect(std::vector<std::string> &vFileNames) const;
-
   void PostApplyFOVDispParam(float physPosX, float physPosY, float physRadius,
                              float physTablePosY) const;
 
-  // void ExportDICOM_SHORT(SHORT_ImageType::Pointer& sp3DshortImage);//NOT
-  // COMPLETED YET!! Export DICOM without Source DICOM is not possible
-  void
-  CopyDictionary(itk::MetaDataDictionary &fromDict,
-                 itk::MetaDataDictionary &toDict) const; // NOT COMPLETED YET!!
-                                                         // Export DICOM without
-                                                         // Source DICOM is not
-                                                         // possible
-
   void DoBeamHardeningCorrection() const;
+
+  void BowtieByFit(const bool fullfan,
+                   const std::vector<std::string> &params) const;
 
   void Draw2DFrom3D(UShortImageType::Pointer &pImg, enPLANE direction,
                     double pos, YK16GrayImage &Output2D) const;
@@ -236,8 +203,6 @@ public:
 
   void CropSupInf(UShortImageType::Pointer &sp_Img, float physPosInfCut,
                   float physPosSupCut);
-  void CropFOV3D(UShortImageType::Pointer &sp_Img, float physPosX,
-                 float physPosY, float physRadius, float physTablePosY) const;
 
   void GenerateCylinderMask(UShortImageType::Pointer &spImgCanvas,
                             float fDcmPosX, float fDcmPosY,
@@ -271,7 +236,7 @@ public:
                                FloatImageType::Pointer &spProjImg3D,
                                int iSliceIdx) const;
 
-  bool ReadDicomDir(std::string &dirPath);
+  bool ReadDicomDir(std::filesystem::path &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
@@ -296,7 +261,6 @@ public:
   GeometryType::Pointer m_spCustomGeometry;
 
   enProjFormat m_projFormat = enProjFormat::HIS_FORMAT;
-  bool m_bScanDirectionCW;
 
   FloatImageType::Pointer
       m_spProjImg3DFloat; // This is float image loaded by

@@ -20,6 +20,8 @@
 
 class QXmlStreamReader;
 
+namespace crl {
+
 CBCTRECON_API void ApplyBowtie(FloatImageType::Pointer &projections,
                                const FloatImage2DType::Pointer &bowtie_proj);
 
@@ -61,53 +63,11 @@ CBCTRECON_API void
 ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                        FloatImageType::Pointer &spAttImgFloat);
 
-template <char C>
-std::deque<int> find_all(const std::string &string_to_search) {
-  std::deque<int> out_deq;
-  const auto pos = string_to_search.find(C);
 
-  if (pos == std::string::npos) {
-    return out_deq;
-  } else {
-    out_deq = find_all<C>(string_to_search.substr(pos));
-    out_deq.push_back(pos);
-    return out_deq;
-  }
-}
-
-// Implementation of split, it's certainly possible to do better
-template <char C>
-std::vector<std::string> split_string(const std::string &string_to_split) {
-  auto comma_pos = find_all<','>(string_to_split);
-  comma_pos.push_back(-1);
-  comma_pos.push_front(std::string::npos);
-
-  auto out_str_vec = std::vector<std::string>();
-  for (auto i = (comma_pos.size() - 1); i > 0; --i) {
-    out_str_vec.push_back(
-        string_to_split.substr(comma_pos.at(i - 1) + 1, comma_pos.at(i)));
-  }
-  return out_str_vec;
-}
-
-template <bool spaces_only = false>
-inline std::string trim_string(const std::string &string_to_trim) {
-  const auto whitespaces = spaces_only ? " " : "\t\n\v\f\r ";
-  const auto new_start = string_to_trim.find_first_not_of(whitespaces);
-  const auto new_end = string_to_trim.find_last_not_of(whitespaces);
-  return string_to_trim.substr(new_start, new_end);
-}
-
-template <typename T>
-constexpr std::optional<T> from_string(const std::string &number) {
-  T out_var;
-  if (auto [p, ec] = std::from_chars(number.c_str(),
-                                     number.c_str() + number.length(), out_var);
-      ec != std::errc()) {
-    return out_var;
-  }
-  return std::nullopt;
-}
+CBCTRECON_API
+void CropFOV3D(UShortImageType::Pointer &sp_Img, const float physPosX,
+               const float physPosY, const float physRadius,
+               const float physTablePosY);
 
 template <typename RefImageType, typename TargetImageType>
 void AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
@@ -295,5 +255,7 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
     it_3D.NextSlice();
   } // end of for
 }
+
+} // namespace crl
 
 #endif // CBCTRECON_COMPUTE_H

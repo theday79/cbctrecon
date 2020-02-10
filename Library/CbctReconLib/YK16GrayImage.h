@@ -5,6 +5,8 @@
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
+#include <filesystem>
+
 class QPixmap;
 class QLabel;
 class QPainter;
@@ -33,7 +35,7 @@ public:
   QImage m_QImage;
   // QPainter* m_pPainter;
 
-  bool LoadRawImage(const char *filePath, int width, int height);
+  bool LoadRawImage(const std::filesystem::path& filePath, int width, int height);
   bool CopyFromBuffer(const unsigned short *p_image_buf, int width,
                       int height) const;
   bool CloneImage(YK16GrayImage &other);
@@ -47,7 +49,7 @@ public:
   bool FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
                             int winMax2); // 0-65535 window level
 
-  bool SaveDataAsRaw(const char *filePath) const;
+  bool SaveDataAsRaw(const std::filesystem::path &filePath) const;
   // bool DrawToLabel(QLabel* lbDisplay);
 
   bool IsEmpty() const;
@@ -70,7 +72,7 @@ public:
   CopyItkImage2YKImage(UShortImage2DType::Pointer &spSrcImage,
                        std::unique_ptr<YK16GrayImage> pYKImage);
 
-  QString m_strFilePath;
+  std::filesystem::path m_strFilePath;
 
   double m_fPixelMean;
   double m_fPixelSD;
@@ -93,9 +95,9 @@ public:
 
   // Elekta CBCT recon
   char *m_pElektaHisHeader;
-  void CopyHisHeader(const char *hisFilePath);
+  void CopyHisHeader(const std::filesystem::path &hisFilePath);
   // bool SaveDataAsHis (const char *filePath);
-  bool SaveDataAsHis(const char *filePath, bool bInverse) const;
+  bool SaveDataAsHis(const std::filesystem::path& filePath, bool bInverse) const;
   bool m_bShowInvert;
 
   void MultiplyConstant(double multiplyFactor) const;

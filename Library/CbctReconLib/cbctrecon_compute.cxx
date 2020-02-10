@@ -28,6 +28,8 @@
 
 #include "OpenCL/ImageFilters.hpp"
 
+namespace crl {
+
 void ApplyBowtie(FloatImageType::Pointer &projections,
                  const FloatImage2DType::Pointer &bowtie_proj) {
 
@@ -221,7 +223,6 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
   std::string str = std::string("D:\\testYK\\InsideFunc_%1.raw").arg(idx);
   tmpYK.SaveDataAsRaw(str.toLocal8Bit().constData());*/
 }
-
 
 template <typename T>
 std::optional<T> mAs_string_to_value(std::string &mas_string) {
@@ -586,3 +587,57 @@ void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
   // FloatImageType::Pointer spCTImg_mu;
   spAttImgFloat = multiplyImageFilter->GetOutput();
 }
+
+void CropFOV3D(UShortImageType::Pointer &sp_Img,
+                          const float physPosX, const float physPosY,
+                          const float physRadius,
+                          const float physTablePosY) {
+  if (sp_Img == nullptr) {
+    return;
+  }
+  // 1) region iterator, set 0 for all pixels outside the circle and below the
+  // table top, based on physical position
+  auto origin = sp_Img->GetOrigin();
+  auto spacing = sp_Img->GetSpacing();
+
+  itk::ImageSliceIteratorWithIndex<UShortImageType> it(
+      sp_Img, sp_Img->GetBufferedRegion());
+
+  it.SetFirstDirection(0);  // x?
+  it.SetSecondDirection(1); // y?
+  it.GoToBegin();
+
+  auto iNumSlice = 0;
+  while (!it.IsAtEnd()) {
+    auto iPosY = 0;
+    while (!it.IsAtEndOfSlice()) {
+      auto iPosX = 0;
+      while (!it.IsAtEndOfLine()) {
+        // Calculate physical position
+
+        const auto crntPhysX = iPosX * static_cast<double>(spacing[0]) +
+                               static_cast<double>(origin[0]);
+        const auto crntPhysY = iPosY * static_cast<double>(spacing[1]) +
+                               static_cast<double>(origin[1]);
+
+        if (pow(crntPhysX - physPosX, 2.0) + pow(crntPhysY - physPosY, 2.0) >=
+            pow(physRadius, 2.0)) {
+          //(*it) = (unsigned short)0; //air value
+          it.Set(0);
+        }
+
+        if (crntPhysY >= physTablePosY) {
+          it.Set(0);
+        }
+        ++it;
+        iPosX++;
+      }
+      it.NextLine();
+      iPosY++;
+    }
+    it.NextSlice();
+    iNumSlice++;
+  }
+}
+
+} // namespace crl
