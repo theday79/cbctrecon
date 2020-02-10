@@ -85,7 +85,7 @@ public:
   // plastimatch, prepare m_spRefCTImg. Remove air, RS is needed  Skin will be
   // removed, bubble will be filled
 
-  void FindAllRelevantPaths(const std::string &pathProjHisDir);
+  void FindAllRelevantPaths(const std::filesystem::path &pathProjHisDir);
 
   template <typename CTImageType>
   FloatImageType::Pointer
@@ -116,7 +116,7 @@ public:
   // His file export from 3D proj file
   void SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                           std::vector<YK16GrayImage> arrYKImage,
-                          std::string &strSavingFolder,
+                          const std::filesystem::path &strSavingFolder,
                           double resampleF)
       const; // arrYKImage include HIS header and original file name
 

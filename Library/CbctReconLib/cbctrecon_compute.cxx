@@ -26,6 +26,7 @@
 #include "itkSmartPointer.h" // for SmartPointer
 #include "itkStatisticsImageFilter.h"
 
+#include "free_functions.h"
 #include "OpenCL/ImageFilters.hpp"
 
 namespace crl {
@@ -638,6 +639,49 @@ void CropFOV3D(UShortImageType::Pointer &sp_Img,
     it.NextSlice();
     iNumSlice++;
   }
+}
+
+// From line integral to raw intensity
+// bkIntensity is usually 65535
+UShortImageType::Pointer ConvertLineInt2Intensity_ushort(
+    FloatImageType::Pointer &spProjLineInt3D) {
+  if (spProjLineInt3D == nullptr) {
+    return nullptr;
+  }
+  // FloatImageType::IMageRegionIteratorWithIndex
+
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<FloatImageType, UShortImageType,
+                                   LineInt2Intensity_ushort>::New();
+  convert_filter->SetInput(spProjLineInt3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
+
+FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
+    UShortImageType::Pointer &spProjIntensity3D) {
+  if (spProjIntensity3D == nullptr) {
+    return nullptr;
+  }
+  auto convert_filter = itk::UnaryFunctorImageFilter<
+      UShortImageType, FloatImageType,
+      Intensity2LineInt_ushort<unsigned short>>::New();
+  convert_filter->SetInput(spProjIntensity3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
+
+FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
+    FloatImageType::Pointer &spProjIntensity3D) {
+  if (spProjIntensity3D == nullptr) {
+    return nullptr;
+  }
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<FloatImageType, FloatImageType,
+                                   Intensity2LineInt_ushort<float>>::New();
+  convert_filter->SetInput(spProjIntensity3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
 }
 
 } // namespace crl

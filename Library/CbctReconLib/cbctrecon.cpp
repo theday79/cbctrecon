@@ -75,6 +75,8 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include "free_functions.h"
 #include <qlistview.h>
 
+namespace fs = std::filesystem;
+
 CbctRecon::CbctRecon() {
 
   m_dspYKReconImage = std::make_unique<YK16GrayImage>();
@@ -103,7 +105,7 @@ CbctRecon::CbctRecon() {
   // m_fProjSpacingX = 0.4; // DEFAULT, will be updated during Load Proj
   // selected m_fProjSpacingY = 0.4;
 
-  m_strPathDirDefault = std::filesystem::current_path();
+  m_strPathDirDefault = fs::current_path();
   std::cout << "Current Default Dir: " << m_strPathDirDefault << std::endl;
 
   // shell test
@@ -133,22 +135,21 @@ void CbctRecon::ReleaseMemory() {
 
 // Hexa name ->decimal name
 
-void RenameFromHexToDecimal(
-    const std::vector<std::filesystem::path> &filenameList) {
+void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList) {
   const auto size = filenameList.size();
 
   for (auto i = 0; i < size; i++) {
     const auto &crntFilePath = filenameList.at(i);
-    auto dir = std::filesystem::absolute(crntFilePath);
+    auto dir = fs::absolute(crntFilePath);
     auto fileBase = crntFilePath.stem();
     auto newBaseName = crl::HexStr2IntStr(fileBase.string());
     auto extStr = crntFilePath.extension();
 
     auto newFileName = newBaseName.append(".").append(extStr.string());
-    auto newPath = std::filesystem::absolute(dir) / newFileName;
+    auto newPath = fs::absolute(dir) / newFileName;
 
     // extract former part
-    std::filesystem::rename(crntFilePath, newPath);
+    fs::rename(crntFilePath, newPath);
   }
   // Extract
 }
@@ -254,7 +255,7 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     return false;
   }
 
-  const std::filesystem::path tmp_rtk_geom_file{"RTKgeometry.xml"};
+  const fs::path tmp_rtk_geom_file{"RTKgeometry.xml"};
 
   if (geomFileInfo.fileName() == "_Frames.xml") // this is XVI XML.
   {
@@ -499,7 +500,7 @@ bool CbctRecon::ResampleProjections(double &resample_factor) {
 }
 
 void CbctRecon::GetExcludeIndexByNames(
-    const std::filesystem::path &outlierListPath,
+    const fs::path &outlierListPath,
     std::vector<std::string> &vProjFileFullPath,
     std::vector<int> &vExcludeIdx) const {
   std::ifstream fin;
@@ -1353,7 +1354,7 @@ constexpr bool any_of_str_in_str(const std::array<std::string, N> &test_strings,
 }
 
 void CbctRecon::FindAllRelevantPaths(
-    const std::string &pathProjHisDir) // called following SLT_SetHisDir
+    const fs::path &pathProjHisDir) // called following SLT_SetHisDir
 {
   // in case of eletka, img_UID
   // std::string aa;
@@ -1373,8 +1374,8 @@ void CbctRecon::FindAllRelevantPaths(
   m_strPathPlan.clear();
   m_strPathIMAGES.clear();
 
-  auto curHisDir = std::filesystem::path(pathProjHisDir);
-  auto movingDir = std::filesystem::path(pathProjHisDir);
+  auto curHisDir = fs::path(pathProjHisDir);
+  auto movingDir = fs::path(pathProjHisDir);
   m_projFormat = enProjFormat::HIS_FORMAT;
 
   const auto cur_his_path_str = curHisDir.string();
@@ -1385,17 +1386,16 @@ void CbctRecon::FindAllRelevantPaths(
     if (cur_his_path_str.find("Scan0") != std::string::npos) {
       std::cout << "XML set by guessing: Scan0/../ProjectionInfo.xml"
                 << std::endl;
-      m_strPathGeomXML = std::filesystem::absolute(curHisDir).parent_path() /
-                         "ProjectionInfo.xml";
+      m_strPathGeomXML =
+          fs::absolute(curHisDir).parent_path() / "ProjectionInfo.xml";
       std::cout << "Patient DIR set to: Scan0/../../" << std::endl;
       m_projFormat = enProjFormat::HND_FORMAT;
       return;
     }
-    if (std::filesystem::absolute(curHisDir).string.find("Acquisitions")) {
+    if (fs::absolute(curHisDir).string.find("Acquisitions")) {
       std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
       m_strPathGeomXML =
-          std::filesystem::absolute(curHisDir).parent_path().parent_path() /
-          "Scan.xml";
+          fs::absolute(curHisDir).parent_path().parent_path() / "Scan.xml";
       std::cout << "Patient DIR set to: Acquisitions/../../../" << std::endl;
       m_projFormat = enProjFormat::XIM_FORMAT;
       return;
@@ -1416,7 +1416,7 @@ void CbctRecon::FindAllRelevantPaths(
     std::cout << "no upper dir" << std::endl;
     return;
   }
-  m_strPathIMAGES = std::filesystem::absolute(movingDir);
+  m_strPathIMAGES = fs::absolute(movingDir);
 
   if (!movingDir.parent_path()
            .has_parent_path()) // IMAGES ==> patient_402-02-78
@@ -1425,7 +1425,7 @@ void CbctRecon::FindAllRelevantPaths(
     return;
   }
   auto tmpDir_PatientFolder{
-      std::filesystem::absolute(movingDir.parent_path().parent_path())};
+      fs::absolute(movingDir.parent_path().parent_path())};
 
   if (!movingDir.parent_path()
            .parent_path()
@@ -1437,8 +1437,7 @@ void CbctRecon::FindAllRelevantPaths(
   }
 
   m_strPatientDirName = tmpDir_PatientFolder.parent_path().filename();
-  m_strPathPatientDir =
-      std::filesystem::absolute(tmpDir_PatientFolder.parent_path());
+  m_strPathPatientDir = fs::absolute(tmpDir_PatientFolder.parent_path());
 
   if (tmpDir_PatientFolder.has_parent_path()) {
     m_strPathDirDefault = m_strPathPatientDir;
@@ -1449,19 +1448,16 @@ void CbctRecon::FindAllRelevantPaths(
       m_strPathPatientDir / std::string("ElektaGeom_" + m_strDCMUID + ".xml");
 
   // option 2
-  const auto pathXVIGeometryXML =
-      std::filesystem::absolute(curHisDir) / "_Frames.xml";
+  const auto pathXVIGeometryXML = fs::absolute(curHisDir) / "_Frames.xml";
 
-  if (std::filesystem::exists(
-          tmpPathRTKGeometry)) // The best option: rtk geometry file is already
-                               // existing
+  if (fs::exists(tmpPathRTKGeometry)) // The best option: rtk geometry file is
+                                      // already existing
   {
     std::cout << "RTK XLM file is found" << std::endl;
     m_strPathGeomXML = tmpPathRTKGeometry;
-  } else if (std::filesystem::exists(
-                 pathXVIGeometryXML)) // 2nd option:_Frames.xml already exists
-                                      // in each projection folder for >
-                                      // XVI5.0.2
+  } else if (fs::exists(pathXVIGeometryXML)) // 2nd option:_Frames.xml already
+                                             // exists in each projection folder
+                                             // for > XVI5.0.2
   {
     std::cout << "XVI XLM file is found" << std::endl;
     // YKdebug: Later, it
@@ -1486,8 +1482,7 @@ void CbctRecon::FindAllRelevantPaths(
     auto fInfo_FrameDBF = tmpStrPath1 / "FRAME.DBF";
     auto fInfo_ImageDBF = tmpStrPath2 / "IMAGE.DBF";
 
-    if (!std::filesystem::exists(fInfo_FrameDBF) ||
-        !std::filesystem::exists(fInfo_ImageDBF)) {
+    if (!fs::exists(fInfo_FrameDBF) || !fs::exists(fInfo_ImageDBF)) {
       std::cout << "No found in the patient folder. DBF files can be saved in "
                    "each individual patient as well. Continues to search them "
                    "again in root folder(standard)"
@@ -1496,8 +1491,7 @@ void CbctRecon::FindAllRelevantPaths(
       fInfo_FrameDBF = m_strPathPatientDir / "FRAME.DBF";
       fInfo_ImageDBF = m_strPathPatientDir / "IMAGE.DBF";
 
-      if (!std::filesystem::exists(fInfo_FrameDBF) ||
-          !std::filesystem::exists(fInfo_ImageDBF)) {
+      if (!fs::exists(fInfo_FrameDBF) || !fs::exists(fInfo_ImageDBF)) {
         std::cout << "DBF files were not found" << std::endl;
         std::cout << "XML file cannot be made" << std::endl;
         return;
@@ -1506,8 +1500,8 @@ void CbctRecon::FindAllRelevantPaths(
       std::cout << "DBF files are found in the individual patient directory."
                 << std::endl;
     }
-    m_strPathFRAME_DBF = std::filesystem::absolute(fInfo_FrameDBF);
-    m_strPathIMAGE_DBF = std::filesystem::absolute(fInfo_ImageDBF);
+    m_strPathFRAME_DBF = fs::absolute(fInfo_FrameDBF);
+    m_strPathIMAGE_DBF = fs::absolute(fInfo_ImageDBF);
 
     m_strPathGeomXML.clear();
     m_strPathGeomXML = crl::MakeElektaXML(
@@ -1540,16 +1534,15 @@ void CbctRecon::FindAllRelevantPaths(
   // 1: // Patient DIR ==> IMAGES --> CT_SET / DICOM_PLAN
   // 2: NO CT image
 
-  auto tmpDIR_CTSET =
-      std::filesystem::absolute(tmpDir_PatientFolder / "CT_SET");
+  auto tmpDIR_CTSET = fs::absolute(tmpDir_PatientFolder / "CT_SET");
 
-  if (std::filesystem::exists(tmpDIR_CTSET)) {
+  if (fs::exists(tmpDIR_CTSET)) {
     enDirStructure_Type = 0;
   } else {
     auto tmpStrPathCTSET = m_strPathIMAGES;
     tmpDIR_CTSET = tmpStrPathCTSET / "CT_SET";
 
-    if (std::filesystem::exists(tmpDIR_CTSET)) {
+    if (fs::exists(tmpDIR_CTSET)) {
       enDirStructure_Type = 1;
     }
   }
@@ -1571,7 +1564,7 @@ void CbctRecon::FindAllRelevantPaths(
   //
 
   if (enDirStructure_Type != 2) {
-    for (auto &listDir : std::filesystem::directory_iterator(tmpDIR_CTSET)) {
+    for (auto &listDir : fs::directory_iterator(tmpDIR_CTSET)) {
       if (listDir.is_directory()) {
         m_strPathPlanCTDir = listDir.path();
       }
@@ -1585,26 +1578,25 @@ void CbctRecon::FindAllRelevantPaths(
   // std::string tmpPath = listDir.at(i).absoluteFilePath();
   // }
 
-  for (auto &listFile : std::filesystem::directory_iterator(tmpDIR_CTSET)) {
+  for (auto &listFile : fs::directory_iterator(tmpDIR_CTSET)) {
     if (listFile.is_regular_file()) {
       auto ext = listFile.path().extension().string();
-      if (listFile.path().stem().string().find("RS") &&
-          (ext.compare("DCM") || ext.compare("dcm"))) {
+      if (listFile.path().stem().string().find("RS") != std::string::npos &&
+          (ext.compare("DCM") == 0 || ext.compare("dcm") == 0)) {
         m_strPathRS = listFile.path();
       }
     }
   }
 
-  auto tmpDIR_DCM_Plan =
-      QDir(tmpDir_PatientFolder.absolutePath().append("/DICOM_PLAN"));
+  auto tmpDIR_DCM_Plan = fs::absolute(tmpDir_PatientFolder) / "DICOM_PLAN";
 
-  if (tmpDIR_DCM_Plan.exists()) {
+  if (fs::exists(tmpDIR_DCM_Plan)) {
     enDirStructure_Type = 0;
   } else {
     auto tmpStrPathCTSET = m_strPathIMAGES;
-    tmpDIR_DCM_Plan = QDir(tmpStrPathCTSET.append("/DICOM_PLAN"));
+    tmpDIR_DCM_Plan = tmpStrPathCTSET / "DICOM_PLAN";
 
-    if (tmpDIR_DCM_Plan.exists()) {
+    if (fs::exists(tmpDIR_DCM_Plan)) {
       enDirStructure_Type = 1;
     } else {
       enDirStructure_Type = 2;
@@ -1612,89 +1604,74 @@ void CbctRecon::FindAllRelevantPaths(
   }
 
   if (enDirStructure_Type != 2) {
-    auto listFileDCMPlan =
-        tmpDIR_DCM_Plan.entryInfoList(QDir::Files, QDir::Name);
-    if (listFileDCMPlan.empty()) // should be /. and /.. and one dcm file
-    {
-      std::cout << "No DCM plan file exists. Proceeding w/o dicom plan"
-                << std::endl;
-    } else if (listFileDCMPlan.size() > 1) {
-      std::cout << "Warning! More than one DCM plan file exists. First DCM "
-                   "plan file will be used"
-                << std::endl;
-    } else {
-    }
-
-    for (const auto &i : listFileDCMPlan) {
-      if (i.suffix().contains("DCM", Qt::CaseInsensitive)) {
-        m_strPathPlan = i.absoluteFilePath();
-        break; // get fisrt one only
-      }
-    }
-  }
-
-  QDir movingDirCBCTRS;
-
-  if (enDirStructure_Type == 0) {
-    movingDirCBCTRS = std::move(tmpDir_PatientFolder);
-  } else if (enDirStructure_Type == 1) {
-    movingDirCBCTRS = std::move(tmpDir_IMAGES);
-  }
-
-  if (!movingDirCBCTRS.cd("CBCT_RS")) {
-    std::cout << "no CBCT_RS dir exists. Proceed with out CBCT RS image"
-              << std::endl;
-  } else {
-    auto listFile2 = movingDirCBCTRS.entryInfoList(QDir::Files, QDir::Name);
-
-    if (listFile2.empty()) {
-      std::cout << "No CBCT DICOM RS file exist. proceeding w/o RS"
-                << std::endl;
-      // return;
-      m_strPathRS_CBCT.clear();
-    } else {
-      for (const auto &i : listFile2) {
-        if (i.suffix().contains("DCM", Qt::CaseInsensitive)) {
-          m_strPathRS_CBCT = i.absoluteFilePath();
-          break;
+    for (auto &listFileDCMPlan : fs::directory_iterator(tmpDIR_DCM_Plan)) {
+      if (listFileDCMPlan.is_regular_file()) {
+        if (listFileDCMPlan.path().extension().compare("DCM") == 0 ||
+            listFileDCMPlan.path().extension().compare("dcm") == 0) {
+          m_strPathPlan = fs::absolute(listFileDCMPlan.path());
+          break; // get first one only
         }
       }
     }
   }
 
-  const auto strPathAcqParamDir = pathProjHisDir + "/Reconstruction";
-  auto tmpAcqParamDir = QDir(strPathAcqParamDir);
+  fs::path movingDirCBCTRS;
 
-  if (tmpAcqParamDir.exists()) {
-    auto listFileAcqParam = tmpAcqParamDir.entryInfoList(
-        QDir::Files, QDir::Name); // search for DICOM RS file
+  if (enDirStructure_Type == 0) {
+    movingDirCBCTRS = std::move(tmpDir_PatientFolder);
+  } else if (enDirStructure_Type == 1) {
+    movingDirCBCTRS = m_strPathIMAGES;
+  }
+
+  movingDirCBCTRS /= "CBCT_RS";
+
+  if (!fs::exists(movingDirCBCTRS)) {
+    std::cout << "no CBCT_RS dir exists. Proceed with out CBCT RS image"
+              << std::endl;
+  } else {
+    for (auto &listFile : fs::directory_iterator(movingDirCBCTRS)) {
+      if (listFile.is_regular_file() &&
+          (listFile.path().extension().compare("DCM") == 0 ||
+           listFile.path().extension().compare("DCM") == 0)) {
+        m_strPathRS_CBCT = fs::absolute(listFile.path());
+        break;
+      }
+    }
+  }
+
+  const auto pathAcqParamDir = pathProjHisDir / "Reconstruction";
+
+  if (fs::exists(pathAcqParamDir)) {
 
     auto iMinNameLength = 9999;
 
     auto iMaxNameLength = 0;
     auto iCnt_INIXVI = 0;
 
-    std::string strPathINIXVI_long;
-    for (const auto &i : listFileAcqParam) {
+    fs::path strPathINIXVI_long;
+    for (const auto &listFileAcqParam :
+         fs::directory_iterator(pathAcqParamDir)) {
       // suffix:*.tar.gz ==> gz only
-      if (i.suffix().contains("INI", Qt::CaseInsensitive)) {
-        auto tmpPath = i.absoluteFilePath();
+      if (listFileAcqParam.is_regular_file() &&
+          (listFileAcqParam.path().extension().compare("INI") == 0 ||
+           listFileAcqParam.path().extension().compare("ini") == 0)) {
+        auto tmpPath = fs::absolute(listFileAcqParam.path());
 
-        if (tmpPath.length() < iMinNameLength) {
-          iMinNameLength = tmpPath.length();
+        if (tmpPath.string().size() < iMinNameLength) {
+          iMinNameLength = tmpPath.string().size();
           m_strPathElektaINI = tmpPath;
         }
       }
 
-      auto StrSuffix = i.completeSuffix();
+      auto StrSuffix =   listFileAcqParam.path().stem().extension().string() + listFileAcqParam.path().extension().string();
 
-      if (StrSuffix.contains("INI.XVI", Qt::CaseInsensitive)) {
+      if (StrSuffix.compare("INI.XVI") == 0 || StrSuffix.compare("ini.xvi") == 0) {
         iCnt_INIXVI++;
 
-        auto tmpPath2 = i.absoluteFilePath();
+        auto tmpPath2 = fs::absolute(listFileAcqParam.path());
 
-        if (tmpPath2.length() > iMaxNameLength) {
-          iMaxNameLength = tmpPath2.length();
+        if (tmpPath2.string().size() > iMaxNameLength) {
+          iMaxNameLength = tmpPath2.string().size();
           strPathINIXVI_long = tmpPath2;
         }
       }
@@ -1705,38 +1682,37 @@ void CbctRecon::FindAllRelevantPaths(
     }
   }
 
-  std::cout << "m_strDCMUID: " << m_strDCMUID.toLocal8Bit().constData()
-            << std::endl;
-  std::cout << "m_strPathPatientDir: "
-            << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPatientDirName: "
-            << m_strPatientDirName.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathFRAME_DBF: "
-            << m_strPathFRAME_DBF.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathIMAGE_DBF: "
-            << m_strPathIMAGE_DBF.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathGeomXML: "
-            << m_strPathGeomXML.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathPlanCTDir: "
-            << m_strPathPlanCTDir.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathRS: " << m_strPathRS.toLocal8Bit().constData()
-            << std::endl;
-  std::cout << "m_strPathRS_CBCT: "
-            << m_strPathRS_CBCT.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathPlan: " << m_strPathPlan.toLocal8Bit().constData()
-            << std::endl;
-  std::cout << "m_strPathElektaINI: "
-            << m_strPathElektaINI.toLocal8Bit().constData() << std::endl;
-  std::cout << "m_strPathElektaINIXVI2: "
-            << m_strPathElektaINIXVI2.toLocal8Bit().constData() << std::endl;
+  std::cerr << "m_strDCMUID: " << m_strDCMUID
+            << "\n"
+            << "m_strPathPatientDir: "
+            << m_strPathPatientDir << "\n"
+            << "m_strPatientDirName: "
+            << m_strPatientDirName << "\n"
+            << "m_strPathFRAME_DBF: "
+            << m_strPathFRAME_DBF << "\n"
+            << "m_strPathIMAGE_DBF: "
+            << m_strPathIMAGE_DBF << "\n"
+            << "m_strPathGeomXML: "
+            << m_strPathGeomXML << "\n"
+            << "m_strPathPlanCTDir: "
+            << m_strPathPlanCTDir << "\n"
+            << "m_strPathRS: " << m_strPathRS
+            << "\n"
+            << "m_strPathRS_CBCT: "
+            << m_strPathRS_CBCT << "\n"
+            << "m_strPathPlan: " << m_strPathPlan
+            << "\n"
+            << "m_strPathElektaINI: "
+            << m_strPathElektaINI << "\n"
+            << "m_strPathElektaINIXVI2: "
+            << m_strPathElektaINIXVI2 << "\n";
 }
 
 void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                                    std::vector<YK16GrayImage> arrYKImage,
-                                   std::string &strSavingFolder,
+                                   const fs::path &strSavingFolder,
                                    const double resampleF) const {
   std::cout << "Starting Saving files" << std::endl;
-  FILE *fd = nullptr;
 
   FloatImageType::Pointer targetImg3D;
   const auto restoreResampleF = 1.0 / resampleF;
@@ -1839,7 +1815,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     spTmpProjRaw3D = spProjRaw3D;
   }
 
-  AllocateByRef<FloatImageType, FloatImageType>(spTmpProjRaw3D, spProjScat3D);
+  crl::AllocateByRef<FloatImageType, FloatImageType>(spTmpProjRaw3D, spProjScat3D);
 
   auto imgSize = spTmpProjRaw3D->GetBufferedRegion().GetSize();
 
@@ -1851,11 +1827,11 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     ImageType::Pointer spImg2DRaw;
     ImageType::Pointer spImg2DPrim;
 
-    Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i,
+    crl::Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i,
                 enPLANE::PLANE_AXIAL); // simple conversion between ushort 3D
                                        // to float 2D (using casting, not
                                        // log): input/output: 0-65535
-    Get2DFrom3D(spProjCT3D, spImg2DPrim, i, enPLANE::PLANE_AXIAL);
+    crl::Get2DFrom3D(spProjCT3D, spImg2DPrim, i, enPLANE::PLANE_AXIAL);
 
     // The OpenCL version: ~49ms CPU ~76ms
 #ifndef _WIN32
@@ -1865,7 +1841,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     // CPU version if OpenCL is causing problems:
     using convert_filter_type =
-        itk::UnaryFunctorImageFilter<ImageType, ImageType, LineInt2Intensity>;
+        itk::UnaryFunctorImageFilter<ImageType, ImageType, crl::LineInt2Intensity>;
     auto convert_filter = convert_filter_type::New();
     convert_filter->SetInput(spImg2DRaw);
 
@@ -1918,7 +1894,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 #endif
 
     // float to unsigned short
-    Set2DTo3D<FloatImageType>(
+    crl::Set2DTo3D<FloatImageType>(
         spImg2DScat, spProjScat3D, i,
         enPLANE::PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno
                                // mu_t to intensity converion is involved
@@ -1935,39 +1911,37 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
     std::cout << "Patient DIR Path: "
-              << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
+              << m_strPathPatientDir << std::endl;
 
-    if (m_strPathPatientDir.isEmpty() &&
+    if (fs::is_empty(m_strPathPatientDir) &&
         m_projFormat == enProjFormat::HIS_FORMAT) {
       std::cout << "File save error!: No patient DIR name" << std::endl;
       return;
     }
 
     // Get current folder
-    std::string strCrntDir;
+    fs::path crntDir;
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
-      strCrntDir = m_strPathPatientDir + "/" + "IMAGES"; // current Proj folder
+      crntDir = m_strPathPatientDir / "IMAGES"; // current Proj folder
     } else {
       // stolen from registration class: m_strPathPlastimatch definition
-      auto crntDir = QDir::current(); // folder where current exe file exists.
-      auto crntPathStr = crntDir.absolutePath();
-      auto dirName = crntPathStr.append("/plm_tmp");
+      auto crntDir = fs::current_path(); // folder where current exe file exists.
+      auto crntPathStr = fs::absolute(crntDir);
+      auto dirName = crntPathStr / "plm_tmp";
 
-      auto tmpDir = QDir(dirName);
-      if (!tmpDir.exists()) {
-        if (!tmpDir.mkpath(dirName)) {
-          std::cerr << "Could not create " << dirName.toStdString()
+      if (!fs::exists(dirName)) {
+        if (!fs::create_directory(dirName)) {
+          std::cerr << "Could not create " << dirName
                     << std::endl;
           // Not enough reason to fail
         }
       }
-      strCrntDir = dirName;
+      crntDir = dirName;
     }
 
     // Make a sub directory
-    QDir crntDir(strCrntDir);
 
-    if (!crntDir.exists()) {
+    if (!fs::exists(crntDir)) {
       std::cout << "File save error: The specified folder does not exist."
                 << std::endl;
       return;
@@ -1975,30 +1949,27 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     const auto scatDirName = "sca_" + m_strDCMUID;
 
-    const auto tmpResult = crntDir.mkdir(scatDirName); // what if the
-                                                       // directory exists?
-
-    if (!tmpResult) {
+    if (!fs::create_directory(crntDir / scatDirName)) {
       std::cout << "Scatter map directory seems to exist already. Files will "
                    "be overwritten."
                 << std::endl;
     }
 
-    auto strSavingFolder = strCrntDir + "/" + scatDirName;
+    auto strSavingFolder = crntDir / scatDirName;
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
       SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder,
                          m_fResampleF);
       std::cerr << "Scatter saved in Intensity values as HIS at: "
-                << strSavingFolder.toStdString() << "\n";
+                << strSavingFolder << "\n";
     } else {
       using imagewritertype = itk::ImageFileWriter<FloatImageType>;
       auto imagewriter = imagewritertype::New();
       imagewriter->SetInput(spProjScat3D);
       imagewriter->SetFileName(
-          std::string(strSavingFolder + "/scatter.mha").toStdString());
+          (strSavingFolder / "scatter.mha").string());
       imagewriter->Update();
       std::cerr << "Scatter saved in Intensity values as mha at: "
-                << strSavingFolder.toStdString() << "\n";
+                << strSavingFolder << "\n";
     }
   }
 }
@@ -2048,7 +2019,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     spTmpProjScat3D = spProjScat3D;
   }
 
-  AllocateByRef<FloatImageType, FloatImageType>(spProjRaw3D, m_spProjCorr3D);
+  crl::AllocateByRef<FloatImageType, FloatImageType>(spProjRaw3D, m_spProjCorr3D);
 
   auto imgSize = spProjRaw3D->GetBufferedRegion().GetSize();
 
@@ -2060,8 +2031,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     FloatImage2DType::Pointer spImg2DRaw;
     FloatImage2DType::Pointer spImg2DScat;
 
-    Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, enPLANE::PLANE_AXIAL);
-    Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, enPLANE::PLANE_AXIAL);
+    crl::Get2DFrom3D(spProjRaw3D, spImg2DRaw, i, enPLANE::PLANE_AXIAL);
+    crl::Get2DFrom3D(spTmpProjScat3D, spImg2DScat, i, enPLANE::PLANE_AXIAL);
 
     if (bHighResolMacro) {
       postMedian = postMedian * 2;
@@ -2077,7 +2048,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     using ImageType = FloatImage2DType;
     auto convert_filter =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
-                                     LineInt2Intensity>::New();
+                                     crl::LineInt2Intensity>::New();
     convert_filter->SetInput(spImg2DRaw);
     /* The conversion seems redundant, see comment in GenScatterMap
         auto convert_filter_2 =
@@ -2096,7 +2067,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
     auto convert_back_filter =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
-                                     Intensity2LineInt>::New();
+                                     crl::Intensity2LineInt>::New();
     convert_back_filter->SetInput(median_filter->GetOutput());
     convert_back_filter->Update();
     ImageType::Pointer spImg2DCorr = convert_back_filter->GetOutput();
@@ -2129,7 +2100,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
       spImg2DCorr = medianFilter->GetOutput();
     }*/
 
-    Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
+    crl::Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
                               enPLANE::PLANE_AXIAL); // float2D to USHORT
 
     const auto unit = qRound(iSizeZ / 10.0);
@@ -2144,25 +2115,21 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
     std::cout << "Patient DIR Path: "
-              << m_strPathPatientDir.toLocal8Bit().constData() << std::endl;
+              << m_strPathPatientDir << std::endl;
 
-    if (m_strPathPatientDir.isEmpty()) {
+    if (fs::is_empty(m_strPathPatientDir)) {
       std::cout << "File save error!: No patient DIR name" << std::endl;
       return;
     }
 
     // Get current folder
-    const auto strCrntDir =
-        m_strPathPatientDir + "/" + "IMAGES"; // current Proj folder
+    const auto crntDir =
+        m_strPathPatientDir / "IMAGES"; // current Proj folder
 
-    // Make a sub directory
-    QDir crntDir(strCrntDir);
-
-    if (!crntDir.exists()) {
+    if (!fs::exists(crntDir)) {
       // Probably IMAGES subdir didn't exist, let's just use the selected dir
       // anyway
-      crntDir = QDir(m_strPathPatientDir);
-      if (!crntDir.exists()) {
+      if (!fs::exists(crntDir.parent_path())) {
         std::cerr << "File save error: The specified folder does not exist.\n";
         return;
       }
@@ -2170,16 +2137,13 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
     const auto scatDirName = "cor_" + m_strDCMUID;
 
-    const auto tmpResult = crntDir.mkdir(scatDirName); // what if the
-                                                       // directory exists?
-
-    if (!tmpResult) {
+    if (!fs::create_directory(crntDir / scatDirName)) {
       std::cout << "Corrected projection directory seems to exist already. "
                    "Files will be overwritten."
                 << std::endl;
     }
 
-    auto strSavingFolder = crntDir.absolutePath() + "/" + scatDirName;
+    auto strSavingFolder = fs::absolute(crntDir) / scatDirName;
 
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
       if (!bHighResolMacro) {
@@ -2190,87 +2154,11 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                            1.0);
       }
     } else {
-      saveImageAsMHA<FloatImageType>(
-          m_spProjCorr3D, strSavingFolder.toStdString() + "/corr_proj.mha");
+      crl::saveImageAsMHA<FloatImageType>(
+          m_spProjCorr3D, (strSavingFolder / "corr_proj.mha").string());
     }
   }
   // spProjScat3D->Initialize(); //memory release
-}
-
-class LineInt2Intensity_ushort {
-public:
-  LineInt2Intensity_ushort() = default;
-  ~LineInt2Intensity_ushort() = default;
-  float operator()(const float val) const {
-    constexpr auto max_ushort = std::numeric_limits<unsigned short>::max();
-    float intensityVal = std::exp(static_cast<double>(val) * -1.0) *
-                         static_cast<double>(max_ushort);
-
-    if (intensityVal <= 1.0) {
-      intensityVal = 1.0;
-    }
-    if (intensityVal >= (max_ushort - 1)) {
-      intensityVal = static_cast<double>(max_ushort - 1);
-    }
-
-    return static_cast<unsigned short>(intensityVal);
-  }
-};
-// From line integral to raw intensity
-// bkIntensity is usually 65535
-UShortImageType::Pointer CbctRecon::ConvertLineInt2Intensity_ushort(
-    FloatImageType::Pointer &spProjLineInt3D) {
-  if (spProjLineInt3D == nullptr) {
-    return nullptr;
-  }
-  // FloatImageType::IMageRegionIteratorWithIndex
-
-  auto convert_filter =
-      itk::UnaryFunctorImageFilter<FloatImageType, UShortImageType,
-                                   LineInt2Intensity_ushort>::New();
-  convert_filter->SetInput(spProjLineInt3D);
-  convert_filter->Update();
-  return convert_filter->GetOutput();
-}
-
-template <typename Tinput> class Intensity2LineInt_ushort {
-public:
-  Intensity2LineInt_ushort() = default;
-  ~Intensity2LineInt_ushort() = default;
-  float operator()(const Tinput val) const {
-    constexpr auto max_ushort = std::numeric_limits<unsigned short>::max();
-    // mu = ln(I_0/I) OR mu = ln(I/I0)
-    const float mu_t_val =
-        log(static_cast<double>(max_ushort) / static_cast<double>(val));
-
-    return mu_t_val;
-  }
-};
-
-FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt_ushort(
-    UShortImageType::Pointer &spProjIntensity3D) {
-  if (spProjIntensity3D == nullptr) {
-    return nullptr;
-  }
-  auto convert_filter = itk::UnaryFunctorImageFilter<
-      UShortImageType, FloatImageType,
-      Intensity2LineInt_ushort<unsigned short>>::New();
-  convert_filter->SetInput(spProjIntensity3D);
-  convert_filter->Update();
-  return convert_filter->GetOutput();
-}
-
-FloatImageType::Pointer CbctRecon::ConvertIntensity2LineInt_ushort(
-    FloatImageType::Pointer &spProjIntensity3D) {
-  if (spProjIntensity3D == nullptr) {
-    return nullptr;
-  }
-  auto convert_filter =
-      itk::UnaryFunctorImageFilter<FloatImageType, FloatImageType,
-                                   Intensity2LineInt_ushort<float>>::New();
-  convert_filter->SetInput(spProjIntensity3D);
-  convert_filter->Update();
-  return convert_filter->GetOutput();
 }
 
 // it works! new memory will be allocated for spTarImg

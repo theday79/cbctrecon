@@ -256,6 +256,40 @@ public:
   }
 };
 
+class LineInt2Intensity_ushort {
+public:
+  LineInt2Intensity_ushort() = default;
+  ~LineInt2Intensity_ushort() = default;
+  float operator()(const float val) const {
+    constexpr auto max_ushort = std::numeric_limits<unsigned short>::max();
+    float intensityVal = std::exp(static_cast<double>(val) * -1.0) *
+                         static_cast<double>(max_ushort);
+
+    if (intensityVal <= 1.0) {
+      intensityVal = 1.0;
+    }
+    if (intensityVal >= (max_ushort - 1)) {
+      intensityVal = static_cast<double>(max_ushort - 1);
+    }
+
+    return static_cast<unsigned short>(intensityVal);
+  }
+};
+
+template <typename Tinput> class Intensity2LineInt_ushort {
+public:
+  Intensity2LineInt_ushort() = default;
+  ~Intensity2LineInt_ushort() = default;
+  float operator()(const Tinput val) const {
+    constexpr auto max_ushort = std::numeric_limits<unsigned short>::max();
+    // mu = ln(I_0/I) OR mu = ln(I/I0)
+    const float mu_t_val =
+        log(static_cast<double>(max_ushort) / static_cast<double>(val));
+
+    return mu_t_val;
+  }
+};
+
 } // namespace crl
 
 #endif // FREE_FUNCTIONS_H

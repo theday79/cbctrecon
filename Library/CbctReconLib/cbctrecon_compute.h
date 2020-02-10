@@ -69,6 +69,22 @@ void CropFOV3D(UShortImageType::Pointer &sp_Img, const float physPosX,
                const float physPosY, const float physRadius,
                const float physTablePosY);
 
+CBCTRECON_API
+UShortImageType::Pointer ConvertLineInt2Intensity_ushort(
+    FloatImageType::Pointer &spProjLineInt3D);
+
+CBCTRECON_API
+FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
+    UShortImageType::Pointer &spProjIntensity3D);
+
+CBCTRECON_API
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D);
+
+
+
+/// Templates:
+
 template <typename RefImageType, typename TargetImageType>
 void AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
                    typename TargetImageType::Pointer &spTarImg3D) {
@@ -255,6 +271,7 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
     it_3D.NextSlice();
   } // end of for
 }
+
 
 } // namespace crl
 
