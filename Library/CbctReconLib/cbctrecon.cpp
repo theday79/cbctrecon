@@ -25,10 +25,6 @@
 #include <filesystem>
 #include <valarray>
 
-// Qt
-#include <qinputdialog.h>
-#include <qxmlstream.h>
-
 // ITK
 #include <itkAbsImageFilter.h>
 #include <itkAddImageFilter.h>
@@ -37,6 +33,7 @@
 #include <itkBinaryErodeImageFilter.h>
 #include <itkBinaryFillholeImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
+#include <itkDOMNodeXMLReader.h>
 #include <itkImageDuplicator.h>
 #include <itkImageSliceConstIteratorWithIndex.h>
 #include <itkImageSliceIteratorWithIndex.h>
@@ -73,9 +70,9 @@ using CUDAFloatImageType = itk::CudaImage<float, 3U>;
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
 #include "free_functions.h"
-#include <qlistview.h>
 
 namespace fs = std::filesystem;
+using namespace std::literals;
 
 CbctRecon::CbctRecon() {
 
@@ -246,10 +243,10 @@ void CbctRecon::SetProjDir(std::string &strProjPath) {
   FindAllRelevantPaths(strProjPath);
 }
 
-bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
+bool CbctRecon::LoadGeometry(fs::path &geomFileInfo,
                              std::vector<std::string> &names) {
 
-  if (!geomFileInfo.exists()) {
+  if (!fs::exists(geomFileInfo)) {
     std::cout << "Critical Error! geometry file is not existing. Please retry."
               << std::endl;
     return false;
@@ -257,25 +254,24 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
 
   const fs::path tmp_rtk_geom_file{"RTKgeometry.xml"};
 
-  if (geomFileInfo.fileName() == "_Frames.xml") // this is XVI XML.
+  if (geomFileInfo.filename() == "_Frames.xml") // this is XVI XML.
   {
     std::cout << "XVI Geometry File was found. This will be temporarily used:"
-              << geomFileInfo.fileName().toLocal8Bit().constData() << std::endl;
+              << geomFileInfo.filename() << std::endl;
     const auto success =
-        LoadXVIGeometryFile(geomFileInfo.absoluteFilePath()
-                                .toLocal8Bit()
-                                .constData()); // will generate m_spFullGeometry
+        LoadXVIGeometryFile(fs::absolute(geomFileInfo)
+                                ); // will generate m_spFullGeometry
     if (!success) {
       return false;
     }
-  } else if (geomFileInfo.fileName() ==
+  } else if (geomFileInfo.filename() ==
              "ProjectionInfo.xml") // this is OBI XML.
   {
     std::cout
         << "Varian XML Geometry File was found. This will be temporarily used:"
-        << geomFileInfo.fileName().toLocal8Bit().constData() << std::endl;
+        << geomFileInfo.filename() << std::endl;
     auto reader = rtk::VarianObiGeometryReader::New();
-    reader->SetXMLFileName(geomFileInfo.fileName().toLocal8Bit().constData());
+    reader->SetXMLFileName(geomFileInfo.filename().string());
     reader->SetProjectionsFileNames(names);
     reader->UpdateOutputData();
     // Write
@@ -288,14 +284,14 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     m_spFullGeometry = crl::LoadRTKGeometryFile(tmp_rtk_geom_file);
     // ::::::::::::::::::::::::::::LoadXMLGeometryFile(geomPath.toLocal8Bit().constData());
     // //will generate m_spFullGeometry
-  } else if (geomFileInfo.fileName() == "Scan.xml") // this is XIM XML.
+  } else if (geomFileInfo.filename() == "Scan.xml") // this is XIM XML.
   {
     std::cout << "Varian Xim XML Geometry File was found. This will be "
                  "temporarily used:"
-              << geomFileInfo.fileName().toLocal8Bit().constData() << std::endl;
+              << geomFileInfo.filename() << std::endl;
     auto reader = rtk::VarianProBeamGeometryReader::New();
     reader->SetXMLFileName(
-        geomFileInfo.absoluteFilePath().toLocal8Bit().constData());
+        fs::absolute(geomFileInfo).string());
     reader->SetProjectionsFileNames(names);
     reader->UpdateOutputData();
     // Write
@@ -311,12 +307,11 @@ bool CbctRecon::LoadGeometry(QFileInfo &geomFileInfo,
     // //will generate m_spFullGeometry
   } else {
     std::cout << "RTK standard Geometry XML File was found:"
-              << geomFileInfo.absoluteFilePath().toLocal8Bit().constData()
+              << fs::absolute(geomFileInfo)
               << std::endl;
     m_spFullGeometry = crl::LoadRTKGeometryFile(
-        geomFileInfo.absoluteFilePath()
-            .toLocal8Bit()
-            .constData()); // will generate m_spFullGeometry
+        fs::absolute(geomFileInfo)
+            ); // will generate m_spFullGeometry
   }
   return true;
 }
@@ -1392,7 +1387,7 @@ void CbctRecon::FindAllRelevantPaths(
       m_projFormat = enProjFormat::HND_FORMAT;
       return;
     }
-    if (fs::absolute(curHisDir).string.find("Acquisitions")) {
+    if (fs::absolute(curHisDir).string().find("Acquisitions")) {
       std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
       m_strPathGeomXML =
           fs::absolute(curHisDir).parent_path().parent_path() / "Scan.xml";
@@ -1663,9 +1658,11 @@ void CbctRecon::FindAllRelevantPaths(
         }
       }
 
-      auto StrSuffix =   listFileAcqParam.path().stem().extension().string() + listFileAcqParam.path().extension().string();
+      auto StrSuffix = listFileAcqParam.path().stem().extension().string() +
+                       listFileAcqParam.path().extension().string();
 
-      if (StrSuffix.compare("INI.XVI") == 0 || StrSuffix.compare("ini.xvi") == 0) {
+      if (StrSuffix.compare("INI.XVI") == 0 ||
+          StrSuffix.compare("ini.xvi") == 0) {
         iCnt_INIXVI++;
 
         auto tmpPath2 = fs::absolute(listFileAcqParam.path());
@@ -1682,30 +1679,18 @@ void CbctRecon::FindAllRelevantPaths(
     }
   }
 
-  std::cerr << "m_strDCMUID: " << m_strDCMUID
-            << "\n"
-            << "m_strPathPatientDir: "
-            << m_strPathPatientDir << "\n"
-            << "m_strPatientDirName: "
-            << m_strPatientDirName << "\n"
-            << "m_strPathFRAME_DBF: "
-            << m_strPathFRAME_DBF << "\n"
-            << "m_strPathIMAGE_DBF: "
-            << m_strPathIMAGE_DBF << "\n"
-            << "m_strPathGeomXML: "
-            << m_strPathGeomXML << "\n"
-            << "m_strPathPlanCTDir: "
-            << m_strPathPlanCTDir << "\n"
-            << "m_strPathRS: " << m_strPathRS
-            << "\n"
-            << "m_strPathRS_CBCT: "
-            << m_strPathRS_CBCT << "\n"
-            << "m_strPathPlan: " << m_strPathPlan
-            << "\n"
-            << "m_strPathElektaINI: "
-            << m_strPathElektaINI << "\n"
-            << "m_strPathElektaINIXVI2: "
-            << m_strPathElektaINIXVI2 << "\n";
+  std::cerr << "m_strDCMUID: " << m_strDCMUID << "\n"
+            << "m_strPathPatientDir: " << m_strPathPatientDir << "\n"
+            << "m_strPatientDirName: " << m_strPatientDirName << "\n"
+            << "m_strPathFRAME_DBF: " << m_strPathFRAME_DBF << "\n"
+            << "m_strPathIMAGE_DBF: " << m_strPathIMAGE_DBF << "\n"
+            << "m_strPathGeomXML: " << m_strPathGeomXML << "\n"
+            << "m_strPathPlanCTDir: " << m_strPathPlanCTDir << "\n"
+            << "m_strPathRS: " << m_strPathRS << "\n"
+            << "m_strPathRS_CBCT: " << m_strPathRS_CBCT << "\n"
+            << "m_strPathPlan: " << m_strPathPlan << "\n"
+            << "m_strPathElektaINI: " << m_strPathElektaINI << "\n"
+            << "m_strPathElektaINIXVI2: " << m_strPathElektaINIXVI2 << "\n";
 }
 
 void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
@@ -1734,7 +1719,6 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
 
   for (auto it = arrYKImage.begin();
        it != arrYKImage.end() && !it_FwdProj.IsAtEnd(); ++it) {
-    QFileInfo crntFileInfo();
 
     auto crntFileName = it->m_strFilePath.filename();
     auto crntPath = strSavingFolder / crntFileName;
@@ -1815,7 +1799,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     spTmpProjRaw3D = spProjRaw3D;
   }
 
-  crl::AllocateByRef<FloatImageType, FloatImageType>(spTmpProjRaw3D, spProjScat3D);
+  crl::AllocateByRef<FloatImageType, FloatImageType>(spTmpProjRaw3D,
+                                                     spProjScat3D);
 
   auto imgSize = spTmpProjRaw3D->GetBufferedRegion().GetSize();
 
@@ -1828,9 +1813,9 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
     ImageType::Pointer spImg2DPrim;
 
     crl::Get2DFrom3D(spTmpProjRaw3D, spImg2DRaw, i,
-                enPLANE::PLANE_AXIAL); // simple conversion between ushort 3D
-                                       // to float 2D (using casting, not
-                                       // log): input/output: 0-65535
+                     enPLANE::PLANE_AXIAL); // simple conversion between ushort
+                                            // 3D to float 2D (using casting,
+                                            // not log): input/output: 0-65535
     crl::Get2DFrom3D(spProjCT3D, spImg2DPrim, i, enPLANE::PLANE_AXIAL);
 
     // The OpenCL version: ~49ms CPU ~76ms
@@ -1841,7 +1826,8 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     // CPU version if OpenCL is causing problems:
     using convert_filter_type =
-        itk::UnaryFunctorImageFilter<ImageType, ImageType, crl::LineInt2Intensity>;
+        itk::UnaryFunctorImageFilter<ImageType, ImageType,
+                                     crl::LineInt2Intensity>;
     auto convert_filter = convert_filter_type::New();
     convert_filter->SetInput(spImg2DRaw);
 
@@ -1910,8 +1896,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
   if (bSave) {
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
-    std::cout << "Patient DIR Path: "
-              << m_strPathPatientDir << std::endl;
+    std::cout << "Patient DIR Path: " << m_strPathPatientDir << std::endl;
 
     if (fs::is_empty(m_strPathPatientDir) &&
         m_projFormat == enProjFormat::HIS_FORMAT) {
@@ -1925,14 +1910,14 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       crntDir = m_strPathPatientDir / "IMAGES"; // current Proj folder
     } else {
       // stolen from registration class: m_strPathPlastimatch definition
-      auto crntDir = fs::current_path(); // folder where current exe file exists.
+      auto crntDir =
+          fs::current_path(); // folder where current exe file exists.
       auto crntPathStr = fs::absolute(crntDir);
       auto dirName = crntPathStr / "plm_tmp";
 
       if (!fs::exists(dirName)) {
         if (!fs::create_directory(dirName)) {
-          std::cerr << "Could not create " << dirName
-                    << std::endl;
+          std::cerr << "Could not create " << dirName << std::endl;
           // Not enough reason to fail
         }
       }
@@ -1965,8 +1950,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       using imagewritertype = itk::ImageFileWriter<FloatImageType>;
       auto imagewriter = imagewritertype::New();
       imagewriter->SetInput(spProjScat3D);
-      imagewriter->SetFileName(
-          (strSavingFolder / "scatter.mha").string());
+      imagewriter->SetFileName((strSavingFolder / "scatter.mha").string());
       imagewriter->Update();
       std::cerr << "Scatter saved in Intensity values as mha at: "
                 << strSavingFolder << "\n";
@@ -2019,7 +2003,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     spTmpProjScat3D = spProjScat3D;
   }
 
-  crl::AllocateByRef<FloatImageType, FloatImageType>(spProjRaw3D, m_spProjCorr3D);
+  crl::AllocateByRef<FloatImageType, FloatImageType>(spProjRaw3D,
+                                                     m_spProjCorr3D);
 
   auto imgSize = spProjRaw3D->GetBufferedRegion().GetSize();
 
@@ -2101,7 +2086,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     }*/
 
     crl::Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
-                              enPLANE::PLANE_AXIAL); // float2D to USHORT
+                                   enPLANE::PLANE_AXIAL); // float2D to USHORT
 
     const auto unit = qRound(iSizeZ / 10.0);
     if (i % unit == 0) {
@@ -2114,8 +2099,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
   if (bSave) {
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
-    std::cout << "Patient DIR Path: "
-              << m_strPathPatientDir << std::endl;
+    std::cout << "Patient DIR Path: " << m_strPathPatientDir << std::endl;
 
     if (fs::is_empty(m_strPathPatientDir)) {
       std::cout << "File save error!: No patient DIR name" << std::endl;
@@ -2123,8 +2107,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     }
 
     // Get current folder
-    const auto crntDir =
-        m_strPathPatientDir / "IMAGES"; // current Proj folder
+    const auto crntDir = m_strPathPatientDir / "IMAGES"; // current Proj folder
 
     if (!fs::exists(crntDir)) {
       // Probably IMAGES subdir didn't exist, let's just use the selected dir
@@ -2384,21 +2367,18 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
   // Save Image as DICOM
   if (save_dicom) {
     // Get current folder
-    const auto strCrntDir = m_strPathPatientDir + "/" + "IMAGES" + "/" +
-                            "cor_" + m_strDCMUID; // current Proj folder
-    QDir crntDir(strCrntDir);
-    const auto SubDirName = std::string("Reconstruction");
-    const auto tmpResult =
-        crntDir.mkdir(SubDirName); // what if the directory exists?
-    if (!tmpResult) {
+    const auto crntDir = m_strPathPatientDir / "IMAGES" /
+                         ("cor_" + m_strDCMUID); // current Proj folder
+    const auto SubDirName = "Reconstruction"s;
+    auto savingFolder = crntDir / SubDirName;
+    if (!fs::create_directory(crntDir / SubDirName)) {
       std::cout
           << "DICOM dir seems to exist already. Files will be overwritten."
           << std::endl;
     }
-    auto strSavingFolder = strCrntDir + "/" + SubDirName;
-    auto updated_text_ct = std::string("PriorCT_ScatterCorr");
-    SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID, updated_text_ct,
-                            strSavingFolder);
+    auto updated_text_ct = "PriorCT_ScatterCorr"s;
+    crl::SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID,
+                                 updated_text_ct, savingFolder);
     // Export as DICOM (using plastimatch) folder?
   }
   std::cout << "Exiting AfterScatCorrectionMacro.";
@@ -2497,11 +2477,11 @@ int CbctRecon::CropSkinUsingThreshold(const int threshold,
 }
 
 // Below version is optimized for many points and much faster
-void CbctRecon::ExportAngularWEPL_byFile(std::string &strPathOutput,
+void CbctRecon::ExportAngularWEPL_byFile(fs::path &strPathOutput,
                                          const double fAngleStart,
                                          const double fAngleEnd,
                                          const double fAngleGap) {
-  if (strPathOutput.length() < 1) {
+  if (strPathOutput.empty()) {
     return;
   }
 
@@ -2597,7 +2577,7 @@ void CbctRecon::ExportAngularWEPL_byFile(std::string &strPathOutput,
   std::cout << "Saving results...";
 
   std::ofstream fout;
-  fout.open(strPathOutput.toLocal8Bit().constData());
+  fout.open(strPathOutput);
 
   const auto cntWEPL = vOutputWEPL_rawCBCT.size();
 
@@ -2675,7 +2655,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
     vOutputWEPLData.clear();
   }
 
-  const auto wepl_image = ConvertUshort2WeplFloat(spUshortImage);
+  const auto wepl_image = crl::wepl::ConvertUshort2WeplFloat(spUshortImage);
 
   const auto fullAngle = fAngleEnd - fAngleStart;
   const auto sizeAngles = qRound(fullAngle / fAngleGap);
@@ -2688,7 +2668,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
 
   for (auto i = 0; i < sizeAngles; ++i) {
     const auto gantry = fAngleStart + i * fAngleGap;
-    const auto basis = get_basis_from_angles(gantry, couch);
+    const auto basis = crl::wepl::get_basis_from_angles(gantry, couch);
     size_t loop_idx = 0;
     // int z_slice = -5000; // for progress and debug
     for (auto &poi_it : m_vPOI_DCM) {
@@ -2715,7 +2695,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
 
       WEPLData wepl_data{};
       wepl_data.fWEPL =
-          WEPL_from_point(point_id, basis, pixel_size, wepl_image);
+          crl::wepl::WEPL_from_point(point_id, basis, pixel_size, wepl_image);
       wepl_data.ptIndex = loop_idx;
       wepl_data.fGanAngle = gantry;
 
@@ -2737,7 +2717,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
     return;
   }
 
-  const auto wepl_image = ConvertUshort2WeplFloat(spUshortImage);
+  const auto wepl_image = crl::wepl::ConvertUshort2WeplFloat(spUshortImage);
 
   const auto fullAngle = fAngleEnd - fAngleStart;
   const auto sizeAngles = static_cast<size_t>(qRound(fullAngle / fAngleGap));
@@ -2783,12 +2763,12 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
     // YKTEMP Should be updated according to recent update of plastimatch
     const auto curAngle = fAngleStart + i * fAngleGap;
 
-    const auto basis = get_basis_from_angles(curAngle, 0.0);
+    const auto basis = crl::wepl::get_basis_from_angles(curAngle, 0.0);
 
     ofs << std::fixed << std::setprecision(3) << curAngle << ", [" << basis[0]
         << ", " << basis[1] << ", " << basis[2] << "]: ";
 
-    it.fWEPL = WEPL_from_point(isoTarget, basis, pixel_size,
+    it.fWEPL = crl::wepl::WEPL_from_point(isoTarget, basis, pixel_size,
                                wepl_image); // get_rgdepth
     it.fGanAngle = curAngle;
     it.ptIndex = curPtIdx;
@@ -2853,14 +2833,14 @@ void CbctRecon::GeneratePOIData(const bool AnteriorToPosterior,
             << last_point.y << ", " << last_point.z << "]" << std::endl;
 }
 
-void CbctRecon::LoadExternalFloatImage(std::string &strPath,
+void CbctRecon::LoadExternalFloatImage(fs::path &strPath,
                                        const bool bConversion) {
   using ReaderType = itk::ImageFileReader<FloatImageType>;
   auto reader = ReaderType::New();
 
   // std::string filePath = strPath;
 
-  reader->SetFileName(strPath.toLocal8Bit().constData());
+  reader->SetFileName(strPath.string());
   reader->Update();
 
   FloatImageType::Pointer spCrntImg = reader->GetOutput();
@@ -2869,7 +2849,7 @@ void CbctRecon::LoadExternalFloatImage(std::string &strPath,
   std::cout << "Float image has been loaded" << std::endl;
 
   if (bConversion) {
-    TransformationRTK2IEC(spCrntImg);
+    crl::TransformationRTK2IEC(spCrntImg);
   }
 
   using AbsImageFilterType =
@@ -2909,7 +2889,7 @@ void CbctRecon::MedianFilterByGUI(
   std::cout << "median filtering has been done" << std::endl;
 }
 
-void CbctRecon::Export2DDoseMapAsMHA(std::string &strPath) const {
+void CbctRecon::Export2DDoseMapAsMHA(fs::path &strPath) const {
   if (m_dspYKReconImage == nullptr) {
     return;
   }
@@ -2918,7 +2898,7 @@ void CbctRecon::Export2DDoseMapAsMHA(std::string &strPath) const {
     return;
   }
 
-  if (strPath.length() <= 1) {
+  if (strPath.empty()) {
     return;
   }
 
@@ -2975,7 +2955,7 @@ void CbctRecon::Export2DDoseMapAsMHA(std::string &strPath) const {
   // YK201502
   using WriterType = itk::ImageFileWriter<FloatImage2DType>;
   auto writer = WriterType::New();
-  writer->SetFileName(strPath.toLocal8Bit().constData());
+  writer->SetFileName(strPath.string());
   writer->SetUseCompression(true);
   writer->SetInput(doseImg2D);
   writer->Update();
@@ -2983,7 +2963,7 @@ void CbctRecon::Export2DDoseMapAsMHA(std::string &strPath) const {
   std::cout << "File was exported successfully" << std::endl;
 }
 
-void CbctRecon::ExportProjGeometryTXT(std::string &strPath) const {
+void CbctRecon::ExportProjGeometryTXT(fs::path &strPath) const {
   // if (!m_spFullGeometry)
   //	return;
 
@@ -2992,7 +2972,7 @@ void CbctRecon::ExportProjGeometryTXT(std::string &strPath) const {
     return;
   }
 
-  if (strPath.length() <= 1) {
+  if (strPath.empty()) {
     return;
   }
 
@@ -3015,7 +2995,7 @@ void CbctRecon::ExportProjGeometryTXT(std::string &strPath) const {
   auto itShiftY = m_spCustomGeometry->GetProjectionOffsetsY().begin();
 
   std::ofstream fout;
-  fout.open(strPath.toLocal8Bit().constData());
+  fout.open(strPath);
 
   fout << "MV_Gantry_Angle"
        << "	"
@@ -3033,82 +3013,63 @@ void CbctRecon::ExportProjGeometryTXT(std::string &strPath) const {
   fout.close();
 }
 
-bool CbctRecon::LoadXVIGeometryFile(const char *filePath) {
-  const auto strFilePath = std::string(filePath);
+bool CbctRecon::LoadXVIGeometryFile(const fs::path &filePath) {
 
   m_spFullGeometry = GeometryType::New();
 
-  /* We'll parse the example.xml */
-  auto *file = new QFile(strFilePath);
-  /* If we can't open it, let's show an error message. */
-  if (!file->open(QIODevice::ReadOnly | QIODevice::Text)) {
+  itk::DOMNode::Pointer output_dom_object;
+  itk::DOMNodeXMLReader::Pointer reader = itk::DOMNodeXMLReader::New();
+  reader->SetFileName(filePath.string());
+  try {
+    reader->Update();
+  } catch (std::exception &e) {
+    std::cerr << e.what() << "\n"
+              << "In XVI xml reader\n";
     return false;
   }
-  /* QXmlStreamReader takes any QIODevice. */
-  QXmlStreamReader xml(file);
-  // QList< QMap<std::string, std::string> > persons;
-  /* We'll parse the XML until we reach end of it.*/
+  output_dom_object = reader->GetOutput();
 
   m_vExcludeProjIdx.clear();
   auto iIdx = 0;
 
-  while (!xml.atEnd() && !xml.hasError()) {
-    /* Read next element.*/
-    const auto token = xml.readNext();
-    /* If token is just StartDocument, we'll go to next.*/
-    if (token == QXmlStreamReader::StartDocument) {
-      continue;
-    }
-    /* If token is StartElement, we'll see if we can read it.*/
-    if (token == QXmlStreamReader::StartElement) {
-      /* If it's named persons, we'll go to the next.*/
-      if (xml.name() == "Frames") {
-        continue;
+  auto dom = output_dom_object->Find(std::to_string(iIdx));
+  while (dom != nullptr) {
+
+    if (dom->GetName() == "Frame") {
+
+      auto flxData = crl::XML_parseFrameForXVI5(dom);
+      // m_vRetroFlexmap.push_back(flxData);
+
+      if (flxData.fGanAngle < 0) {
+        flxData.fGanAngle = flxData.fGanAngle + 360.0;
       }
-      /* If it's named person, we'll dig the information from there.*/
-      if (xml.name() == "Frame") {
-        auto flxData = XML_parseFrameForXVI5(xml);
-        // m_vRetroFlexmap.push_back(flxData);
 
-        if (flxData.fGanAngle < 0) {
-          flxData.fGanAngle = flxData.fGanAngle + 360.0;
-        }
+      flxData.fPanelOffsetX = -flxData.fPanelOffsetX;
+      flxData.fPanelOffsetY = -flxData.fPanelOffsetY;
 
-        flxData.fPanelOffsetX = -flxData.fPanelOffsetX;
-        flxData.fPanelOffsetY = -flxData.fPanelOffsetY;
-
-        if (!flxData.bKV_On) {
-          m_vExcludeProjIdx.push_back(iIdx);
-        }
-
-        /*               if (flxData.bKV_On)
-                           m_vExcludeProjIdx.push_back(iIdx);*/
-
-        ////Image qual test
-        // flxData.fGanAngle = -flxData.fGanAngle;
-        // if (flxData.fGanAngle < 0)
-        //	flxData.fGanAngle = flxData.fGanAngle + 360.0;
-        // flxData.fPanelOffsetX = -flxData.fPanelOffsetX;
-        // flxData.fPanelOffsetY = -flxData.fPanelOffsetY;
-
-        m_spFullGeometry->AddProjection(1000.0, 1536.0, flxData.fGanAngle,
-                                        flxData.fPanelOffsetX,
-                                        flxData.fPanelOffsetY, // Flexmap
-                                        0.0, 0.0,  // In elekta, these are 0
-                                        0.0, 0.0); // In elekta, these are 0
-
-        iIdx++;
+      if (!flxData.bKV_On) {
+        m_vExcludeProjIdx.push_back(iIdx);
       }
+
+      /*               if (flxData.bKV_On)
+                         m_vExcludeProjIdx.push_back(iIdx);*/
+
+      ////Image qual test
+      // flxData.fGanAngle = -flxData.fGanAngle;
+      // if (flxData.fGanAngle < 0)
+      //	flxData.fGanAngle = flxData.fGanAngle + 360.0;
+      // flxData.fPanelOffsetX = -flxData.fPanelOffsetX;
+      // flxData.fPanelOffsetY = -flxData.fPanelOffsetY;
+
+      m_spFullGeometry->AddProjection(1000.0, 1536.0, flxData.fGanAngle,
+                                      flxData.fPanelOffsetX,
+                                      flxData.fPanelOffsetY, // Flexmap
+                                      0.0, 0.0,  // In elekta, these are 0
+                                      0.0, 0.0); // In elekta, these are 0
     }
+    iIdx++;
+    dom = output_dom_object->Find(std::to_string(iIdx));
   }
-  /* Error handling. */
-  if (xml.hasError()) {
-    m_strError = xml.errorString();
-    return false;
-  }
-  /* Removes any device() or data from the reader
-   * and resets its internal state to the initial state. */
-  xml.clear();
   return true;
 }
 
@@ -3292,8 +3253,8 @@ float CbctRecon::GetMeanIntensity(UShortImageType::Pointer &spImg,
 }
 
 bool CbctRecon::ResortCBCTProjection(
-    std::vector<int> &vIntPhaseBinSelected, std::string &strPathForXML,
-    std::string &strPathProjRoot, std::string &strUID,
+    std::vector<int> &vIntPhaseBinSelected, fs::path &strPathForXML,
+    fs::path &strPathProjRoot, std::string &strUID,
     std::vector<float> &vFloatPhaseFull, GeometryType::Pointer &spGeomFull,
     std::vector<std::string> &vProjPathsFull) const {
   if (vIntPhaseBinSelected.empty()) {
@@ -3318,43 +3279,37 @@ bool CbctRecon::ResortCBCTProjection(
     return false;
   }
 
-  QDir dirSaveXML(strPathForXML);
-  QDir dirSaveProj(strPathProjRoot);
+  auto dirSaveXML = strPathForXML;
+  auto dirSaveProj = strPathProjRoot;
 
-  if (!dirSaveXML.exists() || !dirSaveProj.exists()) {
-    std::cout << "Error! Directories don't exist" << std::endl;
+  if (!fs::exists(dirSaveXML) || !fs::exists(dirSaveProj)) {
+    std::cerr << "Error! Directories don't exist\n";
+    ;
     return false;
   }
-  const auto iNumOfSelPhase = vIntPhaseBinSelected.size();
 
-  std::string strUID_Endfix = "P";
-  const QChar zero('0');
-  for (size_t i = 0; i < iNumOfSelPhase; i++) {
-    std::string strNum;
-    strNum = std::string("%1").arg(vIntPhaseBinSelected.at(i), 2, 10, zero);
-    strUID_Endfix = strUID_Endfix + strNum;
-  }
+  auto strUID_Endfix = std::accumulate(
+      vIntPhaseBinSelected.begin(), vIntPhaseBinSelected.end(), "P"s,
+      [](std::string acc_str, auto phase) {
+        std::array<char, 2> strNum{{'0', '0'}};
+        // [ptr, ec] =
+        std::to_chars(strNum.data(), strNum.data() + strNum.size(), phase, 10);
+        // strNum = QString("%1").arg(vIntPhaseBinSelected.at(i), 2, 10, zero);
+        return std::move(acc_str) + std::string(strNum.data(), strNum.size());
+      });
   strUID_Endfix = strUID_Endfix + "P"; // UID...P00102030405060P
   const auto strNewUID = strUID + strUID_Endfix;
 
   // Create a subDir
-  QDir curProjRoot(strPathProjRoot);
   const auto strSubDirName = "img_" + strNewUID;
-  if (!curProjRoot.mkdir(strSubDirName)) {
+
+  const auto projDir = strPathProjRoot / strSubDirName;
+  if (!fs::create_directory(projDir)) {
     std::cerr << "Could not make subdir" << std::endl;
     return false;
   }
 
-  const auto strPathProj = strPathProjRoot + "/" + strSubDirName;
-
-  QDir projDir(strPathProj);
-  if (!projDir.exists()) {
-    std::cout << "no Proj Dir exists" << std::endl;
-    return false;
-  }
-
-  QDir xmlDir(strPathForXML);
-  if (!xmlDir.exists()) {
+  if (!fs::exists(strPathForXML)) {
     std::cout << "no XML Dir exists" << std::endl;
     return false;
   }
@@ -3364,8 +3319,8 @@ bool CbctRecon::ResortCBCTProjection(
   std::vector<size_t> vSelectedIdxTemp;
   std::vector<size_t> vSelectedIdxFin;
 
-  for (size_t i = 0; i < iNumOfSelPhase; i++) {
-    AppendInPhaseIndex(vIntPhaseBinSelected.at(i), vFloatPhaseFull,
+  for (auto& phase : vIntPhaseBinSelected) {
+    AppendInPhaseIndex(phase, vFloatPhaseFull,
                        vSelectedIdxTemp);
   }
   // Remove redandancy
@@ -3414,9 +3369,9 @@ bool CbctRecon::ResortCBCTProjection(
   auto xmlWriter = rtk::ThreeDCircularProjectionGeometryXMLFileWriter::New();
 
   const auto geomFileName = "ElektaGeom_" + strNewUID + ".xml";
-  auto geomFilePath = strPathForXML + "/" + geomFileName;
+  auto geomFilePath = strPathForXML / geomFileName;
 
-  xmlWriter->SetFilename(geomFilePath.toLocal8Bit().constData());
+  xmlWriter->SetFilename(geomFilePath.string());
   xmlWriter->SetObject(spSubGeometry);
   TRY_AND_EXIT_ON_ITK_EXCEPTION(xmlWriter->WriteFile());
   // Copy selected his files to a different folder
@@ -3425,9 +3380,9 @@ bool CbctRecon::ResortCBCTProjection(
     std::string strPathProjOriginal = vProjPathsFull.at(itIdx).c_str();
     // Copy this file to target dir
 
-    QFileInfo fInfo(strPathProjOriginal);
-    auto strPathProjNew = strPathProj + "/" + fInfo.fileName();
-    QFile::copy(fInfo.absoluteFilePath(), strPathProjNew);
+    fs::path fInfo(strPathProjOriginal);
+    auto strPathProjNew = projDir / fInfo.filename();
+    fs::copy(fs::absolute(fInfo), strPathProjNew);
   }
 
   //    std::vector<float>& vFloatPhaseFull, GeometryType::Pointer&
@@ -3438,11 +3393,9 @@ bool CbctRecon::ResortCBCTProjection(
 }
 
 void CbctRecon::AppendInPhaseIndex(const int iPhase,
-                                   std::vector<float> &vFloatPhaseFull,
+                                   const std::vector<float> &vFloatPhaseFull,
                                    std::vector<size_t> &vOutputIndex,
                                    const int margin) const {
-
-  const auto iNumOfPhase = vFloatPhaseFull.size();
 
   int startPhase1;
   int endPhase1;
@@ -3450,8 +3403,9 @@ void CbctRecon::AppendInPhaseIndex(const int iPhase,
   int startPhase2;
   int endPhase2;
 
-  for (size_t i = 0; i < iNumOfPhase; i++) {
-    const auto iCurPhase = qRound(vFloatPhaseFull.at(i) * 100.0);
+  size_t i = 0;
+  for (const auto &phase : vFloatPhaseFull) {
+    const auto iCurPhase = qRound(phase * 100.0);
     // determine wether it is within the range
 
     if (iPhase < margin) // if 5 --> 0 ~ 10%, IF 4--> 99 ~ 09
@@ -3473,19 +3427,19 @@ void CbctRecon::AppendInPhaseIndex(const int iPhase,
         (iCurPhase >= startPhase2 && iCurPhase <= endPhase2)) {
       vOutputIndex.push_back(i);
     }
+    ++i;
   }
 }
 
-void CbctRecon::LoadShort3DImage(std::string &filePath,
+void CbctRecon::LoadShort3DImage(fs::path &filePath,
                                  const enREGI_IMAGES enTarget) {
-  QFileInfo fInfo(filePath);
-  if (!fInfo.exists()) {
+  if (!fs::exists(filePath)) {
     return;
   }
 
   UShortImageType::Pointer spImg;
 
-  if (!LoadShortImageToUshort(filePath, spImg)) {
+  if (!crl::LoadShortImageToUshort(filePath, spImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -3540,7 +3494,7 @@ void CbctRecon::LoadShort3DImage(std::string &filePath,
   m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 }
 
-void CbctRecon::GetWEPLDataFromSingleFile(const std::string &filePath,
+void CbctRecon::GetWEPLDataFromSingleFile(const fs::path &filePath,
                                           std::vector<VEC3D> &vPOI,
                                           std::vector<WEPLData> &vOutputWEPL,
                                           const double fAngleStart,
@@ -3557,7 +3511,7 @@ void CbctRecon::GetWEPLDataFromSingleFile(const std::string &filePath,
   UShortImageType::Pointer spImg;
 
   auto strFilePath = filePath;
-  if (!LoadShortImageToUshort(strFilePath, spImg)) {
+  if (!crl::LoadShortImageToUshort(strFilePath, spImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
     return;
   }
@@ -3664,7 +3618,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
             << spProjImgCT3D->GetSpacing()[1] << ", "
             << spProjImgCT3D->GetSpacing()[2] << std::endl;
 
-  const auto iCntRefVol = m_strListPerProjRefVol.count();
+  const auto iCntRefVol = m_strListPerProjRefVol.size();
 
   if (iCntRefVol < 1) {
     std::cout << "Error! no volume data for loading" << std::endl;
@@ -3672,13 +3626,13 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   }
 
   const auto flexCnt =
-      static_cast<int>(m_spCustomGeometry->GetGantryAngles().size());
+      m_spCustomGeometry->GetGantryAngles().size();
   if (flexCnt != iCntRefVol) {
     std::cout << "Error! flex count doesn't match" << std::endl;
     return;
   }
 
-  for (auto i = 0; i < iCntRefVol; i++) {
+  for (auto i = 0ull; i < iCntRefVol; i++) {
     // Load volume: Short image
     auto spOutputShort_raw = ShortImageType::New();
     // ShortImageType::Pointer spOutputShort_threshold =
@@ -3689,20 +3643,20 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
     auto spUshortRotated = UShortImageType::New();
     auto spAttFloat = FloatImageType::New();
 
-    auto strDirPath = m_strListPerProjRefVol.at(i);
+    fs::path strDirPath{m_strListPerProjRefVol.at(i)};
 
-    if (!LoadShortImageDirOrFile(strDirPath, spOutputShort_raw)) {
+    if (!crl::LoadShortImageDirOrFile(strDirPath, spOutputShort_raw)) {
       std::cout << "Error! in " << i
                 << " th image. File couldn't be found. Path= "
-                << strDirPath.toLocal8Bit().constData() << std::endl;
+                << strDirPath << std::endl;
       return;
     }
 
-    ConvertShort2Ushort(spOutputShort_raw, spOutputUshort);
+    crl::ConvertShort2Ushort(spOutputShort_raw, spOutputUshort);
 
-    RotateImgBeforeFwd(spOutputUshort,
+    crl::RotateImgBeforeFwd(spOutputUshort,
                        spUshortRotated); // IEC to RTK w/ kVGantry
-    ConvertUshort2AttFloat(spUshortRotated, spAttFloat);
+    crl::ConvertUshort2AttFloat(spUshortRotated, spAttFloat);
 
     const auto curMVAngle = m_spCustomGeometry->GetGantryAngles().at(i);
     const auto curPanelOffsetX =
@@ -3728,7 +3682,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
   std::cout << "Generating scatter map is ongoing..." << std::endl;
 
   std::cout << "To account for the mAs values, the intensity scale factor of "
-            << GetRawIntensityScaleFactor(m_strRef_mAs, m_strCur_mAs)
+            << crl::GetRawIntensityScaleFactor(m_strRef_mAs, m_strCur_mAs)
             << "will be multiplied during scatter correction to avoid negative "
                "scatter"
             << std::endl;

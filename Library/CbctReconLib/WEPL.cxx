@@ -19,12 +19,14 @@
 #include <itkUnaryFunctorImageFilter.h>
 #include <vnl/vnl_vector_fixed.h> // for vnl_vector_fixed
 
-#include "plm_math.h" // for M_PI, NLMAX, NLMIN
-
 #include "StructureSet.h"
 #include "WEPL.h"
 #include "cbctrecon_io.h"
 #include "cbctrecon_types.h"
+#include "free_functions.h"
+
+namespace crl {
+namespace wepl {
 
 double lin_interpolate_old(const std::array<int, 3> &point_id,
                            const std::array<double, 3> &point_id_pos,
@@ -138,8 +140,8 @@ double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
 
 std::array<double, 3> get_basis_from_angles(double gantry, double couch) {
   gantry += 180.0;
-  gantry *= M_PI / 180.0;
-  couch *= M_PI / 180.0;
+  gantry *= itk::Math::pi / 180.0;
+  couch *= itk::Math::pi / 180.0;
 
   const std::array<double, 3> basis = {
       {sin(gantry) * cos(couch), -cos(gantry), sin(couch) * sin(gantry)}};
@@ -341,9 +343,9 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
   auto first_phys_point = FloatImageType::PointType();
   wepl_cube->TransformIndexToPhysicalPoint(first_idx, first_phys_point);
   const auto sign_vec =
-      IntVector{sgn(first_phys_point.GetElement(0) - vwepl.point.x),
-                sgn(first_phys_point.GetElement(1) - vwepl.point.y),
-                sgn(first_phys_point.GetElement(2) - vwepl.point.z)};
+      IntVector{crl::ce_sgn(first_phys_point.GetElement(0) - vwepl.point.x),
+                crl::ce_sgn(first_phys_point.GetElement(1) - vwepl.point.y),
+                crl::ce_sgn(first_phys_point.GetElement(2) - vwepl.point.z)};
   // The sign of the first minus any point in cube should yield the sign
   // transformation we want on vec_basis
 
@@ -572,3 +574,7 @@ Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
   }
   return WEPL_voi.release();
 }
+
+} // namespace wepl
+
+} // namespace crl

@@ -227,14 +227,13 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
 
 template <typename T>
 std::optional<T> mAs_string_to_value(std::string &mas_string) {
-  const auto listmAs = split_string<','>(mas_string);
+  const auto listmAs_sv = crl::split_string(mas_string, ",");
+  const auto listmAs = crl::from_sv_v<double>(listmAs_sv);
 
-  if (listmAsRef.size() == 2) {
-    const auto o_mA = from_string<T>(listmAsRef.at(0));
-    const auto o_sec = from_string<T>(listmAsRef.at(1));
-    if (o_mA.has_value() && o_sec.has_value()) {
-      return o_mA.value() * o_sec.value();
-    }
+  if (listmAs.size() == 2) {
+    const auto mA = listmAs.at(0);
+    const auto sec = listmAs.at(1);
+    return mA * sec;
   }
   return std::nullopt;
 }
@@ -354,27 +353,6 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   spSrcTarg = flipFilter->GetOutput();
 }
 
-std::string XML_GetSingleItemString(QXmlStreamReader &xml) {
-  std::string strResult = "";
-  /* We need a start element, like <foo> */
-  if (xml.tokenType() != QXmlStreamReader::StartElement) {
-    return strResult;
-  }
-
-  /* Let's read the name... */
-  // auto elementName = xml.name().toString();
-  /* ...go to the next. */
-  xml.readNext();
-  /*
-   * This elements needs to contain Characters so we know it's
-   * actually data, if it's not we'll leave.
-   */
-  if (xml.tokenType() != QXmlStreamReader::Characters) {
-    return strResult;
-  }
-  strResult = xml.text().toString().toStdString();
-  return strResult;
-}
 
 void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 

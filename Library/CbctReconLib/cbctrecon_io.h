@@ -5,6 +5,7 @@
 #undef OF
 #endif // OF
 #include "gdcmAttribute.h"
+#include <itkDOMNode.h>
 
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
@@ -12,31 +13,31 @@
 #include <filesystem>
 #include <string>
 
-class QXmlStreamReader;
-class QDir;
 struct Rtss_modern;
+
+namespace fs = std::filesystem;
 
 namespace crl {
 
-CBCTRECON_API std::filesystem::path MakeElektaXML(const std::filesystem::path &filePath_ImageDBF,
-                                        const std::filesystem::path &filePath_FrameDBF,
+CBCTRECON_API fs::path MakeElektaXML(const fs::path &filePath_ImageDBF,
+                                        const fs::path &filePath_FrameDBF,
                                         const std::string &DICOM_UID);
 
-CBCTRECON_API FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml);
+CBCTRECON_API FLEXDATA XML_parseFrameForXVI5(itk::DOMNode::Pointer xml);
 
 CBCTRECON_API [[nodiscard]] rtk::ThreeDCircularProjectionGeometry::Pointer
-LoadRTKGeometryFile(const std::filesystem::path &filePath);
+LoadRTKGeometryFile(const fs::path &filePath);
 
 CBCTRECON_API bool
-LoadShortImageToUshort(std::string &strPath,
+LoadShortImageToUshort(fs::path &strPath,
                        UShortImageType::Pointer &pUshortImage);
 
 CBCTRECON_API void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
                                        std::string &outputFilePath);
 CBCTRECON_API bool
-LoadShortImageDirOrFile(std::filesystem::path &strPathDir,
+LoadShortImageDirOrFile(fs::path &strPathDir,
                         ShortImageType::Pointer &spOutputShortImg);
-bool CBCTRECON_API SaveDoseGrayImage(const std::filesystem::path& filePath, int width,
+bool CBCTRECON_API SaveDoseGrayImage(const fs::path& filePath, int width,
                                      int height, double spacingX,
                                      double spacingY, double originLeft_mm,
                                      double originTop_mm,
@@ -64,7 +65,7 @@ template <typename ImageType> auto loadMHAImageAs(const std::string &filename) {
   return reader->GetOutput();
 }
 
-std::vector<std::string> CBCTRECON_API get_dcm_image_files(QDir &dir);
+std::vector<std::string> CBCTRECON_API get_dcm_image_files(fs::path &dir);
 
 template <int group, int element, typename T>
 auto gdcm_attribute_from(T &parent) {
@@ -80,8 +81,8 @@ std::unique_ptr<Rtss_modern>
     CBCTRECON_API load_rtstruct(const std::string &filename);
 
 bool CBCTRECON_API AlterData_RTStructureSetStorage(
-    const QFile &input_file, const Rtss_modern *input_rt_struct,
-    const QFile &output_file);
+    const fs::path &input_file, const Rtss_modern *input_rt_struct,
+    const fs::path &output_file);
 
 void CBCTRECON_API
 ConvertUshort2Short(const UShortImageType::Pointer &spImgUshort,
@@ -91,12 +92,12 @@ void CBCTRECON_API
 ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
                     UShortImageType::Pointer &spOutputImgUshort);
 
-std::filesystem::path CBCTRECON_API SaveUSHORTAsSHORT_DICOM(
+fs::path CBCTRECON_API SaveUSHORTAsSHORT_DICOM(
     UShortImageType::Pointer &spImg, std::string &strPatientID,
-    std::string &strPatientName, std::string &strPathTargetDir);
-std::filesystem::path CBCTRECON_API SaveUSHORTAsSHORT_DICOM_gdcmITK(
+    std::string &strPatientName, fs::path &strPathTargetDir);
+fs::path CBCTRECON_API SaveUSHORTAsSHORT_DICOM_gdcmITK(
     UShortImageType::Pointer &spImg, std::string &strPatientID,
-    std::string &strPatientName, std::string &strPathTargetDir);
+    std::string &strPatientName, fs::path &strPathTargetDir);
 
 std::string CBCTRECON_API
 get_output_options(const UShortImageType::Pointer &m_spFixed);

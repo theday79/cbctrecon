@@ -223,7 +223,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   spacing[1] = fdk_options.ct_spacing[1];
   spacing[2] = fdk_options.ct_spacing[2];
 
-  if (GetOutputResolutionFromFOV<ConstantImageSourceType, FloatImageType>(
+  if (crl::GetOutputResolutionFromFOV<ConstantImageSourceType, FloatImageType>(
           sizeOutput, spacing, m_spCustomGeometry, m_spProjImg3DFloat,
           fdk_options.outputFilePath)) {
     std::cout << "Reconstruction resolution and image size were set "
@@ -498,21 +498,21 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     return;
   }
 
-  QFileInfo outFileInfo(fdk_options.outputFilePath);
-  auto outFileDir = outFileInfo.absoluteDir();
+  fs::path outFileInfo = fdk_options.outputFilePath;
+  auto outFileDir = fs::absolute(outFileInfo);
 
-  if (fdk_options.outputFilePath.length() < 2 || !outFileDir.exists()) {
+  if (fdk_options.outputFilePath.empty() || !fs::exists(outFileDir)) {
     std::cout << "No available output path. Should be exported later"
               << std::endl;
   } else {
     using WriterType = itk::ImageFileWriter<UShortImageType>;
     auto writer = WriterType::New();
-    writer->SetFileName(fdk_options.outputFilePath.toLocal8Bit().constData());
+    writer->SetFileName(fdk_options.outputFilePath.string());
     writer->SetUseCompression(true); // not exist in original code (rtkfdk)
     writer->SetInput(m_spCrntReconImg);
 
     std::cout << "Writing the image to: "
-              << fdk_options.outputFilePath.toLocal8Bit().constData()
+              << fdk_options.outputFilePath
               << std::endl;
 
     TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());

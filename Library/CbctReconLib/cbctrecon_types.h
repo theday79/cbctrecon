@@ -5,7 +5,7 @@
 #ifndef CBCTRECON_TYPES_H
 #define CBCTRECON_TYPES_H
 
-#include <QString>
+#include <filesystem>
 
 #include "itkImage.h"
 #ifdef USE_CUDA
@@ -176,7 +176,7 @@ struct RATIONAL {
 };
 
 struct FDK_options {
-  QString outputFilePath = QString(); // ui.lineEdit_OutputFilePath->text();
+  std::filesystem::path outputFilePath{}; // ui.lineEdit_OutputFilePath->text();
   double ct_spacing[3] = {
       0.0, 0.0, 0.0}; // ui.lineEdit_outImgSp_[AP, SI, LR]->text().toDouble();
   int ct_size[3] = {0, 0,

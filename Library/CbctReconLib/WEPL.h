@@ -11,7 +11,9 @@
 struct Rtss_roi_modern;
 struct Rtss_contour_modern;
 
-template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
+namespace crl {
+
+namespace wepl {
 
 double WEPL_from_point(const std::array<size_t, 3> &cur_point_id,
                        const std::array<double, 3> &vec_basis,
@@ -48,4 +50,9 @@ CBCTRECON_API Rtss_roi_modern *
 CalculateWEPLtoVOI(const Rtss_roi_modern *voi, double gantry_angle,
                    double couch_angle, const UShortImageType::Pointer &spMoving,
                    const UShortImageType::Pointer &spFixed);
+
+} // namespace wepl
+
+} // namespace crl
+
 #endif

@@ -11,6 +11,32 @@
 // CbctReconLib
 namespace crl {
 
+// code inspired by
+// https://marcoarena.wordpress.com/2017/01/03/string_view-odi-et-amo and B.
+// Filipek's book C++17 in Detail
+std::vector<std::string_view> split_string(std::string_view strv,
+                                           std::string_view delims) {
+  std::vector<std::string_view> output;
+  auto first = strv.begin();
+
+  while (first != strv.end()) {
+    const auto second = std::find_first_of(
+        first, std::cend(strv), std::cbegin(delims), std::cend(delims));
+
+    if (first != second) {
+      output.emplace_back(strv.substr(std::distance(strv.begin(), first),
+                                      std::distance(first, second)));
+    }
+
+    if (second == strv.end())
+      break;
+
+    first = std::next(second);
+  }
+
+  return output;
+}
+
 std::string HexStr2IntStr(std::string_view str_hex) {
   int val = 0;
   if (auto [ptr, ec] = std::from_chars(
@@ -18,6 +44,7 @@ std::string HexStr2IntStr(std::string_view str_hex) {
       ec == std::errc()) {
     return std::to_string(val);
   }
+  return {};
 }
 
 std::unique_ptr<YK16GrayImage>
@@ -567,9 +594,7 @@ void GetSelectedIndices(const std::vector<double> &vFullAngles,
   // as first...
 }
 
-
-bool IsFileNameOrderCorrect(
-    std::vector<std::string> &vFileNames) {
+bool IsFileNameOrderCorrect(std::vector<std::string> &vFileNames) {
   // regardless of whether number or hexa codes,
   // we can convert it from number to hexa number and compare the order
 
@@ -608,7 +633,7 @@ bool IsFileNameOrderCorrect(
 }
 
 void CopyDictionary(itk::MetaDataDictionary &fromDict,
-                               itk::MetaDataDictionary &toDict) {
+                    itk::MetaDataDictionary &toDict) {
   using DictionaryType = itk::MetaDataDictionary;
 
   DictionaryType::ConstIterator itr = fromDict.Begin();

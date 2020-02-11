@@ -8,7 +8,9 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <vector>
+#include <variant>
 
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
@@ -18,6 +20,10 @@ class CbctRecon;
 
 // CbctReconLib
 namespace crl {
+
+CBCTRECON_API
+std::vector<std::string_view> split_string(std::string_view strv,
+                                           std::string_view delims = " ");
 
 CBCTRECON_API
 std::string HexStr2IntStr(std::string_view str_hex);
@@ -78,7 +84,8 @@ void CopyDictionary(itk::MetaDataDictionary &fromDict,
 
 /// Template Meta Functions:
 
-template <typename T> bool from_sv(std::string_view sv, T &val) {
+template <typename T>
+constexpr bool from_sv(std::string_view sv, T &val) {
   if (auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), val);
       ec == std::errc()) {
     return true;
@@ -86,30 +93,23 @@ template <typename T> bool from_sv(std::string_view sv, T &val) {
   return false;
 }
 
-// code inspired by
-// https://marcoarena.wordpress.com/2017/01/03/string_view-odi-et-amo and B.
-// Filipek's book C++17 in Detail
-std::vector<std::string_view> split_string(std::string_view strv,
-                                           std::string_view delims = " ") {
-  std::vector<std::string_view> output;
-  auto first = strv.begin();
-
-  while (first != strv.end()) {
-    const auto second = std::find_first_of(
-        first, std::cend(strv), std::cbegin(delims), std::cend(delims));
-
-    if (first != second) {
-      output.emplace_back(strv.substr(std::distance(strv.begin(), first),
-                                      std::distance(first, second)));
+template <>
+constexpr bool from_sv<std::variant<int, double>>(std::string_view sv, std::variant<int, double> &val) {
+  if (sv.find_first_of('.') != std::string::npos) {
+    double tmp_val = 0.0;
+    if (from_sv(sv, tmp_val)) {
+      val = tmp_val;
+      return true;
     }
+    return false;
+  } 
 
-    if (second == strv.end())
-      break;
-
-    first = std::next(second);
+  int tmp_val = 0;
+  if (from_sv(sv, tmp_val)) {
+    val = tmp_val;
+    return true;
   }
-
-  return output;
+  return false;
 }
 
 template <bool spaces_only = false>
@@ -131,6 +131,38 @@ constexpr std::optional<T> from_string(const std::string &number) {
   return std::nullopt;
 }
 
+template <class T, class Enable=void> std::string stringify(const T arg);
+
+template <class T, typename std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>> std::string stringify(const T arg) {
+  return std::to_string(arg);
+}
+
+template <class T, typename std::enable_if_t<std::is_convertible_v<T, std::string>>> std::string stringify(const std::string arg) {
+  return arg;
+}
+
+template <class T, typename std::enable_if_t<std::is_constructible_v<std::string, T>>>
+std::string stringify(const std::string_view arg) {
+  return std::string(arg);
+}
+
+template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
+  auto tmp_str = ((stringify(std::forward<Args>(arg)) + SEP) + ...);
+  return tmp_str.substr(0, tmp_str.size() - 1);
+}
+
+template <typename T> auto from_sv_v(const std::vector<std::string_view> &sv_v) {
+  auto v_val = std::vector<T>();
+  std::transform(sv_v.begin(), sv_v.end(),
+                 std::back_inserter(v_val),
+                 [](std::string_view sv) {
+                   T val;
+                   crl::from_sv(sv, val);
+                   return val;
+                 });
+  return v_val;
+}
+
 template <typename T> constexpr T ce_pow(T val, size_t exponent) {
   T out_val = 1;
   for (auto i_exp = 0; i_exp < exponent; ++i_exp) {
@@ -139,41 +171,43 @@ template <typename T> constexpr T ce_pow(T val, size_t exponent) {
   return out_val;
 }
 
-template <typename T>
-constexpr T BeamHardModel(const T val, const T a, const T b, const T c,
+template <typename T> struct TBeamHardening {
+
+  constexpr T ModelCustom(const T val, const T a, const T b, const T c,
                           const T d) {
-  return a * ce_pow(val, 3) + b * ce_pow(val, 2) + c * val + d;
-}
+    return a * ce_pow(val, 3) + b * ce_pow(val, 2) + c * val + d;
+  };
 
-template <enProjFormat PF, typename T> constexpr T BeamHardModel(const T val);
+  template <enProjFormat PF> static constexpr T Model(const T val);
 
-template <typename T>
-constexpr T BeamHardModel<enProjFormat::HND_FORMAT, T>(const T val) {
-  // a * x^3 + b * x^2 + c * x + d
-  return 6.0e-08 * ce_pow(val, 3) - 1.0e-08 * ce_pow(val, 2) - 5.0e-07 * val +
-         8.0e-01;
-}
+  template<>
+  static constexpr T Model<enProjFormat::HND_FORMAT>(const T val) {
+    // a * x^3 + b * x^2 + c * x + d
+    return 6.0e-08 * ce_pow(val, 3) - 1.0e-08 * ce_pow(val, 2) - 5.0e-07 * val +
+           8.0e-01;
+  };
 
-template <typename T>
-constexpr T BeamHardModel<enProjFormat::HIS_FORMAT, T>(const T val) {
-  // a * x^3 + b * x^2 + c * x + d
-  return 9.321e-05 * ce_pow(val, 3) - 2.609e-03 * ce_pow(val, 2) +
-         3.374e-02 * val + 9.691e-01;
-}
+  template<>
+  static constexpr T Model<enProjFormat::HIS_FORMAT>(const T val) {
+    // a * x^3 + b * x^2 + c * x + d
+    return 9.321e-05 * ce_pow(val, 3) - 2.609e-03 * ce_pow(val, 2) +
+           3.374e-02 * val + 9.691e-01;
+  };
 
-template <typename T>
-constexpr T BeamHardModel<enProjFormat::XIM_FORMAT, T>(
-    const T val) { // a * x^3 + b * x^2 + c * x + d
-  return 6.0e-08 * ce_pow(val, 3) + 9.0e-5 * ce_pow(val, 2) + 1.0e-2 * val +
-         0.8;
-}
+  template<>
+  static constexpr T Model<enProjFormat::XIM_FORMAT>(
+      const T val) { // a * x^3 + b * x^2 + c * x + d
+    return 6.0e-08 * ce_pow(val, 3) + 9.0e-5 * ce_pow(val, 2) + 1.0e-2 * val +
+           0.8;
+  };
+};
 
 template <enProjFormat PF, typename T>
 void BeamHardening(T *pBuffer, const int nPix) {
   std::transform(std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
                  &pBuffer[0], [](const T val) {
                    return (val < 1.189 ? val
-                                       : val * BeamHardModel<PF, T>(val)) +
+                                       : val * TBeamHardening<T>::Model<PF>(val)) +
                           (PF == enProjFormat::HIS_FORMAT ? 0 : 1.47);
                  });
 }
@@ -222,8 +256,8 @@ inline T fullFan_Function(const T a, const T b, const T c,
                                const T d, const T e, const T x) {
   auto es = std::array<int, 7>();
   std::iota(es.begin(), es.end(), -3); //iota not constexpr until C++20
-  return std::accumulate(es.begin(), es.end(), T(0), [=](auto i_e) {
-    return fullFan_subFunction(a, b, c, d, x - i_e * e);
+  return std::accumulate(es.begin(), es.end(), T(0), [=](T sum, auto i_e) {
+    return sum + fullFan_subFunction(a, b, c, d, x - i_e * e);
   }) / es.size();
 }
 

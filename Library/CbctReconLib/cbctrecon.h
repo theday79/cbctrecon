@@ -6,9 +6,6 @@
 #include <memory> // unique_, shared_ and weak_ptr
 #include <filesystem>
 
-// Qt
-#include <QDir>
-
 // Local
 #include "AG17RGBAImage.h"
 #include "StructureSet.h"
@@ -16,7 +13,7 @@
 #include "YK16GrayImage.h"
 #include "cbctrecon_types.h"
 
-class QXmlStreamReader;
+namespace fs = std::filesystem;
 
 class CBCTRECON_API CbctRecon {
 
@@ -32,7 +29,7 @@ public:
   bool FillProjForDisplay(int slice_number);
   void LoadCalibData(std::string &filepath, enCalibType calib_type);
 
-  bool LoadGeometry(QFileInfo &geomFileInfo, std::vector<std::string> &names);
+  bool LoadGeometry(fs::path &geomFileInfo, std::vector<std::string> &names);
   void LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                         const std::vector<std::string> &names);
   void saveHisHeader();
@@ -41,8 +38,8 @@ public:
   int CropSkinUsingThreshold(int threshold, int erode_radius,
                              int dilate_radius);
   void GeneratePOIData(bool AnteriorToPosterior, double table_posY);
-  void Export2DDoseMapAsMHA(std::string &strPath) const;
-  void ExportProjGeometryTXT(std::string &strPath) const;
+  void Export2DDoseMapAsMHA(fs::path &strPath) const;
+  void ExportProjGeometryTXT(fs::path &strPath) const;
   void ScatterCorPerProjRef(double scaMedian, double scaGaussian,
                             int postScatMedianSize, bool use_cuda,
                             bool use_opencl, bool save_dicom,
@@ -50,7 +47,7 @@ public:
 
   // void GetSelectedIndices(const std::vector<double>& vFullAngles,
   // std::vector<double>& vNormAngles, std::vector<int>& vTargetIdx, bool bCW);
-  void GetExcludeIndexByNames(const std::filesystem::path &outlierListPath,
+  void GetExcludeIndexByNames(const fs::path &outlierListPath,
                               std::vector<std::string> &vProjFileFullPath,
                               std::vector<int> &vExcludeIdx) const;
 
@@ -85,7 +82,7 @@ public:
   // plastimatch, prepare m_spRefCTImg. Remove air, RS is needed  Skin will be
   // removed, bubble will be filled
 
-  void FindAllRelevantPaths(const std::filesystem::path &pathProjHisDir);
+  void FindAllRelevantPaths(const fs::path &pathProjHisDir);
 
   template <typename CTImageType>
   FloatImageType::Pointer
@@ -116,18 +113,9 @@ public:
   // His file export from 3D proj file
   void SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
                           std::vector<YK16GrayImage> arrYKImage,
-                          const std::filesystem::path &strSavingFolder,
+                          const fs::path &strSavingFolder,
                           double resampleF)
       const; // arrYKImage include HIS header and original file name
-
-  static UShortImageType::Pointer
-  ConvertLineInt2Intensity_ushort(FloatImageType::Pointer &spProjLineInt3D);
-
-  static FloatImageType::Pointer
-  ConvertIntensity2LineInt_ushort(UShortImageType::Pointer &spProjIntensity3D);
-
-  static FloatImageType::Pointer
-  ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D);
 
   // void ResampleItkImage(OutputImageType::Pointer& spImgFloat, double
   // resampleF);  Resample proj images
@@ -173,21 +161,21 @@ public:
 
   //	void UpdateUIAfterLoading(std::string& imgName);
 
-  void LoadExternalFloatImage(std::string &strPath, bool bConversion);
+  void LoadExternalFloatImage(fs::path &strPath, bool bConversion);
 
   void MedianFilterByGUI(const UShortImageType::SizeType
                              &indexRadius); // params are given at the UI
 
   /*Temporary implementation for XVI5 xml*/
   bool
-  LoadXVIGeometryFile(const char *filePath); // temporary implenetation
+  LoadXVIGeometryFile(const fs::path &filePath); // temporary implenetation
                                              // using QT XML. This is for
                                              // XVI v >5.0.2. _Frames.xml is
                                              // in every projection folder
 
   void SetProjDir(std::string &strProjPath);
 
-  void ExportAngularWEPL_byFile(std::string &strPathOutput, double fAngleStart,
+  void ExportAngularWEPL_byFile(fs::path &strPathOutput, double fAngleStart,
                                 double fAngleEnd, double fAngleGap);
 
   /*Temporary implementation for XVI5 xml*/
@@ -212,19 +200,19 @@ public:
                          float *sdIntensity = nullptr) const;
 
   bool ResortCBCTProjection(std::vector<int> &vIntPhaseBinSelected,
-                            std::string &strPathForXML, std::string &strPathProjRoot,
+                            fs::path &strPathForXML, fs::path &strPathProjRoot,
                             std::string &strUID,
                             std::vector<float> &vFloatPhaseFull,
                             GeometryType::Pointer &spGeomFull,
                             std::vector<std::string> &vProjPathsFull) const;
 
-  void AppendInPhaseIndex(int iPhase, std::vector<float> &vFloatPhaseFull,
+  void AppendInPhaseIndex(int iPhase, const std::vector<float> &vFloatPhaseFull,
                           std::vector<size_t> &vOutputIndex,
                           int margin = 5) const;
 
-  void LoadShort3DImage(std::string &filePath, enREGI_IMAGES enTarget);
+  void LoadShort3DImage(fs::path &filePath, enREGI_IMAGES enTarget);
 
-  void GetWEPLDataFromSingleFile(const std::string &filePath,
+  void GetWEPLDataFromSingleFile(const fs::path &filePath,
                                  std::vector<VEC3D> &vPOI,
                                  std::vector<WEPLData> &vOutputWEPL,
                                  double fAngleStart, double fAngleEnd) const;
@@ -236,7 +224,7 @@ public:
                                FloatImageType::Pointer &spProjImg3D,
                                int iSliceIdx) const;
 
-  bool ReadDicomDir(std::filesystem::path &dirPath);
+  bool ReadDicomDir(fs::path &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
@@ -317,26 +305,26 @@ public:
 
   // Below paths will be decided after the Find... Func.
   std::string m_strDCMUID;
-  std::filesystem::path m_strPathPatientDir; // full path of patient Directory
-  std::filesystem::path m_strPatientDirName; // just the name --> later I can extract the
+  fs::path m_strPathPatientDir; // full path of patient Directory
+  fs::path m_strPatientDirName; // just the name --> later I can extract the
                                // patient ID from here
-  std::filesystem::path m_strPathFRAME_DBF;
-  std::filesystem::path m_strPathIMAGE_DBF;
-  std::filesystem::path m_strPathGeomXML; // after Generation of the XML from DBF files
-  std::filesystem::path m_strPathPlanCTDir;
-  std::filesystem::path m_strPathRS;            // for body and lung contours
-  std::filesystem::path m_strPathPlan;          // for isocenter position
-  std::filesystem::path m_strPathDirDefault;    // QFileDialog default starting point
-  std::filesystem::path m_strPathRS_CBCT;       // QFileDialog default starting point
-  std::filesystem::path m_strPathElektaINI;     // for mAs values
-  std::filesystem::path m_strPathIMAGES;        // upper folder of projection files (His)
-  std::filesystem::path m_strPathElektaINIXVI2; // this includes couch shift values. longer
+  fs::path m_strPathFRAME_DBF;
+  fs::path m_strPathIMAGE_DBF;
+  fs::path m_strPathGeomXML; // after Generation of the XML from DBF files
+  fs::path m_strPathPlanCTDir;
+  fs::path m_strPathRS;            // for body and lung contours
+  fs::path m_strPathPlan;          // for isocenter position
+  fs::path m_strPathDirDefault;    // QFileDialog default starting point
+  fs::path m_strPathRS_CBCT;       // QFileDialog default starting point
+  fs::path m_strPathElektaINI;     // for mAs values
+  fs::path m_strPathIMAGES;        // upper folder of projection files (His)
+  fs::path m_strPathElektaINIXVI2; // this includes couch shift values. longer
                                   // INI.XVI file
   std::string m_strCur_mAs;           // std::string("20,20")
   std::string m_strRef_mAs;           // std::string("64,40")
   std::string m_strError;
 
-  std::filesystem::path m_dcm_dir;
+  fs::path m_dcm_dir;
 
   int m_iFixedOffset_ScatterMap; // fixed! allows negative value of scatter
   double m_fResampleF; // typically 0.5. this is updated during LoadSelectedProj

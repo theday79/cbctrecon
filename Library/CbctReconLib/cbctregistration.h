@@ -1,6 +1,8 @@
 #ifndef CBCTREGISTRATION_H
 #define CBCTREGISTRATION_H
 
+#include <filesystem>
+
 #include <itkImage.h>
 
 #undef TIMEOUT
@@ -14,7 +16,6 @@
 #include "YK16GrayImage.h"
 #include "cbctrecon_types.h"
 
-class QString;
 class CbctRecon;
 class Dmap_parms;
 class Pcmd_threshold;
@@ -40,6 +41,8 @@ enum enRegisterOption {
   PLAST_BSPLINE,
 };
 
+namespace fs = std::filesystem;
+
 class CBCTRECON_API CbctRegistration {
 
 public:
@@ -51,21 +54,21 @@ public:
   void operator=(CbctRegistration &&) = delete;
 
   UShortImageType::Pointer &
-  get_image_from_combotext(const QString &ct_type) const;
+  get_image_from_combotext(const std::string_view ct_type) const;
   void GenPlastiRegisterCommandFile(
-      const QString &strPathCommandFile, const QString &strPathFixedImg,
-      const QString &strPathMovingImg, const QString &strPathOutImg,
-      const QString &strPathXformOut, enRegisterOption regiOption,
-      const QString &strStageOption1, const QString &strStageOption2,
-      const QString &strStageOption3, const QString &strPathFixedMask,
-      bool optim_mse, bool use_cuda, QString &GradOptionStr) const;
+      const fs::path &strPathCommandFile, const fs::path &strPathFixedImg,
+      const fs::path &strPathMovingImg, const fs::path &strPathOutImg,
+      const fs::path &strPathXformOut, enRegisterOption regiOption,
+      const std::string &strStageOption1, const std::string &strStageOption2,
+      const std::string &strStageOption3, const fs::path &strPathFixedMask,
+      bool optim_mse, bool use_cuda, std::string &GradOptionStr) const;
 
   // get val mm
-  static VEC3D GetShiftValueFromGradientXForm(QString &file_path,
+  static VEC3D GetShiftValueFromGradientXForm(fs::path &file_path,
                                               bool b_inverse);
 
   bool PreprocessCT(UShortImageType::Pointer &ct_img, int iAirThresholdShort,
-                    const Rtss_modern *rt_structs, const QString &strRSName,
+                    const Rtss_modern *rt_structs, const std::string &strRSName,
                     bool fill_bubble, int iBubbleFillingVal,
                     int iAirFillValShort);
   static void autoPreprocessCT(int iAirThresholdShort,
@@ -76,49 +79,49 @@ public:
   MoveByEclRegistration(const DoubleVector &translation_vec,
                         const DoubleVector &rotation_vec,
                         const UShortImageType::Pointer &ct_img);
-  void LoadRTPlan(QString &strDCMPath);
+  void LoadRTPlan(fs::path &strDCMPath);
 
-  static void CallingPLMCommand(std::string &command_filepath);
+  static void CallingPLMCommand(fs::path &command_filepath);
   static DoubleVector3DType
-  CallingPLMCommandXForm(std::string &command_filepath);
+  CallingPLMCommandXForm(fs::path &command_filepath);
   bool CallingGPMCcommand(enDevice device, int n_sims, int n_plans,
-                          QString &comma_sep_planfilepath,
+                          fs::path &comma_sep_planfilepath,
                           UShortImageType::Pointer &spFixed,
                           UShortImageType::Pointer &spMoving,
                           UShortImageType::Pointer &spFixedDose,
                           UShortImageType::Pointer &spMovingDose);
 
-  void plm_dmap_main(QString &img_in_fn, QString &img_out_fn) const;
-  void plm_threshold_main(QString &strRange, QString &img_in_fn,
-                          QString &img_out_fn) const;
-  void plm_mask_main(Mask_operation mask_option, QString &input_fn,
-                     QString &mask_fn, QString &output_fn,
+  void plm_dmap_main(fs::path &img_in_fn, fs::path &img_out_fn) const;
+  void plm_threshold_main(std::string &strRange, fs::path &img_in_fn,
+                          fs::path &img_out_fn) const;
+  void plm_mask_main(Mask_operation mask_option, fs::path &input_fn,
+                     fs::path &mask_fn, fs::path &output_fn,
                      float mask_value) const;
 
-  void plm_mask_img(Mask_operation mask_option, QString &mask_fn,
+  void plm_mask_img(Mask_operation mask_option, fs::path &mask_fn,
                     float mask_value, Plm_image::Pointer &img) const;
 
-  void plm_expansion_contract_msk(QString &strPath_msk,
-                                  QString &strPath_msk_exp_cont,
+  void plm_expansion_contract_msk(fs::path &strPath_msk,
+                                  fs::path &strPath_msk_exp_cont,
                                   double fExpVal) const;
 
-  void plm_synth_trans_xf(QString &strPath_fixed, QString &strPath_out_xf,
+  void plm_synth_trans_xf(fs::path &strPath_fixed, fs::path &strPath_out_xf,
                           double transX, double transY, double transZ) const;
 
-  QString gen_and_expand_skinmask_plm(const QString &mskSkinCT_manRegi_path,
-                                      const QString &XFAutoRigid_path,
-                                      const QString &rawCBCT_path,
+  fs::path gen_and_expand_skinmask_plm(const fs::path &mskSkinCT_manRegi_path,
+                                      const fs::path &XFAutoRigid_path,
+                                      const fs::path &rawCBCT_path,
                                       double skinExp);
-  QString gen_bubble_mask_plm(float bubble_thresh, float bubble_fill,
-                              const QString &strPathOutputCBCT);
+  fs::path gen_bubble_mask_plm(float bubble_thresh, float bubble_fill,
+                              const fs::path &strPathOutputCBCT);
 
   void ProcessCBCT_beforeDeformRegi(
-      QString &strPathRawCBCT, QString &strPath_mskSkinCT_manRegi,
-      QString &strPathOutputCBCT, QString &strPathXFAutoRigid,
+      fs::path &strPathRawCBCT, fs::path &strPath_mskSkinCT_manRegi,
+      fs::path &strPathOutputCBCT, fs::path &strPathXFAutoRigid,
       bool bBubbleFilling, bool bPrepareMaskOnly, double skinExp,
       int bubbleThresh,
       int bubbleFill); // 8 mm skin cut + fill air bubbles inside CBCT
-  void SetPlmOutputDir(QString &endFix);
+  void SetPlmOutputDir(std::string &endFix);
 
   void
   PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT,
@@ -132,10 +135,10 @@ public:
                               int noTouchThreshold /*= 1100*/,
                               double innerMargin, double outerMargin) const;
 
-  void GenShellMask(QString &strPathInputMask, QString &strPathOutputMask,
+  void GenShellMask(fs::path &strPathInputMask, fs::path &strPathOutputMask,
                     double fInnerMargin, double fOuterMargin) const;
 
-  VEC3D GetIsocenterDCM_FromRTPlan(QString &strFilePath) const;
+  VEC3D GetIsocenterDCM_FromRTPlan(fs::path &strFilePath) const;
 
   // still public:
   CbctRecon *m_pParent{};            // to pull 3D images
@@ -149,15 +152,15 @@ public:
   std::unique_ptr<Rtss_roi_modern> cur_voi;
   bool dose_loaded = false;
 
-  QString m_strPathPlastimatch;     // full path
-  QString m_strPathCTSkin;          // shared data among functions
-  QString m_strPathCTSkin_autoRegi; // shared data among functions w/ margin (10
+  fs::path m_strPathPlastimatch;     // full path
+  fs::path m_strPathCTSkin;          // shared data among functions
+  fs::path m_strPathCTSkin_autoRegi; // shared data among functions w/ margin (10
                                     // mm), registered to CBCT
-  QString m_strPathCTSkin_deformRegi; // this is for WEPL calculation
-  QString m_strPathXFAutoRigid;       // Updated during SLT_DoRegistrationRigid
-  QString m_strPathMskCBCTBubble;     // Updated during SLT_DoRegistrationRigid
+  fs::path m_strPathCTSkin_deformRegi; // this is for WEPL calculation
+  fs::path m_strPathXFAutoRigid;       // Updated during SLT_DoRegistrationRigid
+  fs::path m_strPathMskCBCTBubble;     // Updated during SLT_DoRegistrationRigid
 
-  Dcmtk_rt_study *m_pDcmStudyPlan{};
+  std::unique_ptr<Dcmtk_rt_study> m_pDcmStudyPlan;
 };
 
 #endif // CBCTREGISTRATION_H

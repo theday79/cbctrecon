@@ -18,7 +18,7 @@
 
 #include "cbctrecon_types.h"
 
-class QXmlStreamReader;
+namespace fs = std::filesystem;
 
 namespace crl {
 
@@ -39,7 +39,6 @@ CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
 CBCTRECON_API double GetRawIntensityScaleFactor(std::string &strRef_mAs,
                                                 std::string &strCur_mAs);
 CBCTRECON_API void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg);
-CBCTRECON_API std::string XML_GetSingleItemString(QXmlStreamReader &xml);
 
 CBCTRECON_API bool GetXrayParamFromINI(std::string &strPathINI, float &kVp,
                                        float &mA, float &ms);
@@ -157,12 +156,12 @@ bool GetOutputResolutionFromFOV(
     typename T::SizeType &sizeOutput, typename T::SpacingType &spacing,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
     const typename ImageType::Pointer &ProjStack,
-    const std::string &outputFilePath) {
+    const fs::path &outputFilePath) {
 
-  QFileInfo outFileInfo(outputFilePath);
-  auto outFileDir = outFileInfo.absoluteDir();
+  fs::path outFileInfo = outputFilePath;
+  auto outFileDir = fs::absolute(outFileInfo);
 
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
+  if (outputFilePath.empty() || !fs::exists(outFileDir)) {
     const double radius = GetFOVRadius<ImageType>(geometry, ProjStack);
     if (radius > 0.0) {
       sizeOutput[0] = 512; // AP

@@ -11,9 +11,6 @@
 #include <string>   // for string
 #include <vector>   // for vector
 
-// Qt
-#include <qxmlstream.h>
-
 // ITK
 #ifdef OF
 #undef OF
@@ -32,6 +29,7 @@
 #include "itkNumericSeriesFileNames.h"
 #include "itkRescaleIntensityImageFilter.h"
 #include "itkThresholdImageFilter.h"
+#include <itkDOMNodeXMLReader.h>
 
 // RTK
 #include "rtkElektaSynergyGeometryReader.h"
@@ -57,11 +55,14 @@
 #include "cbctrecon_types.h"
 #include "free_functions.h"
 
+namespace fs = std::filesystem;
+using namespace std::literals;
+
 namespace crl {
 
-std::filesystem::path
-MakeElektaXML(const std::filesystem::path &filePath_ImageDBF,
-              const std::filesystem::path &filePath_FrameDBF,
+fs::path
+MakeElektaXML(const fs::path &filePath_ImageDBF,
+              const fs::path &filePath_FrameDBF,
               const std::string &DICOM_UID) {
   std::cout << "Elekta geometry XML file is being generated." << std::endl;
   // Define FRAME.DBF path
@@ -72,7 +73,7 @@ MakeElektaXML(const std::filesystem::path &filePath_ImageDBF,
   // string strDbfFrame = filePath_FrameDBF.toStdString();
 
   const auto dirPath =
-      std::filesystem::absolute(filePath_ImageDBF.parent_path());
+      fs::absolute(filePath_ImageDBF.parent_path());
 
   const auto fileName = "ElektaGeom_" + DICOM_UID + ".xml";
 
@@ -95,17 +96,17 @@ MakeElektaXML(const std::filesystem::path &filePath_ImageDBF,
   return str_output;
 }
 
-FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
+FLEXDATA XML_parseFrameForXVI5(itk::DOMNode::Pointer dom) {
 
   auto tmpResult =
       FLEXDATA{/*fGanAngle =*/0.0, /*fPanelOffsetX =*/0.0,
                /*fPanelOffsetY =*/0.0, /*bKV_On =*/true, /*bMV_On =*/false};
 
   /* Let's check that we're really getting a person. */
-  if (xml.tokenType() != QXmlStreamReader::StartElement &&
-      xml.name() == "Frame") {
+  if (dom->GetName() == "Frame") {
     return tmpResult;
   }
+
   /* Let's get the attributes for person */
   // QXmlStreamAttributes attributes = xml.attributes();
   /* Let's check that person has id attribute. */
@@ -114,77 +115,77 @@ FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml) {
   //	person["id"] = attributes.value("id").toString();
   //}
   /* Next element... */
-  xml.readNext();
+  auto idx = from_string<int>(dom->GetID()).value_or(0) + 1;
+  auto next_dom = dom->Find(
+      std::to_string(idx));
   /*
    * We're going to loop over the things because the order might change.
    * We'll continue the loop until we hit an EndElement named person.
    */
-  while (!(xml.tokenType() == QXmlStreamReader::EndElement &&
-           xml.name() == "Frame")) {
-    auto tmpXmlName = xml.name();
+  while (!(next_dom == nullptr && next_dom->GetName() == "Frame")) {
+    auto tmpXmlName = next_dom->GetName();
     // auto strTmpXMLName = std::string(tmpXmlName.toLocal8Bit().constData());
     // int tmpType = (int)(xml.tokenType());
 
     std::string tmpStr;
-    if (xml.tokenType() == QXmlStreamReader::StartElement) {
-      /* We've found first name. */
-      if (xml.name() == "Seq") {
-        tmpStr = XML_GetSingleItemString(xml);
-      }
-      /* We've found surname. */
-      else if (xml.name() == "DeltaMS") {
-        tmpStr = XML_GetSingleItemString(xml);
-      }
-      /* We've found email. */
-      else if (xml.name() == "HasPixelFactor") {
-        tmpStr = XML_GetSingleItemString(xml);
-      }
-      /* We've found website. */
-      else if (xml.name() == "PixelFactor") {
-        tmpStr = XML_GetSingleItemString(xml);
-      } else if (xml.name() == "GantryAngle") {
-        tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fGanAngle = from_string<float>(tmpStr).value_or(0.0f);
-      } else if (xml.name() == "Exposed") {
-        tmpStr = XML_GetSingleItemString(xml);
-        if (tmpStr == "True") {
-          tmpResult.bKV_On = true;
-        } else {
-          tmpResult.bKV_On = false;
-        }
-      }
-      /*else if (xml.name() == "Exposed") {
-          tmpStr = XML_GetSingleItemString(xml);
-          if (tmpStr == "True")
-              tmpResult.bKV_On = true;
-          else
-              tmpResult.bKV_On = false;
-      }*/
-      else if (xml.name() == "MVOn") {
-        tmpStr = XML_GetSingleItemString(xml);
-        if (tmpStr == "True") {
-          tmpResult.bMV_On = true;
-        } else {
-          tmpResult.bMV_On = false;
-        }
-      } else if (xml.name() == "UCentre") {
-        tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fPanelOffsetX = from_string<float>(tmpStr).value_or(0.0f);
-      } else if (xml.name() == "VCentre") {
-        tmpStr = XML_GetSingleItemString(xml);
-        tmpResult.fPanelOffsetY = from_string<float>(tmpStr).value_or(0.0f);
-      } else if (xml.name() == "Inactive") {
-        tmpStr = XML_GetSingleItemString(xml);
+    /* We've found first name. */
+    if (next_dom->GetName() == "Seq") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+    }
+    /* We've found surname. */
+    else if (next_dom->GetName() == "DeltaMS") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+    }
+    /* We've found email. */
+    else if (next_dom->GetName() == "HasPixelFactor") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+    }
+    /* We've found website. */
+    else if (next_dom->GetName() == "PixelFactor") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+    } else if (next_dom->GetName() == "GantryAngle") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+      tmpResult.fGanAngle = from_string<float>(tmpStr).value_or(0.0f);
+    } else if (next_dom->GetName() == "Exposed") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+      if (tmpStr == "True") {
+        tmpResult.bKV_On = true;
+      } else {
+        tmpResult.bKV_On = false;
       }
     }
-    xml.readNext();
+    /*else if (next_dom->GetName() == "Exposed") {
+        tmpStr = next_dom->GetTextChild()->GetText();
+        if (tmpStr == "True")
+            tmpResult.bKV_On = true;
+        else
+            tmpResult.bKV_On = false;
+    }*/
+    else if (next_dom->GetName() == "MVOn") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+      if (tmpStr == "True") {
+        tmpResult.bMV_On = true;
+      } else {
+        tmpResult.bMV_On = false;
+      }
+    } else if (next_dom->GetName() == "UCentre") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+      tmpResult.fPanelOffsetX = from_string<float>(tmpStr).value_or(0.0f);
+    } else if (next_dom->GetName() == "VCentre") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+      tmpResult.fPanelOffsetY = from_string<float>(tmpStr).value_or(0.0f);
+    } else if (next_dom->GetName() == "Inactive") {
+      tmpStr = next_dom->GetTextChild()->GetText();
+    }
+    ++idx;
+    next_dom = dom->Find(std::to_string(idx));
   }
   return tmpResult;
 }
 
 // Get the projection geometry
 [[nodiscard]] rtk::ThreeDCircularProjectionGeometry::Pointer
-LoadRTKGeometryFile(const std::filesystem::path &filePath) {
+LoadRTKGeometryFile(const fs::path &filePath) {
   auto geometryReader =
       rtk::ThreeDCircularProjectionGeometryXMLFileReader::New();
   geometryReader->SetFilename(filePath.string());
@@ -252,7 +253,7 @@ LoadRTKGeometryFile(const std::filesystem::path &filePath) {
   return spFullGeometry;
 }
 
-bool LoadShortImageToUshort(std::string &strPath,
+bool LoadShortImageToUshort(fs::path &strPath,
                             UShortImageType::Pointer &pUshortImage) {
   using ReaderType = itk::ImageFileReader<ShortImageType>;
   auto reader = ReaderType::New();
@@ -260,11 +261,11 @@ bool LoadShortImageToUshort(std::string &strPath,
   // std::string fileName = QFileDialog::getOpenFileName(this, "Open Image","",
   // "Plan CT file (*.mha)",0,0);
 
-  if (strPath.length() < 1) {
+  if (strPath.empty()) {
     return false;
   }
 
-  reader->SetFileName(strPath);
+  reader->SetFileName(strPath.string());
   reader->Update();
 
   // Figure out whether this is NKI
@@ -693,23 +694,23 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
   return rt_struct;
 }
 
-bool AlterData_RTStructureSetStorage(const QFile &input_file,
+bool AlterData_RTStructureSetStorage(const fs::path &input_file,
                                      const Rtss_modern *input_rt_struct,
-                                     const QFile &output_file) {
+                                     const fs::path &output_file) {
 
   DRTStructureSetIOD rtstruct;
   DcmFileFormat fileformat;
   auto status =
-      fileformat.loadFile(input_file.fileName().toLocal8Bit().constData());
+      fileformat.loadFile(input_file.string().c_str());
   if (!status.good()) {
     std::cerr << "Could not open RT struct dcm file: "
-              << input_file.fileName().toStdString() << "\n";
+              << input_file << "\n";
     return false;
   }
   status = rtstruct.read(*fileformat.getDataset());
   if (!status.good()) {
     std::cerr << "Could not read RT struct dcm file: "
-              << input_file.fileName().toStdString() << "\n";
+              << input_file << "\n";
     return false;
   }
   fileformat.clear();
@@ -762,14 +763,14 @@ bool AlterData_RTStructureSetStorage(const QFile &input_file,
   status = rtstruct.write(*fileformat.getDataset());
   if (!status.good()) {
     std::cerr << "Could not write RT struct dcm file: "
-              << input_file.fileName().toStdString() << "\n";
+              << input_file << "\n";
     return false;
   }
   status =
-      fileformat.saveFile(output_file.fileName().toLocal8Bit().constData());
+      fileformat.saveFile(output_file.string().c_str());
   if (!status.good()) {
     std::cerr << "Could not save RT struct dcm file: "
-              << output_file.fileName().toStdString() << "\n";
+              << output_file << "\n";
     return false;
   }
   return true;
@@ -808,7 +809,7 @@ double get_dcm_offset_z(const std::string &filename) {
   return position[2];
 }
 
-std::vector<std::string> get_dcm_image_files(std::filesystem::path &dir) {
+std::vector<std::string> get_dcm_image_files(fs::path &dir) {
 
   using NamesGeneratorType = itk::GDCMSeriesFileNames;
   auto nameGenerator = NamesGeneratorType::New();
@@ -816,14 +817,14 @@ std::vector<std::string> get_dcm_image_files(std::filesystem::path &dir) {
   nameGenerator->SetUseSeriesDetails(true);
   nameGenerator->AddSeriesRestriction("0008|0021");
   nameGenerator->SetGlobalWarningDisplay(false);
-  nameGenerator->SetDirectory(std::filesystem::absolute(dir).string());
+  nameGenerator->SetDirectory(fs::absolute(dir).string());
 
   const auto &seriesUID = nameGenerator->GetSeriesUIDs();
   auto seriesItr = seriesUID.begin();
   const auto seriesEnd = seriesUID.end();
 
   if (seriesItr == seriesEnd) {
-    std::cerr << "No DICOMs in: " << std::filesystem::absolute(dir).string()
+    std::cerr << "No DICOMs in: " << fs::absolute(dir).string()
               << "\n";
     return {};
   }
@@ -866,13 +867,13 @@ std::vector<std::string> get_dcm_image_files(std::filesystem::path &dir) {
   return fileNames;
 }
 
-bool ReadDicomDir(CbctRecon *p_cr, std::filesystem::path &dir) {
+bool ReadDicomDir(CbctRecon *p_cr, fs::path &dir) {
 
   const auto filenamelist = get_dcm_image_files(dir);
 
-  for (auto &&filename : std::filesystem::directory_iterator(dir)) {
-    if (!filename.is_regular_file ||
-        !filename.is_symlink) { // I guess symlinks should be allowed?
+  for (auto &&filename : fs::directory_iterator(dir)) {
+    if (!filename.is_regular_file() ||
+        !filename.is_symlink()) { // I guess symlinks should be allowed?
       continue;
     }
     if (filename.path().string().find("-hash-stamp") != std::string::npos) {
@@ -1026,12 +1027,12 @@ void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
   spOutputImgUshort = spRescaleFilter->GetOutput();
 }
 
-std::filesystem::path SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
-                                              std::string &strPatientID,
-                                              std::string &strPatientName,
-                                              std::string &strPathTargetDir) {
+fs::path
+SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
+                        std::string &strPatientID, std::string &strPatientName,
+                        fs::path &strPathTargetDir) {
   if (spImg == nullptr) {
-    return std::string();
+    return {};
   }
 
   ShortImageType::Pointer spShortImg;
@@ -1039,13 +1040,12 @@ std::filesystem::path SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
 
   auto plm_img = Plm_image::New(spShortImg);
 
-  auto newDirPath =
-      std::filesystem::path(strPathTargetDir + "/" + strPatientID + "_DCM");
+  auto newDirPath = strPathTargetDir / (strPatientID + "_DCM");
   // std::string newDirPath =
   //  strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM";
 
-  if (!std::filesystem::exists(newDirPath)) {
-    if (!std::filesystem::create_directory(newDirPath)) {
+  if (!fs::exists(newDirPath)) {
+    if (!fs::create_directory(newDirPath)) {
       std::cerr << "Could not create dir for dicom" << std::endl;
       return {};
     }
@@ -1060,27 +1060,27 @@ std::filesystem::path SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
   return newDirPath;
 }
 
-std::filesystem::path SaveUSHORTAsSHORT_DICOM_gdcmITK(
+fs::path SaveUSHORTAsSHORT_DICOM_gdcmITK(
     UShortImageType::Pointer &spImg, std::string &strPatientID,
-    std::string &strPatientName, std::string &strPathTargetDir) {
+    std::string &strPatientName, fs::path &strPathTargetDir) {
   if (spImg == nullptr) {
-    return "";
+    return {};
   }
 
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
-  auto newDirPath = std::filesystem::path(
-      strPathTargetDir + "/" + strPatientID + strPatientName + "_DCM");
+  auto newDirPath = fs::path(
+      strPathTargetDir / (strPatientID + strPatientName + "_DCM"));
 
-  if (!std::filesystem::exists(newDirPath)) {
-    if (!std::filesystem::create_directory(newDirPath)) {
+  if (!fs::exists(newDirPath)) {
+    if (!fs::create_directory(newDirPath)) {
       std::cerr << "Could not create dir for gdcm dicom" << std::endl;
       return {};
     }
   } else {
-    if (std::filesystem::remove_all(newDirPath) != 0) {
-      if (!std::filesystem::create_directory(newDirPath)) {
+    if (fs::remove_all(newDirPath) != 0) {
+      if (!fs::create_directory(newDirPath)) {
         std::cerr << "Could not create dir for gdcm dicom (2)" << std::endl;
         return {};
       }
@@ -1148,16 +1148,6 @@ std::filesystem::path SaveUSHORTAsSHORT_DICOM_gdcmITK(
   return newDirPath;
 }
 
-template <typename T> std::string stringify(T arg) {
-  return std::to_string(arg);
-}
-
-template <> std::string stringify(const std::string &arg) { return arg; }
-
-template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
-  return ((stringify(std::forward<Args>(arg)) + SEP) + ...);
-}
-
 std::string get_output_options(const UShortImageType::Pointer &m_spFixed) {
 
   // done per image because CT might be different
@@ -1179,14 +1169,14 @@ std::string get_output_options(const UShortImageType::Pointer &m_spFixed) {
       out_direction[2][0], out_direction[2][1], out_direction[2][2]);
 
   return make_sep_str<' '>(
-      " --origin", str_fixed_origin, "--spacing", str_fixed_spacing,
-      "--dimension", str_fixed_dimension, "--direction", str_fixed_direction);
+      " --origin"sv, str_fixed_origin, "--spacing"sv, str_fixed_spacing,
+      "--dimension"sv, str_fixed_dimension, "--direction"sv, str_fixed_direction);
 }
 
 bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI, VEC3D *pTrans,
                              VEC3D *pRot) {
-  std::filesystem::path fInfo(strPathINIXVI);
-  if (!std::filesystem::exists(fInfo)) {
+  fs::path fInfo(strPathINIXVI);
+  if (!fs::exists(fInfo)) {
     return false;
   }
 
@@ -1263,13 +1253,13 @@ bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI, VEC3D *pTrans,
 
 bool GetXrayParamFromINI(std::string &strPathINI, float &kVp, float &mA,
                          float &ms) {
-  auto info = std::filesystem::path(strPathINI);
+  auto info = fs::path(strPathINI);
 
   kVp = 0.0f;
   mA = 0.0f;
   ms = 0.0f;
 
-  if (!std::filesystem::exists(info)) {
+  if (!fs::exists(info)) {
     return false;
   }
 
@@ -1314,9 +1304,9 @@ bool GetXrayParamFromINI(std::string &strPathINI, float &kVp, float &mA,
 }
 
 // Dir or File
-bool LoadShortImageDirOrFile(std::filesystem::path &strPathDir,
+bool LoadShortImageDirOrFile(fs::path &strPathDir,
                              ShortImageType::Pointer &spOutputShortImg) {
-  if (!std::filesystem::exists(strPathDir)) {
+  if (!fs::exists(strPathDir)) {
     return false;
   }
 
@@ -1345,7 +1335,7 @@ bool LoadShortImageDirOrFile(std::filesystem::path &strPathDir,
 }
 
 bool SaveDoseGrayImage(
-    const std::filesystem::path &filePath, const int width, const int height,
+    const fs::path &filePath, const int width, const int height,
     const double spacingX, const double spacingY, const double originLeft_mm,
     const double originTop_mm,
     unsigned short *pData) // export dose array to a specified file (16bit TIF)

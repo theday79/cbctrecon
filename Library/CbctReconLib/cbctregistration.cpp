@@ -4,7 +4,8 @@
 
 #include "cbctregistration.h"
 
-#include <qprocess.h> // for calling gPMC from commandline
+#include <filesystem>
+#include <variant>
 
 // ITK
 #include <itkBinaryThresholdImageFilter.h>
@@ -40,6 +41,10 @@
 #include "StructureSet.h"
 #include "cbctrecon.h"
 #include "cbctrecon_io.h"
+#include "free_functions.h"
+
+namespace fs = std::filesystem;
+using namespace std::literals;
 
 CbctRegistration::CbctRegistration(CbctRecon *parent) {
 
@@ -62,89 +67,92 @@ CbctRegistration::~CbctRegistration() {
   }
 
   if (m_pDcmStudyPlan != nullptr) {
-    delete m_pDcmStudyPlan;
     m_pDcmStudyPlan = nullptr;
   }
 }
 
-UShortImageType::Pointer &
-CbctRegistration::get_image_from_combotext(const QString &ct_type) const {
-  if (ct_type.compare(QString("RAW_CBCT"), Qt::CaseSensitive) == 0) {
+UShortImageType::Pointer &CbctRegistration::get_image_from_combotext(
+    const std::string_view ct_type) const {
+  if (ct_type == "RAW_CBCT") {
     return m_pParent->m_spRawReconImg;
   }
-  if (ct_type.compare(QString("REF_CT"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "REF_CT") {
     return m_pParent->m_spRefCTImg;
   }
-  if (ct_type.compare(QString("MANUAL_RIGID_CT"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "MANUAL_RIGID_CT") {
     return m_pParent->m_spManualRigidCT;
   }
-  if (ct_type.compare(QString("AUTO_RIGID_CT"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "AUTO_RIGID_CT") {
     return m_pParent->m_spAutoRigidCT;
   }
-  if (ct_type.compare(QString("DEFORMED_CT1"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "DEFORMED_CT1") {
     return m_pParent->m_spDeformedCT1;
   }
-  if (ct_type.compare(QString("DEFORMED_CT2"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "DEFORMED_CT2") {
     return m_pParent->m_spDeformedCT2;
   }
-  if (ct_type.compare(QString("DEFORMED_CT3"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "DEFORMED_CT3") {
     return m_pParent->m_spDeformedCT3;
   }
-  if (ct_type.compare(QString("DEFORMED_CT_FINAL"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "DEFORMED_CT_FINAL") {
     return m_pParent->m_spDeformedCT_Final;
   }
-  if (ct_type.compare(QString("COR_CBCT"), Qt::CaseSensitive) == 0) {
+  if (ct_type == "COR_CBCT") {
     return m_pParent->m_spScatCorrReconImg;
   }
-  std::cerr << "Something went wrong: \"" << ct_type.toStdString()
+  std::cerr << "Something went wrong: \"" << ct_type
             << "\" did not match any of the possible values!\n";
   return m_pParent->m_spRawReconImg;
 }
 
 void CbctRegistration::GenPlastiRegisterCommandFile(
-    const QString &strPathCommandFile, const QString &strPathFixedImg,
-    const QString &strPathMovingImg, const QString &strPathOutImg,
-    const QString &strPathXformOut, const enRegisterOption regiOption,
-    const QString &strStageOption1, const QString &strStageOption2,
-    const QString &strStageOption3, const QString &strPathFixedMask,
-    const bool optim_mse, const bool use_cuda, QString &GradOptionStr) const {
+    const fs::path &strPathCommandFile, const fs::path &strPathFixedImg,
+    const fs::path &strPathMovingImg, const fs::path &strPathOutImg,
+    const fs::path &strPathXformOut, const enRegisterOption regiOption,
+    const std::string &strStageOption1, const std::string &strStageOption2,
+    const std::string &strStageOption3, const fs::path &strPathFixedMask,
+    const bool optim_mse, const bool use_cuda,
+    std::string &GradOptionStr) const {
   // optionStr = ui.lineEditGradOption->text();
   std::ofstream fout;
-  fout.open(strPathCommandFile.toLocal8Bit().constData());
+  fout.open(strPathCommandFile);
 
   if (fout.fail()) {
     std::cout << "File writing error! " << std::endl;
     return;
   }
 
-  fout << "# command_file.txt" << std::endl;
-  fout << "[GLOBAL]" << std::endl;
-  fout << "fixed=" << strPathFixedImg.toLocal8Bit().constData() << std::endl;
-  fout << "moving=" << strPathMovingImg.toLocal8Bit().constData() << std::endl;
+  fout << "# command_file.txt"
+       << "\n";
+  fout << "[GLOBAL]"
+       << "\n";
+  fout << "fixed=" << strPathFixedImg << "\n";
+  fout << "moving=" << strPathMovingImg << "\n";
 
-  if (strPathFixedMask.length() > 1) {
-    fout << "fixed_roi=" << strPathFixedMask.toLocal8Bit().constData()
-         << std::endl;
+  if (!strPathFixedMask.empty()) {
+    fout << "fixed_roi=" << strPathFixedMask << "\n";
   }
 
-  fout << "img_out=" << strPathOutImg.toLocal8Bit().constData() << std::endl;
-  fout << "xform_out=" << strPathXformOut.toLocal8Bit().constData()
-       << std::endl;
+  fout << "img_out=" << strPathOutImg << "\n";
+  fout << "xform_out=" << strPathXformOut << "\n";
   if (regiOption == PLAST_GRADIENT) {
     fout << "logfile="
-         << "gradient_log.txt" << std::endl;
+         << "gradient_log.txt"
+         << "\n";
   } else if (regiOption == PLAST_RIGID) {
     fout << "logfile="
-         << "rigid_log.txt" << std::endl;
+         << "rigid_log.txt"
+         << "\n";
   } else if (regiOption == PLAST_BSPLINE) {
     fout << "logfile="
-         << "bspline_log.txt" << std::endl;
+         << "bspline_log.txt"
+         << "\n";
   }
 
   fout << std::endl;
 
-  // QString strOptim = ui.comboBoxDeformOption->currentText();
-  QString strOptim;
+  // std::string strOptim = ui.comboBoxDeformOption->currentText();
+  std::string strOptim;
   if (optim_mse) {
     strOptim = "mse";
   } else {
@@ -152,12 +160,12 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
   }
 
   auto strListOption1 =
-      strStageOption1.split(","); // Subsampling rate (3), Grid
-                                  // size (1), Regularization(1),
-                                  // LandmarkPenalty(1), Max
-                                  // Iteration (1), StageOutput(1)
-  auto strListOption2 = strStageOption2.split(",");
-  auto strListOption3 = strStageOption3.split(",");
+      crl::split_string(strStageOption1, ","); // Subsampling rate (3), Grid
+                                               // size (1), Regularization(1),
+                                               // LandmarkPenalty(1), Max
+                                               // Iteration (1), StageOutput(1)
+  auto strListOption2 = crl::split_string(strStageOption2, ",");
+  auto strListOption3 = crl::split_string(strStageOption3, ",");
 
   const std::string treading_opt = "openmp";
   if (use_cuda) { // m_pParent->ui.radioButton_UseCUDA->isChecked()) {
@@ -192,7 +200,8 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
     fout << "#For gradient-based searching, moving image should be smaller "
             "than fixed image. So, CBCT image might move rather than CT\n";
 
-    const auto optionList = GradOptionStr.split(",");
+    const auto optionList = crl::split_string(GradOptionStr, ",");
+    auto grid_search_overlap = crl::from_sv_v<double>(optionList);
 
     fout << "[PROCESS]\n"
             "action=adjust\n"
@@ -203,17 +212,21 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
             "metric=gm\n"
             "xform=translation\n"
             "optim=grid_search\n";
-    fout << "gridsearch_min_overlap=" << optionList.at(0).toDouble() << " "
-         << optionList.at(1).toDouble() << " " << optionList.at(2).toDouble()
+    fout << "gridsearch_min_overlap="
+         << crl::make_sep_str<' '>(grid_search_overlap.at(0),
+                                   grid_search_overlap.at(1),
+                                   grid_search_overlap.at(2))
          << "\n";
 
     fout << "num_substages=5\n";
-    fout << "debug_dir=" << m_strPathPlastimatch.toLocal8Bit().constData()
-         << "\n";
+    fout << "debug_dir=" << m_strPathPlastimatch << "\n";
     break;
   }
   case PLAST_BSPLINE:
-    if (strListOption1.count() == 8) {
+    if (strListOption1.size() == 8) {
+      // fail silently on 7, which is a string:
+      auto option_vals =
+          crl::from_sv_v<std::variant<int, double>>(strListOption1);
       fout << "[STAGE]\n"
               "xform=bspline\n"
               "impl=plastimatch\n";
@@ -225,80 +238,83 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
         fout << "alg_flavor=a\n";
       }
 
-      fout << "regularization_lambda=" << strListOption1.at(4).toDouble()
+      fout << "regularization_lambda=" << std::get<double>(option_vals.at(4))
            << "\n";
 
-      if (strOptim.length() < 1) {
+      if (strOptim.empty()) {
         fout << "metric=mi\n";
       } else {
-        fout << "metric=" << strOptim.toLocal8Bit().constData() << "\n";
+        fout << "metric=" << strOptim << "\n";
       }
 
-      fout << "max_its=" << strListOption1.at(6).toInt() << "\n";
-      const auto grid_spacing = strListOption1.at(3).toInt();
+      fout << "max_its=" << std::get<int>(option_vals.at(6)) << "\n";
+      const auto grid_spacing = std::get<int>(option_vals.at(3));
       fout << "grid_spac=" << grid_spacing << " " << grid_spacing << " "
            << grid_spacing << "\n"; // 20 20 20 --> minimum
-      fout << "res=" << strListOption1.at(0).toInt() << " "
-           << strListOption1.at(1).toInt() << " "
-           << strListOption1.at(2).toInt() << "\n";
+      fout << "res=" << std::get<int>(option_vals.at(0)) << " "
+           << std::get<int>(option_vals.at(1)) << " "
+           << std::get<int>(option_vals.at(2)) << "\n";
       fout << "background_val=700\n"; //-600 in HU //added
 
-      fout << "img_out=" << strListOption1.at(7).toLocal8Bit().constData()
-           << "\n\n";
+      fout << "img_out=" << strListOption1.at(7) << "\n\n";
     }
-    if (strListOption2.count() == 8) {
+    if (strListOption2.size() == 8) {
+      // fail silently on 7, which is a string:
+      auto option_vals =
+          crl::from_sv_v<std::variant<int, double>>(strListOption2);
       fout << "[STAGE]\n"
               "xform=bspline\n"
               "impl=plastimatch\n";
 
       fout << "threading=" << treading_opt << "\n";
 
-      fout << "regularization_lambda=" << strListOption2.at(4).toDouble()
+      fout << "regularization_lambda=" << std::get<double>(option_vals.at(4))
            << "\n";
 
-      if (strOptim.length() < 1) {
+      if (strOptim.empty()) {
         fout << "metric=mi\n";
       } else {
-        fout << "metric=" << strOptim.toLocal8Bit().constData() << "\n";
+        fout << "metric=" << strOptim << "\n";
       }
 
-      fout << "max_its=" << strListOption2.at(6).toInt() << "\n";
-      const auto grid_spacing = strListOption2.at(3).toInt();
+      fout << "max_its=" << std::get<int>(option_vals.at(6)) << "\n";
+      const auto grid_spacing = std::get<int>(option_vals.at(3));
       fout << "grid_spac=" << grid_spacing << " " << grid_spacing << " "
            << grid_spacing << "\n"; // 20 20 20 --> minimum
-      fout << "res=" << strListOption2.at(0).toInt() << " "
-           << strListOption2.at(1).toInt() << " "
-           << strListOption2.at(2).toInt() << "\n";
+      fout << "res=" << std::get<int>(option_vals.at(0)) << " "
+           << std::get<int>(option_vals.at(1)) << " "
+           << std::get<int>(option_vals.at(2)) << "\n";
 
-      fout << "img_out=" << strListOption2.at(7).toLocal8Bit().constData()
-           << "\n\n";
+      fout << "img_out=" << strListOption2.at(7) << "\n\n";
     }
-    if (strListOption3.count() == 8) {
+    if (strListOption3.size() == 8) {
+      // fail silently on 7, which is a string:
+      auto option_vals =
+          crl::from_sv_v<std::variant<int, double>>(strListOption3);
       fout << "[STAGE]\n"
               "xform=bspline\n"
               "impl=plastimatch\n";
 
       fout << "threading=" << treading_opt << "\n";
 
-      fout << "regularization_lambda=" << strListOption3.at(4).toDouble()
+      fout << "regularization_lambda=" << std::get<double>(option_vals.at(4))
            << "\n";
 
-      if (strOptim.length() < 1) {
+      if (strOptim.empty()) {
         fout << "metric=mi\n";
       } else {
-        fout << "metric=" << strOptim.toLocal8Bit().constData() << "\n";
+        fout << "metric=" << strOptim << "\n";
       }
 
-      fout << "max_its=" << strListOption3.at(6).toInt() << "\n";
-      const auto grid_spacing = strListOption3.at(3).toInt();
+      fout << "max_its=" << std::get<int>(option_vals.at(6)) << "\n";
+      const auto grid_spacing = std::get<int>(option_vals.at(3));
       fout << "grid_spac=" << grid_spacing << " " << grid_spacing << " "
            << grid_spacing << "\n"; // 20 20 20 --> minimum
-      fout << "res=" << strListOption3.at(0).toInt() << " "
-           << strListOption3.at(1).toInt() << " "
-           << strListOption3.at(2).toInt() << "\n";
+      fout << "res=" << std::get<int>(option_vals.at(0)) << " "
+           << std::get<int>(option_vals.at(1)) << " "
+           << std::get<int>(option_vals.at(2)) << "\n";
 
-      fout << "img_out=" << strListOption3.at(7).toLocal8Bit().constData()
-           << "\n";
+      fout << "img_out=" << strListOption3.at(7) << "\n";
       fout << std::endl;
     }
 
@@ -380,7 +396,7 @@ void CbctRegistration::autoPreprocessCT(const int iAirThresholdShort,
 
 bool CbctRegistration::PreprocessCT(
     UShortImageType::Pointer &ct_img, const int iAirThresholdShort,
-    const Rtss_modern *rt_structs, const QString &strRSName,
+    const Rtss_modern *rt_structs, const std::string &strRSName,
     const bool fill_bubble, const int iBubbleFillingVal,
     const int iAirFillValShort) // CT preparation + CBCT preparation only,
                                 // then show the registration DLG
@@ -388,7 +404,7 @@ bool CbctRegistration::PreprocessCT(
   // All files will be saved in m_strPathPlastimatch
 
   // 1) CT preparation
-  auto strPathMskBubbleCT = m_strPathPlastimatch + "/msk_bubbles_CT.mha";
+  auto strPathMskBubbleCT = m_strPathPlastimatch / "msk_bubbles_CT.mha";
 
   //  Segment_parms parms;
 
@@ -404,16 +420,16 @@ bool CbctRegistration::PreprocessCT(
   /* Do segmentation */
   sb.do_segmentation_air_cavity();
   /* Save output file */
-  sb.img_out->save_image(strPathMskBubbleCT.toLocal8Bit().constData());
+  sb.img_out->save_image(strPathMskBubbleCT.string());
 
-  if (m_pParent->m_strPathRS.isEmpty()) {
+  if (fs::is_empty(m_pParent->m_strPathRS)) {
     return false;
   }
   /* End of [1]Segment air region*/
-  const QFile rs_file(m_strPathPlastimatch + "/rs_altered.dcm");
+  const auto rs_file = m_strPathPlastimatch / "rs_altered.dcm";
 
-  if (!AlterData_RTStructureSetStorage(m_pParent->m_strPathRS, rt_structs,
-                                       rs_file)) {
+  if (!crl::AlterData_RTStructureSetStorage(m_pParent->m_strPathRS, rt_structs,
+                                            rs_file)) {
     std::cerr << "Could not write altered dcm file!\n";
   }
 
@@ -432,16 +448,15 @@ bool CbctRegistration::PreprocessCT(
   Warp_parms parms;
   Rt_study rtds;
 
-  parms.input_fn = rs_file.fileName().toStdString();
+  parms.input_fn = fs::absolute(rs_file).string();
   // Just to get meta-data (apparently):
-  parms.referenced_dicom_dir =
-      m_pParent->m_dcm_dir.absolutePath().toStdString();
+  parms.referenced_dicom_dir = fs::absolute(m_pParent->m_dcm_dir).string();
   std::cout << parms.referenced_dicom_dir << std::endl;
 
-  auto ssimg_path_all = m_strPathPlastimatch + "/ssimg_all.mha";
-  auto sslist_path_all = m_strPathPlastimatch + "/sslist_all.txt";
-  parms.output_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
-  parms.output_ss_list_fn = sslist_path_all.toLocal8Bit().constData();
+  auto ssimg_path_all = m_strPathPlastimatch / "ssimg_all.mha";
+  const auto sslist_path_all = m_strPathPlastimatch / "sslist_all.txt";
+  parms.output_ss_img_fn = ssimg_path_all.string();
+  parms.output_ss_list_fn = sslist_path_all.string();
 
   parms.prefix_format = "mha";
   parms.use_itk = 0;
@@ -461,50 +476,53 @@ bool CbctRegistration::PreprocessCT(
 
   /* [3]Read outputss-list.txt and leave skin only*/
   std::ifstream fin;
-  fin.open(sslist_path_all.toLocal8Bit().constData(), std::ios::in);
+  fin.open(sslist_path_all, std::ios::in);
   if (fin.fail()) {
     return false;
   }
 
   char str[MAX_LINE_LENGTH];
 
-  QString strLineSkin;
+  std::string strLineSkin;
 
   while (!fin.eof()) {
     memset(str, 0, MAX_LINE_LENGTH);
     fin.getline(str, MAX_LINE_LENGTH);
-    QString strLine(str);
+    std::string strLine(str);
 
-    auto strList = strLine.split('|');
+    auto strList = crl::split_string(strLine, "|");
     // third one is the organ name
-    if (strList.length() != 3) {
+    if (strList.size() != 3) {
       std::cout << "abnormal file expression." << std::endl;
       break;
     }
     auto organName = strList.at(2);
 
-    organName = organName.trimmed();
+    organName = crl::trim_string(organName);
 
-    if (organName.compare(strRSName.trimmed(), Qt::CaseInsensitive) == 0) {
+    if (organName.compare(crl::trim_string(strRSName)) == 0) {
       strLineSkin = strLine;
-      std::cout << "Structure for cropping was found: "
-                << strLineSkin.toLocal8Bit().constData() << std::endl;
+      std::cout << "Structure for cropping was found: " << strLineSkin
+                << std::endl;
     }
   }
   fin.close();
 
-  QString sslist_path_skin;
+  fs::path sslist_path_skin;
   if (strLineSkin.length() > 1) {
     std::ofstream fout;
+    auto sslist_filename = sslist_path_all.filename().string();
+    const auto all_pos = sslist_filename.find("all");
+    sslist_filename.replace(all_pos, all_pos + 3, "skin");
     sslist_path_skin = sslist_path_all;
-    sslist_path_skin.replace("all", "skin");
-    fout.open(sslist_path_skin.toLocal8Bit().constData());
+    sslist_path_skin = sslist_path_skin.replace_filename(sslist_filename);
+    fout.open(sslist_path_skin);
 
-    fout << strLineSkin.toLocal8Bit().constData() << std::endl;
+    fout << strLineSkin << std::endl;
 
     fout.close();
   } else {
-    std::cout << "Error: no " << strRSName.toLocal8Bit().constData()
+    std::cout << "Error: no " << strRSName
               << " RS structure is found in DICOM RS file. " << std::endl;
     return false;
   }
@@ -519,11 +537,10 @@ bool CbctRegistration::PreprocessCT(
   // convert --input-ss-img E:\PlastimatchData\DicomEg\OLD\ssimg_all.mha
   // --input-ss-list E:\PlastimatchData\DicomEg\OLD\sslist_skin.txt
   // --output-labelmap E:\PlastimatchData\DicomEg\OLD\msk_skin.mha
-  auto strPath_mskSkinCT = m_strPathPlastimatch + "/msk_skin_CT.mha";
-  parms2.input_ss_img_fn = ssimg_path_all.toLocal8Bit().constData();
-  parms2.input_ss_list_fn = sslist_path_skin.toLocal8Bit().constData();
-  parms2.output_labelmap_fn =
-      strPath_mskSkinCT.toLocal8Bit().constData(); // output
+  auto strPath_mskSkinCT = m_strPathPlastimatch / "msk_skin_CT.mha";
+  parms2.input_ss_img_fn = ssimg_path_all.string();
+  parms2.input_ss_list_fn = sslist_path_skin.string();
+  parms2.output_labelmap_fn = strPath_mskSkinCT.string(); // output
   parms2.prefix_format = "mha";
   parms2.use_itk = 0;
   parms2.interp_lin = 1;
@@ -538,16 +555,16 @@ bool CbctRegistration::PreprocessCT(
 
   // Bubble removal procedure
   auto str_path_msk_skin_ct_cont =
-      m_strPathPlastimatch + "/msk_skin_CT_cont.mha";
+      m_strPathPlastimatch / "msk_skin_CT_cont.mha";
   const auto str_path_msk_bubble_ct_fin =
-      m_strPathPlastimatch + "/msk_bubbles_CT_fin.mha";
+      m_strPathPlastimatch / "msk_bubbles_CT_fin.mha";
 
   Mask_operation mask_option;
-  QString mask_fn;
+  fs::path mask_fn;
   auto mask_value = 0.0f;
 
   if (fill_bubble) {
-    // QString strPath_mskSkinCT_dmap =  m_strPathPlastimatch +
+    // std::string strPath_mskSkinCT_dmap =  m_strPathPlastimatch +
     // "/dmap_msk_skin_CT.mha";
     plm_expansion_contract_msk(strPath_mskSkinCT, str_path_msk_skin_ct_cont,
                                -5.0); //-5mm contraction
@@ -568,8 +585,7 @@ bool CbctRegistration::PreprocessCT(
     mask_option = MASK_OPERATION_FILL;
     mask_value = static_cast<float>(iBubbleFillingVal);
 
-    const auto mask =
-        itk_image_load_uchar(output_fn.toLocal8Bit().constData(), nullptr);
+    const auto mask = itk_image_load_uchar(output_fn.string(), nullptr);
     ct_img = mask_image(ct_img, mask, mask_option, mask_value);
   }
 
@@ -580,41 +596,38 @@ bool CbctRegistration::PreprocessCT(
   // E:\PlastimatchData\DicomEg\OLD\CT_final.mha
 
   // Mask_parms parms_msk3;
-  auto strPathSkinRemovedCT = m_strPathPlastimatch + "/skin_removed_CT.mha";
+  auto strPathSkinRemovedCT = m_strPathPlastimatch / "skin_removed_CT.mha";
 
   mask_option = MASK_OPERATION_MASK;
 
   mask_fn = strPath_mskSkinCT;
   mask_value = static_cast<float>(iAirFillValShort);
-  const auto mask =
-      itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), nullptr);
+  const auto mask = itk_image_load_uchar(mask_fn.string(), nullptr);
   ct_img = mask_image(ct_img, mask, mask_option, mask_value);
 
   return true;
 }
 
-void CbctRegistration::LoadRTPlan(QString &strDCMPath) {
-  if (strDCMPath.length() < 1) {
+void CbctRegistration::LoadRTPlan(fs::path &strDCMPath) {
+  if (strDCMPath.empty()) {
     std::cout << "No dicom  file is found" << std::endl;
     return;
   }
 
   if (m_pDcmStudyPlan != nullptr) {
-    delete m_pDcmStudyPlan;
     m_pDcmStudyPlan = nullptr;
   }
 
-  m_pDcmStudyPlan = new Dcmtk_rt_study();
+  m_pDcmStudyPlan = std::make_unique<Dcmtk_rt_study>();
 
   // std::cout << "Before plm_file_format_deduce" << std::endl;
-  const auto file_type_dcm_plan =
-      plm_file_format_deduce(strDCMPath.toLocal8Bit().constData());
+  const auto file_type_dcm_plan = plm_file_format_deduce(strDCMPath.string());
   // std::cout << "After plm_file_format_deduce" << std::endl;
 
   if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN) {
     std::cout << "PLM_FILE_FMT_DICOM_RTPLAN "
               << "is found" << std::endl;
-    m_pDcmStudyPlan->load(strDCMPath.toLocal8Bit().constData());
+    m_pDcmStudyPlan->load(strDCMPath.string().c_str());
   } else {
     std::cout << "Found file is not RTPLAN. Skipping dcm plan." << std::endl;
   }
@@ -706,74 +719,72 @@ float *CbctRegistration::ManualMoveByDCM() const {
 }
 
 // void CbctRegistration::plm_dmap_main( Dmap_parms* parms )
-void CbctRegistration::plm_dmap_main(QString &img_in_fn,
-                                     QString &img_out_fn) const {
-  if (img_in_fn.length() < 1 || img_out_fn.length() < 1) {
+void CbctRegistration::plm_dmap_main(fs::path &img_in_fn,
+                                     fs::path &img_out_fn) const {
+  if (img_in_fn.empty() || img_out_fn.empty()) {
     return;
   }
   // dmap_main (&parms_dmap);
   Distance_map dmap;
-  dmap.set_input_image(img_in_fn.toLocal8Bit().constData());
+  dmap.set_input_image(img_in_fn.string());
   // dmap.set_algorithm (parms_dmap.algorithm);
   // dmap.set_inside_is_positive (parms->inside_positive);
   // dmap.set_use_squared_distance (parms->squared_distance);
   dmap.run();
   const auto dmap_image = dmap.get_output_image();
-  itk_image_save(dmap_image, img_out_fn.toLocal8Bit().constData());
+  itk_image_save(dmap_image, img_out_fn.string());
 }
 
 // void CbctRegistration::plm_threshold_main(Pcmd_threshold* parms)
-void CbctRegistration::plm_threshold_main(QString &strRange, QString &img_in_fn,
-                                          QString &img_out_fn) const {
+void CbctRegistration::plm_threshold_main(std::string &strRange,
+                                          fs::path &img_in_fn,
+                                          fs::path &img_out_fn) const {
   /*if (parms == NULL)
         return;*/
 
-  if (img_in_fn.length() < 1 || img_out_fn.length() < 1) {
+  if (img_in_fn.empty() || img_out_fn.empty()) {
     return;
   }
 
   // threshold_main (&parms_thre);
-  const auto plm_image = plm_image_load(img_in_fn.toLocal8Bit().constData(),
-                                        PLM_IMG_TYPE_ITK_FLOAT);
+  const auto plm_image =
+      plm_image_load(img_in_fn.string(), PLM_IMG_TYPE_ITK_FLOAT);
   const auto img_in = plm_image->m_itk_float;
   UCharImageType::Pointer img_out;
 
-  if (!strRange.isEmpty()) {
-    img_out =
-        itk_threshold(img_in, std::string(strRange.toLocal8Bit().constData()));
+  if (!fs::is_empty(strRange)) {
+    img_out = itk_threshold(img_in, strRange);
   }
 
   Plm_image pli(img_out);
-  pli.save_image(img_out_fn.toLocal8Bit().constData());
+  pli.save_image(img_out_fn.string());
 
   std::cout << "contracted skin mask is ready" << std::endl;
 }
 
 // void CbctRegistration::plm_mask_main(Mask_parms* parms)
 void CbctRegistration::plm_mask_main(const Mask_operation mask_option,
-                                     QString &input_fn, QString &mask_fn,
-                                     QString &output_fn,
+                                     fs::path &input_fn, fs::path &mask_fn,
+                                     fs::path &output_fn,
                                      const float mask_value) const {
-  auto img = plm_image_load_native(input_fn.toLocal8Bit().constData());
+  auto img = plm_image_load_native(input_fn.string());
   if (!img) {
-    printf("Error: could not open '%s' for read\n",
-           input_fn.toLocal8Bit().constData());
+    std::cerr << "Error: could not open for read:\n" << input_fn << "\n";
     return;
   }
   plm_mask_img(mask_option, mask_fn, mask_value, img);
-  img->save_image(output_fn.toLocal8Bit().constData());
+  img->save_image(output_fn.string());
 }
 
 void CbctRegistration::plm_mask_img(
-    const Mask_operation mask_option, QString &mask_fn, const float mask_value,
+    const Mask_operation mask_option, fs::path &mask_fn, const float mask_value,
     Plm_image::Pointer /*input image*/ &img) const {
   if (!img) {
     std::cerr << "Plm mask input image not valid!\n";
     return;
   }
 
-  const auto mask =
-      itk_image_load_uchar(mask_fn.toLocal8Bit().constData(), nullptr);
+  const auto mask = itk_image_load_uchar(mask_fn.string(), nullptr);
 
   switch (img->m_type) {
   case PLM_IMG_TYPE_ITK_UCHAR:
@@ -803,34 +814,34 @@ void CbctRegistration::plm_mask_img(
   }
 }
 
-void CbctRegistration::plm_expansion_contract_msk(QString &strPath_msk,
-                                                  QString &strPath_msk_exp_cont,
-                                                  const double fExpVal) const {
-  auto strPath_mskSkinCT_dmap = strPath_msk + "_dmap.mha";
+void CbctRegistration::plm_expansion_contract_msk(
+    fs::path &strPath_msk, fs::path &strPath_msk_exp_cont,
+    const double fExpVal) const {
+  auto strPath_mskSkinCT_dmap = strPath_msk.concat("_dmap.mha");
   plm_dmap_main(strPath_msk, strPath_mskSkinCT_dmap);
 
   const auto &strPath_mskSkinCT_mod = strPath_msk_exp_cont;
-  auto range_string = QString(string_format("-inf,%f", fExpVal).c_str());
+  auto range_string = std::string(string_format("-inf,%f", fExpVal).c_str());
   auto img_in_fn = strPath_mskSkinCT_dmap;
   auto img_out_fn = strPath_mskSkinCT_mod;
 
   plm_threshold_main(range_string, img_in_fn, img_out_fn);
 }
 
-QString CbctRegistration::gen_and_expand_skinmask_plm(
-    const QString &mskSkinCT_manRegi_path, const QString &XFAutoRigid_path,
-    const QString &rawCBCT_path, double skinExp) {
+fs::path CbctRegistration::gen_and_expand_skinmask_plm(
+    const fs::path &mskSkinCT_manRegi_path, const fs::path &XFAutoRigid_path,
+    const fs::path &rawCBCT_path, double skinExp) {
   Warp_parms parms;
   Rt_study rtds;
-  const auto plm_path = QDir(m_strPathPlastimatch);
+  const auto plm_path = m_strPathPlastimatch;
   auto strPath_mskSkinCT_autoRegi =
-      plm_path.absolutePath() + "/msk_skin_CT_autoRegi.mha";
+      fs::absolute(plm_path) / "msk_skin_CT_autoRegi.mha";
 
-  parms.input_fn = mskSkinCT_manRegi_path.toLocal8Bit().constData();
-  parms.output_img_fn = strPath_mskSkinCT_autoRegi.toLocal8Bit().constData();
-  parms.xf_in_fn = XFAutoRigid_path.toLocal8Bit().constData();
-  parms.fixed_img_fn = rawCBCT_path.toLocal8Bit()
-                           .constData(); // add this to fit Mask to CBCT image
+  parms.input_fn = mskSkinCT_manRegi_path.string();
+  parms.output_img_fn = strPath_mskSkinCT_autoRegi.string();
+  parms.xf_in_fn = XFAutoRigid_path.string();
+  parms.fixed_img_fn =
+      rawCBCT_path.string(); // add this to fit Mask to CBCT image
 
   parms.prefix_format = "mha";
   parms.use_itk = 0;
@@ -841,7 +852,7 @@ QString CbctRegistration::gen_and_expand_skinmask_plm(
   printf("Skin mask based on auto regi is ready!\n");
 
   auto strPath_mskSkinCT_autoRegi_exp =
-      plm_path.absolutePath() + "/msk_skin_CT_autoRegi_exp.mha";
+      fs::absolute(plm_path) / "msk_skin_CT_autoRegi_exp.mha";
 
   // 3) Expand 10mm skin contour
   // plastimatch synth-vf --fixed
@@ -865,10 +876,10 @@ QString CbctRegistration::gen_and_expand_skinmask_plm(
   return strPath_mskSkinCT_autoRegi_exp;
 }
 
-QString
+fs::path
 CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
                                       const float bubble_fill,
-                                      const QString &strPathOutputCBCT) {
+                                      const fs::path &strPathOutputCBCT) {
   // Bubble filling
   //- With the latest air-removed image (rawCBCT4), find inside-body-bubbles.
   // plastimatch segment --input [rawCBCT.mha] --output-img
@@ -889,25 +900,25 @@ CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
      --mask E:\PlastimatchData\DicomEg\OLD\msk_lungs_autoRegi_exp.mha --output
      E:\PlastimatchData\DicomEg\NEW\msk_bubbles_CBCT_final.mha*/
 
-  auto strPathMskBubbleCBCT = m_strPathPlastimatch + "/msk_bubbles_CBCT.mha";
+  auto strPathMskBubbleCBCT = m_strPathPlastimatch / "msk_bubbles_CBCT.mha";
   const auto strPathMskBubbleCBCT_final =
-      m_strPathPlastimatch + "/msk_bubbles_CBCT_final.mha";
+      m_strPathPlastimatch / "msk_bubbles_CBCT_final.mha";
 
   Plm_image in;
   Plm_image out;
   Segment_body sb;
   sb.m_lower_threshold = bubble_thresh;
-  in.load_native(strPathOutputCBCT.toLocal8Bit().constData());
+  in.load_native(strPathOutputCBCT.string());
 
   sb.img_in = &in;
   sb.img_out = &out;
   /* Do segmentation */
   sb.do_segmentation_air_cavity();
   /* Save output file */
-  sb.img_out->save_image(strPathMskBubbleCBCT.toLocal8Bit().constData());
+  sb.img_out->save_image(strPathMskBubbleCBCT.string());
 
   auto strPath_mskSkinCT_autoRegi_cont =
-      m_strPathPlastimatch + "/msk_skin_CT_autoRegi_cont.mha";
+      m_strPathPlastimatch / "msk_skin_CT_autoRegi_cont.mha";
   plm_expansion_contract_msk(m_strPathCTSkin_autoRegi,
                              strPath_mskSkinCT_autoRegi_cont,
                              -10.0); //-10 mm expansion for a mask image
@@ -933,7 +944,7 @@ CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
 
   // Mask_parms parms_fill;
   auto strPathBubbleRemovedCBCT =
-      m_strPathPlastimatch + "/bubble_filled_CBCT.mha"; // tmp
+      m_strPathPlastimatch / "bubble_filled_CBCT.mha"; // tmp
 
   mask_option = MASK_OPERATION_FILL;
   input_fn = strPathOutputCBCT; // CBCT after air correction
@@ -948,8 +959,8 @@ CbctRegistration::gen_bubble_mask_plm(const float bubble_thresh,
 // called after the auto rigid regi. 1) accurate skin clipping 2) air bubble
 // filling inside of the CBCT
 void CbctRegistration::ProcessCBCT_beforeDeformRegi(
-    QString &strPathRawCBCT, QString &strPath_mskSkinCT_manRegi,
-    QString &strPathOutputCBCT, QString &strPathXFAutoRigid,
+    fs::path &strPathRawCBCT, fs::path &strPath_mskSkinCT_manRegi,
+    fs::path &strPathOutputCBCT, fs::path &strPathXFAutoRigid,
     const bool bBubbleFilling, const bool bPrepareMaskOnly,
     const double skinExp, const int bubbleThresh, const int bubbleFill) {
   if (m_pParent->m_spAutoRigidCT == nullptr) {
@@ -965,7 +976,7 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   // E:\PlastimatchData\DicomEg\NEW\rawCBCT4.mha
 
   // Mask_parms parms_msk;
-  // QString strPath_CBCT_skinRemovedTemp = m_strPathPlastimatch +
+  // std::string strPath_CBCT_skinRemovedTemp = m_strPathPlastimatch +
   // "/skin_removed_CBCT_tmp.mha";
 
   const auto mask_option = MASK_OPERATION_MASK;
@@ -987,17 +998,17 @@ void CbctRegistration::ProcessCBCT_beforeDeformRegi(
   }
 }
 
-void CbctRegistration::CallingPLMCommand(std::string &command_filepath) {
+void CbctRegistration::CallingPLMCommand(fs::path &command_filepath) {
 
   std::cout << "3: calling a plastimatch command" << std::endl;
 
   Registration reg;
-  if (reg.set_command_file(command_filepath) != PLM_SUCCESS) {
-    printf("Error.  could not load %s as command file.\n",
-           command_filepath.c_str());
+  if (reg.set_command_file(command_filepath.string()) != PLM_SUCCESS) {
+    std::cerr << "Error.  could not load command file:\n"
+              << command_filepath << "\n";
   }
 
-  if (command_filepath.length() < 3) {
+  if (command_filepath.string().size() < 3) {
     std::cout << "ERROR! pathCmdRegister is too short!" << std::endl;
     return;
   }
@@ -1014,17 +1025,11 @@ void CbctRegistration::CallingPLMCommand(std::string &command_filepath) {
     strMoving = it.second.moving_fn;
   }
 
-  if (strFixed.length() < 1) {
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << "ERROR! no fixed image" << std::endl;
+  if (strFixed.empty()) {
+    std::cout << "\n\n\nERROR! no fixed image" << std::endl;
   }
-  if (strMoving.length() < 1) {
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << "ERROR!no moving image" << std::endl;
+  if (strMoving.empty()) {
+    std::cout << "\n\n\nERROR! no moving image" << std::endl;
   }
 
   reg.do_registration();
@@ -1033,14 +1038,14 @@ void CbctRegistration::CallingPLMCommand(std::string &command_filepath) {
 }
 
 DoubleVector3DType
-CbctRegistration::CallingPLMCommandXForm(std::string &command_filepath) {
+CbctRegistration::CallingPLMCommandXForm(fs::path &command_filepath) {
 
   std::cout << "3: calling a plastimatch command" << std::endl;
 
   Registration reg;
-  if (reg.set_command_file(command_filepath) != PLM_SUCCESS) {
-    printf("Error.  could not load %s as command file.\n",
-           command_filepath.c_str());
+  if (reg.set_command_file(command_filepath.string()) != PLM_SUCCESS) {
+    std::cerr << "Error.  could not load command file:\n"
+              << command_filepath << "\n";
   }
   // reg.get_registration_parms()->log_fn = "gradient_log.txt";
   reg.load_global_inputs();
@@ -1054,14 +1059,14 @@ CbctRegistration::CallingPLMCommandXForm(std::string &command_filepath) {
 
 bool CbctRegistration::CallingGPMCcommand(
     const enDevice device, const int n_sims, const int n_plans,
-    QString &comma_sep_planfilepath, UShortImageType::Pointer &spFixed,
+    fs::path &comma_sep_planfilepath, UShortImageType::Pointer &spFixed,
     UShortImageType::Pointer &spMoving, UShortImageType::Pointer &spFixedDose,
     UShortImageType::Pointer &spMovingDose) {
 
-  auto gPMC_device = QString("cpu");
+  auto gPMC_device = std::string("cpu");
   switch (device) {
   case GPU_DEV:
-    gPMC_device = QString("gpu");
+    gPMC_device = std::string("gpu");
     break;
   case CPU_DEV:
   default:
@@ -1069,41 +1074,42 @@ bool CbctRegistration::CallingGPMCcommand(
   }
 
   const auto image_independent_string =
-      QString(" --hardware %1 --plan \"%2\" -n %3 -b %4 --verbose")
-          .arg(gPMC_device)
-          .arg(comma_sep_planfilepath)
-          .arg(n_plans)
-          .arg(n_sims);
+      crl::make_sep_str<' '>(" --hardware"sv, gPMC_device, "--plan"sv,
+                             comma_sep_planfilepath, // May need quotes?
+                             "-n"sv, n_plans, "-b"sv, n_sims, "--verbose"sv);
 
-  auto tmp_str = QString("tmp_");
-  auto fix_str = QString("Fixed");
-  auto mov_str = QString("Moving");
-  QString moving_dcm_dir = "";
+          auto tmp_str = std::string("tmp_");
+  auto fix_str = std::string("Fixed");
+  auto mov_str = std::string("Moving");
+  fs::path moving_dcm_dir = "";
   // Export fixed and moving as DCM
-  const auto fixed_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(
+  const auto fixed_dcm_dir = crl::SaveUSHORTAsSHORT_DICOM_gdcmITK(
       spFixed, tmp_str, fix_str, m_strPathPlastimatch);
   if (spFixed != spMoving) {
-    moving_dcm_dir = SaveUSHORTAsSHORT_DICOM_gdcmITK(spMoving, tmp_str, mov_str,
+    moving_dcm_dir = crl::SaveUSHORTAsSHORT_DICOM_gdcmITK(spMoving, tmp_str, mov_str,
                                                      m_strPathPlastimatch);
   }
 
-  auto gPMC_command_str =
-      QString("gPMC.exe") + // casting this seems to cast the whole string
-      " --dir \"" + fixed_dcm_dir + "\" --output \"" + fixed_dcm_dir +
-      "/dose_fixed.mha\"" + get_output_options(spFixed) +
-      image_independent_string;
+  auto gPMC_command_str = crl::make_sep_str<' '>(
+      "gPMC.exe"sv, "--dir"sv, fixed_dcm_dir, // may need quotation
+      "--output"sv, fixed_dcm_dir / "dose_fixed.mha", // may need quotation
+      crl::get_output_options(spFixed),
+      image_independent_string);
   // std::cout << gPMC_command_str.toStdString() << std::endl;
-  if (QProcess::execute(gPMC_command_str) < 0) {
+
+  // With msvc this should be fine, but it's implementation defined what std::system returns
+  if (std::system(gPMC_command_str.c_str()) < 0) {
     std::cerr << "Failed to run (fixed mc recalc)" << std::endl;
     return false;
   }
 
-  if (!moving_dcm_dir.isEmpty()) {
-    gPMC_command_str = QString("gPMC.exe") + " --dir " + moving_dcm_dir +
-                       " --output " + moving_dcm_dir + "/dose_moving.mha" +
-                       get_output_options(spMoving) + image_independent_string;
+  if (!fs::is_empty(moving_dcm_dir)) {
+    gPMC_command_str = crl::make_sep_str<' '>("gPMC.exe"sv,
+        "--dir"sv, moving_dcm_dir,
+        "--output"sv, moving_dcm_dir / "dose_moving.mha",
+        crl::get_output_options(spMoving), image_independent_string);
 
-    if (QProcess::execute(gPMC_command_str) < 0) {
+    if (std::system(gPMC_command_str.c_str()) < 0) {
       std::cerr << "Failed to run (moving mc recalc)" << std::endl;
       return false;
     }
@@ -1117,12 +1123,11 @@ bool CbctRegistration::CallingGPMCcommand(
       itk::MultiplyImageFilter<FloatImageType, FloatImageType>;
   using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
 
-  auto fixedDosePath = fixed_dcm_dir + "/dose_fixed.mha";
-  auto finfofixedDosePath = QFileInfo(fixedDosePath);
+  auto fixedDosePath = fixed_dcm_dir / "dose_fixed.mha";
 
-  if (finfofixedDosePath.exists()) {
+  if (fs::exists(fixedDosePath)) {
     auto FixedDoseReader = ImageReaderType::New();
-    FixedDoseReader->SetFileName(fixedDosePath.toStdString());
+    FixedDoseReader->SetFileName(fixedDosePath.string());
 
     auto MinMaxFilter = MinMaxFindType::New();
     MinMaxFilter->SetInput(FixedDoseReader->GetOutput());
@@ -1153,13 +1158,12 @@ bool CbctRegistration::CallingGPMCcommand(
               << "	" << spacing[2] << std::endl;
   }
 
-  if (!moving_dcm_dir.isEmpty()) {
-    auto movingDosePath = moving_dcm_dir + "/dose_moving.mha";
-    auto finfomovingDosePath = QFileInfo(movingDosePath);
+  if (!fs::is_empty(moving_dcm_dir)) {
+    auto movingDosePath = moving_dcm_dir / "dose_moving.mha";
 
-    if (finfomovingDosePath.exists()) {
+    if (fs::exists(movingDosePath)) {
       auto MovingDoseReader = ImageReaderType::New();
-      MovingDoseReader->SetFileName(movingDosePath.toStdString());
+      MovingDoseReader->SetFileName(movingDosePath.string());
 
       auto MinMaxFilter = MinMaxFindType::New();
       MinMaxFilter->SetInput(MovingDoseReader->GetOutput());
@@ -1190,8 +1194,8 @@ bool CbctRegistration::CallingGPMCcommand(
   return dose_loaded;
 }
 
-void CbctRegistration::plm_synth_trans_xf(QString &strPath_fixed,
-                                          QString &strPath_out_xf,
+void CbctRegistration::plm_synth_trans_xf(fs::path &strPath_fixed,
+                                          fs::path &strPath_out_xf,
                                           const double transX,
                                           const double transY,
                                           const double transZ) const {
@@ -1201,25 +1205,23 @@ void CbctRegistration::plm_synth_trans_xf(QString &strPath_fixed,
   sv_parms.translation[1] = static_cast<float>(transY);
   sv_parms.translation[2] = static_cast<float>(transZ);
 
-  const auto fixed =
-      itk_image_load_float(strPath_fixed.toLocal8Bit().constData(), nullptr);
+  const auto fixed = itk_image_load_float(strPath_fixed.string(), nullptr);
   sv_parms.pih.set_from_itk_image(fixed);
 
   // Synthetic_vf_parms *sv_parms = &parms->sv_parms;
 
   const auto vf = synthetic_vf(&sv_parms);
-  itk_image_save(vf, strPath_out_xf.toLocal8Bit().constData());
+  itk_image_save(vf, strPath_out_xf.string());
 }
 
-void CbctRegistration::SetPlmOutputDir(QString &endFix) {
-  auto crntDir = QDir::current(); // folder where current exe file exists.
-  auto crntPathStr = crntDir.absolutePath();
-  const auto dirName = crntPathStr.append("/").append("plm_").append(endFix);
+void CbctRegistration::SetPlmOutputDir(std::string &endFix) {
+  auto crntDir = fs::current_path(); // folder where current exe file exists.
+  auto crntPathStr = fs::absolute(crntDir);
+  const auto dirName = crntPathStr / ("plm_" + endFix);
 
-  auto tmpDir = QDir(dirName);
-  if (!tmpDir.exists()) {
-    if (!tmpDir.mkpath(dirName)) {
-      std::cerr << "Could not create tmp dir for plm_ !!" << std::endl;
+  if (!fs::exists(dirName)) {
+    if (!fs::create_directory(dirName)) {
+      std::cerr << "Could not create tmp dir for plm_ !!\n";
     }
   }
   m_strPathPlastimatch = dirName;
@@ -1250,39 +1252,37 @@ void CbctRegistration::ThermoMaskRemovingCBCT(
     return;
   }
 
-  QString strPathInputMask;
+  fs::path strPathInputMask;
 
   const auto strPath_mskSkinCT_manRegi =
-      m_strPathPlastimatch + "/msk_skin_CT_manRegi.mha";
+      m_strPathPlastimatch / "msk_skin_CT_manRegi.mha";
   const auto strPath_mskSkinCT_autoRegi =
-      m_strPathPlastimatch + "/msk_skin_CT_autoRegi.mha";
+      m_strPathPlastimatch / "msk_skin_CT_autoRegi.mha";
 
-  QFileInfo maskInfoMan(strPath_mskSkinCT_manRegi);
-  QFileInfo maskInfoAuto(strPath_mskSkinCT_autoRegi);
+  auto maskInfoMan = strPath_mskSkinCT_manRegi;
+  auto maskInfoAuto = strPath_mskSkinCT_autoRegi;
 
-  if (maskInfoAuto.exists()) {
+  if (fs::exists(maskInfoAuto)) {
     strPathInputMask = strPath_mskSkinCT_autoRegi;
-  } else if (maskInfoMan.exists()) {
+  } else if (fs::exists(maskInfoMan)) {
     strPathInputMask = strPath_mskSkinCT_manRegi;
   } else {
     std::cout << "Error! no available mask exist" << std::endl;
     return;
   }
-  auto strPathOutputMask = m_strPathPlastimatch + "/msk_skin_CT_shell.mha";
+  auto strPathOutputMask = m_strPathPlastimatch / "msk_skin_CT_shell.mha";
   GenShellMask(strPathInputMask, strPathOutputMask, innerMargin, outerMargin);
 
   // Load shell mask
 
-  QFileInfo fInfoOutput(strPathOutputMask);
-
-  if (!fInfoOutput.exists()) {
+  if (!fs::exists(strPathOutputMask)) {
     std::cout << "error! GenShellMask DIDN'T WORK WELL" << std::endl;
     return;
   }
 
   using readerType = itk::ImageFileReader<UShortImageType>;
   auto reader = readerType::New();
-  reader->SetFileName(strPathOutputMask.toLocal8Bit().constData());
+  reader->SetFileName(strPathOutputMask.string());
   reader->Update();
 
   const UShortImageType::Pointer spShellMask = reader->GetOutput();
@@ -1319,17 +1319,16 @@ void CbctRegistration::ThermoMaskRemovingCBCT(
 }
 
 void CbctRegistration::GenShellMask(
-    QString &strPathInputMask, QString &strPathOutputMask,
+    fs::path &strPathInputMask, fs::path &strPathOutputMask,
     const double fInnerMargin,
     const double fOuterMargin) const { // writes mask to disk
-  QFileInfo fInfoInput(strPathInputMask);
 
-  if (!fInfoInput.exists()) {
+  if (!fs::exists(strPathInputMask)) {
     return;
   }
 
-  auto strPathTmpExp = fInfoInput.absolutePath() + "/msk_temp_exp.mha";
-  auto strPathTmpCont = fInfoInput.absolutePath() + "/msk_temp_cont.mha";
+  auto strPathTmpExp = fs::absolute(strPathInputMask) / "msk_temp_exp.mha";
+  auto strPathTmpCont = fs::absolute(strPathInputMask) / "msk_temp_cont.mha";
   plm_expansion_contract_msk(strPathInputMask, strPathTmpExp,
                              fOuterMargin); // 8 mm expansion for a mask image
   plm_expansion_contract_msk(strPathInputMask, strPathTmpCont,
@@ -1344,17 +1343,17 @@ void CbctRegistration::GenShellMask(
 
   plm_mask_main(mask_option, input_fn, mask_fn, output_fn, mask_value);
 
-  QFile::remove(strPathTmpExp);
-  QFile::remove(strPathTmpCont);
+  fs::remove(strPathTmpExp);
+  fs::remove(strPathTmpCont);
 }
 
-VEC3D CbctRegistration::GetShiftValueFromGradientXForm(QString &file_path,
+VEC3D CbctRegistration::GetShiftValueFromGradientXForm(fs::path &file_path,
                                                        const bool b_inverse) {
 
   auto res_val = VEC3D{0.0, 0.0, 0.0};
 
   std::ifstream fin;
-  fin.open(file_path.toLocal8Bit().constData());
+  fin.open(file_path);
 
   if (fin.fail()) {
     return res_val;
@@ -1362,25 +1361,28 @@ VEC3D CbctRegistration::GetShiftValueFromGradientXForm(QString &file_path,
 
   char str[MAX_LINE_LENGTH];
 
-  QString tmp_str;
+  std::string tmp_str;
   while (!fin.eof()) {
     memset(str, 0, MAX_LINE_LENGTH);
     fin.getline(str, MAX_LINE_LENGTH);
-    tmp_str = QString(str);
+    tmp_str = std::string(str);
 
-    if (tmp_str.contains("Parameters") && !tmp_str.contains("#")) {
+    if (tmp_str.find("Parameters") != std::string::npos && tmp_str.find("#") == std::string::npos) {
       break;
     }
   }
-  auto str_list = tmp_str.split(" ");
-  if (str_list.count() < 4) {
+
+  auto str_list = crl::split_string(tmp_str, " ");
+  if (str_list.size() < 4) {
     std::cout << "error: not enough shift information" << std::endl;
     return res_val;
   }
 
-  res_val.x = str_list.at(1).toDouble();
-  res_val.y = str_list.at(2).toDouble();
-  res_val.z = str_list.at(3).toDouble();
+  // fail silently on strings, such as "Parameters:"
+  const auto res_val_vec = crl::from_sv_v<double>(str_list);
+  res_val.x = res_val_vec.at(1);
+  res_val.y = res_val_vec.at(2);
+  res_val.z = res_val_vec.at(3);
 
   if (b_inverse) {
     res_val.x = -res_val.x;
@@ -1400,19 +1402,19 @@ VEC3D CbctRegistration::GetShiftValueFromGradientXForm(QString &file_path,
   //
 }
 
-VEC3D CbctRegistration::GetIsocenterDCM_FromRTPlan(QString &strFilePath) const {
+VEC3D CbctRegistration::GetIsocenterDCM_FromRTPlan(
+    fs::path &strFilePath) const {
   auto resultPtDcm = VEC3D{0.0, 0.0, 0.0};
   auto p_rt_study_rp = std::make_unique<Dcmtk_rt_study>();
 
   // std::cout << "Before plm_file_format_deduce" << std::endl;
-  const auto file_type_dcm_plan =
-      plm_file_format_deduce(strFilePath.toLocal8Bit().constData());
+  const auto file_type_dcm_plan = plm_file_format_deduce(strFilePath.string());
   // std::cout << "After plm_file_format_deduce" << std::endl;
 
   if (file_type_dcm_plan == PLM_FILE_FMT_DICOM_RTPLAN) {
     std::cout << "PLM_FILE_FMT_DICOM_RTPLAN "
               << "is found" << std::endl;
-    p_rt_study_rp->load(strFilePath.toLocal8Bit().constData());
+    p_rt_study_rp->load(strFilePath.string().c_str());
   } else {
     std::cout << "Found file is not RTPLAN. Skipping dcm plan." << std::endl;
     return resultPtDcm;
