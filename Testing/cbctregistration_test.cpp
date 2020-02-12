@@ -15,8 +15,12 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_test.hpp"
 #include "cbctregistration.h"
+#include "free_functions.h"
 
 #define FIXME_BACKGROUND_MAX (-1200)
+
+namespace fs = std::filesystem;
+using namespace std::literals;
 
 enum enCOLOR {
   RED,
@@ -56,7 +60,7 @@ CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
 }
 
 void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
-  m_cbctregistration->SetPlmOutputDir(strDCMUID);
+  m_cbctregistration->SetPlmOutputDir(strDCMUID.toStdString());
 
   const UShortImageType::Pointer spNull;
   // unlink all of the pointers
@@ -79,8 +83,10 @@ void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
   UpdateListOfComboBox(0);
   UpdateListOfComboBox(1);
   // if not found, just skip
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT);     // will call fixedImageSelected
-  SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID); // WILL BE IGNORED
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(1,
+                      enREGI_IMAGES::REGISTER_MANUAL_RIGID); // WILL BE IGNORED
 }
 
 void CbctRegistrationTest::LoadImgFromComboBox(
@@ -89,7 +95,7 @@ void CbctRegistrationTest::LoadImgFromComboBox(
         &strSelectedComboTxt) // -->when fixed image loaded will be called here!
 {
   // std::cout << "LoadImgFromComboBox " << "index " << idx << "text " <<
-  // strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
+  // strSelectedComboTxt.string() << std::endl;
 
   UShortImageType::Pointer spTmpImg;
   if (strSelectedComboTxt.compare(QString("RAW_CBCT"), Qt::CaseSensitive) ==
@@ -123,7 +129,7 @@ void CbctRegistrationTest::LoadImgFromComboBox(
 
   if (spTmpImg == nullptr) {
     // std::cout << "Selected image is not ready: " <<
-    // strSelectedComboTxt.toLocal8Bit().constData() << std::endl;
+    // strSelectedComboTxt.string() << std::endl;
     return;
   }
 
@@ -272,25 +278,25 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 
   // Both image type: Unsigned Short
   auto filePathFixed =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "fixed_rigid.mha";
+      m_cbctregistration->m_strPathPlastimatch / "fixed_rigid.mha";
   auto filePathMoving =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "moving_rigid.mha";
+      m_cbctregistration->m_strPathPlastimatch / "moving_rigid.mha";
   auto filePathOutput =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "output_rigid.mha";
+      m_cbctregistration->m_strPathPlastimatch / "output_rigid.mha";
   const auto filePathXform =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "xform_rigid.txt";
-  auto filePathROI = m_cbctregistration->m_strPathPlastimatch + "/" +
+      m_cbctregistration->m_strPathPlastimatch / "xform_rigid.txt";
+  auto filePathROI = m_cbctregistration->m_strPathPlastimatch /
                      "fixed_roi_rigid.mha"; // optional
 
   using writerType = itk::ImageFileWriter<UShortImageType>;
 
   auto writer1 = writerType::New();
-  writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
+  writer1->SetFileName(filePathFixed.string());
   writer1->SetUseCompression(true);
   writer1->SetInput(m_spFixed);
 
   auto writer2 = writerType::New();
-  writer2->SetFileName(filePathMoving.toLocal8Bit().constData());
+  writer2->SetFileName(filePathMoving.string());
   writer2->SetUseCompression(true);
   writer2->SetInput(m_spMoving);
 
@@ -311,12 +317,13 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 
       // Image Pointer here
       UShortImageType::Pointer spRoiMask;
-      AllocateByRef<UShortImageType, UShortImageType>(m_spFixed, spRoiMask);
+      crl::AllocateByRef<UShortImageType, UShortImageType>(m_spFixed,
+                                                           spRoiMask);
       m_pParent->m_cbctrecon->GenerateCylinderMask(spRoiMask, FOV_DcmPosX,
                                                    FOV_DcmPosY, FOV_Radius);
 
       auto writer3 = writerType::New();
-      writer3->SetFileName(filePathROI.toLocal8Bit().constData());
+      writer3->SetFileName(filePathROI.string());
       writer3->SetUseCompression(true);
       writer3->SetInput(spRoiMask);
       writer3->Update();
@@ -324,7 +331,7 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
     std::cout << "2.A:  ROI-based Rigid body registration will be done"
               << std::endl;
   } else {
-    filePathROI = QString("");
+    filePathROI = std::filesystem::path();
   }
 
   // Preprocessing
@@ -335,12 +342,12 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 
   std::cout << "2: Creating a plastimatch command file" << std::endl;
 
-  const auto fnCmdRegisterRigid = QString("cmd_register_rigid.txt");
+  const auto fnCmdRegisterRigid = "cmd_register_rigid.txt"s;
   // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   auto pathCmdRegister =
-      m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
+      m_cbctregistration->m_strPathPlastimatch / fnCmdRegisterRigid;
 
-  const auto strDummy = QString("");
+  const auto strDummy = ""s;
 
   const auto mse = this->ui_radioButton_mse;
 #ifdef USE_CUDA
@@ -348,41 +355,42 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
 #else
   const auto cuda = false;
 #endif
-  auto GradOptionStr = this->ui_lineEditGradOption;
+  auto GradOptionStr = this->ui_lineEditGradOption.toStdString();
   // For Cropped patients, FOV mask is applied.
 
   m_cbctregistration->GenPlastiRegisterCommandFile(
       pathCmdRegister, filePathFixed, filePathMoving, filePathOutput,
-      filePathXform, PLAST_RIGID, strDummy, strDummy, strDummy, filePathROI,
-      mse, cuda, GradOptionStr);
+      filePathXform, enRegisterOption::PLAST_RIGID, strDummy, strDummy,
+      strDummy, filePathROI, mse, cuda, GradOptionStr);
 
-  std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  const auto str_command_filepath = pathCmdRegister;
 
   m_cbctregistration->CallingPLMCommand(str_command_filepath);
 
   std::cout << "5: Reading output image-CT" << std::endl;
 
   auto reader = itk::ImageFileReader<UShortImageType>::New();
-  reader->SetFileName(filePathOutput.toLocal8Bit().constData());
+  reader->SetFileName(filePathOutput.string());
   reader->Update();
   m_pParent->m_cbctrecon->m_spAutoRigidCT = reader->GetOutput();
 
   std::cout << "6: Reading is completed" << std::endl;
 
-  const QFile xform_file(filePathXform);
+  const auto xform_file = filePathXform;
 
   // If rigid structure already exists copy it to plan-ct structure before
   // applying rigid again.
-  if (!m_cbctregistration->m_pParent->m_structures->is_ss_null<ctType::RIGID_CT>()) {
-    auto rigid_ss = std::make_unique<Rtss_modern>(
-        *(m_cbctregistration->m_pParent->m_structures->get_ss(ctType::RIGID_CT)));
+  if (!m_cbctregistration->m_pParent->m_structures
+           ->is_ss_null<ctType::RIGID_CT>()) {
+    auto rigid_ss = std::make_unique<Rtss_modern>(*(
+        m_cbctregistration->m_pParent->m_structures->get_ss(ctType::RIGID_CT)));
     m_cbctregistration->m_pParent->m_structures->set_planCT_ss(
         std::move(rigid_ss));
   }
 
   const auto transform_success =
-      m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<ctType::PLAN_CT>(
-          xform_file);
+      m_cbctregistration->m_pParent->m_structures
+          ->ApplyTransformTo<ctType::PLAN_CT>(xform_file);
   if (transform_success) {
     std::cout << "7: Contours registered" << std::endl;
   }
@@ -390,7 +398,8 @@ void CbctRegistrationTest::SLT_DoRegistrationRigid() // plastimatch auto
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_AUTO_RIGID);
 
   m_cbctregistration->m_strPathXFAutoRigid = filePathXform; // for further use
@@ -689,8 +698,8 @@ void CbctRegistrationTest::UpdateVOICombobox(const ctType ct_type) const {
 }
 
 void CbctRegistrationTest::SLT_RestoreMovingImg() {
-  m_cbctregistration->m_pParent->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
-                                                        enREGI_IMAGES::REGISTER_MANUAL_RIGID);
+  m_cbctregistration->m_pParent->RegisterImgDuplication(
+      enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
@@ -734,7 +743,8 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
     return;
   }
 
-  const auto strRSName = this->ui_comboBox_VOItoCropBy->currentText();
+  const auto strRSName =
+      this->ui_comboBox_VOItoCropBy->currentText().toStdString();
   const auto fill_bubble = this->ui_checkBoxFillBubbleCT;
   const auto iBubbleFillingVal =
       this->ui_spinBoxBubFillCT;                          // 1000 = soft tissue
@@ -745,11 +755,11 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
   const auto &rt_structs =
       m_cbctregistration->m_pParent->m_structures->get_ss(cur_ct);
 
-  QString image_str;
+  std::string image_str;
   if (ui_comboBoxImToCropFill.compare("Moving") == 0) {
-    image_str = ui_comboBoxImgMoving->currentText();
+    image_str = ui_comboBoxImgMoving->currentText().toStdString();
   } else {
-    image_str = ui_comboBoxImgFixed->currentText();
+    image_str = ui_comboBoxImgFixed->currentText().toStdString();
   }
 
   auto &image = m_cbctregistration->get_image_from_combotext(image_str);
@@ -766,13 +776,14 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
   // if not found, just skip
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 
   std::cout << "FINISHED!: Pre-processing of CT image" << std::endl;
 
   ////Load DICOM plan
-  if (m_cbctregistration->m_pParent->m_strPathPlan.isEmpty()) {
+  if (fs::is_empty(m_cbctregistration->m_pParent->m_strPathPlan)) {
     std::cout << "No DCM plan file was found. Skipping dcm plan." << std::endl;
     return;
   }
@@ -792,33 +803,33 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
 
   // Both image type: Unsigned Short
   auto filePathFixed =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "fixed_deform.mha";
+      m_cbctregistration->m_strPathPlastimatch / "fixed_deform.mha";
   auto filePathMoving =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "moving_deform.mha";
-  auto filePathROI = m_cbctregistration->m_strPathPlastimatch + "/" +
+      m_cbctregistration->m_strPathPlastimatch / "moving_deform.mha";
+  auto filePathROI = m_cbctregistration->m_strPathPlastimatch /
                      "fixed_roi_DIR.mha"; // optional
 
   const auto filePathOutput =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "output_deform.mha";
+      m_cbctregistration->m_strPathPlastimatch / "output_deform.mha";
   const auto filePathXform =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "xform_deform.txt";
+      m_cbctregistration->m_strPathPlastimatch / "xform_deform.txt";
 
-  auto filePathOutputStage1 = m_cbctregistration->m_strPathPlastimatch + "/" +
-                              "output_deform_stage1.mha";
-  auto filePathOutputStage2 = m_cbctregistration->m_strPathPlastimatch + "/" +
-                              "output_deform_stage2.mha";
-  auto filePathOutputStage3 = m_cbctregistration->m_strPathPlastimatch + "/" +
-                              "output_deform_stage3.mha";
+  auto filePathOutputStage1 =
+      m_cbctregistration->m_strPathPlastimatch / "output_deform_stage1.mha";
+  auto filePathOutputStage2 =
+      m_cbctregistration->m_strPathPlastimatch / "output_deform_stage2.mha";
+  auto filePathOutputStage3 =
+      m_cbctregistration->m_strPathPlastimatch / "output_deform_stage3.mha";
 
   using writerType = itk::ImageFileWriter<UShortImageType>;
 
   auto writer1 = writerType::New();
-  writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
+  writer1->SetFileName(filePathFixed.string());
   writer1->SetUseCompression(true);
   writer1->SetInput(m_spFixed);
 
   auto writer2 = writerType::New();
-  writer2->SetFileName(filePathMoving.toLocal8Bit().constData());
+  writer2->SetFileName(filePathMoving.string());
   writer2->SetUseCompression(true);
   writer2->SetInput(m_spMoving);
   writer1->Update();
@@ -840,12 +851,13 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
 
       // Image Pointer here
       UShortImageType::Pointer spRoiMask;
-      AllocateByRef<UShortImageType, UShortImageType>(m_spFixed, spRoiMask);
+      crl::AllocateByRef<UShortImageType, UShortImageType>(m_spFixed,
+                                                           spRoiMask);
       m_cbctregistration->m_pParent->GenerateCylinderMask(
           spRoiMask, FOV_DcmPosX, FOV_DcmPosY, FOV_Radius);
 
       auto writer3 = writerType::New();
-      writer3->SetFileName(filePathROI.toLocal8Bit().constData());
+      writer3->SetFileName(filePathROI.string());
       writer3->SetUseCompression(true);
       writer3->SetInput(spRoiMask);
       writer3->Update();
@@ -859,16 +871,16 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
             << std::endl;
   // std::cout << "Air region and bubble will be removed" << std::endl;
 
-  QFileInfo info1(m_cbctregistration->m_strPathCTSkin_autoRegi);
-  QFileInfo info2(m_cbctregistration->m_strPathXFAutoRigid);
+  auto &info1 = m_cbctregistration->m_strPathCTSkin_autoRegi;
+  auto &info2 = m_cbctregistration->m_strPathXFAutoRigid;
 
-  if (!info1.exists() || !info2.exists()) {
+  if (!fs::exists(info1) || !fs::exists(info2)) {
     std::cout << "Fatal error! no CT skin is found or no XF auto file found. "
                  "Preprocessing will not be done. Proceeding."
               << std::endl;
   } else {
-    filePathFixed_proc = m_cbctregistration->m_strPathPlastimatch + "/" +
-                         "fixed_deform_proc.mha";
+    filePathFixed_proc =
+        m_cbctregistration->m_strPathPlastimatch / "fixed_deform_proc.mha";
     // skin removal and bubble filling : output file = filePathFixed_proc
     const auto bBubbleRemoval = this->ui_checkBoxFillBubbleCBCT;
     const auto skinExp = this->ui_lineEditCBCTSkinCropBfDIR.toDouble();
@@ -890,41 +902,44 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
   std::cout << "2: DoRegistrationDeform: Creating a plastimatch command file"
             << std::endl;
 
-  const auto fnCmdRegisterRigid = QString("cmd_register_deform.txt");
+  const auto fnCmdRegisterRigid = "cmd_register_deform.txt"s;
   // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   auto pathCmdRegister =
-      m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterRigid;
+      m_cbctregistration->m_strPathPlastimatch / fnCmdRegisterRigid;
 
   auto strDeformableStage1 =
-      this->ui_lineEditArgument1; // original param: 7, add output path
-  auto strDeformableStage2 = this->ui_lineEditArgument2;
-  auto strDeformableStage3 = this->ui_lineEditArgument3;
+      this->ui_lineEditArgument1
+          .toStdString(); // original param: 7, add output path
+  auto strDeformableStage2 = this->ui_lineEditArgument2.toStdString();
+  auto strDeformableStage3 = this->ui_lineEditArgument3.toStdString();
 
-  strDeformableStage1.append(", ").append(filePathOutputStage1);
-  strDeformableStage2.append(", ").append(filePathOutputStage2);
-  strDeformableStage3.append(", ").append(filePathOutputStage3);
+  strDeformableStage1.append(", ").append(filePathOutputStage1.string());
+  strDeformableStage2.append(", ").append(filePathOutputStage2.string());
+  strDeformableStage3.append(", ").append(filePathOutputStage3.string());
 
   const auto mse = this->ui_radioButton_mse;
   const auto cuda = this->ui_radioButton_UseCUDA;
-  auto GradOptionStr = this->ui_lineEditGradOption;
+  auto GradOptionStr = this->ui_lineEditGradOption.toStdString();
   // For Cropped patients, FOV mask is applied.
   if (this->ui_checkBoxUseROIForDIR) {
     m_cbctregistration->GenPlastiRegisterCommandFile(
         pathCmdRegister, filePathFixed_proc, filePathMoving, filePathOutput,
-        filePathXform, PLAST_BSPLINE, strDeformableStage1, strDeformableStage2,
-        strDeformableStage3, filePathROI, mse, cuda, GradOptionStr);
+        filePathXform, enRegisterOption::PLAST_BSPLINE, strDeformableStage1,
+        strDeformableStage2, strDeformableStage3, filePathROI, mse, cuda,
+        GradOptionStr);
   } else {
     m_cbctregistration->GenPlastiRegisterCommandFile(
         pathCmdRegister, filePathFixed_proc, filePathMoving, filePathOutput,
-        filePathXform, PLAST_BSPLINE, strDeformableStage1, strDeformableStage2,
-        strDeformableStage3, QString(), mse, cuda, GradOptionStr);
+        filePathXform, enRegisterOption::PLAST_BSPLINE, strDeformableStage1,
+        strDeformableStage2, strDeformableStage3, ""s, mse, cuda,
+        GradOptionStr);
   }
   /*void CbctRegistrationTest::GenPlastiRegisterCommandFile(QString
   strPathCommandFile, QString strPathFixedImg, QString strPathMovingImg, QString
   strPathOutImg, QString strPathXformOut, enRegisterOption regiOption, QString
   strStageOption1, , QString strStageOption2, QString strStageOption3)*/
 
-  std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  std::string str_command_filepath = pathCmdRegister.string();
 
   m_cbctregistration->CallingPLMCommand(str_command_filepath);
 
@@ -942,37 +957,37 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
 
   auto readerDefSt1 = readerType::New();
 
-  auto tmpFileInfo = QFileInfo(filePathOutputStage1);
-  if (tmpFileInfo.exists()) {
-    readerDefSt1->SetFileName(filePathOutputStage1.toLocal8Bit().constData());
+  auto tmpFileInfo = filePathOutputStage1;
+  if (fs::exists(tmpFileInfo)) {
+    readerDefSt1->SetFileName(filePathOutputStage1.string());
     readerDefSt1->Update();
     m_cbctregistration->m_pParent->m_spDeformedCT1 = readerDefSt1->GetOutput();
   }
 
   auto readerDefSt2 = readerType::New();
-  tmpFileInfo = QFileInfo(filePathOutputStage2);
-  if (tmpFileInfo.exists()) {
-    readerDefSt2->SetFileName(filePathOutputStage2.toLocal8Bit().constData());
+  tmpFileInfo = filePathOutputStage2;
+  if (fs::exists(tmpFileInfo)) {
+    readerDefSt2->SetFileName(filePathOutputStage2.string());
     readerDefSt2->Update();
     m_cbctregistration->m_pParent->m_spDeformedCT2 = readerDefSt2->GetOutput();
   }
 
   auto readerDefSt3 = readerType::New();
-  tmpFileInfo = QFileInfo(filePathOutputStage3);
-  if (tmpFileInfo.exists()) {
-    readerDefSt3->SetFileName(filePathOutputStage3.toLocal8Bit().constData());
+  tmpFileInfo = filePathOutputStage3;
+  if (fs::exists(tmpFileInfo)) {
+    readerDefSt3->SetFileName(filePathOutputStage3.string());
     readerDefSt3->Update();
     m_cbctregistration->m_pParent->m_spDeformedCT3 = readerDefSt3->GetOutput();
   }
 
   auto readerFinCBCT = readerType::New();
-  tmpFileInfo = QFileInfo(filePathFixed_proc); // cropped image Or not
-  if (tmpFileInfo.exists()) {
-    readerFinCBCT->SetFileName(filePathFixed_proc.toLocal8Bit().constData());
+  tmpFileInfo = filePathFixed_proc; // cropped image Or not
+  if (fs::exists(tmpFileInfo)) {
+    readerFinCBCT->SetFileName(filePathFixed_proc.string());
     readerFinCBCT->Update();
     m_cbctregistration->m_pParent->m_spRawReconImg = readerFinCBCT->GetOutput();
     // std::cout << "fixed Image Path = " <<
-    // filePathFixed_proc.toLocal8Bit().constData() << std::endl;
+    // filePathFixed_proc.string() << std::endl;
   } else {
     std::cout << "No filePathFixed_proc is available. Exit the function"
               << std::endl;
@@ -983,9 +998,9 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
 
   auto strPathDeformCTFinal = filePathOutput;
 
-  QFileInfo tmpBubFileInfo(m_cbctregistration->m_strPathMskCBCTBubble);
+  auto tmpBubFileInfo = m_cbctregistration->m_strPathMskCBCTBubble;
 
-  if (this->ui_checkBoxFillBubbleCBCT && tmpBubFileInfo.exists()) {
+  if (this->ui_checkBoxFillBubbleCBCT && fs::exists(tmpBubFileInfo)) {
     std::cout << "6B: final puncturing according to the CBCT bubble"
               << std::endl;
 
@@ -993,14 +1008,14 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
     strPathDeformCTFinal = m_strPathPlastimatch + "/deformCTpuncFin.mha";
 
     parms_fill.mask_operation = MASK_OPERATION_FILL;
-    parms_fill.input_fn = filePathOutput.toLocal8Bit().constData();
-    parms_fill.mask_fn = m_strPathMskCBCTBubble.toLocal8Bit().constData();
-    parms_fill.output_fn = strPathDeformCTFinal.toLocal8Bit().constData();*/
+    parms_fill.input_fn = filePathOutput.string();
+    parms_fill.mask_fn = m_strPathMskCBCTBubble.string();
+    parms_fill.output_fn = strPathDeformCTFinal.string();*/
 
     strPathDeformCTFinal =
-        m_cbctregistration->m_strPathPlastimatch + "/deformCTpuncFin.mha";
+        m_cbctregistration->m_strPathPlastimatch / "deformCTpuncFin.mha";
 
-    const auto enMaskOp = MASK_OPERATION_FILL;
+    const auto enMaskOp = Mask_operation::MASK_OPERATION_FILL;
     auto input_fn = filePathOutput;
     auto mask_fn = m_cbctregistration->m_strPathMskCBCTBubble;
     auto output_fn = strPathDeformCTFinal;
@@ -1015,10 +1030,9 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
   }
 
   auto readerDeformFinal = readerType::New();
-  tmpFileInfo = QFileInfo(strPathDeformCTFinal);
-  if (tmpFileInfo.exists()) {
-    readerDeformFinal->SetFileName(
-        strPathDeformCTFinal.toLocal8Bit().constData());
+  tmpFileInfo = strPathDeformCTFinal;
+  if (fs::exists(tmpFileInfo)) {
+    readerDeformFinal->SetFileName(strPathDeformCTFinal.string());
     readerDeformFinal->Update();
     m_cbctregistration->m_pParent->m_spDeformedCT_Final =
         readerDeformFinal->GetOutput();
@@ -1029,16 +1043,17 @@ void CbctRegistrationTest::SLT_DoRegistrationDeform() {
 
   std::cout << "7: DoRegistrationDeform: Reading is completed" << std::endl;
 
-  const QFile xform_file(filePathXform);
-  m_cbctregistration->m_pParent->m_structures->ApplyTransformTo<ctType::RIGID_CT>(
-      xform_file);
+  const auto xform_file = filePathXform;
+  m_cbctregistration->m_pParent->m_structures
+      ->ApplyTransformTo<ctType::RIGID_CT>(xform_file);
 
   std::cout << "8: Contours deformed" << std::endl;
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_DEFORM_FINAL);
 
   std::cout << "FINISHED!: Deformable image registration. Proceed to scatter "
@@ -1071,7 +1086,8 @@ void CbctRegistrationTest::SLT_DoLowerMaskIntensity() {
 
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 }
 
@@ -1098,18 +1114,20 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlan() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
-void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
+void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &qFilePath) {
   const auto p_parent = m_cbctregistration->m_pParent;
 
-  if (filePath.length() < 1) {
+  if (qFilePath.length() < 1) {
     return;
   }
 
-  const auto planIso = m_cbctregistration->GetIsocenterDCM_FromRTPlan(filePath);
+  const auto filepath = fs::path(qFilePath.toStdString());
+  const auto planIso = m_cbctregistration->GetIsocenterDCM_FromRTPlan(filepath);
 
   if (fabs(planIso.x) < 0.001 && fabs(planIso.y) < 0.001 &&
       fabs(planIso.z) < 0.001) {
@@ -1143,7 +1161,8 @@ void CbctRegistrationTest::SLT_ManualMoveByDCMPlanOpen(QString &filePath) {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
@@ -1223,37 +1242,37 @@ void CbctRegistrationTest::SLT_DoEclRegistration(
     const DoubleVector &translation_vec, const DoubleVector &rotation_vec) {
   auto &ct_img = this->m_spFixed;
 
-  saveImageAsMHA<UShortImageType>(ct_img, "fixed_bkp.mha");
+  crl::saveImageAsMHA<UShortImageType>(ct_img, "fixed_bkp.mha");
   this->m_spFixed = CbctRegistration::MoveByEclRegistration(
       translation_vec, rotation_vec, ct_img);
 }
 
 void CbctRegistrationTest::SLT_ResetEclRegistration() {
   const auto filename = std::string("fixed_bkp.mha");
-  this->m_spFixed = loadMHAImageAs<UShortImageType>(filename);
+  this->m_spFixed = crl::loadMHAImageAs<UShortImageType>(filename);
 }
 
-void CbctRegistrationTest::SLT_gPMCrecalc(std::vector<QString> &dcm_plans,
-                                          const size_t n_sims) {
+void CbctRegistrationTest::SLT_gPMCrecalc(
+    const std::vector<fs::path> &dcm_plans, const size_t n_sims) {
   if (m_spFixed == nullptr) {
     return;
   }
 
-  QString plan_filepath;
+  fs::path plan_filepath;
   // Load dcm rtplan.
   if (dcm_plans.size() == 1) {
-    plan_filepath = dcm_plans.at(0);
+    plan_filepath = dcm_plans.at(0).string();
   } else {
-    plan_filepath = dcm_plans.at(0);
+    plan_filepath = dcm_plans.at(0).string();
     for (size_t i = 1U; i < dcm_plans.size(); ++i) {
-      plan_filepath = QString("%1,%2").arg(plan_filepath, dcm_plans.at(i));
+      plan_filepath = crl::make_sep_str<','>(plan_filepath, dcm_plans.at(i));
     }
   }
 
   // Create gPMC command line
 
 #ifdef USE_CUDA
-  auto gPMC_device = GPU_DEV;
+  auto gPMC_device = enDevice::GPU_DEV;
 #elif defined(USE_OPENCL)
   enDevice gPMC_device =
       CPU_DEV; // because I've only tested with intel graphics
@@ -1262,13 +1281,13 @@ void CbctRegistrationTest::SLT_gPMCrecalc(std::vector<QString> &dcm_plans,
 #endif
 
   if (this->ui_radioButton_UseCPU) {
-    gPMC_device = CPU_DEV;
+    gPMC_device = enDevice::CPU_DEV;
   }
   const auto n_plans = dcm_plans.size();
 
   const auto success = m_cbctregistration->CallingGPMCcommand(
-      gPMC_device, static_cast<int>(n_sims), static_cast<int>(n_plans), plan_filepath, m_spFixed, m_spMoving,
-      m_spFixedDose, m_spMovingDose);
+      gPMC_device, static_cast<int>(n_sims), static_cast<int>(n_plans),
+      plan_filepath, m_spFixed, m_spMoving, m_spFixedDose, m_spMovingDose);
   if (!success) {
     std::cerr << "Dose calc failed, due to the RNG in goPMC you may want to "
                  "just try again"
@@ -1285,9 +1304,9 @@ void CbctRegistrationTest::SLT_WEPLcalc(const int gantry_angle,
   const auto ss = m_pParent->m_cbctrecon->m_structures->get_ss(ct_type);
   m_cbctregistration->cur_voi = ss->get_roi_by_name(voi_name);
 
-  const auto wepl_voi =
-      CalculateWEPLtoVOI(m_cbctregistration->cur_voi.get(), gantry_angle,
-                         couch_angle, m_spMoving, m_spFixed);
+  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI(
+      m_cbctregistration->cur_voi.get(), gantry_angle, couch_angle, m_spMoving,
+      m_spFixed);
   m_cbctregistration->WEPL_voi = std::make_unique<Rtss_roi_modern>(*wepl_voi);
   // Draw WEPL
 }
@@ -1306,23 +1325,23 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
   std::cout << "1: writing temporary files" << std::endl;
   // Both image type: Unsigned Short
   auto filePathFixed =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "fixed_gradient.mha";
+      m_cbctregistration->m_strPathPlastimatch / "fixed_gradient.mha";
   auto filePathMoving =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "moving_gradient.mha";
+      m_cbctregistration->m_strPathPlastimatch / "moving_gradient.mha";
   const auto filePathOutput =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "output_gradient.mha";
+      m_cbctregistration->m_strPathPlastimatch / "output_gradient.mha";
   const auto filePathXform =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "xform_gradient.txt";
+      m_cbctregistration->m_strPathPlastimatch / "xform_gradient.txt";
 
   using writerType = itk::ImageFileWriter<UShortImageType>;
 
   auto writer1 = writerType::New();
-  writer1->SetFileName(filePathFixed.toLocal8Bit().constData());
+  writer1->SetFileName(filePathFixed.string());
   writer1->SetUseCompression(true);
   writer1->SetInput(m_spFixed);
 
   auto writer2 = writerType::New();
-  writer2->SetFileName(filePathMoving.toLocal8Bit().constData());
+  writer2->SetFileName(filePathMoving.string());
   writer2->SetUseCompression(true);
   writer2->SetInput(m_spMoving);
 
@@ -1335,10 +1354,10 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
 
   std::cout << "2: Creating a plastimatch command file" << std::endl;
 
-  const auto fnCmdRegisterGradient = QString("cmd_register_gradient.txt");
+  const auto fnCmdRegisterGradient = "cmd_register_gradient.txt"s;
   // QString fnCmdRegisterDeform = "cmd_register_deform.txt";
   auto pathCmdRegister =
-      m_cbctregistration->m_strPathPlastimatch + "/" + fnCmdRegisterGradient;
+      m_cbctregistration->m_strPathPlastimatch / fnCmdRegisterGradient;
 
   /*GenPlastiRegisterCommandFile(pathCmdRegister, filePathFixed, filePathMoving,
       filePathOutput, filePathXform, PLAST_GRADIENT, "", "", "");    */
@@ -1349,15 +1368,15 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
 
   const auto mse = this->ui_radioButton_mse;
   const auto cuda = this->ui_radioButton_UseCUDA;
-  auto GradOptionStr = this->ui_lineEditGradOption;
-  const auto dummyStr = QString("");
+  auto GradOptionStr = this->ui_lineEditGradOption.toStdString();
+  const auto dummyStr = ""s;
   m_cbctregistration->GenPlastiRegisterCommandFile(
       pathCmdRegister, filePathMoving, filePathFixed, filePathOutput,
-      filePathXform, PLAST_GRADIENT, dummyStr, dummyStr, dummyStr, dummyStr,
-      mse, cuda, GradOptionStr);
+      filePathXform, enRegisterOption::PLAST_GRADIENT, dummyStr, dummyStr,
+      dummyStr, dummyStr, mse, cuda, GradOptionStr);
 
-  // const char *command_filepath = pathCmdRegister.toLocal8Bit().constData();
-  std::string str_command_filepath = pathCmdRegister.toLocal8Bit().constData();
+  // const char *command_filepath = pathCmdRegister.string();
+  std::string str_command_filepath = pathCmdRegister.string();
 
   auto trn = m_cbctregistration->CallingPLMCommandXForm(str_command_filepath);
 
@@ -1377,7 +1396,8 @@ void CbctRegistrationTest::SLT_DoRegistrationGradient() {
   UpdateListOfComboBox(0); // combo selection signalis called
   UpdateListOfComboBox(1);
 
-  SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  SelectComboExternal(
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
@@ -1430,16 +1450,17 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
     UpdateListOfComboBox(0); // combo selection signalis called
     UpdateListOfComboBox(1);
 
-    SelectComboExternal(0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+    SelectComboExternal(
+        0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
     SelectComboExternal(1, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 
   // Export final xform file
   auto filePathXform =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "xform_manual.txt";
+      m_cbctregistration->m_strPathPlastimatch / "xform_manual.txt";
 
   std::ofstream fout;
-  fout.open(filePathXform.toLocal8Bit().constData());
+  fout.open(filePathXform.string());
   fout << "#Custom Transform" << std::endl;
   fout << "#Transform: Translation_only" << std::endl;
   fout << "Parameters: " << fShift[0] << " " << fShift[1] << " " << fShift[2]
@@ -1471,7 +1492,8 @@ void CbctRegistrationTest::SLT_IntensityNormCBCT(const float fROI_Radius) {
 
   // m_pParent->ExportReconSHORT_HU(m_spMoving, QString("D:/tmpExport.mha"));
 
-  AddConstHU(m_spFixed, static_cast<int>(meanIntensityMov - meanIntensityFix));
+  crl::AddConstHU(m_spFixed,
+                  static_cast<int>(meanIntensityMov - meanIntensityFix));
   // SLT_PassMovingImgForAnalysis();
 
   std::cout << "Intensity shifting is done! Added value = "

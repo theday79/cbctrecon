@@ -9,8 +9,8 @@
 #include <optional>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
@@ -82,10 +82,42 @@ void CopyDictionary(itk::MetaDataDictionary &fromDict,
                                                       // Source DICOM is not
                                                       // possible
 
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+bool is_scan_direction_CW(const std::vector<T> &angles) {
+
+  std::vector<T> vTempConvAngles;
+
+  const auto itBegin = angles.begin();
+  const auto itEnd = angles.end();
+
+  for (auto it = itBegin; it != itEnd; ++it) {
+    auto tmpAngle = *it;
+
+    if (tmpAngle > T(180.0)) {
+      tmpAngle = tmpAngle - T(360.0);
+    }
+
+    vTempConvAngles.push_back(tmpAngle);
+  }
+  const auto geoDataSize = angles.size();
+  // compare 2 points in the middle of the angle list
+  const auto iLowerIdx = static_cast<size_t>(geoDataSize * T(1.0) / T(3.0));
+  const auto iUpperIdx = static_cast<size_t>(geoDataSize * T(2.0) / T(3.0));
+  auto bScanDirectionCW = false;
+  if (vTempConvAngles.at(iLowerIdx) <
+      vTempConvAngles.at(iUpperIdx)) // ascending
+  {
+    bScanDirectionCW = true;
+    std::cout << "The scan direction is CW" << std::endl;
+  } else {
+    std::cout << "The scan direction is CCW" << std::endl;
+  }
+  return bScanDirectionCW;
+}
+
 /// Template Meta Functions:
 
-template <typename T>
-constexpr bool from_sv(std::string_view sv, T &val) {
+template <typename T> constexpr bool from_sv(std::string_view sv, T &val) {
   if (auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), val);
       ec == std::errc()) {
     return true;
@@ -94,7 +126,9 @@ constexpr bool from_sv(std::string_view sv, T &val) {
 }
 
 template <>
-constexpr bool from_sv<std::variant<int, double>>(std::string_view sv, std::variant<int, double> &val) {
+constexpr bool
+from_sv<std::variant<int, double>>(std::string_view sv,
+                                   std::variant<int, double> &val) {
   if (sv.find_first_of('.') != std::string::npos) {
     double tmp_val = 0.0;
     if (from_sv(sv, tmp_val)) {
@@ -102,7 +136,7 @@ constexpr bool from_sv<std::variant<int, double>>(std::string_view sv, std::vari
       return true;
     }
     return false;
-  } 
+  }
 
   int tmp_val = 0;
   if (from_sv(sv, tmp_val)) {
@@ -131,19 +165,31 @@ constexpr std::optional<T> from_string(const std::string &number) {
   return std::nullopt;
 }
 
-template <class T, class Enable=void> std::string stringify(const T arg);
-
-template <class T, typename std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>> std::string stringify(const T arg) {
+template <class T,
+          typename std::enable_if_t<
+              std::is_floating_point_v<T> || std::is_integral_v<T>, int> = 0>
+std::string stringify(const T arg) {
   return std::to_string(arg);
 }
 
-template <class T, typename std::enable_if_t<std::is_convertible_v<T, std::string>>> std::string stringify(const std::string arg) {
+template <class T, typename std::enable_if_t<
+                       std::is_convertible_v<T, std::string>, int> = 0>
+std::string stringify(const T arg) {
   return arg;
 }
 
-template <class T, typename std::enable_if_t<std::is_constructible_v<std::string, T>>>
-std::string stringify(const std::string_view arg) {
+template <class T,
+          typename std::enable_if_t<std::is_constructible_v<std::string, T> &&
+                                        !std::is_convertible_v<T, std::string>,
+                                    int> = 0>
+std::string stringify(const T arg) {
   return std::string(arg);
+}
+
+template <class T,
+          typename std::enable_if_t<std::is_same_v<T, std::filesystem::path>, int> = 0>
+std::string stringify(const T arg) {
+  return arg.string();
 }
 
 template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
@@ -151,10 +197,10 @@ template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
   return tmp_str.substr(0, tmp_str.size() - 1);
 }
 
-template <typename T> auto from_sv_v(const std::vector<std::string_view> &sv_v) {
+template <typename T>
+auto from_sv_v(const std::vector<std::string_view> &sv_v) {
   auto v_val = std::vector<T>();
-  std::transform(sv_v.begin(), sv_v.end(),
-                 std::back_inserter(v_val),
+  std::transform(sv_v.begin(), sv_v.end(), std::back_inserter(v_val),
                  [](std::string_view sv) {
                    T val;
                    crl::from_sv(sv, val);
@@ -180,21 +226,19 @@ template <typename T> struct TBeamHardening {
 
   template <enProjFormat PF> static constexpr T Model(const T val);
 
-  template<>
-  static constexpr T Model<enProjFormat::HND_FORMAT>(const T val) {
+  template <> static constexpr T Model<enProjFormat::HND_FORMAT>(const T val) {
     // a * x^3 + b * x^2 + c * x + d
     return 6.0e-08 * ce_pow(val, 3) - 1.0e-08 * ce_pow(val, 2) - 5.0e-07 * val +
            8.0e-01;
   };
 
-  template<>
-  static constexpr T Model<enProjFormat::HIS_FORMAT>(const T val) {
+  template <> static constexpr T Model<enProjFormat::HIS_FORMAT>(const T val) {
     // a * x^3 + b * x^2 + c * x + d
     return 9.321e-05 * ce_pow(val, 3) - 2.609e-03 * ce_pow(val, 2) +
            3.374e-02 * val + 9.691e-01;
   };
 
-  template<>
+  template <>
   static constexpr T Model<enProjFormat::XIM_FORMAT>(
       const T val) { // a * x^3 + b * x^2 + c * x + d
     return 6.0e-08 * ce_pow(val, 3) + 9.0e-5 * ce_pow(val, 2) + 1.0e-2 * val +
@@ -204,25 +248,28 @@ template <typename T> struct TBeamHardening {
 
 template <enProjFormat PF, typename T>
 void BeamHardening(T *pBuffer, const int nPix) {
-  std::transform(std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
-                 &pBuffer[0], [](const T val) {
-                   return (val < 1.189 ? val
-                                       : val * TBeamHardening<T>::Model<PF>(val)) +
-                          (PF == enProjFormat::HIS_FORMAT ? 0 : 1.47);
-                 });
+  std::transform(
+      std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix, &pBuffer[0],
+      [](const T val) {
+        return (val < 1.189 ? val : val * TBeamHardening<T>::Model<PF>(val)) +
+               (PF == enProjFormat::HIS_FORMAT ? 0 : 1.47);
+      });
 }
 
-template <typename T>
-constexpr int ce_sgn(const T val) { return (T(0) < val) - (val < T(0)); }
+template <typename T> constexpr int ce_sgn(const T val) {
+  return (T(0) < val) - (val < T(0));
+}
 
-template <typename T>
-constexpr T ce_heaviside(const T x) { return static_cast<T>(.5 * ce_sgn(x) + 0.5); }
+template <typename T> constexpr T ce_heaviside(const T x) {
+  return static_cast<T>(.5 * ce_sgn(x) + 0.5);
+}
 
 template <typename T> constexpr T ce_abs(const T x) {
   return x < T(0) ? -x : x;
 }
- 
-template <typename T, typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0 >
+
+template <typename T,
+          typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 T constexpr sqrtNewtonRaphson(T x, T curr, T prev) {
   return curr == prev ? curr
                       : sqrtNewtonRaphson(x, 0.5 * (curr + x / curr), curr);
@@ -235,30 +282,34 @@ T constexpr sqrtNewtonRaphson(T x, T curr, T prev) {
  *for the square root of "x"
  *   - Otherwise, returns NaN
  */
-template <typename T, typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+template <typename T,
+          typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 T constexpr ce_sqrt(T x) {
   return x >= 0 && x < std::numeric_limits<T>::infinity()
              ? sqrtNewtonRaphson<T>(x, x, 0)
              : std::numeric_limits<T>::quiet_NaN();
 }
 
-template<typename T, typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
-constexpr
-T fullFan_subFunction(const T a, const T b,
-                                  const T c, const T d,
-                                  const T x) {
+template <typename T,
+          typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+constexpr T fullFan_subFunction(const T a, const T b, const T c, const T d,
+                                const T x) {
   return c - ce_sqrt(ce_abs(ce_pow(a, 2) - ce_pow(x * d - b, 2))) *
                  ce_heaviside(x * d - b + a) * ce_heaviside(-(x * d - b - a));
 }
 
-template<typename T, typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
-inline T fullFan_Function(const T a, const T b, const T c,
-                               const T d, const T e, const T x) {
+template <typename T,
+          typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+inline T fullFan_Function(const T a, const T b, const T c, const T d, const T e,
+                          const T x) {
   auto es = std::array<int, 7>();
-  std::iota(es.begin(), es.end(), -3); //iota not constexpr until C++20
-  return std::accumulate(es.begin(), es.end(), T(0), [=](T sum, auto i_e) {
-    return sum + fullFan_subFunction(a, b, c, d, x - i_e * e);
-  }) / es.size();
+  std::iota(es.begin(), es.end(), -3); // iota not constexpr until C++20
+  return std::accumulate(es.begin(), es.end(), T(0),
+                         [=](T sum, auto i_e) {
+                           return sum +
+                                  fullFan_subFunction(a, b, c, d, x - i_e * e);
+                         }) /
+         es.size();
 }
 
 /// Functors:

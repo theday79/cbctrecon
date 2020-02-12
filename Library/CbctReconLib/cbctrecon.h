@@ -27,9 +27,9 @@ public:
   void ReleaseMemory();
 
   bool FillProjForDisplay(int slice_number);
-  void LoadCalibData(std::string &filepath, enCalibType calib_type);
+  void LoadCalibData(const fs::path &filepath, enCalibType calib_type);
 
-  bool LoadGeometry(fs::path &geomFileInfo, std::vector<std::string> &names);
+  bool LoadGeometry(const fs::path &geomFileInfo, std::vector<std::string> &names);
   void LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                         const std::vector<std::string> &names);
   void saveHisHeader();
@@ -38,8 +38,8 @@ public:
   int CropSkinUsingThreshold(int threshold, int erode_radius,
                              int dilate_radius);
   void GeneratePOIData(bool AnteriorToPosterior, double table_posY);
-  void Export2DDoseMapAsMHA(fs::path &strPath) const;
-  void ExportProjGeometryTXT(fs::path &strPath) const;
+  void Export2DDoseMapAsMHA(const fs::path &strPath) const;
+  void ExportProjGeometryTXT(const fs::path &strPath) const;
   void ScatterCorPerProjRef(double scaMedian, double scaGaussian,
                             int postScatMedianSize, bool use_cuda,
                             bool use_opencl, bool save_dicom,
@@ -173,7 +173,7 @@ public:
                                              // XVI v >5.0.2. _Frames.xml is
                                              // in every projection folder
 
-  void SetProjDir(std::string &strProjPath);
+  void SetProjDir(const fs::path &strProjPath);
 
   void ExportAngularWEPL_byFile(fs::path &strPathOutput, double fAngleStart,
                                 double fAngleEnd, double fAngleGap);
@@ -223,8 +223,6 @@ public:
                                float panelOffsetY,
                                FloatImageType::Pointer &spProjImg3D,
                                int iSliceIdx) const;
-
-  bool ReadDicomDir(fs::path &dirPath);
 
   // using RTK forward projection algorithm, generate 2D projection image files
   // (as line integral, mu_t)
@@ -343,7 +341,7 @@ public:
 
   std::vector<std::string> m_strListPerProjRefVol;
 
-  std::string m_strPathDefaultConfigFile;
+  fs::path m_strPathDefaultConfigFile;
 
   std::vector<int> m_vExcludeProjIdx{}; // if kVON (exposed_ tag is false
 

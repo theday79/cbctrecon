@@ -1,9 +1,9 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 // Qt
 #include <QFileDialog>
-#include <QProcess>
 
 // Local
 #include "DlgExternalCommand.h"
@@ -11,6 +11,10 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_mainwidget.h"
 #include "cbctregistration.h"
+#include "free_functions.h"
+#include "qtwrap.h"
+
+using namespace std::literals;
 
 DlgExternalCommand::DlgExternalCommand() {
   /* Sets up the GUI */
@@ -28,32 +32,30 @@ DlgExternalCommand::DlgExternalCommand(QWidget *parent) : QDialog(parent) {
 DlgExternalCommand::~DlgExternalCommand() = default;
 
 void DlgExternalCommand::SLT_SetRTKPath() {
-  auto dirPath = QFileDialog::getExistingDirectory(
+  auto dirPath = to_path(QFileDialog::getExistingDirectory(
       this, tr("Open RTK bin Directory"), "",
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
-  if (dirPath.length() > 1) {
+  if (!dirPath.empty()) {
     SetRTKBinPath(dirPath);
   }
 }
 
-void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
+void DlgExternalCommand::SetRTKBinPath(const fs::path &strDirPath) {
   // If DIr is exist
-  auto dirInfo = QDir(strDirPath);
 
-  if (!dirInfo.exists()) {
-    std::cout << "ERROR! " << strDirPath.toLocal8Bit().constData()
-              << " doesn't exist." << std::endl;
+  if (!fs::exists(strDirPath)) {
+    std::cout << "ERROR! " << strDirPath << " doesn't exist." << std::endl;
     return;
   }
 
   ui.comboBoxRTKOption->clear();
 
   m_strDirRTKBin = strDirPath;
-  ui.plainTextRTKPath->setPlainText(m_strDirRTKBin);
+  ui.plainTextRTKPath->setPlainText(to_qstr(m_strDirRTKBin));
 
   // Search for available commands
-  if (m_strDirRTKBin.isEmpty()) {
+  if (m_strDirRTKBin.empty()) {
     return;
   }
 
@@ -62,13 +64,12 @@ void DlgExternalCommand::SetRTKBinPath(QString &strDirPath) {
   for (auto i = 0; i < cnt; i++) {
     const auto strCommandFilter = m_listRTKCommandFilter.at(i);
     auto tmpStrPath = m_strDirRTKBin;
-    tmpStrPath = tmpStrPath.append("/").append(strCommandFilter).append(".exe");
+    tmpStrPath = tmpStrPath / (strCommandFilter.toStdString() + ".exe");
 
-    std::cout << m_strDirRTKBin.toLocal8Bit().constData() << std::endl;
-    std::cout << tmpStrPath.toLocal8Bit().constData() << std::endl;
+    std::cout << m_strDirRTKBin << std::endl;
+    std::cout << tmpStrPath << std::endl;
 
-    auto fInfo = QFileInfo(tmpStrPath);
-    if (fInfo.exists()) // add combo
+    if (fs::exists(tmpStrPath)) // add combo
     {
       ui.comboBoxRTKOption->addItem(strCommandFilter);
     }
@@ -79,10 +80,10 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   auto crntPath = ui.plainTextRTKPath->toPlainText();
   auto crntCommand = ui.comboBoxRTKOption->currentText();
 
-  QString strFinalCommandText;
+  fs::path strFinalCommandText;
 
   if (crntCommand.length() > 0 && crntPath.length() > 0) {
-    strFinalCommandText = crntPath.append("/").append(crntCommand);
+    strFinalCommandText = to_path(crntPath) / crntCommand.toStdString();
   } else {
     return;
   }
@@ -100,15 +101,16 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   // QString strOutDirection; //no clue about what it is
 
   // geometry
-  auto str_mainGeometry = m_pParent->ui.lineEdit_ElektaGeomPath->text();
+  auto str_mainGeometry =
+      m_pParent->ui.lineEdit_ElektaGeomPath->text().toStdString();
 
-  if (str_mainGeometry.length() < 1) {
+  if (str_mainGeometry.size() < 1) {
     std::cout << "Command will not be valid. set geometry file path in the "
                  "main UI first."
               << std::endl;
   }
 
-  QString str_mainHardware;
+  std::string str_mainHardware;
   if (m_pParent->ui.radioButton_UseCPU->isChecked()) {
     str_mainHardware = "cpu";
   } else if (m_pParent->ui.radioButton_UseCUDA->isChecked()) {
@@ -125,54 +127,44 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
   const auto f_mainHannY =
       m_pParent->ui.lineEdit_Ramp_HannCutY->text().toDouble();
 
-  const auto str_mainProjPath = m_pParent->ui.lineEdit_HisDirPath->text();
+  const auto str_mainProjPath =
+      m_pParent->ui.lineEdit_HisDirPath->text().toStdString();
 
-  const auto str_mainProjRegExp = ".*.his";
+  const auto str_mainProjRegExp = ".*.his"s;
 
-  const auto str_mainDimension =
-      QString("%1,%2,%3")
-          .arg(m_pParent->ui.lineEdit_outImgDim_AP->text(),
-               m_pParent->ui.lineEdit_outImgDim_SI->text(),
-               m_pParent->ui.lineEdit_outImgDim_LR->text());
+  const auto str_mainDimension = crl::make_sep_str<','>(
+      m_pParent->ui.lineEdit_outImgDim_AP->text().toStdString(),
+      m_pParent->ui.lineEdit_outImgDim_SI->text().toStdString(),
+      m_pParent->ui.lineEdit_outImgDim_LR->text().toStdString());
 
-  const auto str_mainSpacing =
-      QString("%1,%2,%3")
-          .arg(m_pParent->ui.lineEdit_outImgSp_AP->text(),
-               m_pParent->ui.lineEdit_outImgSp_SI->text(),
-               m_pParent->ui.lineEdit_outImgSp_LR->text());
+  const auto str_mainSpacing = crl::make_sep_str<','>(
+      m_pParent->ui.lineEdit_outImgSp_AP->text().toStdString(),
+      m_pParent->ui.lineEdit_outImgSp_SI->text().toStdString(),
+      m_pParent->ui.lineEdit_outImgSp_LR->text().toStdString());
 
   auto curTime = QTime::currentTime();
   const auto strTimeStamp = curTime.toString("hhmmss");
-  auto tmpPlmDir = QDir(
-      m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch);
+  const auto &tmpPlmDir =
+      m_pParent->m_dlgRegistration->m_cbctregistration->m_strPathPlastimatch;
 
-  if (!tmpPlmDir.exists()) {
+  if (!fs::exists(tmpPlmDir)) {
     std::cout << "Error! No tmp plm path is available."
-              << tmpPlmDir.absolutePath().toLocal8Bit().constData()
-              << std::endl;
+              << fs::absolute(tmpPlmDir) << std::endl;
     return;
   }
 
-  const auto strOutput = tmpPlmDir.absolutePath() + "/" + "ExternalRtk_" +
-                         crntCommand + "_" + strTimeStamp + ".mha";
+  const auto strOutput =
+      fs::absolute(tmpPlmDir) / ("ExternalRtk_" + crntCommand.toStdString() +
+                                 "_" + strTimeStamp.toStdString() + ".mha");
 
   if (crntCommand == "rtkfdk") {
-    // clang-format off
-		//For FDK, this is sure!	
-	strFinalCommandText = strFinalCommandText +
-		" --geometry " + str_mainGeometry +
-		" --path " + str_mainProjPath +
-		" --verbos" +
-		" --regexp " + str_mainProjRegExp +
-		" --output " + strOutput +
-		" --spacing " + str_mainSpacing +
-		" --dimension " + str_mainDimension +
-
-		" --hardware " + str_mainHardware +
-		" --pad " + QString("%1").arg(f_mainTrunc) +
-		" --hann " + QString("%1").arg(f_mainHann) +
-		" --hannY " + QString("%1").arg(f_mainHannY);
-    // clang-format on
+    // For FDK, this is sure!
+    strFinalCommandText = crl::make_sep_str<' '>(
+        strFinalCommandText, "--geometry", str_mainGeometry, "--path",
+        str_mainProjPath, "--verbose", "--regexp", str_mainProjRegExp,
+        "--output", strOutput, "--spacing", str_mainSpacing, "--dimension",
+        str_mainDimension, "--hardware", str_mainHardware, "--pad", f_mainTrunc,
+        "--hann", f_mainHann, "--hannY", f_mainHannY);
   }
   // ui
   /*lineEditIteration
@@ -181,158 +173,144 @@ void DlgExternalCommand::SLT_GenRTKCommand() {
           lineEditSARTsubsetproj*/
 
   else if (crntCommand == "rtksart") {
-    const auto strIteration =
-        ui.lineEditIteration->text().trimmed(); // niterations default 5
-    const auto strLamda = ui.lineEditSARTlamda->text()
-                              .trimmed(); // Convergence factor : default 0.3
+    const auto strIteration = ui.lineEditIteration->text()
+                                  .trimmed()
+                                  .toStdString(); // niterations default 5
+    const auto strLamda =
+        ui.lineEditSARTlamda->text()
+            .trimmed()
+            .toStdString(); // Convergence factor : default 0.3
     const auto strPositivity = ui.lineEditSARTpositivity->text()
-                                   .trimmed(); // Enforces positivity
-                                               // during the reconstruction
-                                               // (default=off)",
-    const auto strNprojpersubset =
-        ui.lineEditSARTsubsetproj->text().trimmed(); // Number of projections
-                                                     // processed between each
-                                                     // update of the
-                                                     // reconstructed volume (1
-                                                     // for SART, several for
-                                                     // OSSART, all for SIRT)
-                                                     // (default=`1')",
-    QString strFwdMethod = "Joseph";
+                                   .trimmed()
+                                   .toStdString(); // Enforces positivity
+                                                   // during the reconstruction
+                                                   // (default=off)",
+    const auto strNprojpersubset = ui.lineEditSARTsubsetproj->text()
+                                       .trimmed()
+                                       .toStdString(); // Number of projections
+                                                       // processed between each
+                                                       // update of the
+                                                       // reconstructed volume
+                                                       // (1 for SART, several
+                                                       // for OSSART, all for
+                                                       // SIRT) (default=`1')",
+    auto strFwdMethod = "Joseph"s;
     if (str_mainHardware == "cuda") {
-      strFwdMethod = "CudaRayCast";
+      strFwdMethod = "CudaRayCast"s;
     }
     //			--fp = ENUM Forward projection method(possible values =
     //\"Joseph\",
     //\"RayCastInterpolator\", "CudaRayCast\" default=`Joseph')",
 
-    QString strBackMethod = "VoxelBasedBackProjection";
+    auto strBackMethod = "VoxelBasedBackProjection"s;
     if (str_mainHardware == "cuda") {
-      strBackMethod = "CudaVoxelBased";
+      strBackMethod = "CudaVoxelBased"s;
     }
-    // clang-format off
-	strFinalCommandText = strFinalCommandText +
-		" --geometry " + str_mainGeometry +
-		" --path " + str_mainProjPath +
-		" --verbos" +
-		" --regexp " + str_mainProjRegExp +			
-		" --spacing " + str_mainSpacing +
-		" --dimension " + str_mainDimension +
-
-		" --niterations " + strIteration +
-		" --lambda " + strLamda +
-		" --positivity " + strPositivity +
-		" --nprojpersubset " + strNprojpersubset +
-		" --fp " + strFwdMethod +
-		" --bp " + strBackMethod +
-		" --time " + "on" +
-		" --output " + strOutput;
-    // clang-format on
+    strFinalCommandText = crl::make_sep_str<' '>(
+        strFinalCommandText, "--geometry", str_mainGeometry, "--path",
+        str_mainProjPath, "--verbose", "--regexp", str_mainProjRegExp,
+        "--spacing", str_mainSpacing, "--dimension", str_mainDimension,
+        "--niterations", strIteration, "--lambda", strLamda, "--positivity",
+        strPositivity, "--nprojpersubset", strNprojpersubset, "--fp",
+        strFwdMethod, "--bp", strBackMethod, "--time", "on", "--output",
+        strOutput);
   } else if (crntCommand == "rtkadmmtotalvariation") {
     // lineEditIteration
     // lineEditTValpha
     //			lineEditTVbeta
     //		lineEditTVCGiter* /
 
-    const auto strIteration =
-        ui.lineEditIteration->text().trimmed(); // niterations default 5
-    const auto strTValpha = ui.lineEditTValpha->text()
-                                .trimmed(); // Convergence factor : default 0.3
-    const auto strTVbeta =
-        ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
-                                             // reconstruction (default=off)",
-    const auto strTVCGiter =
-        ui.lineEditTVCGiter->text().trimmed(); // Enforces positivity during the
+    const auto strIteration = ui.lineEditIteration->text()
+                                  .trimmed()
+                                  .toStdString(); // niterations default 5
+    const auto strTValpha =
+        ui.lineEditTValpha->text()
+            .trimmed()
+            .toStdString(); // Convergence factor : default 0.3
+    const auto strTVbeta = ui.lineEditTVbeta->text()
+                               .trimmed()
+                               .toStdString(); // Enforces positivity during the
                                                // reconstruction (default=off)",
-    QString strFwdMethod = "Joseph";
+    const auto strTVCGiter =
+        ui.lineEditTVCGiter->text()
+            .trimmed()
+            .toStdString(); // Enforces positivity during the
+                            // reconstruction (default=off)",
+    auto strFwdMethod = "Joseph"s;
     if (str_mainHardware == "cuda") {
-      strFwdMethod = "CudaRayCast";
+      strFwdMethod = "CudaRayCast"s;
     }
     //			--fp = ENUM Forward projection method(possible values =
     //\"Joseph\",
     //\"RayCastInterpolator\", "CudaRayCast\" default=`Joseph')",
 
-    QString strBackMethod = "VoxelBasedBackProjection";
+    auto strBackMethod = "VoxelBasedBackProjection"s;
     if (str_mainHardware == "cuda") {
-      strBackMethod = "CudaVoxelBased";
+      strBackMethod = "CudaVoxelBased"s;
     }
-    // clang-format off
-	strFinalCommandText = strFinalCommandText +
-		" --geometry " + str_mainGeometry +
-		" --path " + str_mainProjPath +
-		" --verbos" +
-		" --regexp " + str_mainProjRegExp +			
-		" --spacing " + str_mainSpacing +
-		" --dimension " + str_mainDimension +
-		" --niterations " + strIteration +
-		" --alpha " + strTValpha +
-		" --beta " + strTVbeta +
-		" --CGiter " + strTVCGiter +
-		" --fp " + strFwdMethod +
-		" --bp " + strBackMethod +
-		" --time " + "on" +
-		" --output " + strOutput;
-    // clang-format on
+    strFinalCommandText = crl::make_sep_str<' '>(
+        strFinalCommandText, "--geometry", str_mainGeometry, "--path",
+        str_mainProjPath, "--verbose", "--regexp", str_mainProjRegExp,
+        "--spacing", str_mainSpacing, "--dimension", str_mainDimension,
+        "--niterations", strIteration, "--alpha", strTValpha, "--beta",
+        strTVbeta, "--CGiter", strTVCGiter, "--fp", strFwdMethod, "--bp",
+        strBackMethod, "--time", "on", "--output", strOutput);
   } else if (crntCommand == "rtkadmmwavelets") {
-    const auto strIteration =
-        ui.lineEditIteration->text().trimmed(); // niterations default 5
-    const auto strTValpha = ui.lineEditTValpha->text()
-                                .trimmed(); // Convergence factor : default 0.3
-    const auto strTVbeta =
-        ui.lineEditTVbeta->text().trimmed(); // Enforces positivity during the
-                                             // reconstruction (default=off)",
-    const auto strTVCGiter =
-        ui.lineEditTVCGiter->text().trimmed(); // Enforces positivity during the
+    const auto strIteration = ui.lineEditIteration->text()
+                                  .trimmed()
+                                  .toStdString(); // niterations default 5
+    const auto strTValpha =
+        ui.lineEditTValpha->text()
+            .trimmed()
+            .toStdString(); // Convergence factor : default 0.3
+    const auto strTVbeta = ui.lineEditTVbeta->text()
+                               .trimmed()
+                               .toStdString(); // Enforces positivity during the
                                                // reconstruction (default=off)",
+    const auto strTVCGiter =
+        ui.lineEditTVCGiter->text()
+            .trimmed()
+            .toStdString(); // Enforces positivity during the
+                            // reconstruction (default=off)",
 
-    const auto strWVorder = ui.lineEditWVorder->text().trimmed();
-    const auto strWVlevel = ui.lineEditWVlevel->text().trimmed();
+    const auto strWVorder = ui.lineEditWVorder->text().trimmed().toStdString();
+    const auto strWVlevel = ui.lineEditWVlevel->text().trimmed().toStdString();
     //"      --order=INT         The order of the Daubechies wavelets
     //(default=`3')", "      --levels=INT        The number of decomposition
     // levels in the wavelets \n                            transform
     //(default=`5')",
 
-    QString strFwdMethod = "Joseph";
+    auto strFwdMethod = "Joseph"s;
     if (str_mainHardware == "cuda") {
-      strFwdMethod = "CudaRayCast";
+      strFwdMethod = "CudaRayCast"s;
     }
     //			--fp = ENUM Forward projection method(possible values =
     //\"Joseph\",
     //\"RayCastInterpolator\", "CudaRayCast\" default=`Joseph')",
 
-    QString strBackMethod = "VoxelBasedBackProjection";
+    auto strBackMethod = "VoxelBasedBackProjection"s;
     if (str_mainHardware == "cuda") {
-      strBackMethod = "CudaVoxelBased";
+      strBackMethod = "CudaVoxelBased"s;
     }
-    // clang-format off
-	strFinalCommandText = strFinalCommandText +
-		" --geometry " + str_mainGeometry +
-		" --path " + str_mainProjPath +
-		" --verbos" +
-		" --regexp " + str_mainProjRegExp +		
-		" --spacing " + str_mainSpacing +
-		" --dimension " + str_mainDimension +
-		" --niterations " + strIteration +
-		" --alpha " + strTValpha +
-		" --beta " + strTVbeta +
-		" --CGiter " + strTVCGiter +
-		" --fp " + strFwdMethod +
-		" --bp " + strBackMethod +
-		" --order " + strWVorder +
-		" --levels " + strWVlevel +
-		" --time " + "on" +
-		" --output " + strOutput;
-    // clang-format on
+    strFinalCommandText = crl::make_sep_str<' '>(
+        strFinalCommandText, "--geometry", str_mainGeometry, "--path",
+        str_mainProjPath, "--verbose", "--regexp", str_mainProjRegExp,
+        "--spacing", str_mainSpacing, "--dimension", str_mainDimension,
+        "--niterations", strIteration, "--alpha", strTValpha, "--beta",
+        strTVbeta, "--CGiter", strTVCGiter, "--fp", strFwdMethod, "--bp",
+        strBackMethod, "--order", strWVorder, "--levels", strWVlevel, "--time",
+        "on", "--output", strOutput);
   }
 
   m_strRecentOutputPath = strOutput;
-  ui.plainTextRTKCommandLine->setPlainText(strFinalCommandText);
+  ui.plainTextRTKCommandLine->setPlainText(to_qstr(strFinalCommandText));
 }
 
 void DlgExternalCommand::SLT_RunRTKCommand() {
   const auto strFinalExternalCommand =
-      ui.plainTextRTKCommandLine->toPlainText();
-  if (QProcess::execute(strFinalExternalCommand) < 0) {
-    qDebug() << "Failed to run";
+      ui.plainTextRTKCommandLine->toPlainText().toStdString();
+  if (std::system(strFinalExternalCommand.c_str()) < 0) {
+    std::cerr << "Failed to run\n";
   }
 
   std::cout << "External RTK reconstruction is done" << std::endl;
@@ -354,23 +332,21 @@ void DlgExternalCommand::SLT_RunRTKCommand() {
         indexRadius); // applied to raw image
   }
 
-  auto outputFilePath = this->m_pParent->ui.lineEdit_OutputFilePath->text();
-  QFileInfo outFileInfo(outputFilePath);
-  auto outFileDir = outFileInfo.absoluteDir();
+  auto outputFilePath =
+      to_path(this->m_pParent->ui.lineEdit_OutputFilePath->text());
+  auto outFileDir = fs::absolute(outputFilePath);
 
   // bool b = outFileDir.exists();
   // QString tmpPath = outFileDir.absolutePath();
 
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
+  if (outputFilePath.empty() || !fs::exists(outFileDir)) {
     std::cout << "No available output path. Should be exported later"
               << std::endl;
   } else {
-    saveImageAsMHA<UShortImageType>(
-        this->m_pParent->m_cbctrecon->m_spRawReconImg,
-        outputFilePath.toStdString());
+    crl::saveImageAsMHA<UShortImageType>(
+        this->m_pParent->m_cbctrecon->m_spRawReconImg, outputFilePath.string());
 
-    std::cout << "Wrote the image to: " << outputFilePath.toStdString()
-              << std::endl;
+    std::cout << "Wrote the image to: " << outputFilePath << std::endl;
   }
 }
 
@@ -393,5 +369,5 @@ int DlgExternalCommand::BuildRTKCommandFilter() // called when it is created
 void DlgExternalCommand::SLT_SetRTKPathManual() // apply button
 {
   auto tmpPlainText = ui.plainTextRTKPath->toPlainText();
-  SetRTKBinPath(tmpPlainText);
+  SetRTKBinPath(to_path(tmpPlainText));
 }

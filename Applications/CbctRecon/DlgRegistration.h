@@ -31,7 +31,7 @@ private: // Just pointers to m_cbctregistration members, for convienience
   AG17RGBAImage *m_AGDisp_Overlay;
   UShortImageType::Pointer m_spFixedDose;  // pointer only, for display
   UShortImageType::Pointer m_spMovingDose; // pointer only, for display
-  int m_enViewArrange{};
+  enViewArrange m_enViewArrange{};
   // YK16GrayImage m_YKImgMoving[3];    //RefCT
 
   bool m_bPressedLeft[3]{}; // Left Mouse Pressed but not released
@@ -50,7 +50,7 @@ public:
   void UpdateListOfComboBox(int idx) const;
   void SelectComboExternal(int idx, enREGI_IMAGES iImage);
   void LoadImgFromComboBox(int idx, QString &strSelectedComboTxt);
-  void initDlgRegistration(QString &strDCMUID);
+  void initDlgRegistration(std::string &strDCMUID);
 
 private:
   QComboBox *&get_combo_box_FixMov(int comboIdx);

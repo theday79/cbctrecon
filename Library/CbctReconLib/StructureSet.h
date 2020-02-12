@@ -1,7 +1,7 @@
 #ifndef STRUCTURESET_H
 #define STRUCTURESET_H
 
-#include <QFile>
+#include <filesystem>
 
 #undef TIMEOUT
 #undef CUDA_FOUND
@@ -12,7 +12,7 @@
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
-class QFile;
+namespace fs = std::filesystem;
 
 class CBCTRECON_API StructureSet {
 public:
@@ -62,7 +62,7 @@ public:
     }
   }
 
-  template <ctType CT_TYPE> bool ApplyTransformTo(const QFile &transform_file) {
+  template <ctType CT_TYPE> bool ApplyTransformTo(const fs::path &transform_file) {
     switch (CT_TYPE) {
     case ctType::PLAN_CT:
       if (m_plan_ss == nullptr) {
@@ -82,7 +82,7 @@ public:
     }
 
     auto xform = Xform::New();
-    xform->load(transform_file.fileName().toStdString());
+    xform->load(fs::absolute(transform_file).string());
 
     auto transform_pair = this->get_transform_function(xform);
     auto &transform = transform_pair.first;

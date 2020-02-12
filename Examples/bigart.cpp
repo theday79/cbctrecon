@@ -6,11 +6,10 @@
 
 #include "cbctrecon.h"
 
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <string>
-
-#include <QDir>
 
 #include "itkEuler3DTransform.h"
 #include "itkMinimumMaximumImageCalculator.h"
@@ -20,30 +19,32 @@
 #include "cbctrecon_io.h"
 #include "cbctrecon_test.hpp"
 
+namespace fs = std::filesystem;
+using namespace std::literals;
+
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
 UShortImageType::Pointer get_image_from_dicom(
-    const QString &dir, const UShortImageType::SpacingType &new_spacing,
+    const fs::path &dcm_dir, const UShortImageType::SpacingType &new_spacing,
     const UShortImageType::SizeType &new_size,
     const UShortImageType::PointType &new_origin,
     const UShortImageType::DirectionType &new_direction,
     const DoubleVector &translation_vec, const DoubleVector &rotation_vec) {
   // auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
-  auto dcm_dir = QDir(dir);
-  auto dcm_path = dcm_dir.absolutePath();
-  if (!dcm_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
+  auto dcm_path = fs::absolute(dcm_dir);
+  if (!fs::exists(dcm_dir)) {
+    std::cerr << "Directory didn't exist: " << dcm_path << "\n";
   }
-  if (dcm_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << dcm_path.toStdString() << "\n";
+  if (fs::is_empty(dcm_dir)) {
+    std::cerr << "Directory was empty: " << dcm_path << "\n";
   }
 
   // cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
   // cbctrecon_test->test_LoadDICOMdir();
   // auto ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
   auto mha_reader = itk::ImageFileReader<ShortImageType>::New();
-  mha_reader->SetFileName(dcm_path.toStdString() + "/recalc_in.mha");
+  mha_reader->SetFileName((dcm_path / "recalc_in.mha").string());
   mha_reader->Update();
 
   using ImageCalculatorFilterType =
@@ -211,16 +212,16 @@ int main(const int argc, char *argv[]) {
 
   /* Read dicom and structures */
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
-  const auto dcm_dir_str = QString(argv[1]);
+  const auto dcm_dir_str = std::string(argv[1]);
 
-  auto dcm_dir = QDir(dcm_dir_str);
-  const auto dcm_path = dcm_dir.absolutePath();
-  if (!dcm_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
+  auto dcm_dir = fs::path(dcm_dir_str);
+  const auto dcm_path = fs::absolute(dcm_dir);
+  if (!fs::exists(dcm_dir)) {
+    std::cerr << "Directory didn't exist: " << dcm_path << "\n";
     return -2;
   }
-  if (dcm_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << dcm_path.toStdString() << "\n";
+  if (fs::is_empty(dcm_dir)) {
+    std::cerr << "Directory was empty: " << dcm_path << "\n";
     return -3;
   }
 
@@ -244,8 +245,8 @@ int main(const int argc, char *argv[]) {
                    std::stod(rotation_str.split(",").at(1).toStdString(), &sz),
                    std::stod(rotation_str.split(",").at(2).toStdString(), &sz)};
 
-  auto recalc_dcm_dir = QDir(argv[2]);
-  const auto recalc_dcm_path = recalc_dcm_dir.absolutePath();
+  auto recalc_dcm_dir = fs::path(argv[2]);
+  const auto recalc_dcm_path = fs::absolute(recalc_dcm_dir);
 
   auto recalc_img = get_image_from_dicom(
       recalc_dcm_path, ct_img->GetSpacing(),
@@ -265,12 +266,12 @@ int main(const int argc, char *argv[]) {
       cbctrecon_test->m_dlgRegistration->ui_comboBox_VOItoCropBy->findText(
           "BODY", Qt::MatchStartsWith | Qt::MatchCaseSensitive);
 
-  saveImageAsMHA<UShortImageType>(cbctrecon_test->m_cbctrecon->m_spRawReconImg,
-                                  recalc_dcm_path.toStdString() +
-                                      "/recalc.mha");
-  saveImageAsMHA<UShortImageType>(
+  crl::saveImageAsMHA<UShortImageType>(
+      cbctrecon_test->m_cbctrecon->m_spRawReconImg,
+      (recalc_dcm_path / "recalc.mha").string());
+  crl::saveImageAsMHA<UShortImageType>(
       cbctrecon_test->m_cbctrecon->m_spManualRigidCT,
-      dcm_path.toStdString() + "/orig.mha");
+      (dcm_path / "orig.mha").string());
   ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
   recalc_img = cbctrecon_test->m_cbctrecon->m_spRawReconImg;
   std::cout << "Images saved" << std::endl;
@@ -319,8 +320,8 @@ int main(const int argc, char *argv[]) {
   const auto couch_angle = std::stod(argv[5], &sz);
   // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
-  const auto wepl_voi = CalculateWEPLtoVOI(orig_voi.get(), gantry_angle,
-                                           couch_angle, ct_img, recalc_img);
+  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI(
+      orig_voi.get(), gantry_angle, couch_angle, ct_img, recalc_img);
 
   /* Generate a vector of vectors with distances */
   const auto output =
@@ -331,13 +332,14 @@ int main(const int argc, char *argv[]) {
       cur_voi = *wepl_voi;
     }
   }
-  const auto out_dcm = QString("RS.wepl_structure_");
+  const auto out_dcm = "RS.wepl_structure_"s;
   // http://www.plastimatch.org/plastimatch.html#plastimatch-dice
-  const QFile out_dcm_file(out_dcm + argv[3] + "_" + recalc_dcm_dir.dirName() +
-                           "_G" + argv[4] + "_C" + argv[5] + ".dcm");
+  const fs::path out_dcm_file(out_dcm + argv[3] + "_"s +
+                              recalc_dcm_dir.filename().string() + "_G" +
+                              argv[4] + "_C" + argv[5] + ".dcm");
   std::cerr << "Writing WEPL struct to dicom...\n";
-  if (!AlterData_RTStructureSetStorage(cbctrecon_test->m_cbctrecon->m_strPathRS,
-                                       ss, out_dcm_file)) {
+  if (!crl::AlterData_RTStructureSetStorage(
+          cbctrecon_test->m_cbctrecon->m_strPathRS, ss, out_dcm_file)) {
     std::cerr << "\a"
               << "Could not write dcm\n";
   }
@@ -347,8 +349,8 @@ int main(const int argc, char *argv[]) {
   std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
   std::replace(std::begin(better_name), std::end(better_name), '/', '-');
   const auto output_filename = "WEPLstruct_" + better_name + "_" +
-                               dcm_dir.dirName().toStdString() + "_to_" +
-                               recalc_dcm_dir.dirName().toStdString() + ".txt";
+                               dcm_dir.filename().string() + "_to_" +
+                               recalc_dcm_dir.filename().string() + ".txt";
   // + "_at_G" + std::to_string(gantry_angle) + "C" +
   // std::to_string(couch_angle) + ".txt";
 

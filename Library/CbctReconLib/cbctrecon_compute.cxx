@@ -662,4 +662,23 @@ FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
   return convert_filter->GetOutput();
 }
 
+void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList) {
+  const auto size = filenameList.size();
+
+  for (auto i = 0; i < size; i++) {
+    const auto &crntFilePath = filenameList.at(i);
+    auto dir = fs::absolute(crntFilePath);
+    auto fileBase = crntFilePath.stem();
+    auto newBaseName = crl::HexStr2IntStr(fileBase.string());
+    auto extStr = crntFilePath.extension();
+
+    auto newFileName = newBaseName.append(".").append(extStr.string());
+    auto newPath = fs::absolute(dir) / newFileName;
+
+    // extract former part
+    fs::rename(crntFilePath, newPath);
+  }
+  // Extract
+}
+
 } // namespace crl

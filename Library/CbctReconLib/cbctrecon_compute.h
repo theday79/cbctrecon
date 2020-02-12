@@ -40,13 +40,8 @@ CBCTRECON_API double GetRawIntensityScaleFactor(std::string &strRef_mAs,
                                                 std::string &strCur_mAs);
 CBCTRECON_API void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg);
 
-CBCTRECON_API bool GetXrayParamFromINI(std::string &strPathINI, float &kVp,
-                                       float &mA, float &ms);
 CBCTRECON_API void AddConstHU(UShortImageType::Pointer &spImg, int HUval);
-// Read long INIXVI text file and read couch shift values. apply cm -> mm
-// conversion (multiply 10). NO sign changes.
-CBCTRECON_API bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI,
-                                           VEC3D *pTrans, VEC3D *pRot);
+
 // This function came from the tracking project. trans values are all in mm,
 // DICOM x, y, z
 CBCTRECON_API void
@@ -80,6 +75,8 @@ CBCTRECON_API
 FloatImageType::Pointer
 ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D);
 
+CBCTRECON_API
+void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList);
 
 
 /// Templates:

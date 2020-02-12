@@ -1,13 +1,16 @@
 #ifndef DLGEXTERNALCOMMAND_H
 #define DLGEXTERNALCOMMAND_H
 
+#include <filesystem>
+
 // Qt
 #include <QDialog>
-#include <QString>
 #include <QStringList>
 
 // Local
 #include "ui_DlgExternalCommand.h"
+
+namespace fs = std::filesystem;
 
 class CbctReconWidget;
 
@@ -32,14 +35,14 @@ public:
   int BuildRTKCommandFilter(); // pull predefined command names that you want.
                                // From some preset option file
 
-  void SetRTKBinPath(QString &strDirPath);
+  void SetRTKBinPath(const fs::path &strDirPath);
 
   CbctReconWidget *m_pParent{}; // to pull 3D images
-  QString m_strDirRTKBin;
+  fs::path m_strDirRTKBin;
 
   QStringList m_listRTKCommandFilter;
 
-  QString m_strRecentOutputPath;
+  fs::path m_strRecentOutputPath;
 
 private:
   Ui::DlgExternalCommandClass ui{};

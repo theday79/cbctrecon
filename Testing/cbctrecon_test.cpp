@@ -14,6 +14,7 @@
 #endif
 
 #include <cassert>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -27,6 +28,10 @@
 #include "cbctrecon_test.hpp"
 #include "cbctregistration.h"
 #include "cbctregistration_test.hpp"
+#include "free_functions.h"
+
+namespace fs = std::filesystem;
+using namespace std::literals;
 
 CbctReconTest::CbctReconTest() {
   m_dlgRegistration = std::make_unique<CbctRegistrationTest>(this);
@@ -95,16 +100,17 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
                                                const bool reconstruct) {
   // this->ui.pushButton_DoRecon->setDisabled(true);
   // 1) Get all projection file names
-  auto dirPath = proj_path; // this->ui.lineEdit_HisDirPath->text();
+  auto dirPath = fs::path(
+      proj_path.toStdString()); // this->ui.lineEdit_HisDirPath->text();
   //.toLocal8Bit().constData();
 
-  if (!QFile::exists(dirPath)) {
+  if (!fs::exists(dirPath)) {
     std::cerr << "Projection file directory was not found. Retry."
               << "\n";
     return false;
   }
 
-  auto names = this->m_cbctrecon->GetProjFileNames(dirPath);
+  auto names = crl::GetProjFileNames(this->m_cbctrecon.get(), dirPath);
   if (names.empty()) {
     std::cerr << "Regex didn't find any files in his, hns or xim format!"
               << "\n";
@@ -112,7 +118,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   }
 
   if (this->m_cbctrecon->m_projFormat == enProjFormat::HIS_FORMAT &&
-      !this->m_cbctrecon->IsFileNameOrderCorrect(names)) {
+      !crl::IsFileNameOrderCorrect(names)) {
     std::cerr << "Check the file name order"
               << "\n";
     return false;
@@ -132,11 +138,11 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
             << "\n";
 
   // 2) Elekta Geometry file
-  QFileInfo geomFileInfo(this->m_cbctrecon->m_strPathGeomXML);
+  auto geomFileInfo = this->m_cbctrecon->m_strPathGeomXML;
 
   if (!this->m_cbctrecon->LoadGeometry(geomFileInfo, names)) {
-    if (!this->m_cbctrecon->m_strError.isEmpty()) {
-      std::cerr << this->m_cbctrecon->m_strError.toStdString() << "\n";
+    if (!this->m_cbctrecon->m_strError.empty()) {
+      std::cerr << this->m_cbctrecon->m_strError << "\n";
       return false;
     }
   }
@@ -172,7 +178,9 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   const auto gantryAngleInterval = 1.0;
   // this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
 
-  const auto exclude_ids = this->m_cbctrecon->GetExcludeProjFiles(
+
+  const auto scan_direction = crl::is_scan_direction_CW(angle_gaps);
+  const auto exclude_ids = crl::GetExcludeProjFiles(this->m_cbctrecon->m_spFullGeometry, scan_direction,
       false /*this->ui.Radio_ManualProjAngleGap->isChecked()*/,
       gantryAngleInterval);
 
@@ -192,9 +200,9 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   this->m_cbctrecon->saveHisHeader();
 
   //  Insta Recon, Dcm read
-  const auto geopath = geomFileInfo.absolutePath();
+  const auto geopath = fs::absolute(geomFileInfo);
   std::tuple<bool, bool> answers;
-  auto bowtie_reader = ReadBowtieFileWhileProbing(geopath, answers);
+  auto bowtie_reader = ReadBowtieFileWhileProbing(QString(geopath.string().c_str()), answers);
 
   calc_thread.join();
   std::cerr << "Reader re-attached to main thread"
@@ -223,7 +231,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
     const auto bowtie_test_value = bowtie_ref->GetPixel(tmp_bt_index);
     std::cerr << "Bowtie Test: " << bowtie_test_value << "\n";
 
-    ApplyBowtie(proj_ref, bowtie_ref);
+    crl::ApplyBowtie(proj_ref, bowtie_ref);
 
     const auto after_bowtie_test_value = proj_ref->GetPixel(tmp_index);
     std::cerr << "After Bowtie Test: " << after_bowtie_test_value << "\n";
@@ -243,7 +251,7 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(proj_ref);
+      crl::ConvertLineInt2Intensity_ushort(proj_ref);
 
   this->m_cbctrecon
       ->SetMaxAndMinValueOfProjectionImage(); // update min max projection image
@@ -299,7 +307,7 @@ void CbctReconTest::test_ReloadProjections() {
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(p_projimg);
+      crl::ConvertLineInt2Intensity_ushort(p_projimg);
   // if X not 1024 == input size: out_offset =
   // in_offset + (1024*res_f -
   // X*res_f)*out_spacing     <- will still
@@ -347,15 +355,15 @@ void CbctReconTest::test_ExportHis() {}
 void CbctReconTest::test_LoadImageFloat3D() {}
 
 void CbctReconTest::test_LoadDICOMdir() const {
-  auto dirPath = QString(this->m_cbctrecon->m_strPathDirDefault);
+  auto dirPath = this->m_cbctrecon->m_strPathDirDefault;
 
-  if (dirPath.length() <= 1) {
+  if (dirPath.empty()) {
     return;
   }
 
-  if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
-    this->m_cbctrecon->RegisterImgDuplication(enREGI_IMAGES::REGISTER_REF_CT,
-                                              enREGI_IMAGES::REGISTER_MANUAL_RIGID);
+  if (crl::ReadDicomDir(this->m_cbctrecon.get(), dirPath)) {
+    this->m_cbctrecon->RegisterImgDuplication(
+        enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 }
 
@@ -375,13 +383,13 @@ void CbctReconTest::test_SetHisDir(QString &dirPath) {
     return;
   }
 
-  this->m_cbctrecon->SetProjDir(dirPath);
+  this->m_cbctrecon->SetProjDir(dirPath.toStdString());
   // this->init_DlgRegistration(this->m_cbctrecon->m_strDCMUID);
 
   float kVp = 0.0;
   float mA = 0.0;
   float ms = 0.0;
-  GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
+  crl::GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
 
   if (fabs(kVp * mA * ms) > 0.001) {
     // update GUI
@@ -438,14 +446,14 @@ void CbctReconTest::test_DoReconstruction() {
 #endif
 
   if (use_cuda) {
-    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CUDA_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
-                                                      fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CUDA_DEVT>(
+        enREGI_IMAGES::REGISTER_RAW_CBCT, fdk_options);
   } else if (use_opencl) {
-    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::OPENCL_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
-                                                        fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::OPENCL_DEVT>(
+        enREGI_IMAGES::REGISTER_RAW_CBCT, fdk_options);
   } else {
-    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CPU_DEVT>(enREGI_IMAGES::REGISTER_RAW_CBCT,
-                                                     fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CPU_DEVT>(
+        enREGI_IMAGES::REGISTER_RAW_CBCT, fdk_options);
   }
 
   reconTimeProbe.Stop();
@@ -491,9 +499,12 @@ void CbctReconTest::test_DoScatterCorrection_APRIORI() const {
     return;
   }
 
-  const auto bExportProj_Fwd = false; // this->ui.checkBox_ExportFwd->isChecked();
-  const auto bExportProj_Scat = false; // this->ui.checkBox_ExportScat->isChecked();
-  const auto bExportProj_Cor = false; // this->ui.checkBox_ExportCor->isChecked();
+  const auto bExportProj_Fwd =
+      false; // this->ui.checkBox_ExportFwd->isChecked();
+  const auto bExportProj_Scat =
+      false; // this->ui.checkBox_ExportScat->isChecked();
+  const auto bExportProj_Cor =
+      false; // this->ui.checkBox_ExportCor->isChecked();
 
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image

@@ -60,10 +60,9 @@ using namespace std::literals;
 
 namespace crl {
 
-fs::path
-MakeElektaXML(const fs::path &filePath_ImageDBF,
-              const fs::path &filePath_FrameDBF,
-              const std::string &DICOM_UID) {
+fs::path MakeElektaXML(const fs::path &filePath_ImageDBF,
+                       const fs::path &filePath_FrameDBF,
+                       const std::string &DICOM_UID) {
   std::cout << "Elekta geometry XML file is being generated." << std::endl;
   // Define FRAME.DBF path
   auto reader = rtk::ElektaSynergyGeometryReader::New();
@@ -72,8 +71,7 @@ MakeElektaXML(const fs::path &filePath_ImageDBF,
   // string strDbfImg = filePath_ImageDBF.toStdString();
   // string strDbfFrame = filePath_FrameDBF.toStdString();
 
-  const auto dirPath =
-      fs::absolute(filePath_ImageDBF.parent_path());
+  const auto dirPath = fs::absolute(filePath_ImageDBF.parent_path());
 
   const auto fileName = "ElektaGeom_" + DICOM_UID + ".xml";
 
@@ -116,13 +114,12 @@ FLEXDATA XML_parseFrameForXVI5(itk::DOMNode::Pointer dom) {
   //}
   /* Next element... */
   auto idx = from_string<int>(dom->GetID()).value_or(0) + 1;
-  auto next_dom = dom->Find(
-      std::to_string(idx));
+  auto next_dom = dom->Find(std::to_string(idx));
   /*
    * We're going to loop over the things because the order might change.
    * We'll continue the loop until we hit an EndElement named person.
    */
-  while (!(next_dom == nullptr && next_dom->GetName() == "Frame")) {
+  while (next_dom != nullptr && next_dom->GetName() != "Frame") {
     auto tmpXmlName = next_dom->GetName();
     // auto strTmpXMLName = std::string(tmpXmlName.toLocal8Bit().constData());
     // int tmpType = (int)(xml.tokenType());
@@ -217,34 +214,7 @@ LoadRTKGeometryFile(const fs::path &filePath) {
   170 LPO, 30 = LAO supposing HFS) no and kV source position (not MV gantry)" <<
   std::endl;*/
 
-  std::vector<double> vTempConvAngles;
-
-  const auto itBegin = angles.begin();
-  const auto itEnd = angles.end();
-
-  for (auto it = itBegin; it != itEnd; ++it) {
-    auto tmpAngle = *it;
-
-    if (tmpAngle > 180.0) {
-      tmpAngle = tmpAngle - 360.0;
-    }
-
-    vTempConvAngles.push_back(tmpAngle);
-  }
-
-  // compare 2 points in the middle of the angle list
-  const auto iLowerIdx = static_cast<size_t>(geoDataSize * 1.0 / 3.0);
-  const auto iUpperIdx = static_cast<size_t>(geoDataSize * 2.0 / 3.0);
-
-  auto bScanDirectionCW = false;
-  if (vTempConvAngles.at(iLowerIdx) <
-      vTempConvAngles.at(iUpperIdx)) // ascending
-  {
-    bScanDirectionCW = true;
-    std::cout << "The scan direction is CW" << std::endl;
-  } else {
-    std::cout << "The scan direction is CCW" << std::endl;
-  }
+  auto bScanDirectionCW = is_scan_direction_CW(angles);
 
   std::cout << "AngularGaps Size: "
             << spFullGeometry->GetAngularGaps(spFullGeometry->GetSourceAngles())
@@ -336,7 +306,7 @@ bool LoadShortImageToUshort(fs::path &strPath,
 }
 
 void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
-                         std::string &outputFilePath) {
+                         const fs::path &outputFilePath) {
   if (spUsImage == nullptr) {
     std::cout << " no image to export" << std::endl;
     return;
@@ -396,7 +366,7 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   */
   using WriterType = itk::ImageFileWriter<ShortImageType>;
   auto writer = WriterType::New();
-  writer->SetFileName(outputFilePath);
+  writer->SetFileName(outputFilePath.string());
   // writer->SetUseCompression(true);
   writer->SetUseCompression(false); // for plastimatch
   writer->SetInput(spRescaleFilter->GetOutput());
@@ -700,17 +670,14 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
 
   DRTStructureSetIOD rtstruct;
   DcmFileFormat fileformat;
-  auto status =
-      fileformat.loadFile(input_file.string().c_str());
+  auto status = fileformat.loadFile(input_file.string().c_str());
   if (!status.good()) {
-    std::cerr << "Could not open RT struct dcm file: "
-              << input_file << "\n";
+    std::cerr << "Could not open RT struct dcm file: " << input_file << "\n";
     return false;
   }
   status = rtstruct.read(*fileformat.getDataset());
   if (!status.good()) {
-    std::cerr << "Could not read RT struct dcm file: "
-              << input_file << "\n";
+    std::cerr << "Could not read RT struct dcm file: " << input_file << "\n";
     return false;
   }
   fileformat.clear();
@@ -762,24 +729,21 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
   //
   status = rtstruct.write(*fileformat.getDataset());
   if (!status.good()) {
-    std::cerr << "Could not write RT struct dcm file: "
-              << input_file << "\n";
+    std::cerr << "Could not write RT struct dcm file: " << input_file << "\n";
     return false;
   }
-  status =
-      fileformat.saveFile(output_file.string().c_str());
+  status = fileformat.saveFile(output_file.string().c_str());
   if (!status.good()) {
-    std::cerr << "Could not save RT struct dcm file: "
-              << output_file << "\n";
+    std::cerr << "Could not save RT struct dcm file: " << output_file << "\n";
     return false;
   }
   return true;
 }
 
-std::unique_ptr<Rtss_modern> load_rtstruct(const std::string &filename) {
+std::unique_ptr<Rtss_modern> load_rtstruct(const fs::path &filename) {
 
   auto reader = gdcm::Reader();
-  reader.SetFileName(filename.c_str());
+  reader.SetFileName(filename.string().c_str());
   if (!reader.Read()) {
     std::cerr << "Reading dicom rtstruct: " << filename << " failed!\n";
     return nullptr;
@@ -809,7 +773,7 @@ double get_dcm_offset_z(const std::string &filename) {
   return position[2];
 }
 
-std::vector<std::string> get_dcm_image_files(fs::path &dir) {
+std::vector<std::string> get_dcm_image_files(const fs::path &dir) {
 
   using NamesGeneratorType = itk::GDCMSeriesFileNames;
   auto nameGenerator = NamesGeneratorType::New();
@@ -824,8 +788,7 @@ std::vector<std::string> get_dcm_image_files(fs::path &dir) {
   const auto seriesEnd = seriesUID.end();
 
   if (seriesItr == seriesEnd) {
-    std::cerr << "No DICOMs in: " << fs::absolute(dir).string()
-              << "\n";
+    std::cerr << "No DICOMs in: " << fs::absolute(dir).string() << "\n";
     return {};
   }
 
@@ -1027,10 +990,10 @@ void ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
   spOutputImgUshort = spRescaleFilter->GetOutput();
 }
 
-fs::path
-SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
-                        std::string &strPatientID, std::string &strPatientName,
-                        fs::path &strPathTargetDir) {
+fs::path SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
+                                 std::string &strPatientID,
+                                 std::string &strPatientName,
+                                 fs::path &strPathTargetDir) {
   if (spImg == nullptr) {
     return {};
   }
@@ -1060,9 +1023,10 @@ SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
   return newDirPath;
 }
 
-fs::path SaveUSHORTAsSHORT_DICOM_gdcmITK(
-    UShortImageType::Pointer &spImg, std::string &strPatientID,
-    std::string &strPatientName, fs::path &strPathTargetDir) {
+fs::path SaveUSHORTAsSHORT_DICOM_gdcmITK(UShortImageType::Pointer &spImg,
+                                         std::string &strPatientID,
+                                         std::string &strPatientName,
+                                         fs::path &strPathTargetDir) {
   if (spImg == nullptr) {
     return {};
   }
@@ -1070,8 +1034,8 @@ fs::path SaveUSHORTAsSHORT_DICOM_gdcmITK(
   ShortImageType::Pointer spShortImg;
   ConvertUshort2Short(spImg, spShortImg);
 
-  auto newDirPath = fs::path(
-      strPathTargetDir / (strPatientID + strPatientName + "_DCM"));
+  auto newDirPath =
+      fs::path(strPathTargetDir / (strPatientID + strPatientName + "_DCM"));
 
   if (!fs::exists(newDirPath)) {
     if (!fs::create_directory(newDirPath)) {
@@ -1168,12 +1132,13 @@ std::string get_output_options(const UShortImageType::Pointer &m_spFixed) {
       out_direction[1][0], out_direction[1][1], out_direction[1][2],
       out_direction[2][0], out_direction[2][1], out_direction[2][2]);
 
-  return make_sep_str<' '>(
-      " --origin"sv, str_fixed_origin, "--spacing"sv, str_fixed_spacing,
-      "--dimension"sv, str_fixed_dimension, "--direction"sv, str_fixed_direction);
+  return make_sep_str<' '>(" --origin"sv, str_fixed_origin, "--spacing"sv,
+                           str_fixed_spacing, "--dimension"sv,
+                           str_fixed_dimension, "--direction"sv,
+                           str_fixed_direction);
 }
 
-bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI, VEC3D *pTrans,
+bool GetCouchShiftFromINIXVI(const fs::path &strPathINIXVI, VEC3D *pTrans,
                              VEC3D *pRot) {
   fs::path fInfo(strPathINIXVI);
   if (!fs::exists(fInfo)) {
@@ -1251,9 +1216,9 @@ bool GetCouchShiftFromINIXVI(std::string &strPathINIXVI, VEC3D *pTrans,
   return true;
 }
 
-bool GetXrayParamFromINI(std::string &strPathINI, float &kVp, float &mA,
+bool GetXrayParamFromINI(const fs::path &strPathINI, float &kVp, float &mA,
                          float &ms) {
-  auto info = fs::path(strPathINI);
+  auto info = strPathINI;
 
   kVp = 0.0f;
   mA = 0.0f;

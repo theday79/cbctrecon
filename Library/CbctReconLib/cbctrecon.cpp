@@ -132,25 +132,6 @@ void CbctRecon::ReleaseMemory() {
 
 // Hexa name ->decimal name
 
-void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList) {
-  const auto size = filenameList.size();
-
-  for (auto i = 0; i < size; i++) {
-    const auto &crntFilePath = filenameList.at(i);
-    auto dir = fs::absolute(crntFilePath);
-    auto fileBase = crntFilePath.stem();
-    auto newBaseName = crl::HexStr2IntStr(fileBase.string());
-    auto extStr = crntFilePath.extension();
-
-    auto newFileName = newBaseName.append(".").append(extStr.string());
-    auto newPath = fs::absolute(dir) / newFileName;
-
-    // extract former part
-    fs::rename(crntFilePath, newPath);
-  }
-  // Extract
-}
-
 bool CbctRecon::FillProjForDisplay(const int slice_number) {
   // Using slice iterator,
   // 1) Find the slice requested
@@ -211,15 +192,15 @@ bool CbctRecon::FillProjForDisplay(const int slice_number) {
   return true;
 }
 
-void CbctRecon::LoadCalibData(std::string &filepath,
+void CbctRecon::LoadCalibData(const fs::path &filepath,
                               const enCalibType calib_type) {
   switch (calib_type) {
   case enCalibType::GAIN_CALIB:
-    m_pImgGain->LoadRawImage(filepath.c_str(), DEFAULT_ELEKTA_PROJ_WIDTH,
+    m_pImgGain->LoadRawImage(filepath, DEFAULT_ELEKTA_PROJ_WIDTH,
                              DEFAULT_ELEKTA_PROJ_HEIGHT);
     break;
   case enCalibType::OFFSET_CALIB:
-    m_pImgOffset->LoadRawImage(filepath.c_str(), DEFAULT_ELEKTA_PROJ_WIDTH,
+    m_pImgOffset->LoadRawImage(filepath, DEFAULT_ELEKTA_PROJ_WIDTH,
                                DEFAULT_ELEKTA_PROJ_HEIGHT);
     break;
   case enCalibType::BADPIXEL_CALIB:
@@ -230,7 +211,7 @@ void CbctRecon::LoadCalibData(std::string &filepath,
   }
 }
 
-void CbctRecon::SetProjDir(std::string &strProjPath) {
+void CbctRecon::SetProjDir(const fs::path &strProjPath) {
   m_strPathGeomXML.clear();
   m_strPathDirDefault = strProjPath;
 
@@ -243,7 +224,7 @@ void CbctRecon::SetProjDir(std::string &strProjPath) {
   FindAllRelevantPaths(strProjPath);
 }
 
-bool CbctRecon::LoadGeometry(fs::path &geomFileInfo,
+bool CbctRecon::LoadGeometry(const fs::path &geomFileInfo,
                              std::vector<std::string> &names) {
 
   if (!fs::exists(geomFileInfo)) {
@@ -2889,7 +2870,7 @@ void CbctRecon::MedianFilterByGUI(
   std::cout << "median filtering has been done" << std::endl;
 }
 
-void CbctRecon::Export2DDoseMapAsMHA(fs::path &strPath) const {
+void CbctRecon::Export2DDoseMapAsMHA(const fs::path &strPath) const {
   if (m_dspYKReconImage == nullptr) {
     return;
   }
@@ -2963,7 +2944,7 @@ void CbctRecon::Export2DDoseMapAsMHA(fs::path &strPath) const {
   std::cout << "File was exported successfully" << std::endl;
 }
 
-void CbctRecon::ExportProjGeometryTXT(fs::path &strPath) const {
+void CbctRecon::ExportProjGeometryTXT(const fs::path &strPath) const {
   // if (!m_spFullGeometry)
   //	return;
 

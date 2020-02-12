@@ -14,23 +14,24 @@
 #endif
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 
-#include <QDir>
-
 #include "cbctrecon_test.hpp"
+#include "free_functions.h"
 
-int load_dcm(CbctReconTest *cbctrecon_test, const QString &dcm_dir_str) {
+namespace fs = std::filesystem;
 
-  auto dcm_dir = QDir(dcm_dir_str);
-  auto dcm_path = dcm_dir.absolutePath();
-  if (!dcm_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
+int load_dcm(CbctReconTest *cbctrecon_test, const fs::path &dcm_dir) {
+
+  auto dcm_path = fs::absolute(dcm_dir);
+  if (!fs::exists(dcm_dir)) {
+    std::cerr << "Directory didn't exist: " << dcm_path << "\n";
     return -2;
   }
-  if (dcm_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << dcm_path.toStdString() << "\n";
+  if (fs::is_empty(dcm_dir)) {
+    std::cerr << "Directory was empty: " << dcm_path << "\n";
     return -3;
   }
 
@@ -43,32 +44,30 @@ int load_dcm(CbctReconTest *cbctrecon_test, const QString &dcm_dir_str) {
   return 0;
 }
 
-int load_and_recon_cb(CbctReconTest *cbctrecon_test,
-                      const QString &cbct_dir_str) {
+int load_and_recon_cb(CbctReconTest *cbctrecon_test, const fs::path &cbct_dir) {
   /* Load projections (Needs to be uploaded to girder first) */
-  auto cbct_dir = QDir(cbct_dir_str);
-  auto cbct_path = cbct_dir.absolutePath();
-  if (!cbct_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << cbct_path.toStdString() << "\n";
+  auto cbct_path = fs::absolute(cbct_dir);
+  if (!fs::exists(cbct_dir)) {
+    std::cerr << "Directory didn't exist: " << cbct_path << "\n";
     return -2;
   }
-  if (cbct_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << cbct_path.toStdString() << "\n";
+  if (fs::is_empty(cbct_dir)) {
+    std::cerr << "Directory was empty: " << cbct_path << "\n";
     return -3;
   }
 
   // Set and guess some member variables from projection directory:
-  auto proj_dir = QDir(cbct_path + "/Acquisitions/746879825/");
-  if (!proj_dir.exists()) {
-    std::cerr << "Projection directory: "
-              << proj_dir.absolutePath().toStdString() << " doesn't exists!\n";
+  auto proj_dir = cbct_path / "Acquisitions" / "746879825";
+  if (!fs::exists(proj_dir)) {
+    std::cerr << "Projection directory: " << proj_dir << " doesn't exists!\n";
     return -2;
   }
-  auto proj_path = proj_dir.absolutePath();
-  cbctrecon_test->test_SetHisDir(proj_path);
+  auto proj_path = fs::absolute(proj_dir);
+  auto qstr_proj_path = QString(proj_path.string().c_str());
+  cbctrecon_test->test_SetHisDir(qstr_proj_path);
 
   const auto start_time = std::chrono::steady_clock::now();
-  if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path, true)) {
+  if (!cbctrecon_test->test_LoadSelectedProjFiles(qstr_proj_path, true)) {
     std::cerr << "Could not load or reconstruct CB projections!"
               << "\n";
     return -4;
@@ -127,7 +126,8 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
     std::cerr << "Scatter corrected recon image was null\n";
     return -1;
   }
-  auto ss = cbctrecon_test->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
+  auto ss =
+      cbctrecon_test->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
   for (auto &structure : ss->slist) {
     std::cerr << structure.name << "\n";
   }
@@ -135,7 +135,7 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
   const auto voi = std::string("CTV1");
   auto orig_voi = ss->get_roi_by_name(voi);
   const auto start_time = std::chrono::steady_clock::now();
-  auto wepl_voi = CalculateWEPLtoVOI(
+  auto wepl_voi = crl::wepl::CalculateWEPLtoVOI(
       orig_voi.get(), 45, 45, cbctrecon_test->m_cbctrecon->m_spDeformedCT_Final,
       cbctrecon_test->m_cbctrecon->m_spScatCorrReconImg);
   const auto end_time = std::chrono::steady_clock::now();
@@ -173,7 +173,7 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
   return 0;
 }
 
-int end_to_end_test(const QString &dcm_dir_str, const QString &cbct_dir_str) {
+int end_to_end_test(const fs::path &dcm_dir_str, const fs::path &cbct_dir_str) {
 
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
@@ -219,10 +219,8 @@ int main(const int argc, char *argv[]) {
     return -1;
   }
 
-  const auto dcm_dir_str =
-      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
-  const auto cbct_dir_str =
-      QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
+  const auto dcm_dir_str = crl::split_string(argv[1], ".").at(0);
+  const auto cbct_dir_str = crl::split_string(argv[2], ".").at(0);
 
   std::cerr << "Running cbctrecon_test!\n";
   const auto ret_code = end_to_end_test(dcm_dir_str, cbct_dir_str);

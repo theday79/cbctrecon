@@ -35,6 +35,7 @@ SET(CbctRecon_HEADERS
   DlgRegistration.h
   qt-utils/qyklabel.h
   qt-utils/qcustomplot.h
+  qt-utils/qtwrap.h
   DlgExternalCommand.h
   DlgHistogram.h
 )

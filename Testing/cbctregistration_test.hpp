@@ -1,6 +1,8 @@
 #ifndef CbctRegistrationTest_H
 #define CbctRegistrationTest_H
 
+#include <filesystem>
+
 #include <itkImage.h>
 
 #include "MyQComboBox.hxx"
@@ -95,7 +97,7 @@ public:
   void SLT_DoRegistrationGradient();
   void SLT_ManualMoveByDCMPlan();
   void SLT_ManualMoveByDCMPlanOpen(QString &filePath);
-  void SLT_gPMCrecalc(std::vector<QString> &dcm_plans, size_t n_sims);
+  void SLT_gPMCrecalc(const std::vector<fs::path> &dcm_plans, size_t n_sims);
   void SLT_WEPLcalc(int gantry_angle, int couch_angle) const;
   void SLT_DoEclRegistration(const DoubleVector &translation_vec,
                              const DoubleVector &rotation_vec);

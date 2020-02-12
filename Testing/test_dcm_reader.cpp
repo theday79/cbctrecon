@@ -13,13 +13,16 @@
 #include "cbctrecon.h"
 #endif
 
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <numeric>
 
-#include <QDir>
-
 #include "cbctrecon_test.hpp"
+#include "free_functions.h"
+
+namespace fs = std::filesystem;
+using namespace std::literals;
 
 static const auto true_voi_names = std::array<std::string, 13>{
     {"BODY", "CTV1", "PTV1", "Airways_Lungs ", "Brain ", "Spinal cord ",
@@ -53,17 +56,16 @@ int main(const int argc, char *argv[]) {
   std::cerr << "Running test_dcm_reader!\n";
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
-  const auto dcm_dir_str =
-      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
+  const auto dcm_dir_str = crl::split_string(argv[1], ".").at(0);
 
-  auto dcm_dir = QDir(dcm_dir_str);
-  auto dcm_path = dcm_dir.absolutePath();
-  if (!dcm_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << dcm_path.toStdString() << "\n";
+  auto dcm_dir = fs::path(dcm_dir_str);
+  auto dcm_path = fs::absolute(dcm_dir);
+  if (!fs::exists(dcm_dir)) {
+    std::cerr << "Directory didn't exist: " << dcm_path << "\n";
     return -2;
   }
-  if (dcm_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << dcm_path.toStdString() << "\n";
+  if (fs::is_empty(dcm_dir)) {
+    std::cerr << "Directory was empty: " << dcm_path << "\n";
     return -3;
   }
 
