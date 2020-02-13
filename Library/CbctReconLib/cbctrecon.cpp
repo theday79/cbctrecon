@@ -2352,7 +2352,7 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
                          ("cor_" + m_strDCMUID); // current Proj folder
     const auto SubDirName = "Reconstruction"s;
     auto savingFolder = crntDir / SubDirName;
-    if (!fs::create_directory(crntDir / SubDirName)) {
+    if (!fs::create_directories(crntDir / SubDirName)) {
       std::cout
           << "DICOM dir seems to exist already. Files will be overwritten."
           << std::endl;

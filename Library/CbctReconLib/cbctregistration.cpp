@@ -126,15 +126,15 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
        << "\n";
   fout << "[GLOBAL]"
        << "\n";
-  fout << "fixed=" << strPathFixedImg << "\n";
-  fout << "moving=" << strPathMovingImg << "\n";
+  fout << "fixed=" << strPathFixedImg.generic_string() << "\n";
+  fout << "moving=" << strPathMovingImg.generic_string() << "\n";
 
   if (!strPathFixedMask.empty()) {
-    fout << "fixed_roi=" << strPathFixedMask << "\n";
+    fout << "fixed_roi=" << strPathFixedMask.generic_string() << "\n";
   }
 
-  fout << "img_out=" << strPathOutImg << "\n";
-  fout << "xform_out=" << strPathXformOut << "\n";
+  fout << "img_out=" << strPathOutImg.generic_string() << "\n";
+  fout << "xform_out=" << strPathXformOut.generic_string() << "\n";
   if (regiOption == enRegisterOption::PLAST_GRADIENT) {
     fout << "logfile="
          << "gradient_log.txt"
@@ -422,7 +422,7 @@ bool CbctRegistration::PreprocessCT(
   /* Save output file */
   sb.img_out->save_image(strPathMskBubbleCT.string());
 
-  if (fs::is_empty(m_pParent->m_strPathRS)) {
+  if (m_pParent->m_strPathRS.empty()) {
     return false;
   }
   /* End of [1]Segment air region*/

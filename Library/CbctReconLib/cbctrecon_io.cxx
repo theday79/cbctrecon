@@ -376,9 +376,9 @@ void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
   std::cout << "Writing was successfully done" << std::endl;
 }
 
-DCM_MODALITY get_dcm_modality(const std::string &filename) {
+DCM_MODALITY get_dcm_modality(const fs::path &filename) {
   gdcm::Reader reader;
-  reader.SetFileName(filename.c_str());
+  reader.SetFileName(filename.string().c_str());
   if (!reader.Read()) {
     std::cerr << "Reading dicom: " << filename << " failed!\n";
     return DCM_MODALITY::RTUNKNOWN;
@@ -788,7 +788,7 @@ std::vector<std::string> get_dcm_image_files(const fs::path &dir) {
   const auto seriesEnd = seriesUID.end();
 
   if (seriesItr == seriesEnd) {
-    std::cerr << "No DICOMs in: " << fs::absolute(dir).string() << "\n";
+    std::cerr << "No DICOMs in: " << fs::absolute(dir) << "\n";
     return {};
   }
 
@@ -830,20 +830,19 @@ std::vector<std::string> get_dcm_image_files(const fs::path &dir) {
   return fileNames;
 }
 
-bool ReadDicomDir(CbctRecon *p_cr, fs::path &dir) {
+bool ReadDicomDir(CbctRecon *p_cr, const fs::path &dir) {
 
   const auto filenamelist = get_dcm_image_files(dir);
 
   for (auto &&filename : fs::directory_iterator(dir)) {
-    if (!filename.is_regular_file() ||
-        !filename.is_symlink()) { // I guess symlinks should be allowed?
+    if (!(filename.is_regular_file() || filename.is_symlink())) { // I guess symlinks should be allowed?
       continue;
     }
     if (filename.path().string().find("-hash-stamp") != std::string::npos) {
       continue; // Just so the test data is less annoying.
     }
     const auto fullfilename = filename.path();
-    const auto modality = get_dcm_modality(fullfilename.string());
+    const auto modality = get_dcm_modality(fullfilename);
     switch (modality) {
     case DCM_MODALITY::RTIMAGE:
       break;
@@ -851,7 +850,7 @@ bool ReadDicomDir(CbctRecon *p_cr, fs::path &dir) {
       // filenamelist.push_back(fullfilename.toStdString());
       break;
     case DCM_MODALITY::RTSTRUCT:
-      p_cr->m_structures->set_planCT_ss(load_rtstruct(fullfilename.string()));
+      p_cr->m_structures->set_planCT_ss(std::move(load_rtstruct(fullfilename)));
       p_cr->m_strPathRS = fullfilename;
       break;
     case DCM_MODALITY::RTPLAN:
@@ -859,7 +858,7 @@ bool ReadDicomDir(CbctRecon *p_cr, fs::path &dir) {
     case DCM_MODALITY::RTRECORD:
       break; // I haven't ever seen one IRL
     case DCM_MODALITY::RTUNKNOWN:
-      std::cerr << "File: " << fullfilename.string()
+      std::cerr << "File: " << fullfilename
                 << " was not of a recognizeable modality type!\n";
       break;
     }

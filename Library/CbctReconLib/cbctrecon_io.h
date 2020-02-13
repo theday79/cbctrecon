@@ -25,7 +25,7 @@ CBCTRECON_API fs::path MakeElektaXML(const fs::path &filePath_ImageDBF,
                                      const std::string &DICOM_UID);
 
 CBCTRECON_API
-bool ReadDicomDir(CbctRecon *p_cr, fs::path &dir);
+bool ReadDicomDir(CbctRecon *p_cr, const fs::path &dir);
 
 CBCTRECON_API FLEXDATA XML_parseFrameForXVI5(itk::DOMNode::Pointer xml);
 

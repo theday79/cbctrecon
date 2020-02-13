@@ -24,7 +24,7 @@ public:
 
 private:
   FilterReaderType::Pointer
-  ReadBowtieFileWhileProbing(const QString &proj_path,
+  ReadBowtieFileWhileProbing(const fs::path &proj_path,
                              std::tuple<bool, bool> &answers) const;
 
 public:

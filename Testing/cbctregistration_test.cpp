@@ -783,7 +783,7 @@ void CbctRegistrationTest::SLT_PreProcessCT() {
   std::cout << "FINISHED!: Pre-processing of CT image" << std::endl;
 
   ////Load DICOM plan
-  if (fs::is_empty(m_cbctregistration->m_pParent->m_strPathPlan)) {
+  if (m_cbctregistration->m_pParent->m_strPathPlan.empty()) {
     std::cout << "No DCM plan file was found. Skipping dcm plan." << std::endl;
     return;
   }

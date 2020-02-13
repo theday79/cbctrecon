@@ -56,13 +56,12 @@ void CbctReconTest::test_LoadCTrigidMHA() {}
 void CbctReconTest::test_LoadCTdeformMHA() {}
 void CbctReconTest::test_LoadNKIImage() {}
 
-QString getBowtiePath(const QDir &calDir) {
-  return calDir.absolutePath() +
-         "/AIR-Full-Bowtie-100KV/Current/FilterBowtie.xim";
+fs::path getBowtiePath(const fs::path &calDir) {
+  return fs::absolute(calDir) / "AIR-Full-Bowtie-100KV" / "Current" / "FilterBowtie.xim";
 }
 
 FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
-    const QString &proj_path, std::tuple<bool, bool> &answers) const {
+    const fs::path &proj_path, std::tuple<bool, bool> &answers) const {
 
   auto bowtiereader =
       FilterReaderType::New(); // we use is because we need the projections to
@@ -70,19 +69,19 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
 
   // QDir guessDir(proj_path + QString("/../"));
 
-  const auto calDir(proj_path + QString("/Calibrations/"));
+  const auto calDir = proj_path / "Calibrations";
 
-  QString bowtiePath;
+  fs::path bowtiePath;
   answers = std::make_tuple(true, true);
 
   switch (this->m_cbctrecon->m_projFormat) {
   case enProjFormat::XIM_FORMAT:
     bowtiePath = getBowtiePath(calDir);
-    if (bowtiePath.length() > 1) {
+    if (!bowtiePath.empty()) {
       std::cerr << "loading bowtie-filter..."
                 << "\n";
       std::vector<std::string> filepath;
-      filepath.push_back(bowtiePath.toStdString());
+      filepath.push_back(bowtiePath.string());
       bowtiereader->SetFileNames(filepath);
       bowtiereader->Update();
     }
@@ -90,7 +89,7 @@ FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
   default:
     break;
   }
-  if (bowtiePath.length() > 1) {
+  if (!bowtiePath.empty()) {
     return bowtiereader;
   }
   return nullptr;
@@ -200,9 +199,9 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   this->m_cbctrecon->saveHisHeader();
 
   //  Insta Recon, Dcm read
-  const auto geopath = fs::absolute(geomFileInfo);
+  const auto geopath = fs::absolute(geomFileInfo.parent_path());
   std::tuple<bool, bool> answers;
-  auto bowtie_reader = ReadBowtieFileWhileProbing(QString(geopath.string().c_str()), answers);
+  auto bowtie_reader = ReadBowtieFileWhileProbing(geopath, answers);
 
   calc_thread.join();
   std::cerr << "Reader re-attached to main thread"
