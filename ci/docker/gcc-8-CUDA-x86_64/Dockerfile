@@ -26,7 +26,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 # Useful for debugging docker: bash sudo vim \
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja-build gcc g++ git qt5-default \
+    && apt install -y ninja-build gcc-8 g++-8 git qt5-default \
         libfftw3-dev libtinfo-dev libeigen3-dev \
         libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
@@ -37,11 +37,11 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
 # Reference: https://github.com/clab/dynet/issues/1457
 RUN mkdir /opt/cmake && cd /opt/cmake \
-    && wget -nv https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.sh \
-    && sh cmake-3.14.5-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && wget -nv https://cmake.org/files/v3.16/cmake-3.16.4-Linux-x86_64.sh \
+    && sh cmake-3.16.4-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
-    && rm cmake-3.14.5-Linux-x86_64.sh \
+    && rm cmake-3.16.4-Linux-x86_64.sh \
     && cmake --version
 
 RUN groupadd 1001 -g 1001 \
@@ -87,10 +87,10 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 
 # Build ITK and RTK by themselves with CUDA support
 RUN cd /home/user/ \
-    && git clone --depth 1 --branch "v5.0.0" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    && git clone --depth 1 --branch "v5.1rc01" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
-    && cmake -GNinja ../ITK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
+    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
       -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
       -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
       -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON -DModule_ITKDeprecated=ON \
