@@ -4,29 +4,33 @@ variables:
     CUDA_AVAILABLE: "NO"
 
 
-Ubuntu-gcc7-superbuild:
+Ubuntu-gcc9-superbuild:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:gcc-7-x86_64
+    image: andreasga/cbctrecon:gcc-9-x86_64
     script:
+      - export CC=/usr/bin/gcc-9
+      - export CXX=/usr/bin/g++-9
       - ./ci/ci.sh
 
-#Ubuntu-gcc7-CUDA:
-#    stage: test
-#    tags:
-#      - linux
-#      - docker
-#      - cuda
-#      - gpu
-#    image: andreasga/cbctrecon:gcc-7-CUDA-x86_64
-#    variables:
-#      CUDA_AVAILABLE: "YES"
-#      COVERAGE: "YES"
-#    script:
-#      - ./ci/ci.sh
+Ubuntu-gcc8-CUDA:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - cuda
+      - gpu
+    image: andreasga/cbctrecon:gcc-8-CUDA-x86_64
+    variables:
+      CUDA_AVAILABLE: "YES"
+      COVERAGE: "YES"
+    script:
+      - export CC=/usr/bin/gcc-8
+      - export CXX=/usr/bin/g++-8
+      - ./ci/ci.sh
 
 Ubuntu-gcc9-coverage-prebuild-deps:
     stage: test
@@ -55,13 +59,13 @@ Ubuntu-gcc9-coverage-prebuild-deps:
 #      - export CXX=clang++
 #      - ./ci/ci.sh
 
-Ubuntu-clang6-prebuild-deps:
+Ubuntu-clang9-prebuild-deps:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:clang-6-x86_64-libDCMTK-ITKv5-RTK
+    image: andreasga/cbctrecon:clang-9-x86_64-libDCMTK-ITKv5-RTK
     script:
       - export CC=clang
       - export CXX=clang++

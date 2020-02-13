@@ -11,7 +11,7 @@ CC="intel-opencl-runtime-cpu"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
-CC="gcc-7-x86_64"
+CC="gcc-9-x86_64"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
@@ -23,11 +23,11 @@ CC="gcc-9-x86_64"
 docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK}
 
-CC="gcc-7-CUDA-x86_64"
+CC="gcc-8-CUDA-x86_64"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
-CC="clang-6-x86_64"
+CC="clang-9-x86_64"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
