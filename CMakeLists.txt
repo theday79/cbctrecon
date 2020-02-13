@@ -25,7 +25,7 @@ project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
   )
 
-SET(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard specification")
+SET(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard specification")
 
 set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #-----------------------------------------------------------------------------
