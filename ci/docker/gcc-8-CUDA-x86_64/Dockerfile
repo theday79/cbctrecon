@@ -28,7 +28,7 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
     && apt update \
     && apt install -y ninja-build gcc-8 g++-8 git qt5-default \
         libfftw3-dev libtinfo-dev libeigen3-dev \
-        libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev \
+        libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
         libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libffi-dev uuid-dev \
     && rm -rf /var/lib/apt/lists/*
