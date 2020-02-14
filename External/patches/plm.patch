@@ -110,7 +110,7 @@ index 11634afa..e9fa2985 100644
          dcmtk_put (rbs_item, DCM_BeamMeterset, 
              beam->final_cumulative_meterset_weight);
 -	dcmtk_put (rbs_item, DCM_BeamDoseSpecificationPoint, 
-+	dcmtk_put (rbs_item, DcmTagKey(0x300a, 0x0082), // DCM_BeamDoseSpecificationPoint, 
++	dcmtk_put (rbs_item, DcmTagKey(0x300a, 0x0082), // DCM_BeamDoseSpecificationPoint,
  	    beam->beam_dose_specification_point);
  	dcmtk_put (rbs_item, DCM_BeamDose,
  	    beam->beam_dose);
