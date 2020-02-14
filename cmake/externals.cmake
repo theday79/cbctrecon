@@ -2,7 +2,7 @@ include(${CbctRecon_SOURCE_DIR}/cmake/DownloadProject.cmake)
 
 macro(external_dependency NAME URL COMMIT)
     if(${NAME} STREQUAL "Plastimatch")
-      set(PATCH_CMD PATCH_COMMAND "") # git apply ${CMAKE_SOURCE_DIR}/External/patches/plm.patch)
+      set(PATCH_CMD PATCH_COMMAND git apply ${CMAKE_SOURCE_DIR}/External/patches/plm.patch)
     else()
       set(PATCH_CMD PATCH_COMMAND "")
     endif()

@@ -1,83 +1,128 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 97fc42a..d8e5f50 100755
+index aa00d3af..0eb16f5b 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -44,7 +44,7 @@ endif ()
+@@ -574,6 +574,7 @@ if (NOT ITK_FOUND AND NOT PLM_SYSTEM_ITK STREQUAL "YES")
+ endif ()
+ 
+ if (ITK_FOUND)
++  set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+   include (HandleITK)
+   include (HandleVXL)
+ endif ()
+@@ -770,7 +771,7 @@ endif ()
+ ##    avoid this (i.e. no good suggestions on CMake/CTest email list.
+ ##    This is the purpose of the PATH_HACK code below.
  ##-----------------------------------------------------------------------------
- ##  CMake path
- ##-----------------------------------------------------------------------------
--set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-+set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
- 
- ##-----------------------------------------------------------------------------
- ##  Prevent in-source build
-diff --git a/libs/demons_itk_insight/LOGDomainDemons/itkLogDomainDeformableRegistrationFilter.hxx b/libs/demons_itk_insight/LOGDomainDemons/itkLogDomainDeformableRegistrationFilter.hxx
-index ee56c27..df92ab4 100644
---- a/libs/demons_itk_insight/LOGDomainDemons/itkLogDomainDeformableRegistrationFilter.hxx
-+++ b/libs/demons_itk_insight/LOGDomainDemons/itkLogDomainDeformableRegistrationFilter.hxx
-@@ -3,7 +3,8 @@
- 
- #include "itkLogDomainDeformableRegistrationFilter.h"
- 
--#include "itkExceptionObject.h"
-+// #include "itkExceptionObject.h"
-+#include "itkMacro.h"
- #include "itkImageRegionIterator.h"
- #include "itkImageLinearIteratorWithIndex.h"
- #include "itkDataObject.h"
-diff --git a/libs/demons_itk_insight/itkESMDemonsRegistrationWithMaskFunction.txx b/libs/demons_itk_insight/itkESMDemonsRegistrationWithMaskFunction.txx
-index 321e826..8f83d00 100644
---- a/libs/demons_itk_insight/itkESMDemonsRegistrationWithMaskFunction.txx
-+++ b/libs/demons_itk_insight/itkESMDemonsRegistrationWithMaskFunction.txx
-@@ -19,7 +19,8 @@
- #define __itkESMDemonsRegistrationWithMaskFunction_txx
- 
- #include "itkESMDemonsRegistrationWithMaskFunction.h"
--#include "itkExceptionObject.h"
-+// #include "itkExceptionObject.h"
-+#include "itkMacro.h"
- #include "vnl/vnl_math.h"
- #if ITK_VERSION_MAJOR >= 5
- #include "vcl_legacy_aliases.h"
-diff --git a/libs/demons_itk_insight/itkPDEDeformableRegistrationWithMaskFilter.hxx b/libs/demons_itk_insight/itkPDEDeformableRegistrationWithMaskFilter.hxx
-index e50dffb..36ad568 100644
---- a/libs/demons_itk_insight/itkPDEDeformableRegistrationWithMaskFilter.hxx
-+++ b/libs/demons_itk_insight/itkPDEDeformableRegistrationWithMaskFilter.hxx
-@@ -19,7 +19,8 @@
- 
- #include "itkPDEDeformableRegistrationWithMaskFilter.h"
- 
--#include "itkExceptionObject.h"
-+// #include "itkExceptionObject.h"
-+#include "itkMacro.h"
- #include "itkImageRegionIterator.h"
- #include "itkImageLinearIteratorWithIndex.h"
- #include "itkDataObject.h"
-diff --git a/libs/ransac/RANSAC.h b/libs/ransac/RANSAC.h
-index 59fc50b..1566748 100644
---- a/libs/ransac/RANSAC.h
-+++ b/libs/ransac/RANSAC.h
-@@ -15,7 +15,8 @@
- #include "itkMultiThreader.h"
- #include "itkSimpleFastMutexLock.h"
- #endif
--#include "itkExceptionObject.h"
-+// #include "itkExceptionObject.h"
-+#include "itkMacro.h"
- 
- /**
-  * This class implements a multi-threaded version of the RAndom SAmple 
-diff --git a/src/plastimatch/register/itk_registration_private.h b/src/plastimatch/register/itk_registration_private.h
-index 3dcd585..fda1688 100644
---- a/src/plastimatch/register/itk_registration_private.h
-+++ b/src/plastimatch/register/itk_registration_private.h
-@@ -5,7 +5,8 @@
- #define _itk_registration_private_h_
- 
- #include "plmregister_config.h"
--#include "itkExceptionObject.h"
-+// #include "itkExceptionObject.h"
-+#include "itkMacro.h"
- #include "itkImageRegistrationMethod.h"
- #include "itk_image_type.h"
- #include "stage_parms.h"
+-if (WIN32 AND NOT CYGWIN AND NOT MINGW)
++if (FALSE) # WIN32 AND NOT CYGWIN AND NOT MINGW)
+   set (PLM_PLASTIMATCH_PATH
+     ${PLM_BINARY_DIR}/Release)
+   set (PLM_PLASTIMATCH_TESTING_PATH
+diff --git a/cmake/FindDlib.cmake b/cmake/FindDlib.cmake
+deleted file mode 100755
+index ee108db4..00000000
+--- a/cmake/FindDlib.cmake
++++ /dev/null
+@@ -1,57 +0,0 @@
+-# - Find Dlib
+-# Find the native Dlib includes and library
+-#
+-#  DLIB_INCLUDE_DIR - where to find zlib.h, etc.
+-#  DLIB_LIBRARIES   - List of libraries when using zlib.
+-#  DLIB_FOUND       - True if zlib found.
+-
+-if (NOT DLIB_DIR)
+-  find_path (DLIB_DIR DLIBconfig.cmake
+-    $ENV{DLIB_DIR}
+-    DOC "The build directory, containing Dlibconfig.cmake")
+-endif (NOT DLIB_DIR)
+-
+-if (DLIB_DIR)
+-  if (EXISTS (${DLIB_DIR}/Dlibconfig.cmake))
+-    include (${DLIB_DIR}/Dlibconfig.cmake)
+-  endif ()
+-endif (DLIB_DIR)
+-
+-if (DLIB_INCLUDE_DIR)
+-  # Already in cache, be silent
+-  set (Dlib_FIND_QUIETLY TRUE)
+-endif (DLIB_INCLUDE_DIR)
+-
+-find_path (DLIB_INCLUDE_DIR "dlib/algs.h"
+-  PATHS "${DLIB_DIR}")
+-
+-set (DLIB_NAMES dlib)
+-find_library (DLIB_LIBRARY NAMES ${DLIB_NAMES})
+-
+-# handle the QUIETLY and REQUIRED arguments and set DLIB_FOUND to TRUE if 
+-# all listed variables are TRUE
+-include (FindPackageHandleStandardArgs)
+-find_package_handle_standard_args (DLIB DEFAULT_MSG 
+-  DLIB_LIBRARY 
+-  DLIB_INCLUDE_DIR)
+-
+-# Dlib on debian is linked against lapack and blas
+-if (DLIB_LIBRARY)
+-    find_package (BLAS)
+-    if (BLAS_FOUND)
+-	find_package (LAPACK)
+-    endif ()
+-    if (LAPACK_FOUND)
+-	list (APPEND DLIB_LIBRARY ${LAPACK_LIBRARIES})
+-    else ()
+-	set (DLIB_FOUND FALSE)
+-    endif ()
+-endif ()
+-
+-if (DLIB_FOUND)
+-  set (DLIB_LIBRARIES ${DLIB_LIBRARY})
+-else (DLIB_FOUND)
+-  set (DLIB_LIBRARIES)
+-endif (DLIB_FOUND)
+-
+-mark_as_advanced (DLIB_LIBRARY)
+diff --git a/src/plastimatch/CMakeLists.txt b/src/plastimatch/CMakeLists.txt
+index c2f0032d..2d3a04e8 100644
+--- a/src/plastimatch/CMakeLists.txt
++++ b/src/plastimatch/CMakeLists.txt
+@@ -76,11 +76,12 @@ if (PLM_PREFER_SYSTEM_DLIB)
+   # could be worked around by setting dlib_BINARY_DIR.  However, modern
+   # dlibConfig.cmake scripts do not have this problem.
+   ##  set (dlib_BINARY_DIR 1)
+-  find_package (dlib QUIET)
++  find_package (dlib REQUIRED)
+ endif ()
+ set (DLIB_HAVE_LIBRARY FALSE)
+ if (dlib_FOUND)
+-  set (DLIB_INCLUDE_DIR ${dlib_INCLUDE_DIR})
++  message(STATUS "DLIB FOUND !!!!!!!!!")
++  #set (DLIB_INCLUDE_DIR ${dlib_INCLUDE_DIRS})
+   #set (DLIB_LIBRARIES ${dlib_LIBRARIES})
+   set (DLIB_LIBRARIES dlib::dlib)
+   set (DLIB_FOUND TRUE)
+diff --git a/src/plastimatch/base/dcmtk_rtplan.cxx b/src/plastimatch/base/dcmtk_rtplan.cxx
+index 11634afa..e9fa2985 100644
+--- a/src/plastimatch/base/dcmtk_rtplan.cxx
++++ b/src/plastimatch/base/dcmtk_rtplan.cxx
+@@ -352,7 +352,7 @@ Dcmtk_rt_study::rtplan_save (const char *dicom_dir)
+         Rtplan_beam *beam = rtplan->beamlist[b];
+         dcmtk_put (rbs_item, DCM_BeamMeterset, 
+             beam->final_cumulative_meterset_weight);
+-	dcmtk_put (rbs_item, DCM_BeamDoseSpecificationPoint, 
++	dcmtk_put (rbs_item, DcmTagKey(0x300a, 0x0082), // DCM_BeamDoseSpecificationPoint, 
+ 	    beam->beam_dose_specification_point);
+ 	dcmtk_put (rbs_item, DCM_BeamDose,
+ 	    beam->beam_dose);
+diff --git a/src/plastimatch/clp/CMakeLists.txt b/src/plastimatch/clp/CMakeLists.txt
+index ca6520c0..68d47d01 100644
+--- a/src/plastimatch/clp/CMakeLists.txt
++++ b/src/plastimatch/clp/CMakeLists.txt
+@@ -21,3 +21,7 @@ set (PLMCLP_LIBRARY_SRC
+ #  ""
+ #  "")
+ add_library (plmclp STATIC ${PLMCLP_LIBRARY_SRC})
++
++target_link_libraries(plmclp
++  dlib::dlib
++  )
