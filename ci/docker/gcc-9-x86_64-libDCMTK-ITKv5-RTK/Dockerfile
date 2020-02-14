@@ -14,7 +14,7 @@ USER user
 # ITK
 RUN export CC=/usr/bin/gcc-9 \
     && export CXX=/usr/bin/g++-9 \
-    && export CXXFLAGS = -std=c++17 -I/usr/include/tbb -fopenmp-simd \
+    && export CXXFLAGS = -std=c++17 -I/usr/include -I/usr/include/tbb -fopenmp-simd \
     && export LDFLAGS = -L/usr/lib/x86_64-linux-gnu -ltbb \
     && cd /home/user/ \
     && git clone --depth 1 --branch "v5.1rc01" https://github.com/InsightSoftwareConsortium/ITK.git ITK \

@@ -8,7 +8,7 @@ USER root
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ eoan multiverse" >> /etc/apt/sources.list \
     && apt update \
     && echo "Install dependencies for conan" \
-    && apt install -y wget sudo git gcc-9 make \
+    && apt install -y wget sudo git gcc make \
         zlib1g-dev libffi-dev libbz2-dev libssl-dev libsqlite3-dev libreadline-dev \
     && echo "Add user with group sudo" \
     && groupadd 1001 -g 1001 \
