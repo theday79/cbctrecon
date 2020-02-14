@@ -21,11 +21,13 @@ set(GDCM_GIT_TAG master)
 set(DCMTK_GIT_REPOSITORY "${git_protocol}hub.com/DCMTK/DCMTK.git")
 set(DCMTK_GIT_TAG master)
 
+# RTK is deprecating ITKv4 support (may still work), but 5.0.0 and forward should be fine
 set(ITK_GIT_REPOSITORY "${git_protocol}hub.com/InsightSoftwareConsortium/ITK.git")
 set(ITK_GIT_TAG master)
 
-set(DLIB_GIT_REPOSITORY "${git_protocol}hub.com/davisking/dlib.git")
-set(DLIB_GIT_TAG master)
+# It looks like version 19.3 and forward would work with C++17
+set(dlib_GIT_REPOSITORY "${git_protocol}hub.com/davisking/dlib.git")
+set(dlib_GIT_TAG master)
 
 set(plm Plastimatch)
 set(${plm}_GIT_REPOSITORY "${git_protocol}lab.com/plastimatch/plastimatch.git")
@@ -71,7 +73,7 @@ if(USE_ITK_DCMTK)
 endif()
 
 # dlib because the one in Plastimatch is two years old
-external_proj(DLIB)
+external_proj(dlib)
 
 # Plastimatch
 external_proj(${plm})

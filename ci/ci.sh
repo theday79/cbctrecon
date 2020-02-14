@@ -23,11 +23,11 @@ if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
     export CUDA_FLAGS="-DUSE_CUDA=ON -DEXACT_GCC=/usr/bin/gcc-8"
     nvidia-smi
     # Ubuntu Bionic:
-    export DLIBDIR="-DDLIB_DIR=/usr/lib/cmake/dlib/"
+    export DLIBDIR="-Ddlib_DIR=/usr/lib/cmake/dlib/"
 else
     export CUDA_FLAGS="-DUSE_CUDA=OFF"
     # Ubuntu Eoan:
-    export DLIBDIR="-DDLIB_DIR=/usr/lib/x86_64-linux-gnu/cmake/dlib/"
+    export DLIBDIR="-Ddlib_DIR=/usr/lib/x86_64-linux-gnu/cmake/dlib/"
 fi
 
 if [[ "$COVERAGE" = "YES" ]]; then
