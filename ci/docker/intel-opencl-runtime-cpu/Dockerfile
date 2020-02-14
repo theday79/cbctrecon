@@ -5,7 +5,7 @@ USER root
 
 RUN apt update \
     && echo "Install dependencies for Intel OpenCL runtime" \
-    && apt install -y numactl libtbb2 zlib1g libncurses5 wget tar gzip bsdtar \
+    && apt install -y numactl libtbb2 zlib1g libncurses5 wget tar gzip libarchive-tools \
         ocl-icd-opencl-dev clinfo libtbb-dev libdlib-dev
 
 RUN echo "Install Intel runtime for Intel Core and Xeon processors (Inspired by the AUR package intel-opencl-runtime)" \
