@@ -835,7 +835,8 @@ bool ReadDicomDir(CbctRecon *p_cr, const fs::path &dir) {
   const auto filenamelist = get_dcm_image_files(dir);
 
   for (auto &&filename : fs::directory_iterator(dir)) {
-    if (!(filename.is_regular_file() || filename.is_symlink())) { // I guess symlinks should be allowed?
+    if (!(filename.is_regular_file() ||
+          filename.is_symlink())) { // I guess symlinks should be allowed?
       continue;
     }
     if (filename.path().string().find("-hash-stamp") != std::string::npos) {
@@ -1314,28 +1315,30 @@ bool SaveDoseGrayImage(
   const long m_iStripOffset = 1024;
   const short m_iSamplePerPixel = 1;
   const long m_iRowsPerStrip = height;
-  const long m_iStripByteCnts = qRound(width * height * 2.0);
+  const long m_iStripByteCnts = crl::ce_round(width * height * 2.0);
 
   const short m_iResolUnit = 2;
   const short m_iPgNum = 0; // or 1?
   const unsigned short m_iMinSampleVal = 0;
-  const unsigned short m_iMaxSampleVal = 65535U; // old: 255
+  const unsigned short m_iMaxSampleVal =
+      std::numeric_limits<unsigned short>::max(); // old: 255
   const auto ten_mill = 10000000;
-  RATIONAL m_rXResol{static_cast<long>(qRound(1 / spacingX * 25.4 *
-                                              ten_mill)), // spacingX in dpi
+  RATIONAL m_rXResol{static_cast<long>(crl::ce_round(
+                         1 / spacingX * 25.4 * ten_mill)), // spacingX in dpi
                      ten_mill};
-  RATIONAL m_rYResol{static_cast<long>(qRound(1 / spacingY * 25.4 * ten_mill)),
-                     ten_mill}; // spacingY
+  RATIONAL m_rYResol{
+      static_cast<long>(crl::ce_round(1 / spacingY * 25.4 * ten_mill)),
+      ten_mill}; // spacingY
 
   // double fLeftPosMM = -dataPt.x()*spacingX;
   // double fTopPosMM = dataPt.y()*spacingY;
   const auto fLeftPosMM = originLeft_mm;
   const auto fTopPosMM = -originTop_mm;
 
-  RATIONAL m_rXPos{static_cast<long>(qRound(fLeftPosMM / 25.4 * ten_mill)),
-                   ten_mill};
-  RATIONAL m_rYPos{static_cast<long>(qRound(fTopPosMM / 25.4 * ten_mill)),
-                   ten_mill};
+  RATIONAL m_rXPos{
+      static_cast<long>(crl::ce_round(fLeftPosMM / 25.4 * ten_mill)), ten_mill};
+  RATIONAL m_rYPos{
+      static_cast<long>(crl::ce_round(fTopPosMM / 25.4 * ten_mill)), ten_mill};
 
   auto m_iNextOffset = 0;
 
@@ -1345,8 +1348,8 @@ bool SaveDoseGrayImage(
 
   // Set Center
   QPoint dataPt;
-  dataPt.setX(qRound(m_iWidth / 2.0));
-  dataPt.setY(qRound(m_iHeight / 2.0));
+  dataPt.setX(crl::ce_round(m_iWidth / 2.0));
+  dataPt.setY(crl::ce_round(m_iHeight / 2.0));
 
   {
     // FILE *fd = nullptr;
@@ -1469,12 +1472,12 @@ bool SaveDoseGrayImage(
     }
 
     ////// Do not insert if dataVal is initial value
-    if (m_iMinSampleVal >= 0) {
+    { // always true? if (m_iMinSampleVal >= 0) {
       const auto tififd_tmp = TIFIFD{280, data_type, data_cnt, m_iMinSampleVal};
       IFDarr.at(i) = tififd_tmp;
       ++i;
     }
-    if (m_iMaxSampleVal >= 0) {
+    { // always true? if (m_iMaxSampleVal >= 0) {
       const auto tififd_tmp = TIFIFD{281, data_type, data_cnt, m_iMaxSampleVal};
       IFDarr.at(i) = tififd_tmp;
       ++i;

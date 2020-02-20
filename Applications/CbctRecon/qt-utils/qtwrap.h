@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <QString>
-#include <QstringList>
+#include <QStringList>
 
 namespace fs = std::filesystem;
 

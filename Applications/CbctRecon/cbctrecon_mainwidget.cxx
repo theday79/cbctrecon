@@ -18,7 +18,6 @@
 #include <qmessagebox.h>
 #include <qstandarditemmodel.h>
 #include <qstring.h>
-#include <qtimer.h>
 
 // ITK
 // #include "itkCastImageFilter.h"
@@ -1941,7 +1940,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
 // called whenver recon 3D image for display changes.
 void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
-                                       QString &fileName) {
+                                       const QString fileName) {
   this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
   const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
@@ -2843,7 +2842,8 @@ void CbctReconWidget::SLTM_FullScatterCorrectionMacroAP() // single. should be
 
 void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   // Scatter parameters
-  auto batchmodeTime = QTime::currentTime();
+  auto batchmodeTime = std::chrono::high_resolution_clock::now();
+  // QTime::currentTime();
 
   // 1) Get img_ file lists
   const auto dirIMAGES = to_path(QFileDialog::getExistingDirectory(
@@ -2954,11 +2954,13 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
     }
   }
 
-  const auto elapsedSec = batchmodeTime.elapsed() / 1000.0f;
+  auto batchmodeTime_end = std::chrono::high_resolution_clock::now();
+  const auto elapsedSec = batchmodeTime_end - batchmodeTime;
 
-  std::cout << "Batch mode calculation is done! "
-            << QString::number(elapsedSec, 'f', 2).toLocal8Bit().constData()
-            << " seconds was spent for " << cntHisDir << " cases" << std::endl;
+  std::cout
+      << "Batch mode calculation is done! "
+      << std::chrono::duration_cast<std::chrono::seconds>(elapsedSec).count()
+      << " seconds was spent for " << cntHisDir << " cases" << std::endl;
 }
 
 // Uses SLT functions heavily:

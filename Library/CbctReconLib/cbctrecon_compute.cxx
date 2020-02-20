@@ -26,8 +26,8 @@
 #include "itkSmartPointer.h" // for SmartPointer
 #include "itkStatisticsImageFilter.h"
 
-#include "free_functions.h"
 #include "OpenCL/ImageFilters.hpp"
+#include "free_functions.h"
 
 namespace crl {
 
@@ -353,7 +353,6 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   spSrcTarg = flipFilter->GetOutput();
 }
 
-
 void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 
   using iteratorType = itk::ImageRegionIteratorWithIndex<UShortImageType>;
@@ -567,10 +566,9 @@ void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
   spAttImgFloat = multiplyImageFilter->GetOutput();
 }
 
-void CropFOV3D(UShortImageType::Pointer &sp_Img,
-                          const float physPosX, const float physPosY,
-                          const float physRadius,
-                          const float physTablePosY) {
+void CropFOV3D(UShortImageType::Pointer &sp_Img, const float physPosX,
+               const float physPosY, const float physRadius,
+               const float physTablePosY) {
   if (sp_Img == nullptr) {
     return;
   }
@@ -621,8 +619,8 @@ void CropFOV3D(UShortImageType::Pointer &sp_Img,
 
 // From line integral to raw intensity
 // bkIntensity is usually 65535
-UShortImageType::Pointer ConvertLineInt2Intensity_ushort(
-    FloatImageType::Pointer &spProjLineInt3D) {
+UShortImageType::Pointer
+ConvertLineInt2Intensity_ushort(FloatImageType::Pointer &spProjLineInt3D) {
   if (spProjLineInt3D == nullptr) {
     return nullptr;
   }
@@ -636,8 +634,8 @@ UShortImageType::Pointer ConvertLineInt2Intensity_ushort(
   return convert_filter->GetOutput();
 }
 
-FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
-    UShortImageType::Pointer &spProjIntensity3D) {
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(UShortImageType::Pointer &spProjIntensity3D) {
   if (spProjIntensity3D == nullptr) {
     return nullptr;
   }
@@ -649,8 +647,8 @@ FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
   return convert_filter->GetOutput();
 }
 
-FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
-    FloatImageType::Pointer &spProjIntensity3D) {
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D) {
   if (spProjIntensity3D == nullptr) {
     return nullptr;
   }
@@ -665,7 +663,7 @@ FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
 void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList) {
   const auto size = filenameList.size();
 
-  for (auto i = 0; i < size; i++) {
+  for (size_t i = 0; i < size; i++) {
     const auto &crntFilePath = filenameList.at(i);
     auto dir = fs::absolute(crntFilePath);
     auto fileBase = crntFilePath.stem();

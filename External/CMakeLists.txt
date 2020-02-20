@@ -36,6 +36,13 @@ set(${plm}_GIT_TAG master)
 set(TINYREFL_GIT_REPOSITORY "${git_protocol}lab.com/Manu343726/tinyrefl.git")
 set(TINYREFL_GIT_TAG master)
 
+set(ABSEIL_GIT_REPOSITORY "${git_protocol}hub.com/abseil/abseil-cpp.git")
+set(ABSEIL_GIT_TAG master)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  external_proj(ABSEIL)
+endif()
+
 if(WIN32 AND NOT (USE_ITK_GDCM OR USE_SYSTEM_ITK))
   external_proj(GDCM)
   if (NOT USE_SYSTEM_GDCM)
@@ -84,3 +91,4 @@ set(${plm}_SRC ${${plm}_SOURCE_DIR})
 if(USE_TINYREFL)
   external_proj(TINYREFL)
 endif()
+

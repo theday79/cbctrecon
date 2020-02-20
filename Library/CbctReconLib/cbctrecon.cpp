@@ -239,9 +239,8 @@ bool CbctRecon::LoadGeometry(const fs::path &geomFileInfo,
   {
     std::cout << "XVI Geometry File was found. This will be temporarily used:"
               << geomFileInfo.filename() << std::endl;
-    const auto success =
-        LoadXVIGeometryFile(fs::absolute(geomFileInfo)
-                                ); // will generate m_spFullGeometry
+    const auto success = LoadXVIGeometryFile(
+        fs::absolute(geomFileInfo)); // will generate m_spFullGeometry
     if (!success) {
       return false;
     }
@@ -271,8 +270,7 @@ bool CbctRecon::LoadGeometry(const fs::path &geomFileInfo,
                  "temporarily used:"
               << geomFileInfo.filename() << std::endl;
     auto reader = rtk::VarianProBeamGeometryReader::New();
-    reader->SetXMLFileName(
-        fs::absolute(geomFileInfo).string());
+    reader->SetXMLFileName(fs::absolute(geomFileInfo).string());
     reader->SetProjectionsFileNames(names);
     reader->UpdateOutputData();
     // Write
@@ -288,11 +286,9 @@ bool CbctRecon::LoadGeometry(const fs::path &geomFileInfo,
     // //will generate m_spFullGeometry
   } else {
     std::cout << "RTK standard Geometry XML File was found:"
-              << fs::absolute(geomFileInfo)
-              << std::endl;
+              << fs::absolute(geomFileInfo) << std::endl;
     m_spFullGeometry = crl::LoadRTKGeometryFile(
-        fs::absolute(geomFileInfo)
-            ); // will generate m_spFullGeometry
+        fs::absolute(geomFileInfo)); // will generate m_spFullGeometry
   }
   return true;
 }
@@ -567,19 +563,22 @@ void CbctRecon::PostApplyFOVDispParam(const float physPosX,
   // UShortImageType::SizeType size =
   // m_spCrntReconImg->GetBufferedRegion().GetSize();
 
-  const auto pixPosX = qRound((physPosX - static_cast<double>(origin[0])) /
-                              static_cast<double>(spacing[0]));
-  const auto pixPosY = qRound((physPosY - static_cast<double>(origin[1])) /
-                              static_cast<double>(spacing[1]));
+  const auto pixPosX =
+      crl::ce_round((physPosX - static_cast<double>(origin[0])) /
+                    static_cast<double>(spacing[0]));
+  const auto pixPosY =
+      crl::ce_round((physPosY - static_cast<double>(origin[1])) /
+                    static_cast<double>(spacing[1]));
 
-  const auto pixRadius = qRound(physRadius / static_cast<double>(spacing[0]));
+  const auto pixRadius =
+      crl::ce_round(physRadius / static_cast<double>(spacing[0]));
 
-  // int pixWidth = qRound((qreal) size[0]);
-  // int pixHeight = qRound((qreal) size[1]);
+  // int pixWidth = crl::ce_round((qreal) size[0]);
+  // int pixHeight = crl::ce_round((qreal) size[1]);
 
   const auto pixTableY =
-      qRound((physTablePosY - static_cast<double>(origin[1])) /
-             static_cast<double>(spacing[1]));
+      crl::ce_round((physTablePosY - static_cast<double>(origin[1])) /
+                    static_cast<double>(spacing[1]));
 
   if (pixPosX >= 0 && pixPosY < m_dspYKReconImage->m_iWidth && pixPosY >= 0 &&
       pixPosY < m_dspYKReconImage->m_iHeight && pixRadius > 0 &&
@@ -636,8 +635,8 @@ void CbctRecon::CropSupInf(UShortImageType::Pointer &sp_Img,
   }
 
   ////calc index
-  sizeLower[2] = qRound((physPosInfCut - minPosSI) / spacing[2]);
-  sizeUpper[2] = qRound((maxPosSI - physPosSupCut) / spacing[2]);
+  sizeLower[2] = crl::ce_round((physPosInfCut - minPosSI) / spacing[2]);
+  sizeUpper[2] = crl::ce_round((maxPosSI - physPosSupCut) / spacing[2]);
   //
   using CropImageFilterType =
       itk::CropImageFilter<UShortImageType, UShortImageType>;
@@ -877,7 +876,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   auto width = imgSize[0];
   auto height = imgSize[1];
   auto i_req_slice =
-      static_cast<size_t>(qRound((pos - imgOrigin[2]) / imgSpacing[2]));
+      static_cast<size_t>(crl::ce_round((pos - imgOrigin[2]) / imgSpacing[2]));
   auto i_cnt_slice = imgSize[2];
 
   // For moving image
@@ -921,7 +920,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     width = imgSize[0];
     height = imgSize[2];
     i_cnt_slice = imgSize[1];
-    i_req_slice = qRound((pos - imgOrigin[1]) / imgSpacing[1]);
+    i_req_slice = crl::ce_round((pos - imgOrigin[1]) / imgSpacing[1]);
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(2); // y?
 
@@ -935,7 +934,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     width = imgSize[1];
     height = imgSize[2];
     i_cnt_slice = imgSize[0];
-    i_req_slice = qRound((pos - imgOrigin[0]) / imgSpacing[0]);
+    i_req_slice = crl::ce_round((pos - imgOrigin[0]) / imgSpacing[0]);
     it.SetFirstDirection(1);  // x?
     it.SetSecondDirection(2); // y?
 
@@ -1047,7 +1046,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
   auto width = imgSize[0];
   auto height = imgSize[1];
   auto iCntSlice = imgSize[2];
-  auto iReqSlice = qRound((pos - imgOrigin[2]) / imgSpacing[2]);
+  auto iReqSlice = crl::ce_round((pos - imgOrigin[2]) / imgSpacing[2]);
 
   // For moving image
   using ResampleFilterType =
@@ -1095,7 +1094,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     width = imgSize[0];
     height = imgSize[2];
     iCntSlice = imgSize[1];
-    iReqSlice = qRound((pos - imgOrigin[1]) / imgSpacing[1]);
+    iReqSlice = crl::ce_round((pos - imgOrigin[1]) / imgSpacing[1]);
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(2); // y?
 
@@ -1109,7 +1108,7 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
     width = imgSize[1];
     height = imgSize[2];
     iCntSlice = imgSize[0];
-    iReqSlice = qRound((pos - imgOrigin[0]) / imgSpacing[0]);
+    iReqSlice = crl::ce_round((pos - imgOrigin[0]) / imgSpacing[0]);
     it.SetFirstDirection(1);  // x?
     it.SetSecondDirection(2); // y?
 
@@ -1211,7 +1210,7 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
   auto width = imgSize[0];
   auto height = imgSize[1];
   auto iCntSlice = imgSize[2];
-  auto iReqSlice = qRound((pos - imgOrigin[2]) / imgSpacing[2]);
+  auto iReqSlice = crl::ce_round((pos - imgOrigin[2]) / imgSpacing[2]);
 
   switch (direction) {
   case enPLANE::PLANE_AXIAL:
@@ -1223,7 +1222,7 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
     width = imgSize[0];
     height = imgSize[2];
     iCntSlice = imgSize[1];
-    iReqSlice = qRound((pos - imgOrigin[1]) / imgSpacing[1]);
+    iReqSlice = crl::ce_round((pos - imgOrigin[1]) / imgSpacing[1]);
     it.SetFirstDirection(0);  // x?
     it.SetSecondDirection(2); // y?
     Output2D.SetSpacing(imgSpacing[0], imgSpacing[2]);
@@ -1232,7 +1231,7 @@ void CbctRecon::Draw2DFrom3D(UShortImageType::Pointer &pImg,
     width = imgSize[1];
     height = imgSize[2];
     iCntSlice = imgSize[0];
-    iReqSlice = qRound((pos - imgOrigin[0]) / imgSpacing[0]);
+    iReqSlice = crl::ce_round((pos - imgOrigin[0]) / imgSpacing[0]);
     it.SetFirstDirection(1);  // x?
     it.SetSecondDirection(2); // y?
     Output2D.SetSpacing(imgSpacing[1], imgSpacing[2]);
@@ -1619,9 +1618,9 @@ void CbctRecon::FindAllRelevantPaths(
 
   if (fs::exists(pathAcqParamDir)) {
 
-    auto iMinNameLength = 9999;
+    auto iMinNameLength = std::numeric_limits<size_t>::max();
 
-    auto iMaxNameLength = 0;
+    auto iMaxNameLength = std::numeric_limits<size_t>::min();
     auto iCnt_INIXVI = 0;
 
     fs::path strPathINIXVI_long;
@@ -1760,10 +1759,10 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
                  "high resolution macro?"
               << std::endl;
     // Why 2.0 shouldn't it be 1/downresfactor ?
-    if (size1[0] ==
-            static_cast<SizeType::SizeValueType>(qRound(size2[0] * 2.0)) &&
-        size1[1] ==
-            static_cast<SizeType::SizeValueType>(qRound(size2[1] * 2.0)) &&
+    if (size1[0] == static_cast<SizeType::SizeValueType>(
+                        crl::ce_round(size2[0] * 2.0)) &&
+        size1[1] == static_cast<SizeType::SizeValueType>(
+                        crl::ce_round(size2[1] * 2.0)) &&
         size1[2] == size2[2]) {
       bHighResolMacro = true;
     } else {
@@ -1866,7 +1865,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
         enPLANE::PLANE_AXIAL); // input/Output: 0-65535 intensity valuesno
                                // mu_t to intensity converion is involved
 
-    const auto unit = qRound(iSizeZ / 10.0);
+    const auto unit = crl::ce_round(iSizeZ / 10.0);
     if (i % unit == 0) {
       std::cout << "Generating scatter map: "
                 << i / static_cast<double>(unit) * 10.0 << " % is done"
@@ -1967,8 +1966,8 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                  "the high resolution macro?"
               << std::endl;
 
-    if (static_cast<int>(size1[0]) == qRound(size2[0] * 2.0) &&
-        static_cast<int>(size1[1]) == qRound(size2[1] * 2.0) &&
+    if (static_cast<int>(size1[0]) == crl::ce_round(size2[0] * 2.0) &&
+        static_cast<int>(size1[1]) == crl::ce_round(size2[1] * 2.0) &&
         size1[2] == size2[2]) {
       bHighResolMacro = true;
     } else {
@@ -2004,7 +2003,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
       postMedian = postMedian * 2;
     }
     if (postMedian >= 2) {
-      postMedian = qRound(postMedian / 2.0);
+      postMedian = crl::ce_round(postMedian / 2.0);
     }
 
 #ifndef _WIN32
@@ -2057,7 +2056,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
       auto medianFilter = MedianFilterType::New();
       MedianFilterType::InputSizeType radius{};
 
-      radius[0] = qRound(postMedian / 2.0);
+      radius[0] = crl::ce_round(postMedian / 2.0);
       radius[1] = radius[0];
 
       medianFilter->SetRadius(radius);
@@ -2069,7 +2068,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     crl::Set2DTo3D<FloatImageType>(spImg2DCorr, m_spProjCorr3D, i,
                                    enPLANE::PLANE_AXIAL); // float2D to USHORT
 
-    const auto unit = qRound(iSizeZ / 10.0);
+    const auto unit = crl::ce_round(iSizeZ / 10.0);
     if (i % unit == 0) {
       std::cout << "Applying scatter correction: "
                 << i / static_cast<double>(unit) * 10.0 << " % is done"
@@ -2161,8 +2160,8 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer &spSrcImg,
 
   auto inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
   FloatImageType::SizeType outputSize{};
-  outputSize[0] = qRound(inputSize[0] * resFactor);
-  outputSize[1] = qRound(inputSize[1] * resFactor);
+  outputSize[0] = crl::ce_round(inputSize[0] * resFactor);
+  outputSize[1] = crl::ce_round(inputSize[1] * resFactor);
   outputSize[2] = inputSize[2];
   resample->SetSize(outputSize);
 
@@ -2216,8 +2215,8 @@ void CbctRecon::ResampleItkImage(UShortImageType::Pointer &spSrcImg,
 
   auto inputSize = spSrcImg->GetLargestPossibleRegion().GetSize();
   UShortImageType::SizeType outputSize{};
-  outputSize[0] = qRound(inputSize[0] * resFactor);
-  outputSize[1] = qRound(inputSize[1] * resFactor);
+  outputSize[0] = crl::ce_round(inputSize[0] * resFactor);
+  outputSize[1] = crl::ce_round(inputSize[1] * resFactor);
   outputSize[2] = inputSize[2];
   resample->SetSize(outputSize);
 
@@ -2290,8 +2289,8 @@ void CbctRecon::ResampleItkImage2D(FloatImage2DType::Pointer &spSrcImg2D,
 
   auto inputSize = spSrcImg2D->GetLargestPossibleRegion().GetSize();
   FloatImage2DType::SizeType outputSize{};
-  outputSize[0] = qRound(inputSize[0] * resFactor);
-  outputSize[1] = qRound(inputSize[1] * resFactor);
+  outputSize[0] = crl::ce_round(inputSize[0] * resFactor);
+  outputSize[1] = crl::ce_round(inputSize[1] * resFactor);
   resample->SetSize(outputSize);
 
   FloatImage2DType::SpacingType outputSpacing;
@@ -2458,7 +2457,7 @@ int CbctRecon::CropSkinUsingThreshold(const int threshold,
 }
 
 // Below version is optimized for many points and much faster
-void CbctRecon::ExportAngularWEPL_byFile(fs::path &strPathOutput,
+void CbctRecon::ExportAngularWEPL_byFile(fs::path strPathOutput,
                                          const double fAngleStart,
                                          const double fAngleEnd,
                                          const double fAngleGap) {
@@ -2639,7 +2638,7 @@ void CbctRecon::GetAngularWEPL_window(UShortImageType::Pointer &spUshortImage,
   const auto wepl_image = crl::wepl::ConvertUshort2WeplFloat(spUshortImage);
 
   const auto fullAngle = fAngleEnd - fAngleStart;
-  const auto sizeAngles = qRound(fullAngle / fAngleGap);
+  const auto sizeAngles = crl::ce_round(fullAngle / fAngleGap);
 
   const std::array<double, 3> pixel_size = {{spUshortImage->GetSpacing()[0],
                                              spUshortImage->GetSpacing()[1],
@@ -2701,7 +2700,8 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
   const auto wepl_image = crl::wepl::ConvertUshort2WeplFloat(spUshortImage);
 
   const auto fullAngle = fAngleEnd - fAngleStart;
-  const auto sizeAngles = static_cast<size_t>(qRound(fullAngle / fAngleGap));
+  const auto sizeAngles =
+      static_cast<size_t>(crl::ce_round(fullAngle / fAngleGap));
 
   UShortImageType::PointType calc_point;
   calc_point[0] = calcPt.x;
@@ -2750,7 +2750,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
         << ", " << basis[1] << ", " << basis[2] << "]: ";
 
     it.fWEPL = crl::wepl::WEPL_from_point(isoTarget, basis, pixel_size,
-                               wepl_image); // get_rgdepth
+                                          wepl_image); // get_rgdepth
     it.fGanAngle = curAngle;
     it.ptIndex = curPtIdx;
     ofs << std::fixed << std::setprecision(5) << it.fWEPL << "\n";
@@ -3300,9 +3300,8 @@ bool CbctRecon::ResortCBCTProjection(
   std::vector<size_t> vSelectedIdxTemp;
   std::vector<size_t> vSelectedIdxFin;
 
-  for (auto& phase : vIntPhaseBinSelected) {
-    AppendInPhaseIndex(phase, vFloatPhaseFull,
-                       vSelectedIdxTemp);
+  for (auto &phase : vIntPhaseBinSelected) {
+    AppendInPhaseIndex(phase, vFloatPhaseFull, vSelectedIdxTemp);
   }
   // Remove redandancy
 
@@ -3386,7 +3385,7 @@ void CbctRecon::AppendInPhaseIndex(const int iPhase,
 
   size_t i = 0;
   for (const auto &phase : vFloatPhaseFull) {
-    const auto iCurPhase = qRound(phase * 100.0);
+    const auto iCurPhase = crl::ce_round(phase * 100.0);
     // determine wether it is within the range
 
     if (iPhase < margin) // if 5 --> 0 ~ 10%, IF 4--> 99 ~ 09
@@ -3606,8 +3605,7 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
     return;
   }
 
-  const auto flexCnt =
-      m_spCustomGeometry->GetGantryAngles().size();
+  const auto flexCnt = m_spCustomGeometry->GetGantryAngles().size();
   if (flexCnt != iCntRefVol) {
     std::cout << "Error! flex count doesn't match" << std::endl;
     return;
@@ -3628,15 +3626,15 @@ void CbctRecon::ScatterCorPerProjRef(const double scaMedian,
 
     if (!crl::LoadShortImageDirOrFile(strDirPath, spOutputShort_raw)) {
       std::cout << "Error! in " << i
-                << " th image. File couldn't be found. Path= "
-                << strDirPath << std::endl;
+                << " th image. File couldn't be found. Path= " << strDirPath
+                << std::endl;
       return;
     }
 
     crl::ConvertShort2Ushort(spOutputShort_raw, spOutputUshort);
 
     crl::RotateImgBeforeFwd(spOutputUshort,
-                       spUshortRotated); // IEC to RTK w/ kVGantry
+                            spUshortRotated); // IEC to RTK w/ kVGantry
     crl::ConvertUshort2AttFloat(spUshortRotated, spAttFloat);
 
     const auto curMVAngle = m_spCustomGeometry->GetGantryAngles().at(i);

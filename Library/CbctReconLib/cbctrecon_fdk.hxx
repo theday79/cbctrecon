@@ -48,6 +48,8 @@
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
 
+using namespace std::literals;
+
 #ifdef RTK_USE_OPENCL
 template <typename ImageType>
 typename ImageType::Pointer RTKOpenCLFDK(
@@ -511,8 +513,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     writer->SetUseCompression(true); // not exist in original code (rtkfdk)
     writer->SetInput(m_spCrntReconImg);
 
-    std::cout << "Writing the image to: "
-              << fdk_options.outputFilePath
+    std::cout << "Writing the image to: " << fdk_options.outputFilePath
               << std::endl;
 
     TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
@@ -572,8 +573,8 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
   if (bSave) {
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
-    std::cout << " Patient DIR Path: "
-              << this->m_strPathPatientDir << std::endl;
+    std::cout << " Patient DIR Path: " << this->m_strPathPatientDir
+              << std::endl;
 
     auto manuallySelectedDir = true; // <- just to make sure I don't break
                                      // usecases of the older version.
@@ -620,8 +621,8 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
 
     const auto fwdDirName = "fwd_" + this->m_strDCMUID;
 
-    const auto tmpResult =
-        fs::create_directory(crntDir / fwdDirName); // what if the directory exists?
+    const auto tmpResult = fs::create_directory(
+        crntDir / fwdDirName); // what if the directory exists?
 
     if (!tmpResult) {
       std::cout << "FwdProj directory seems to exist already. Files will be "
@@ -639,7 +640,8 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
           spVolImg3D->GetBufferPointer()) {
         fn_fwd_prj = "fwd_proj_rawrec.mha";
       }
-      crl::saveImageAsMHA<FloatImageType>(spProj3D, fs::absolute(strSavingFolder / fn_fwd_prj).string());
+      crl::saveImageAsMHA<FloatImageType>(
+          spProj3D, fs::absolute(strSavingFolder / fn_fwd_prj).string());
     }
   }
   return spProj3D;
@@ -798,9 +800,9 @@ CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     // a) size
     // std::cout << "chk1" << std::endl;
     size[0] = m_spProjImg3DFloat->GetBufferedRegion()
-                  .GetSize()[0]; // qRound((double)DEFAULT_W*m_fResampleF);
+                  .GetSize()[0]; // crl::ce_round((double)DEFAULT_W*m_fResampleF);
     size[1] = m_spProjImg3DFloat->GetBufferedRegion()
-                  .GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
+                  .GetSize()[1]; // crl::ce_round((double)DEFAULT_H*m_fResampleF);
     size[2] = spGeometry->GetGantryAngles().size();
     // iNumOfProjections = size[2];
 

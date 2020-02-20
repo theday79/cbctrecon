@@ -13,7 +13,7 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
 #-----------------------------------------------------------------------------
 # BASIC CMAKE
@@ -25,7 +25,12 @@ project(CbctRecon
   VERSION "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
   )
 
-SET(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard specification")
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard specification")
+set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE STRING "Require C++ standard specification")
+
+# Extensions are required for named union members for the opencl types
+# which increases readability and safety significantly
+set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #-----------------------------------------------------------------------------
@@ -215,6 +220,13 @@ if(dlib_FOUND)
   set(DLIB_LIB dlib::dlib)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(ABSEIL_LIBS
+      absl::base
+      absl::strings
+      )
+endif()
+
 set(PLM_TARGETS
   plmbase
   plmutil
@@ -248,6 +260,7 @@ set(CBCTRECON_DEP_LIBS
   ${QT_LIBRARIES}
   ${TBB_LIBRARIES}
   ${DLIB_LIB}
+  ${ABSEIL_LIBS}
   OpenCL::OpenCL
 )
 

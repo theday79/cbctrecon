@@ -17,6 +17,7 @@
 #include "rtkThreeDCircularProjectionGeometry.h"
 
 #include "cbctrecon_types.h"
+#include "free_functions.h"
 
 namespace fs = std::filesystem;
 
@@ -57,19 +58,18 @@ CBCTRECON_API void
 ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                        FloatImageType::Pointer &spAttImgFloat);
 
-
 CBCTRECON_API
 void CropFOV3D(UShortImageType::Pointer &sp_Img, const float physPosX,
                const float physPosY, const float physRadius,
                const float physTablePosY);
 
 CBCTRECON_API
-UShortImageType::Pointer ConvertLineInt2Intensity_ushort(
-    FloatImageType::Pointer &spProjLineInt3D);
+UShortImageType::Pointer
+ConvertLineInt2Intensity_ushort(FloatImageType::Pointer &spProjLineInt3D);
 
 CBCTRECON_API
-FloatImageType::Pointer ConvertIntensity2LineInt_ushort(
-    UShortImageType::Pointer &spProjIntensity3D);
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(UShortImageType::Pointer &spProjIntensity3D);
 
 CBCTRECON_API
 FloatImageType::Pointer
@@ -77,7 +77,6 @@ ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D);
 
 CBCTRECON_API
 void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList);
-
 
 /// Templates:
 
@@ -175,8 +174,8 @@ bool GetOutputResolutionFromFOV(
 }
 
 template <class T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
-auto float_to_(const float input) {
-  const auto max_ushort = std::numeric_limits<unsigned short>::max();
+constexpr auto float_to_(const float input) {
+  const auto max_ushort = std::numeric_limits<T>::max();
   if (input < 0.0f) {
     return static_cast<T>(0);
   }
@@ -184,11 +183,11 @@ auto float_to_(const float input) {
     return static_cast<T>(max_ushort -
                           1); // - 1 to avoid implicit cast overflow
   }
-  return static_cast<T>(qRound(input));
+  return static_cast<T>(crl::ce_round(input));
 }
 
 template <class T, std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-auto float_to_(const float input) {
+constexpr auto float_to_(const float input) {
   return static_cast<T>(input);
 }
 
@@ -267,7 +266,6 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
     it_3D.NextSlice();
   } // end of for
 }
-
 
 } // namespace crl
 

@@ -3,8 +3,8 @@
 #include "cbctrecon_config.h"
 
 // std
-#include <memory> // unique_, shared_ and weak_ptr
 #include <filesystem>
+#include <memory> // unique_, shared_ and weak_ptr
 
 // Local
 #include "AG17RGBAImage.h"
@@ -29,7 +29,8 @@ public:
   bool FillProjForDisplay(int slice_number);
   void LoadCalibData(const fs::path &filepath, enCalibType calib_type);
 
-  bool LoadGeometry(const fs::path &geomFileInfo, std::vector<std::string> &names);
+  bool LoadGeometry(const fs::path &geomFileInfo,
+                    std::vector<std::string> &names);
   void LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                         const std::vector<std::string> &names);
   void saveHisHeader();
@@ -78,9 +79,9 @@ public:
   // plastimatch skin / bubble-remover
   // std::string getPathCTDir(enMachineType enType);//DICOM Dir
   // std::string getPathRS(enMachineType enType);//RS path
-  // bool loadPlanCTFromDCM(std::string& strCTDirPath, std::string& strRSPath);//using
-  // plastimatch, prepare m_spRefCTImg. Remove air, RS is needed  Skin will be
-  // removed, bubble will be filled
+  // bool loadPlanCTFromDCM(std::string& strCTDirPath, std::string&
+  // strRSPath);//using plastimatch, prepare m_spRefCTImg. Remove air, RS is
+  // needed  Skin will be removed, bubble will be filled
 
   void FindAllRelevantPaths(const fs::path &pathProjHisDir);
 
@@ -141,8 +142,9 @@ public:
   // void CudaDoReconstructionFDK(enREGI_IMAGES target);
   // void OpenCLDoReconstructionFDK(enREGI_IMAGES target);
 
-  // void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg, std::string&
-  // strPatientID, std::string& strPatientName);//ushort image --> short image -->
+  // void SaveUSHORTAsSHORT_DICOM (USHORT_ImageType::Pointer& spImg,
+  // std::string& strPatientID, std::string& strPatientName);//ushort image -->
+  // short image -->
 
   // void GetAngularWEPL_SinglePoint(USHORT_ImageType::Pointer& spImage, int
   // angleGap, VEC3D calcPt, int curPtIdx, std::vector<WEPLData>&
@@ -169,13 +171,13 @@ public:
   /*Temporary implementation for XVI5 xml*/
   bool
   LoadXVIGeometryFile(const fs::path &filePath); // temporary implenetation
-                                             // using QT XML. This is for
-                                             // XVI v >5.0.2. _Frames.xml is
-                                             // in every projection folder
+                                                 // using QT XML. This is for
+                                                 // XVI v >5.0.2. _Frames.xml is
+                                                 // in every projection folder
 
   void SetProjDir(const fs::path &strProjPath);
 
-  void ExportAngularWEPL_byFile(fs::path &strPathOutput, double fAngleStart,
+  void ExportAngularWEPL_byFile(fs::path strPathOutput, double fAngleStart,
                                 double fAngleEnd, double fAngleGap);
 
   /*Temporary implementation for XVI5 xml*/
@@ -305,7 +307,7 @@ public:
   std::string m_strDCMUID;
   fs::path m_strPathPatientDir; // full path of patient Directory
   fs::path m_strPatientDirName; // just the name --> later I can extract the
-                               // patient ID from here
+                                // patient ID from here
   fs::path m_strPathFRAME_DBF;
   fs::path m_strPathIMAGE_DBF;
   fs::path m_strPathGeomXML; // after Generation of the XML from DBF files
@@ -317,9 +319,9 @@ public:
   fs::path m_strPathElektaINI;     // for mAs values
   fs::path m_strPathIMAGES;        // upper folder of projection files (His)
   fs::path m_strPathElektaINIXVI2; // this includes couch shift values. longer
-                                  // INI.XVI file
-  std::string m_strCur_mAs;           // std::string("20,20")
-  std::string m_strRef_mAs;           // std::string("64,40")
+                                   // INI.XVI file
+  std::string m_strCur_mAs;        // std::string("20,20")
+  std::string m_strRef_mAs;        // std::string("64,40")
   std::string m_strError;
 
   fs::path m_dcm_dir;

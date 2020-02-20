@@ -60,7 +60,8 @@ CbctRegistrationTest::CbctRegistrationTest(CbctReconTest *parent) {
 }
 
 void CbctRegistrationTest::initCbctRegistrationTest(QString &strDCMUID) {
-  m_cbctregistration->SetPlmOutputDir(strDCMUID.toStdString());
+  auto dcm_uid_str = strDCMUID.toStdString();
+  m_cbctregistration->SetPlmOutputDir(dcm_uid_str);
 
   const UShortImageType::Pointer spNull;
   // unlink all of the pointers
@@ -437,10 +438,11 @@ void CbctRegistrationTest::ImageManualMove(const int direction,
   // Only Valid when Moving image is the ManualMove
   auto imgOriginRef = m_pParent->m_cbctrecon->m_spRefCTImg->GetOrigin();
 
-  QString strDelta;
-  strDelta.sprintf(
-      "delta(mm): %3.1f, %3.1f, %3.1f", imgOrigin[0] - imgOriginRef[0],
-      imgOrigin[1] - imgOriginRef[1], imgOrigin[2] - imgOriginRef[2]);
+  std::cerr << "delta(mm): "
+            << crl::make_sep_str<','>(imgOrigin[0] - imgOriginRef[0],
+                                      imgOrigin[1] - imgOriginRef[1],
+                                      imgOrigin[2] - imgOriginRef[2])
+            << "\n";
 }
 
 // change origin of moving image by shift value acqui_ed from gradient
@@ -467,11 +469,11 @@ void CbctRegistrationTest::ImageManualMoveOneShot(const float shiftX,
   // Only Valid when Moving image is the ManualMove
   auto imgOriginRef = m_pParent->m_cbctrecon->m_spRefCTImg->GetOrigin();
 
-  QString strDelta;
-  strDelta.sprintf(
-      "delta(mm): %3.1f, %3.1f, %3.1f", imgOrigin[0] - imgOriginRef[0],
-      imgOrigin[1] - imgOriginRef[1], imgOrigin[2] - imgOriginRef[2]);
-  std::cerr << strDelta.toStdString() << "\n";
+  std::cerr << "delta(mm): "
+            << crl::make_sep_str<','>(imgOrigin[0] - imgOriginRef[0],
+                                      imgOrigin[1] - imgOriginRef[1],
+                                      imgOrigin[2] - imgOriginRef[2])
+            << "\n";
 }
 
 void CbctRegistrationTest::SLT_KeyMoving(

@@ -12,6 +12,13 @@
 #include <variant>
 #include <vector>
 
+#if defined(__GNUG__) && !defined(__clang__)
+#include "absl/strings/charconv.h"
+#define float_from_chars absl::from_chars
+#else
+#define float_from_chars std::from_chars
+#endif
+
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
@@ -118,9 +125,17 @@ bool is_scan_direction_CW(const std::vector<T> &angles) {
 /// Template Meta Functions:
 
 template <typename T> constexpr bool from_sv(std::string_view sv, T &val) {
-  if (auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), val);
-      ec == std::errc()) {
-    return true;
+  if constexpr (std::is_floating_point_v<T>) {
+    if (auto [ptr, ec] =
+            float_from_chars(sv.data(), sv.data() + sv.size(), val);
+        ec == std::errc()) {
+      return true;
+    }
+  } else {
+    if (auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), val);
+        ec == std::errc()) {
+      return true;
+    }
   }
   return false;
 }
@@ -157,39 +172,22 @@ constexpr std::string_view trim_string(const std::string_view string_to_trim) {
 template <typename T>
 constexpr std::optional<T> from_string(const std::string &number) {
   T out_var;
-  if (auto [p, ec] = std::from_chars(number.c_str(),
-                                     number.c_str() + number.length(), out_var);
-      ec != std::errc()) {
+  if (from_sv(number, out_var)) {
     return out_var;
   }
   return std::nullopt;
 }
 
-template <class T,
-          typename std::enable_if_t<
-              std::is_floating_point_v<T> || std::is_integral_v<T>, int> = 0>
-std::string stringify(const T arg) {
-  return std::to_string(arg);
-}
-
-template <class T, typename std::enable_if_t<
-                       std::is_convertible_v<T, std::string>, int> = 0>
-std::string stringify(const T arg) {
-  return arg;
-}
-
-template <class T,
-          typename std::enable_if_t<std::is_constructible_v<std::string, T> &&
-                                        !std::is_convertible_v<T, std::string>,
-                                    int> = 0>
-std::string stringify(const T arg) {
-  return std::string(arg);
-}
-
-template <class T,
-          typename std::enable_if_t<std::is_same_v<T, std::filesystem::path>, int> = 0>
-std::string stringify(const T arg) {
-  return arg.string();
+template <typename T> std::string stringify(T arg) {
+  if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T>) {
+    return std::to_string(arg);
+  } else if constexpr (std::is_convertible_v<T, std::string>) {
+    return arg;
+  } else if constexpr (std::is_constructible_v<std::string, T>) {
+    return std::string(arg);
+  } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
+    return arg.string();
+  }
 }
 
 template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
@@ -211,49 +209,55 @@ auto from_sv_v(const std::vector<std::string_view> &sv_v) {
 
 template <typename T> constexpr T ce_pow(T val, size_t exponent) {
   T out_val = 1;
-  for (auto i_exp = 0; i_exp < exponent; ++i_exp) {
+  for (size_t i_exp = 0; i_exp < exponent; ++i_exp) {
     out_val *= val;
   }
   return out_val;
 }
 
-template <typename T> struct TBeamHardening {
+template <typename T>
+constexpr T BeamHardModelCustom(const T val, const T a, const T b, const T c,
+                                const T d) {
+  return a * ce_pow(val, 3) + b * ce_pow(val, 2) + c * val + d;
+}
 
-  constexpr T ModelCustom(const T val, const T a, const T b, const T c,
-                          const T d) {
-    return a * ce_pow(val, 3) + b * ce_pow(val, 2) + c * val + d;
-  };
+template <enProjFormat PF, typename T> constexpr T BeamHardModel(const T val) {
 
-  template <enProjFormat PF> static constexpr T Model(const T val);
+  static_assert(PF != enProjFormat::HND_FORMAT ||
+                    PF != enProjFormat::HIS_FORMAT ||
+                    PF != enProjFormat::XIM_FORMAT,
+                "Projection format not recognised!");
 
-  template <> static constexpr T Model<enProjFormat::HND_FORMAT>(const T val) {
+  if constexpr (PF == enProjFormat::HND_FORMAT) {
     // a * x^3 + b * x^2 + c * x + d
     return 6.0e-08 * ce_pow(val, 3) - 1.0e-08 * ce_pow(val, 2) - 5.0e-07 * val +
            8.0e-01;
-  };
-
-  template <> static constexpr T Model<enProjFormat::HIS_FORMAT>(const T val) {
+  } else if constexpr (PF == enProjFormat::HIS_FORMAT) {
     // a * x^3 + b * x^2 + c * x + d
     return 9.321e-05 * ce_pow(val, 3) - 2.609e-03 * ce_pow(val, 2) +
            3.374e-02 * val + 9.691e-01;
-  };
-
-  template <>
-  static constexpr T Model<enProjFormat::XIM_FORMAT>(
-      const T val) { // a * x^3 + b * x^2 + c * x + d
+  } else if constexpr (PF == enProjFormat::XIM_FORMAT) {
+    // a * x^3 + b * x^2 + c * x + d
     return 6.0e-08 * ce_pow(val, 3) + 9.0e-5 * ce_pow(val, 2) + 1.0e-2 * val +
            0.8;
-  };
-};
+  }
+}
+
+template <enProjFormat PF, typename T> T BeamHardening(T val) {
+  return (val < 1.189 ? val : val * BeamHardModel<PF>(val)) +
+         (PF == enProjFormat::HIS_FORMAT ? 0 : 1.47);
+}
 
 template <enProjFormat PF, typename T>
 void BeamHardening(T *pBuffer, const int nPix) {
-  std::transform(
-      std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix, &pBuffer[0],
-      [](const T val) {
-        return (val < 1.189 ? val : val * TBeamHardening<T>::Model<PF>(val)) +
-               (PF == enProjFormat::HIS_FORMAT ? 0 : 1.47);
-      });
+  std::transform(std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
+                 &pBuffer[0], [](auto val) { return BeamHardening<PF>(val); });
+}
+
+template <typename T> constexpr int ce_round(const T val) {
+  static_assert(std::is_floating_point_v<T>,
+                "Rounding not necessary for non-float values");
+  return (val >= 0.0) ? int(val + 0.5) : int(val - 0.5);
 }
 
 template <typename T> constexpr int ce_sgn(const T val) {

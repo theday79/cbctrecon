@@ -310,7 +310,7 @@ FloatImageType::PointType point_from_WEPL(
     accumWEPL += val * step_length;
 
     // point = point + step (Reverse of WEPL_from_point)
-    point += step;
+    point += step.as_vector();
   }
 
   const auto point_idx_vec = element_product(point, inv_pixel_size);

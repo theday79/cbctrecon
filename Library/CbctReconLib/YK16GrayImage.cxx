@@ -15,6 +15,8 @@
 
 #include "YK16GrayImage.h"
 
+#include "free_functions.h"
+
 YK16GrayImage::YK16GrayImage() {
   m_iWidth = 0;
   m_iHeight = 0;
@@ -191,7 +193,7 @@ bool YK16GrayImage::LoadRawImage(const std::filesystem::path &filePath,
   std::ifstream fd(filePath, std::ios::binary);
 
   auto buf = std::valarray<unsigned short>(img_size);
-  fd.read(reinterpret_cast<char*>(&buf[0]), sizeof(buf[0])*img_size);
+  fd.read(reinterpret_cast<char *>(&buf[0]), sizeof(buf[0]) * img_size);
 
   std::copy_n(std::begin(buf), img_size, &m_pData[0]);
 
@@ -331,14 +333,14 @@ bool YK16GrayImage::FillPixMap(const int winMid,
   // m_QImage = tmpQImage.copy(0,0,m_iWidth, m_iHeight); //memory allocated
   // here!!!
 
-  const auto newWidth = qRound(m_iWidth / m_fZoom);
-  const auto newHeight = qRound(m_iHeight / m_fZoom);
+  const auto newWidth = crl::ce_round(m_iWidth / m_fZoom);
+  const auto newHeight = crl::ce_round(m_iHeight / m_fZoom);
 
-  const auto centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
-  const auto centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
+  const auto centerX = m_iOffsetX + crl::ce_round(m_iWidth / 2.0);
+  const auto centerY = m_iOffsetY + crl::ce_round(m_iHeight / 2.0);
 
-  const auto newLeftTopX = centerX - qRound(newWidth / 2.0);
-  const auto newLeftTopY = centerY - qRound(newHeight / 2.0);
+  const auto newLeftTopX = centerX - crl::ce_round(newWidth / 2.0);
+  const auto newLeftTopY = centerY - crl::ce_round(newHeight / 2.0);
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
 
@@ -506,7 +508,7 @@ bool YK16GrayImage::SaveDataAsHis(const std::filesystem::path &filePath,
   return true;
 }
 
-void YK16GrayImage::CopyHisHeader(const std::filesystem::path& hisFilePath) {
+void YK16GrayImage::CopyHisHeader(const std::filesystem::path &hisFilePath) {
   // open file
   std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
 
@@ -1076,18 +1078,20 @@ bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,
   // function
 
   //
-  const auto newWidth = qRound(m_iWidth / m_fZoom);
-  const auto newHeight = qRound(m_iHeight / m_fZoom);
+  const auto newWidth = crl::ce_round(m_iWidth / m_fZoom);
+  const auto newHeight = crl::ce_round(m_iHeight / m_fZoom);
 
-  const auto centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
-  const auto centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
+  const auto centerX = m_iOffsetX + crl::ce_round(m_iWidth / 2.0);
+  const auto centerY = m_iOffsetY + crl::ce_round(m_iHeight / 2.0);
 
-  const auto newLeftTopX = centerX - qRound(newWidth / 2.0);  // data position
-  const auto newLeftTopY = centerY - qRound(newHeight / 2.0); // data position
+  const auto newLeftTopX =
+      centerX - crl::ce_round(newWidth / 2.0); // data position
+  const auto newLeftTopY =
+      centerY - crl::ce_round(newHeight / 2.0); // data position
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
   //                        ^~~~~~~~ and ^~~~~~~~~~~ is already initialized as
-  //                        int, no need to qRound
+  //                        int, no need to crl::ce_round
 
   // m_QImage = tmpQImage.copy(0,0,m_iWidth, m_iHeight); //memory allocated
   // here!!!  YKTEMP: is it needed? no it worked without below: *m_pPixmap =
@@ -1200,8 +1204,8 @@ void YK16GrayImage::MedianFilter(const int iMedianSizeX,
   // medianFilter->SetInput(spTmpItkImg);
 
   MedianFilterType::InputSizeType radius;
-  radius[0] = qRound(iMedianSizeX / 2.0);
-  radius[1] = qRound(iMedianSizeY / 2.0);
+  radius[0] = crl::ce_round(iMedianSizeX / 2.0);
+  radius[1] = crl::ce_round(iMedianSizeY / 2.0);
 
   medianFilter->SetRadius(radius);
   medianFilter->SetInput(spTmpItkImg);
@@ -1287,8 +1291,8 @@ void YK16GrayImage::ResampleImage(const double fResampleFactor) {
   inputSize[1] = m_iHeight;
 
   UShortImage2DType::SizeType outputSize;
-  outputSize[0] = qRound(m_iWidth * fResampleFactor);
-  outputSize[1] = qRound(m_iHeight * fResampleFactor);
+  outputSize[0] = crl::ce_round(m_iWidth * fResampleFactor);
+  outputSize[1] = crl::ce_round(m_iHeight * fResampleFactor);
   // m_iWidth = outputSize[0];
   // m_iHeight = outputSize[1];
 
@@ -1403,7 +1407,7 @@ void YK16GrayImage::UpdateFromItkImageFloat(
     } else if (curVal > 65535.0) {
       outVal = 65535;
     } else {
-      outVal = static_cast<unsigned short>(qRound(curVal));
+      outVal = static_cast<unsigned short>(crl::ce_round(curVal));
     }
 
     m_pData[i] = outVal;

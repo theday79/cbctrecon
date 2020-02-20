@@ -376,27 +376,25 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   }
 
   // Update position lineEdit
-  QString strPos1, strPos2, strPos3;
-  strPos1.sprintf("%3.1f", curPhysPos[0]);
-  strPos2.sprintf("%3.1f", curPhysPos[1]);
-  strPos3.sprintf("%3.1f", curPhysPos[2]);
+  // QString strPos1, strPos2, strPos3;
+  // strPos1.sprintf("%3.1f", curPhysPos[0]);
+  // strPos2.sprintf("%3.1f", curPhysPos[1]);
+  // strPos3.sprintf("%3.1f", curPhysPos[2]);
 
-  this->ui.lineEditCurPosX->setText(strPos3);
-  this->ui.lineEditCurPosY->setText(strPos2);
-  this->ui.lineEditCurPosZ->setText(strPos1);
+  this->ui.lineEditCurPosX->setText(to_qstr(crl::stringify(curPhysPos[0])));
+  this->ui.lineEditCurPosY->setText(to_qstr(crl::stringify(curPhysPos[0])));
+  this->ui.lineEditCurPosZ->setText(to_qstr(crl::stringify(curPhysPos[0])));
 
   ////Update Origin text box
   auto imgOriginFixed = m_spFixed->GetOrigin();
-  QString strOriFixed;
-  strOriFixed.sprintf("%3.4f, %3.4f, %3.4f", imgOriginFixed[0],
-                      imgOriginFixed[1], imgOriginFixed[2]);
+  QString strOriFixed = to_qstr(crl::make_sep_str<','>(
+      imgOriginFixed[0], imgOriginFixed[1], imgOriginFixed[2]));
   this->ui.lineEditOriginFixed->setText(strOriFixed);
 
   if (m_spMoving != nullptr) {
     const auto imgOriginMoving = m_spMoving->GetOrigin();
-    QString strOriMoving;
-    strOriMoving.sprintf("%3.4f, %3.4f, %3.4f", imgOriginMoving[0],
-                         imgOriginMoving[1], imgOriginMoving[2]);
+    QString strOriMoving = to_qstr(crl::make_sep_str<','>(
+        imgOriginMoving[0], imgOriginMoving[1], imgOriginMoving[2]));
     this->ui.lineEditOriginMoving->setText(strOriMoving);
   }
 
@@ -966,8 +964,8 @@ void DlgRegistration::updateSliceLabel() const {
 
 void DlgRegistration::LoadImgFromComboBox(
     const int idx,
-    QString
-        &strSelectedComboTxt) // -->when fixed image loaded will be called here!
+    const QString
+        strSelectedComboTxt) // -->when fixed image loaded will be called here!
 {
 
   UShortImageType::Pointer spTmpImg;
@@ -1378,10 +1376,10 @@ void DlgRegistration::ImageManualMove(const int direction, const double resol) {
   // Only Valid when Moving image is the ManualMove
   auto imgOriginRef = m_pParent->m_cbctrecon->m_spRefCTImg->GetOrigin();
 
-  QString strDelta;
-  strDelta.sprintf(
-      "delta(mm): %3.1f, %3.1f, %3.1f", imgOrigin[0] - imgOriginRef[0],
-      imgOrigin[1] - imgOriginRef[1], imgOrigin[2] - imgOriginRef[2]);
+  QString strDelta = to_qstr(
+      "delta(mm): " + crl::make_sep_str<','>(imgOrigin[0] - imgOriginRef[0],
+                                             imgOrigin[1] - imgOriginRef[1],
+                                             imgOrigin[2] - imgOriginRef[2]));
   this->ui.lineEditOriginChanged->setText(strDelta);
 
   // std::cout << "direction  " << direction << std::endl;
@@ -1416,10 +1414,10 @@ void DlgRegistration::ImageManualMoveOneShot(
   // Only Valid when Moving image is the ManualMove
   auto imgOriginRef = m_pParent->m_cbctrecon->m_spRefCTImg->GetOrigin();
 
-  QString strDelta;
-  strDelta.sprintf(
-      "delta(mm): %3.1f, %3.1f, %3.1f", imgOrigin[0] - imgOriginRef[0],
-      imgOrigin[1] - imgOriginRef[1], imgOrigin[2] - imgOriginRef[2]);
+  QString strDelta = to_qstr(
+      "delta(mm): " + crl::make_sep_str<','>(imgOrigin[0] - imgOriginRef[0],
+                                             imgOrigin[1] - imgOriginRef[1],
+                                             imgOrigin[2] - imgOriginRef[2]));
   this->ui.lineEditOriginChanged->setText(strDelta);
 }
 
