@@ -50,8 +50,6 @@
 namespace fs = std::filesystem;
 using namespace std::literals;
 
-#pragma GCC poison new
-
 CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
     : QMainWindow(parent, flags) {
 

@@ -21,11 +21,19 @@
 
 #ifdef RTK_USE_OPENCL
 
-#ifdef __APPLE__
-#include <OpenCL/cl.h>
-#else
-#include <CL/cl.h>
+#ifndef CBCTRECON_OPENCL_VERSION
+#define CBCTRECON_OPENCL_VERSION 120
 #endif
+
+#if CBCTRECON_OPENCL_VERSION >= 210
+#define CL_HPP_MINIMUM_OPENCL_VERSION 200
+#define CL_HPP_TARGET_OPENCL_VERSION 210
+#else
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+#define CL_HPP_TARGET_OPENCL_VERSION 120
+#endif
+
+#include <OpenCL/cl2.hpp>
 
 #include <string>
 #include <vector>
@@ -52,7 +60,7 @@
  *
  * \ingroup Functions
  */
-std::vector<cl_platform_id> GetListOfOpenCLPlatforms();
+std::vector<cl::Platform> GetListOfOpenCLPlatforms();
 
 /** \brief Get the list of OpenCL compatible devices
  *
@@ -60,7 +68,7 @@ std::vector<cl_platform_id> GetListOfOpenCLPlatforms();
  *
  * \ingroup Functions
  */
-std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform);
+std::vector<cl::Device> GetListOfOpenCLDevices(cl::Platform platform);
 
 /** \brief Builds an OpenCL program in a given filename given a context
  *
@@ -69,8 +77,8 @@ std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform);
  * \ingroup Functions
  */
 void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
-                                               const cl_context &context,
-                                               cl_program &program);
+                                               const cl::Context &context,
+                                               cl::Program &program);
 
 #endif
 #endif

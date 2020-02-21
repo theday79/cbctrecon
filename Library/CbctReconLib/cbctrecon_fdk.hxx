@@ -381,8 +381,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
   const itk::Vector<double, 3U> offset(0.0);
 
-  using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
-  auto transform = TransformType::New();
+  using MatOffTransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
+  auto transform = MatOffTransformType::New();
   transform->SetMatrix(CoordChangeMatrix);
   transform->SetOffset(offset);
 

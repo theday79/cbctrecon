@@ -39,7 +39,7 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(feature_defs OPTIONAL)
 include(Sanitize)
 
-option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" OFF)
+option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" ON)
 option(HUNTER_ENABLED "Enable hunter for dependency management" OFF)
 option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
 option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)

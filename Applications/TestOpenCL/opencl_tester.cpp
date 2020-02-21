@@ -24,8 +24,7 @@ int main(int argc, char **argv) {
 
   std::cerr << "\n";
 
-  auto devices = std::vector<cl::Device>();
-  OpenCL_getDeviceList(devices);
+  auto devices = OpenCL_getDeviceList();
 
   i = 0U;
   for (auto &dev : devices) {

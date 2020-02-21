@@ -39,7 +39,7 @@ set(TINYREFL_GIT_TAG master)
 set(ABSEIL_GIT_REPOSITORY "${git_protocol}hub.com/abseil/abseil-cpp.git")
 set(ABSEIL_GIT_TAG master)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   external_proj(ABSEIL)
 endif()
 

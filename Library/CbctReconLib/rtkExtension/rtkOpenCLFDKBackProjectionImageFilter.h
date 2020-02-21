@@ -19,15 +19,11 @@
 #ifndef RTKOPENCLFDKBACKPROJECTIONIMAGEFILTER_H
 #define RTKOPENCLFDKBACKPROJECTIONIMAGEFILTER_H
 
+#include "rtkOpenCLUtilities.h"
+
 #include "rtkFDKBackProjectionImageFilter.h"
 
 #ifdef RTK_USE_OPENCL
-
-#ifdef __APPLE__
-#include <OpenCL/cl.h>
-#else
-#include <CL/cl.h>
-#endif
 
 namespace rtk {
 
@@ -85,13 +81,13 @@ public:
   void operator=(Self &&) = delete; // purposely not implemented
 
 private:
-  cl_context m_Context{};
-  cl_command_queue m_CommandQueue{};
-  cl_mem m_DeviceMatrix{};
-  cl_mem m_DeviceVolume{};
-  cl_mem m_DeviceProjection{};
-  cl_program m_Program{};
-  cl_kernel m_Kernel{};
+  cl::Context m_Context{};
+  cl::CommandQueue m_CommandQueue{};
+  cl::Buffer m_DeviceMatrix{};
+  cl::Buffer m_DeviceVolume{};
+  cl::Buffer m_DeviceProjection{};
+  cl::Program m_Program{};
+  cl::Kernel m_Kernel{};
 };
 
 } // end namespace rtk

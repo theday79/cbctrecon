@@ -1277,9 +1277,9 @@ void CbctRegistrationTest::SLT_gPMCrecalc(
   auto gPMC_device = enDevice::GPU_DEV;
 #elif defined(USE_OPENCL)
   enDevice gPMC_device =
-      CPU_DEV; // because I've only tested with intel graphics
+      enDevice::CPU_DEV; // because I've only tested with intel graphics
 #else
-  auto gPMC_device = CPU_DEV;
+  auto gPMC_device = enDevice::CPU_DEV;
 #endif
 
   if (this->ui_radioButton_UseCPU) {

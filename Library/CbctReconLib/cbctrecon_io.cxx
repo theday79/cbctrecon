@@ -214,8 +214,6 @@ LoadRTKGeometryFile(const fs::path &filePath) {
   170 LPO, 30 = LAO supposing HFS) no and kV source position (not MV gantry)" <<
   std::endl;*/
 
-  auto bScanDirectionCW = is_scan_direction_CW(angles);
-
   std::cout << "AngularGaps Size: "
             << spFullGeometry->GetAngularGaps(spFullGeometry->GetSourceAngles())
                    .size()
@@ -418,8 +416,8 @@ bool check_rtss_dicom_integrity(const gdcm::DataSet &ds) {
   if (!sqi0 || !sqi0->GetNumberOfItems()) {
     return false;
   }
-  for (unsigned int pd = 0; pd < sqi0->GetNumberOfItems(); ++pd) {
-    const auto &item0 = sqi0->GetItem(pd + 1); // Item start at #1
+  for (size_t pd = 0; pd < sqi0->GetNumberOfItems(); ++pd) {
+    const auto &item0 = sqi0->GetItem(pd + 1ull); // Item start at #1
     const auto &nestedds0 = item0.GetNestedDataSet();
     // RTReferencedStudySequence
 
@@ -433,8 +431,8 @@ bool check_rtss_dicom_integrity(const gdcm::DataSet &ds) {
       return false;
     }
     assert(sqi00->GetNumberOfItems() == 1);
-    for (unsigned int pd0 = 0; pd0 < sqi00->GetNumberOfItems(); ++pd0) {
-      const auto &item00 = sqi00->GetItem(pd0 + 1); // Item start at #1
+    for (size_t pd0 = 0; pd0 < sqi00->GetNumberOfItems(); ++pd0) {
+      const auto &item00 = sqi00->GetItem(pd0 + 1ull); // Item start at #1
       const auto &nestedds00 = item00.GetNestedDataSet();
 
       // RTReferencedSeriesSequence
@@ -449,8 +447,8 @@ bool check_rtss_dicom_integrity(const gdcm::DataSet &ds) {
         return false;
       }
       assert(sqi000->GetNumberOfItems() == 1);
-      for (unsigned int pd00 = 0; pd00 < sqi000->GetNumberOfItems(); ++pd00) {
-        const auto &item000 = sqi000->GetItem(pd00 + 1); // Item start at #1
+      for (size_t pd00 = 0; pd00 < sqi000->GetNumberOfItems(); ++pd00) {
+        const auto &item000 = sqi000->GetItem(pd00 + 1ull); // Item start at #1
         const auto &nestedds000 = item000.GetNestedDataSet();
 
         // ContourImageSequence
@@ -514,12 +512,12 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
   rt_struct->slist.resize(rt_struct->num_structures);
 
   // For each Item in the DataSet create a vtkPolyData
-  for (unsigned int pd = 0; pd < sqi->GetNumberOfItems(); ++pd) {
+  for (size_t pd = 0; pd < sqi->GetNumberOfItems(); ++pd) {
     // StructureSetROI structuresetroi;
 
-    const auto &item = sqi->GetItem(pd + 1); // Item start at #1
+    const auto &item = sqi->GetItem(pd + 1ull); // Item start at #1
     // std::cout << item << std::endl;
-    const auto &sitem = ssqi->GetItem(pd + 1); // Item start at #1
+    const auto &sitem = ssqi->GetItem(pd + 1ull); // Item start at #1
     const auto &snestedds = sitem.GetNestedDataSet();
     // (3006,0026) ?? (LO) [date]                                    # 4,1 ROI
     // Name
@@ -592,8 +590,8 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
     rt_roi.pslist.resize(nitems);
     rt_roi.num_contours = nitems;
 
-    for (unsigned int ii = 0; ii < nitems; ++ii) {
-      const auto &item2 = sqi2->GetItem(ii + 1); // Item start at #1
+    for (size_t ii = 0; ii < nitems; ++ii) {
+      const auto &item2 = sqi2->GetItem(ii + 1ull); // Item start at #1
 
       const auto &nestedds2 = item2.GetNestedDataSet();
       // std::cout << nestedds2 << std::endl;
@@ -642,7 +640,7 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       // newPts->SetNumberOfPoints( at.GetNumberOfValues() / 3 );
       // assert( at.GetNumberOfValues() % 3 == 0); // FIXME
       const auto pts = at.GetValues();
-      const auto npts = at.GetNumberOfValues() / 3;
+      const auto npts = static_cast<size_t>(at.GetNumberOfValues()) / 3;
       assert(npts == static_cast<unsigned int>(numcontpoints.GetValue()));
       assert(npts * 3 == at.GetNumberOfValues());
       auto &rt_contour = rt_roi.pslist.at(ii);
@@ -664,6 +662,12 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
   return rt_struct;
 }
 
+void check_gdcm_errc(OFCondition &&cond) {
+  if (!cond.good()) {
+    std::cerr << "GDCM Error: " << cond.text() << "\n";
+  }
+}
+
 bool AlterData_RTStructureSetStorage(const fs::path &input_file,
                                      const Rtss_modern *input_rt_struct,
                                      const fs::path &output_file) {
@@ -680,33 +684,33 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
     std::cerr << "Could not read RT struct dcm file: " << input_file << "\n";
     return false;
   }
-  fileformat.clear();
+  check_gdcm_errc(fileformat.clear());
   //  Change data in rtstruct
   //  ROI contour seq: 3006, 0039
   auto &ss_seq = rtstruct.getStructureSetROISequence();
-  ss_seq.gotoFirstItem();
+  check_gdcm_errc(ss_seq.gotoFirstItem());
   // ROI Structure Set Seq: 3006, 0020
   auto &roi_seq = rtstruct.getROIContourSequence();
-  roi_seq.gotoFirstItem();
+  check_gdcm_errc(roi_seq.gotoFirstItem());
   for (auto &rt_roi : input_rt_struct->slist) {
     auto &item = roi_seq.getCurrentItem();
     auto &ss_item = ss_seq.getCurrentItem();
     OFString roi_name;
     // ROI name: 3006, 0026
-    ss_item.getROIName(roi_name);
+    check_gdcm_errc(ss_item.getROIName(roi_name));
     const auto trimmed_roi_name = trim_string(rt_roi.name);
     const auto trimmed_roi_name_dcm =
         trim_string(std::string(roi_name.c_str()));
     if (trimmed_roi_name.find("WEPL") != std::string::npos) {
-      roi_seq.gotoNextItem();
-      ss_seq.gotoNextItem();
+      check_gdcm_errc(roi_seq.gotoNextItem());
+      check_gdcm_errc(ss_seq.gotoNextItem());
       continue;
     }
     std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
-    ss_item.setROIName(rt_roi.name.c_str());
+    check_gdcm_errc(ss_item.setROIName(rt_roi.name.c_str()));
     // Contour Seq: 3006, 0040
     auto &contour_seq = item.getContourSequence();
-    contour_seq.gotoFirstItem();
+    check_gdcm_errc(contour_seq.gotoFirstItem());
     for (auto &rt_contour : rt_roi.pslist) {
       auto &contour = contour_seq.getCurrentItem();
 
@@ -721,10 +725,10 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
       if (!status.good()) {
         std::cerr << "Could not set contour data: " << status.text() << "\n";
       }
-      contour_seq.gotoNextItem();
+      check_gdcm_errc(contour_seq.gotoNextItem());
     }
-    roi_seq.gotoNextItem();
-    ss_seq.gotoNextItem();
+    check_gdcm_errc(roi_seq.gotoNextItem());
+    check_gdcm_errc(ss_seq.gotoNextItem());
   }
   //
   status = rtstruct.write(*fileformat.getDataset());
@@ -1315,12 +1319,13 @@ bool SaveDoseGrayImage(
   const long m_iStripOffset = 1024;
   const short m_iSamplePerPixel = 1;
   const long m_iRowsPerStrip = height;
-  const long m_iStripByteCnts = crl::ce_round(width * height * 2.0);
+  const long m_iStripByteCnts = crl::ce_round(
+      static_cast<double>(width) * static_cast<double>(height) * 2.0);
 
   const short m_iResolUnit = 2;
   const short m_iPgNum = 0; // or 1?
   const unsigned short m_iMinSampleVal = 0;
-  const unsigned short m_iMaxSampleVal =
+  constexpr unsigned short m_iMaxSampleVal =
       std::numeric_limits<unsigned short>::max(); // old: 255
   const auto ten_mill = 10000000;
   RATIONAL m_rXResol{static_cast<long>(crl::ce_round(
@@ -1509,7 +1514,8 @@ bool SaveDoseGrayImage(
     // fwrite(&m_rXPos, 8, 1, fd); // Used to be 10 instead of 1, but that
     // must've been a mistake fwrite(&m_rYPos, 8, 1, fd);
 
-    const auto iDummySize = static_cast<size_t>(1024ull - (offsetY + 8));
+    const auto iDummySize =
+        static_cast<size_t>(1024ull - (static_cast<long long>(offsetY) + 8));
 
     auto tmpDummy = std::valarray<char>(static_cast<char>(0), iDummySize);
     fd.write(&tmpDummy[0], sizeof(char) * iDummySize);
@@ -1518,9 +1524,9 @@ bool SaveDoseGrayImage(
 
     const auto imgSize = m_iWidth * m_iHeight;
 
-    for (auto i = 0; i < imgSize; i++) {
+    for (auto j = 0; j < imgSize; j++) {
       // fwrite(&pData[i], 2, 1, fd);
-      fd.write(reinterpret_cast<char *>(&pData[i]), sizeof(pData[i]));
+      fd.write(reinterpret_cast<char *>(&pData[j]), sizeof(pData[j]));
     }
 
     // fclose(fd);

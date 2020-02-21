@@ -1317,8 +1317,8 @@ void YK16GrayImage::ResampleImage(const double fResampleFactor) {
       itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType, float>;
   auto resample = ResampleImageFilterType::New();
 
-  using TransformType = itk::AffineTransform<float, 2>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<float, 2>;
+  auto transform = AffTransformType::New();
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImage2DType, float>;
   const auto interpolator = InterpolatorType::New();

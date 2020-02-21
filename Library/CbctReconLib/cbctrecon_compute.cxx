@@ -293,10 +293,10 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   const auto &targetImg = spSrcTarg;
 
   /* 3) Configure transform */
-  using TransformType = itk::Euler3DTransform<double>;
-  auto transform = TransformType::New();
+  using EulerTransformType = itk::Euler3DTransform<double>;
+  auto transform = EulerTransformType::New();
 
-  TransformType::ParametersType param;
+  EulerTransformType::ParametersType param;
   param.SetSize(6);
   // MAXIMUM PARAM NUMBER: 6!!!
   param.put(0, 0.0);                  // rot X // 0.5 = PI/2
@@ -306,7 +306,7 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   param.put(4, 0.0);                  // Trans Y mm
   param.put(5, 0.0);                  // Trans Z mm
 
-  TransformType::ParametersType fixedParam(3); // rotation center
+  EulerTransformType::ParametersType fixedParam(3); // rotation center
   fixedParam.put(0, 0);
   fixedParam.put(1, 0);
   fixedParam.put(2, 0);
@@ -394,8 +394,8 @@ void ImageTransformUsingCouchCorrection(
   using FilterType = itk::ResampleImageFilter<UShortImageType, UShortImageType>;
   auto filter = FilterType::New();
 
-  using TransformType = itk::AffineTransform<double, 3>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<double, 3>;
+  auto transform = AffTransformType::New();
   filter->SetTransform(transform);
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImageType, double>;
@@ -429,14 +429,14 @@ void ImageTransformUsingCouchCorrection(
   // should be checked  pRot->x = couch_Pitch;  pRot->y = couch_Yaw;  pRot->z =
   // couch_Roll;
 
-  TransformType::OutputVectorType translation;
+  AffTransformType::OutputVectorType translation;
   translation[0] = -couch_trans.x; // X translation in millimeters
   // translation[1] = +couch_trans.y; //so far so good// This is because when
   // IEC->DICOM, sign was not changed during reading the text file
   translation[1] = -couch_trans.y; // Consistent with Tracking software
   translation[2] = -couch_trans.z; // empirically found
 
-  TransformType::OutputVectorType rotation;
+  AffTransformType::OutputVectorType rotation;
   rotation[0] = -couch_rot.x; // X translation in millimeters
   rotation[1] = -couch_rot.y;
   rotation[2] = -couch_rot.z;
@@ -497,10 +497,10 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
   flipFilter->SetFlipAxes(arrFlipAxes);
   flipFilter->SetInput(spInputImgUS); // plan CT, USHORT image
 
-  using TransformType = itk::Euler3DTransform<double>;
-  auto transform = TransformType::New();
+  using EulerTransformType = itk::Euler3DTransform<double>;
+  auto transform = EulerTransformType::New();
 
-  TransformType::ParametersType param;
+  EulerTransformType::ParametersType param;
   param.SetSize(6);
   param.put(0, itk::Math::pi / -2.0); // rot X // 0.5 = PI/2
   param.put(1, 0);                    // rot Y
@@ -509,7 +509,7 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
   param.put(4, 0.0);                  // Trans Y mm
   param.put(5, 0.0);                  // Trans Z mm
 
-  TransformType::ParametersType fixedParam(3); // rotation center
+  EulerTransformType::ParametersType fixedParam(3); // rotation center
   fixedParam.put(0, 0);
   fixedParam.put(1, 0);
   fixedParam.put(2, 0);

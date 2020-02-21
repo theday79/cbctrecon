@@ -18,8 +18,8 @@ public:
   AG17RGBAImage(AG17RGBAImage &&) = delete;
   void operator=(AG17RGBAImage &&) = delete;
 
-  int m_iWidth;
-  int m_iHeight;
+  size_t m_iWidth;
+  size_t m_iHeight;
   // added: 20140206
   double m_fSpacingX; //[mm/px]
   double m_fSpacingY;

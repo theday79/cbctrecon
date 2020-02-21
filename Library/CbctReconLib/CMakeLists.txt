@@ -4,15 +4,17 @@ set(CMAKE_CXX_STARDARD 17) # only for this sub directory
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include(CheckCXXCompilerFlag)
+set(CXX_PEDANTIC_FLAGS "")
 function(enable_cxx_compiler_flag_if_supported flag)
-    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
-    if(flag_already_set EQUAL -1)
-        check_cxx_compiler_flag("${flag}" flag_supported)
-        if(flag_supported)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
-        endif()
-        unset(flag_supported CACHE)
+  string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+  if(flag_already_set EQUAL -1)
+    check_cxx_compiler_flag("${flag}" flag_supported)
+    if(flag_supported)
+      list(APPEND CXX_PEDANTIC_FLAGS ${flag})
+      set(CXX_PEDANTIC_FLAGS ${CXX_PEDANTIC_FLAGS} PARENT_SCOPE)
     endif()
+    unset(flag_supported CACHE)
+  endif()
 endfunction()
 
 if(ENABLE_PEDANTIC)
@@ -20,6 +22,9 @@ if(ENABLE_PEDANTIC)
   enable_cxx_compiler_flag_if_supported("-Wextra")
   enable_cxx_compiler_flag_if_supported("-pedantic")
   enable_cxx_compiler_flag_if_supported("-Wno-extra-semi")
+  enable_cxx_compiler_flag_if_supported("-Werror")
+  enable_cxx_compiler_flag_if_supported("/W4")
+  enable_cxx_compiler_flag_if_supported("/WX")
 endif()
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
@@ -107,6 +112,9 @@ set_target_cpu_flags(CbctReconLib)
 # Only sets report flags if Intel Compiler:
 set_target_vectorizer_report_flags(CbctReconLib)
 
+target_compile_options(CbctReconLib PRIVATE ${CXX_PEDANTIC_FLAGS})
+message(STATUS "Pedantic flags: ${CXX_PEDANTIC_FLAGS}")
+
 if (CBCTRECON_SANITIZE)
   sanitize_build(CbctReconLib)
 endif()
@@ -143,7 +151,7 @@ set(CBCTRECON_DEP_INCLUDES
 )
 
 target_include_directories(CbctReconLib
-  PUBLIC ${CBCTRECON_DEP_INCLUDES}
+  SYSTEM PUBLIC ${CBCTRECON_DEP_INCLUDES}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -166,7 +174,7 @@ if(USE_SYSTEM_Plastimatch)
   get_target_property(plmbase_includes plmbase INTERFACE_INCLUDE_DIRECTORIES)
   foreach(i_dir ${plmbase_includes})
     target_include_directories(CbctReconLib
-      PUBLIC "${i_dir}/../"
+      SYSTEM PUBLIC "${i_dir}/../"
       )
   endforeach()
 endif()

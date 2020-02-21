@@ -41,7 +41,7 @@
 
 #define MAX_INFO_STRING 256
 
-CBCTRECON_API unsigned OpenCL_getDeviceList(std::vector<cl::Device> &devices);
+CBCTRECON_API std::vector<cl::Device> OpenCL_getDeviceList();
 
 CBCTRECON_API std::string OpenCL_getDeviceName(const cl::Device &device);
 

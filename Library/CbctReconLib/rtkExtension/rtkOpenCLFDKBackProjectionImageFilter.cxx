@@ -20,9 +20,9 @@
  *=========================================================================*/
 
 // #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#include "rtkOpenCLFDKBackProjectionImageFilter.h"
-
 #include "rtkOpenCLUtilities.h"
+
+#include "rtkOpenCLFDKBackProjectionImageFilter.h"
 
 namespace rtk {
 

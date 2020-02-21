@@ -12,7 +12,7 @@
 #include <variant>
 #include <vector>
 
-#if defined(__GNUG__) && !defined(__clang__)
+#if defined(__GNUC__)
 #include "absl/strings/charconv.h"
 #define float_from_chars absl::from_chars
 #else

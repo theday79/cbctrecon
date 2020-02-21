@@ -315,7 +315,7 @@ bool AG17RGBAImage::FillPixMapMinMax(int winMin,
     winMax = 65535;
   }
 
-  const auto midVal = static_cast<int>((winMin + winMax) / 2.0);
+  const auto midVal = static_cast<int>((static_cast<double>(winMin) + winMax) / 2.0);
   const auto widthVal = winMax - winMin;
 
   return FillPixMap(midVal, widthVal);
@@ -589,8 +589,8 @@ void AG17RGBAImage::MultiplyConstant(const double multiplyFactor) {
     return;
   }
 
-  for (auto i = 0; i < m_iHeight; i++) {
-    for (auto j = 0; j < m_iWidth; j++) {
+  for (auto i = 0ull; i < m_iHeight; i++) {
+    for (auto j = 0ull; j < m_iWidth; j++) {
       m_pData[m_iWidth * i + j] = static_cast<unsigned short>(
           static_cast<double>(m_pData[m_iWidth * i + j]) * multiplyFactor);
     }
@@ -637,14 +637,14 @@ void AG17RGBAImage::GetProfileData(const int dataX, const int dataY,
 
   if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
-    for (auto j = 0; j < m_iWidth; j++) {
+    for (auto j = 0ull; j < m_iWidth; j++) {
       vTarget.push_back(m_pData[m_iWidth * fixedY + j]);
     }
   } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
-    for (auto i = 0; i < m_iHeight; i++) {
+    for (auto i = 0ull; i < m_iHeight; i++) {
       vTarget.push_back(m_pData[m_iWidth * i + fixedX]);
     }
   }
@@ -906,8 +906,8 @@ bool AG17RGBAImage::FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
     winMax2 = 65535;
   }
 
-  const auto midVal1 = static_cast<int>((winMin1 + winMax1) / 2.0);
-  const auto midVal2 = static_cast<int>((winMin2 + winMax2) / 2.0);
+  const auto midVal1 = static_cast<int>((static_cast<double>(winMin1) + static_cast<double>(winMax1)) / 2.0);
+  const auto midVal2 = static_cast<int>((static_cast<double>(winMin2) + static_cast<double>(winMax2)) / 2.0);
 
   const auto widthVal1 = winMax1 - winMin1;
   const auto widthVal2 = winMax2 - winMin2;
@@ -1097,8 +1097,8 @@ void AG17RGBAImage::ResampleImage(const double fResampleFactor) {
       itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType, float>;
   auto resample = ResampleImageFilterType::New();
 
-  using TransformType = itk::AffineTransform<float, 2>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<float, 2>;
+  auto transform = AffTransformType::New();
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImage2DType, float>;
   const auto interpolator = InterpolatorType::New();

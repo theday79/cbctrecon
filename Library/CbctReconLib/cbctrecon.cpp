@@ -886,8 +886,8 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
   filter->SetInput(spMovingImg);
 
-  using TransformType = itk::AffineTransform<double, 3>;
-  const auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<double, 3>;
+  const auto transform = AffTransformType::New();
   filter->SetTransform(transform);
 
   using InterpolatorType =
@@ -1055,8 +1055,8 @@ void CbctRecon::Draw2DFrom3DDouble(UShortImageType::Pointer &spFixedImg,
 
   filter->SetInput(spMovingImg);
 
-  using TransformType = itk::AffineTransform<double, 3>;
-  const auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<double, 3>;
+  const auto transform = AffTransformType::New();
   filter->SetTransform(transform);
 
   using InterpolatorType =
@@ -1890,7 +1890,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       crntDir = m_strPathPatientDir / "IMAGES"; // current Proj folder
     } else {
       // stolen from registration class: m_strPathPlastimatch definition
-      auto crntDir =
+      crntDir =
           fs::current_path(); // folder where current exe file exists.
       auto crntPathStr = fs::absolute(crntDir);
       auto dirName = crntPathStr / "plm_tmp";
@@ -2140,8 +2140,8 @@ void CbctRecon::ResampleItkImage(FloatImageType::Pointer &spSrcImg,
 
   resample->SetOutputDirection(spSrcImg->GetDirection());
 
-  using TransformType = itk::AffineTransform<float, 3>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<float, 3>;
+  auto transform = AffTransformType::New();
 
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<FloatImageType, float>;
@@ -2203,8 +2203,8 @@ void CbctRecon::ResampleItkImage(UShortImageType::Pointer &spSrcImg,
 
   resample->SetOutputDirection(spSrcImg->GetDirection());
 
-  using TransformType = itk::AffineTransform<float, 3>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<float, 3>;
+  auto transform = AffTransformType::New();
 
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImageType, float>;
@@ -2277,8 +2277,8 @@ void CbctRecon::ResampleItkImage2D(FloatImage2DType::Pointer &spSrcImg2D,
   // Resample the image
   // typedef itk::IdentityTransform<float, 2> TransformType;
 
-  using TransformType = itk::AffineTransform<float, 2>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<float, 2>;
+  auto transform = AffTransformType::New();
 
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<FloatImage2DType, float>;
@@ -2357,8 +2357,11 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
           << std::endl;
     }
     auto updated_text_ct = "PriorCT_ScatterCorr"s;
-    crl::SaveUSHORTAsSHORT_DICOM(m_spScatCorrReconImg, m_strDCMUID,
-                                 updated_text_ct, savingFolder);
+    auto saving_folder = crl::SaveUSHORTAsSHORT_DICOM(
+        m_spScatCorrReconImg, m_strDCMUID, updated_text_ct, savingFolder);
+    if (savingFolder != saving_folder ) {
+      std::cerr << "Different saving folder returned?\n";
+    }
     // Export as DICOM (using plastimatch) folder?
   }
   std::cout << "Exiting AfterScatCorrectionMacro.";

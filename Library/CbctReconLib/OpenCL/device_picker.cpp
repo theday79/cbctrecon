@@ -2,20 +2,21 @@
 
 #include <iostream>
 
-unsigned OpenCL_getDeviceList(std::vector<cl::Device> &devices) {
+std::vector<cl::Device> OpenCL_getDeviceList() {
   // Get list of platforms
   std::vector<cl::Platform> platforms;
   cl::Platform::get(&platforms);
 
+  std::vector<cl::Device> devices;
   // Enumerate devices
   for (auto &platform : platforms) {
     std::vector<cl::Device> plat_devices;
     const auto err = platform.getDevices(CL_DEVICE_TYPE_ALL, &plat_devices);
     checkError(err, "Get devices from platform");
-    devices.insert(devices.end(), plat_devices.begin(), plat_devices.end());
+    std::copy(plat_devices.begin(), plat_devices.end(), std::back_inserter(devices));
   }
 
-  return devices.size();
+  return devices;
 }
 
 std::string OpenCL_getDeviceName(const cl::Device &device) {
@@ -41,18 +42,18 @@ template <> cl_uint string_to<cl_uint>(const char *str, char *next) {
   return static_cast<cl_uint>(output);
 }
 
-template <typename T> int OpenCL_parse(const char *str, T *output) {
+template <typename T> auto OpenCL_parse(const char *str, T *output) {
   char *next = nullptr;
   *output = string_to<T>(str, next);
-  return !strlen(next);
+  return next == nullptr ? false : !strlen(next);
 }
 
 void OpenCL_parseArguments(const int argc, char *argv[], cl_uint *deviceIndex) {
   for (auto i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--list")) {
       // Get list of devices
-      std::vector<cl::Device> devices;
-      const auto numDevices = OpenCL_getDeviceList(devices);
+      const auto devices = OpenCL_getDeviceList();
+      const auto numDevices = devices.size();
 
       // Print device names
       if (numDevices == 0) {
