@@ -69,8 +69,7 @@ private:
       return;
     }
 
-    std::vector<cl::Device> devices;
-    OpenCL_getDeviceList(devices);
+    auto devices = OpenCL_getDeviceList();
 
     // Attempt first device if none with image_support
     auto device = devices.at(0);

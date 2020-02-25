@@ -154,10 +154,7 @@ bool GetOutputResolutionFromFOV(
     const typename ImageType::Pointer &ProjStack,
     const fs::path &outputFilePath) {
 
-  fs::path outFileInfo = outputFilePath;
-  auto outFileDir = fs::absolute(outFileInfo);
-
-  if (outputFilePath.empty() || !fs::exists(outFileDir)) {
+  if (outputFilePath.empty() || !fs::exists(outputFilePath)) {
     const double radius = GetFOVRadius<ImageType>(geometry, ProjStack);
     if (radius > 0.0) {
       sizeOutput[0] = 512; // AP

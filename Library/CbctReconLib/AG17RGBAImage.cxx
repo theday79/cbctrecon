@@ -155,8 +155,8 @@ bool AG17RGBAImage::CreateImage(const int width, const int height,
 }
 
 bool AG17RGBAImage::CopyFromBuffer(
-    const std::valarray<unsigned short> &pImageBuf, const int width,
-    const int height) {
+    const std::valarray<unsigned short> &pImageBuf, const size_t width,
+    const size_t height) {
   if (m_pData.size() == 0) {
     return false;
   }
@@ -280,8 +280,8 @@ bool AG17RGBAImage::FillPixMap(const int winMid,
 
   // It takes 0.4 s in Release mode
 
-  for (auto i = 0; i < m_iHeight; i++) { // So long time....
-    for (auto j = 0; j < m_iWidth; j++) {
+  for (size_t i = 0; i < m_iHeight; i++) { // So long time....
+    for (size_t j = 0; j < m_iWidth; j++) {
       fill_index(i, j, m_iWidth, uppVal, lowVal, m_bShowInvert, m_pData,
                  tmpData, winWidth);
     }
@@ -315,7 +315,8 @@ bool AG17RGBAImage::FillPixMapMinMax(int winMin,
     winMax = 65535;
   }
 
-  const auto midVal = static_cast<int>((static_cast<double>(winMin) + winMax) / 2.0);
+  const auto midVal =
+      static_cast<int>((static_cast<double>(winMin) + winMax) / 2.0);
   const auto widthVal = winMax - winMin;
 
   return FillPixMap(midVal, widthVal);
@@ -375,7 +376,7 @@ double AG17RGBAImage::CalcAveragePixelDiff(AG17RGBAImage &other) {
 
   const auto totalPixCnt = m_iWidth * m_iHeight;
   auto tmpSum = 0.0;
-  for (auto i = 0; i < totalPixCnt; i++) {
+  for (size_t i = 0; i < totalPixCnt; i++) {
     tmpSum = tmpSum + fabs(static_cast<double>(m_pData[i]) -
                            static_cast<double>(other.m_pData[i]));
   }
@@ -500,8 +501,9 @@ bool AG17RGBAImage::CalcImageInfo_ROI() {
 bool AG17RGBAImage::setROI(const int left, const int top, const int right,
                            const int bottom) {
 
-  if (left >= right || top >= bottom || left < 0 || right > m_iWidth - 1 ||
-      top < 0 || bottom > m_iHeight - 1) {
+  if (left >= right || top >= bottom || left < 0 ||
+      right > static_cast<int>(m_iWidth - 1) || top < 0 ||
+      bottom > static_cast<int>(m_iHeight - 1)) {
     m_rtROI.setLeft(0);
     m_rtROI.setTop(0);
     m_rtROI.setRight(m_iWidth - 1);
@@ -598,8 +600,10 @@ void AG17RGBAImage::MultiplyConstant(const double multiplyFactor) {
 }
 
 void AG17RGBAImage::SetProfileProbePos(const int dataX, const int dataY) {
-  if (m_ptProfileProbe.y() >= 0 && m_ptProfileProbe.y() < m_iHeight &&
-      m_ptProfileProbe.x() >= 0 && m_ptProfileProbe.x() < m_iWidth) {
+  if (m_ptProfileProbe.y() >= 0 &&
+      static_cast<size_t>(m_ptProfileProbe.y()) < m_iHeight &&
+      m_ptProfileProbe.x() >= 0 &&
+      static_cast<size_t>(m_ptProfileProbe.x()) < m_iWidth) {
     m_ptProfileProbe.setX(dataX);
     m_ptProfileProbe.setY(dataY);
   } else {
@@ -614,8 +618,10 @@ unsigned short AG17RGBAImage::GetProfileProbePixelVal() {
     return 0;
   }
 
-  if (m_ptProfileProbe.y() >= 0 && m_ptProfileProbe.y() < m_iHeight &&
-      m_ptProfileProbe.x() >= 0 && m_ptProfileProbe.x() < m_iWidth) {
+  if (m_ptProfileProbe.y() >= 0 &&
+      static_cast<size_t>(m_ptProfileProbe.y()) < m_iHeight &&
+      m_ptProfileProbe.x() >= 0 &&
+      static_cast<size_t>(m_ptProfileProbe.x()) < m_iWidth) {
     resultVal = m_pData[m_iWidth * m_ptProfileProbe.y() + m_ptProfileProbe.x()];
   }
 
@@ -629,7 +635,8 @@ void AG17RGBAImage::GetProfileData(const int dataX, const int dataY,
     return;
   }
 
-  if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth) {
+  if (dataY < 0 || static_cast<size_t>(dataY) >= m_iHeight || dataX < 0 ||
+      static_cast<size_t>(dataX) >= m_iWidth) {
     return;
   }
 
@@ -658,7 +665,8 @@ void AG17RGBAImage::GetProfileData(QVector<double> &vTarget,
   const auto dataX = m_ptProfileProbe.x();
   const auto dataY = m_ptProfileProbe.y();
 
-  if (dataY < 0 || dataY >= m_iHeight || dataX < 0 || dataX >= m_iWidth) {
+  if (dataY < 0 || static_cast<size_t>(dataY) >= m_iHeight || dataX < 0 ||
+      static_cast<size_t>(dataX) >= m_iWidth) {
     return;
   }
 
@@ -666,14 +674,14 @@ void AG17RGBAImage::GetProfileData(QVector<double> &vTarget,
 
   if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
-    for (auto j = 0; j < m_iWidth; j++) {
+    for (size_t j = 0; j < m_iWidth; j++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * fixedY + j]));
     }
   } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
-    for (auto i = 0; i < m_iHeight; i++) {
+    for (size_t i = 0; i < m_iHeight; i++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * i + fixedX]));
     }
   }
@@ -694,32 +702,31 @@ bool AG17RGBAImage::ConstituteFromTwo(AG17RGBAImage &YKImg1,
 
   CreateImage(width, height, 0);
 
-  const auto centerX = m_ptSplitCenter.x(); // data index
-  const auto centerY = m_ptSplitCenter.y();
+  const auto centerX = static_cast<size_t>(m_ptSplitCenter.x()); // data index
+  const auto centerY = static_cast<size_t>(m_ptSplitCenter.y());
 
-  int i, j;
   switch (m_enSplitOption) {
   case enSplitOption::PRI_LEFT_TOP:
-    for (i = 0; i < centerY; i++) {
-      for (j = 0; j < centerX; j++) {
+    for (size_t i = 0; i < centerY; i++) {
+      for (size_t j = 0; j < centerX; j++) {
         m_pData[width * i + j] = YKImg1.m_pData[width * i + j];
       }
     }
 
-    for (i = centerY; i < height; i++) {
-      for (j = centerX; j < width; j++) {
+    for (size_t i = centerY; i < height; i++) {
+      for (size_t j = centerX; j < width; j++) {
         m_pData[width * i + j] = YKImg1.m_pData[width * i + j];
       }
     }
 
-    for (i = 0; i < centerY; i++) {
-      for (j = centerX; j < width; j++) {
+    for (size_t i = 0; i < centerY; i++) {
+      for (size_t j = centerX; j < width; j++) {
         m_pData[width * i + j] = YKImg2.m_pData[width * i + j];
       }
     }
 
-    for (i = centerY; i < height; i++) {
-      for (j = 0; j < centerX; j++) {
+    for (size_t i = centerY; i < height; i++) {
+      for (size_t j = 0; j < centerX; j++) {
         m_pData[width * i + j] = YKImg2.m_pData[width * i + j];
       }
     }
@@ -747,8 +754,8 @@ void AG17RGBAImage::EditImage_Flip() {
 
   std::copy(std::begin(m_pData), std::end(m_pData), std::begin(pPrevImg));
 
-  for (auto i = 0; i < m_iHeight; i++) {
-    for (auto j = 0; j < m_iWidth; j++) {
+  for (size_t i = 0; i < m_iHeight; i++) {
+    for (size_t j = 0; j < m_iWidth; j++) {
       const auto tmpX = j;
       const auto tmpY = m_iHeight - i - 1;
 
@@ -764,8 +771,7 @@ void AG17RGBAImage::EditImage_Mirror() {
     return;
   }
 
-  const auto imgSize =
-      static_cast<size_t>(m_iWidth) * static_cast<size_t>(m_iHeight);
+  const auto imgSize = m_iWidth * m_iHeight;
 
   if (imgSize <= 0) {
     return;
@@ -777,8 +783,8 @@ void AG17RGBAImage::EditImage_Mirror() {
   // copy
   auto p_prev_img = m_pData;
 
-  for (auto i = 0; i < m_iHeight; i++) {
-    for (auto j = 0; j < m_iWidth; j++) {
+  for (size_t i = 0; i < m_iHeight; i++) {
+    for (size_t j = 0; j < m_iWidth; j++) {
       const auto tmp_x = m_iWidth - j - 1;
 
       m_pData[i * m_iWidth + j] = p_prev_img[i * m_iWidth + tmp_x];
@@ -831,19 +837,19 @@ bool AG17RGBAImage::FillPixMapDual(const int winMid1, const int winMid2,
     return false;
   }
 
-  const auto splitX = m_ptSplitCenter.x();
-  const auto splitY = m_ptSplitCenter.y();
+  const auto splitX = static_cast<size_t>(m_ptSplitCenter.x());
+  const auto splitY = static_cast<size_t>(m_ptSplitCenter.y());
 
   // 1/4 sector
-  for (auto i = 0; i < splitY; i++) {
-    for (auto j = 0; j < splitX; j++) {
+  for (size_t i = 0; i < splitY; i++) {
+    for (size_t j = 0; j < splitX; j++) {
       fill_index(i, j, m_iWidth, uppVal1, lowVal1, m_bShowInvert, m_pData,
                  tmpData, winWidth1);
     }
   }
 
   // 2/4 sector
-  for (auto i = 0; i < splitY; i++) {
+  for (size_t i = 0; i < splitY; i++) {
     for (auto j = splitX; j < m_iWidth; j++) {
       fill_index(i, j, m_iWidth, uppVal2, lowVal2, m_bShowInvert, m_pData,
                  tmpData, winWidth2);
@@ -852,7 +858,7 @@ bool AG17RGBAImage::FillPixMapDual(const int winMid1, const int winMid2,
 
   // 3/4 sector
   for (auto i = splitY; i < m_iHeight; i++) {
-    for (auto j = 0; j < splitX; j++) {
+    for (size_t j = 0; j < splitX; j++) {
       fill_index(i, j, m_iWidth, uppVal2, lowVal2, m_bShowInvert, m_pData,
                  tmpData, winWidth2);
     }
@@ -906,8 +912,10 @@ bool AG17RGBAImage::FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
     winMax2 = 65535;
   }
 
-  const auto midVal1 = static_cast<int>((static_cast<double>(winMin1) + static_cast<double>(winMax1)) / 2.0);
-  const auto midVal2 = static_cast<int>((static_cast<double>(winMin2) + static_cast<double>(winMax2)) / 2.0);
+  const auto midVal1 = static_cast<int>(
+      (static_cast<double>(winMin1) + static_cast<double>(winMax1)) / 2.0);
+  const auto midVal2 = static_cast<int>(
+      (static_cast<double>(winMin2) + static_cast<double>(winMax2)) / 2.0);
 
   const auto widthVal1 = winMax1 - winMin1;
   const auto widthVal2 = winMax2 - winMin2;
@@ -916,7 +924,8 @@ bool AG17RGBAImage::FillPixMapMinMaxDual(int winMin1, int winMin2, int winMax1,
 }
 
 bool AG17RGBAImage::isPtInFirstImage(const int dataX, const int dataY) const {
-  if (dataX < 0 || dataX >= m_iWidth || dataY < 0 || dataY >= m_iHeight) {
+  if (dataX < 0 || static_cast<size_t>(dataX) >= m_iWidth || dataY < 0 ||
+      static_cast<size_t>(dataY) >= m_iHeight) {
     std::cout
         << "Fatal error in isPtInFirstImage! Given point is out of image point"
         << std::endl;
@@ -925,8 +934,10 @@ bool AG17RGBAImage::isPtInFirstImage(const int dataX, const int dataY) const {
 
   if (m_enSplitOption == enSplitOption::PRI_LEFT_TOP && !IsEmpty()) {
     return (dataX < m_ptSplitCenter.x() && dataY < m_ptSplitCenter.y()) ||
-           (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
-            dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);
+           (dataX >= m_ptSplitCenter.x() &&
+            static_cast<size_t>(dataX) < m_iWidth &&
+            dataY >= m_ptSplitCenter.y() &&
+            static_cast<size_t>(dataY) < m_iHeight);
   }
   return false;
 }
@@ -936,8 +947,10 @@ void AG17RGBAImage::SetSplitCenter(QPoint &ptSplitCenter) {
     return;
   }
 
-  if (ptSplitCenter.x() < 0 || ptSplitCenter.x() >= m_iWidth ||
-      ptSplitCenter.y() < 0 || ptSplitCenter.y() >= m_iHeight) {
+  if (ptSplitCenter.x() < 0 ||
+      static_cast<size_t>(ptSplitCenter.x()) >= m_iWidth ||
+      ptSplitCenter.y() < 0 ||
+      static_cast<size_t>(ptSplitCenter.y()) >= m_iHeight) {
     m_ptSplitCenter.setX(0);
     m_ptSplitCenter.setY(0);
   } else {

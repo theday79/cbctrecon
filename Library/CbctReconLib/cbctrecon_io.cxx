@@ -699,8 +699,6 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
     // ROI name: 3006, 0026
     check_gdcm_errc(ss_item.getROIName(roi_name));
     const auto trimmed_roi_name = trim_string(rt_roi.name);
-    const auto trimmed_roi_name_dcm =
-        trim_string(std::string(roi_name.c_str()));
     if (trimmed_roi_name.find("WEPL") != std::string::npos) {
       check_gdcm_errc(roi_seq.gotoNextItem());
       check_gdcm_errc(ss_seq.gotoNextItem());
@@ -855,7 +853,7 @@ bool ReadDicomDir(CbctRecon *p_cr, const fs::path &dir) {
       // filenamelist.push_back(fullfilename.toStdString());
       break;
     case DCM_MODALITY::RTSTRUCT:
-      p_cr->m_structures->set_planCT_ss(std::move(load_rtstruct(fullfilename)));
+      p_cr->m_structures->set_planCT_ss(load_rtstruct(fullfilename));
       p_cr->m_strPathRS = fullfilename;
       break;
     case DCM_MODALITY::RTPLAN:

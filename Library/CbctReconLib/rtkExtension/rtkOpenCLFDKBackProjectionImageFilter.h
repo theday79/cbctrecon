@@ -85,7 +85,7 @@ private:
   cl::CommandQueue m_CommandQueue{};
   cl::Buffer m_DeviceMatrix{};
   cl::Buffer m_DeviceVolume{};
-  cl::Buffer m_DeviceProjection{};
+  cl::Image2D m_DeviceProjection{};
   cl::Program m_Program{};
   cl::Kernel m_Kernel{};
 };

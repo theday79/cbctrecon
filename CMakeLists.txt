@@ -220,7 +220,7 @@ if(dlib_FOUND)
   set(DLIB_LIB dlib::dlib)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(ABSEIL_LIBS
       absl::base
       absl::strings
@@ -330,10 +330,3 @@ else()
   endif()
 endif()
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    message(STATUS "Generate vim YCM config file for CbctRecon at ${CbctRecon_SOURCE_DIR} ...")
-    configure_file(
-        ${CbctRecon_SOURCE_DIR}/.ycm_extra_conf.py.in
-        ${CbctRecon_SOURCE_DIR}/.ycm_extra_conf.py
-    )
-endif()

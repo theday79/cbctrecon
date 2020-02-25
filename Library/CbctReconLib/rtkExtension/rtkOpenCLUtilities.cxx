@@ -24,73 +24,66 @@
 #include <fstream>
 #include <vector>
 
-std::vector<cl_platform_id> GetListOfOpenCLPlatforms() {
-  cl_uint numberOfPlatforms;
-  OPENCL_CHECK_ERROR(clGetPlatformIDs(0, nullptr, &numberOfPlatforms));
-
-  std::vector<cl_platform_id> platformList(numberOfPlatforms);
-  OPENCL_CHECK_ERROR(
-      clGetPlatformIDs(numberOfPlatforms, &platformList[0], nullptr));
-
-  return platformList;
+std::vector<cl::Platform> GetListOfOpenCLPlatforms() {
+  // Get list of platforms
+  std::vector<cl::Platform> platforms;
+  cl::Platform::get(&platforms);
+  return platforms;
 }
 
-std::vector<cl_device_id> GetListOfOpenCLDevices(cl_platform_id platform) {
-  cl_uint numberOfDevices;
-  const auto error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr,
-                                    &numberOfDevices);
+std::vector<cl::Device> GetListOfOpenCLDevices(cl::Platform platform) {
+  // If no devices support images, returns empty vector
 
-  std::vector<cl_device_id> deviceList(numberOfDevices);
-  if (error != -1) { // -1 means we didn't find a GPU
-    OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU,
-                                      numberOfDevices, &deviceList[0],
-                                      nullptr));
-  }
+  // Enumerate devices
+  auto devices = std::vector<cl::Device>();
+  platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 
   cl_bool bImageSupport = false;
   // If found, check if supports image.
-  if (numberOfDevices > 0 && error != -1) {
-    OPENCL_CHECK_ERROR(clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
-                                       sizeof(cl_bool), &bImageSupport,
-                                       nullptr));
-  }
+  auto dev_it =
+      std::remove_if(devices.begin(), devices.end(), [](cl::Device device) {
+        return !(device.getInfo<CL_DEVICE_IMAGE_SUPPORT>());
+      });
+  devices.erase(dev_it, devices.end());
+
+  bImageSupport = dev_it != devices.end();
 
   // If not a good device, switch to Accelerator.
   if (!bImageSupport) {
-    const auto err_acc = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR, 0, nullptr,
-                                      &numberOfDevices);
+    devices.clear();
+    platform.getDevices(CL_DEVICE_TYPE_ACCELERATOR, &devices);
 
-    if (err_acc != -1) { // -1 means we didn't fins an accelerator
-      deviceList.resize(numberOfDevices);
-      OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ACCELERATOR,
-                                        numberOfDevices, &deviceList[0],
-                                        nullptr));
-      OPENCL_CHECK_ERROR(clGetDeviceInfo(deviceList[0], CL_DEVICE_IMAGE_SUPPORT,
-                                         sizeof(cl_bool), &bImageSupport,
-                                         nullptr));
-    }
+    // If found, check if supports image.
+    auto dev_it =
+        std::remove_if(devices.begin(), devices.end(), [](cl::Device device) {
+          return !(device.getInfo<CL_DEVICE_IMAGE_SUPPORT>());
+        });
+    devices.erase(dev_it, devices.end());
+
+    bImageSupport = dev_it != devices.end();
   }
 
   // If still not a good device, switch to CPU.
   if (!bImageSupport) {
-    OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, nullptr,
-                                      &numberOfDevices));
-    deviceList.resize(numberOfDevices);
-    OPENCL_CHECK_ERROR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU,
-                                      numberOfDevices, &deviceList[0],
-                                      nullptr));
+    devices.clear();
+    platform.getDevices(CL_DEVICE_TYPE_CPU, &devices);
+
+    // If found, check if supports image.
+    auto dev_it =
+        std::remove_if(devices.begin(), devices.end(), [](cl::Device device) {
+          return !(device.getInfo<CL_DEVICE_IMAGE_SUPPORT>());
+        });
+    devices.erase(dev_it, devices.end());
+
+    bImageSupport = dev_it != devices.end();
   }
-  /*
-    char buf[1024];
-    OPENCL_CHECK_ERROR( clGetDeviceInfo (deviceList[0], CL_DEVICE_NAME,
-    sizeof(buf), buf, NULL) ); std::cout << "Buf=" << buf << std::endl;
-  */
-  return deviceList;
+
+  return devices;
 }
 
 void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
-                                               const cl_context &context,
-                                               cl_program &program) {
+                                               const cl::Context &context,
+                                               cl::Program &program) {
   char *oclSource;
   size_t size;
   cl_int error;
@@ -118,26 +111,19 @@ void CreateAndBuildOpenCLProgramFromSourceFile(std::string &fileName,
                              << fileName);
   }
 
-  program = clCreateProgramWithSource(
-      context, 1, const_cast<const char **>(&oclSource), &size, &error);
+  program = cl::Program(context, oclSource, false, &error);
+  // (    context, 1, const_cast<const char **>(&oclSource), &size, &error);
   if (error != CL_SUCCESS)
     itkGenericExceptionMacro(
         << "Could not create OpenCL sampler object, error code: " << error);
 
-  error = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
+  error = program.build();
+  // error = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
   if (error != CL_SUCCESS) {
-    cl_device_id id;
-    clGetContextInfo(context, CL_CONTEXT_DEVICES, sizeof(cl_device_id), &id,
-                     nullptr);
+    auto id = context.getInfo<CL_CONTEXT_DEVICES>();
 
-    size_t logSize;
-    OPENCL_CHECK_ERROR(clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG,
-                                             0, nullptr, &logSize));
-    // auto *log = new char[logSize + 1];
-    auto log = std::vector<char>(logSize + 1);
-    OPENCL_CHECK_ERROR(clGetProgramBuildInfo(program, id, CL_PROGRAM_BUILD_LOG,
-                                             logSize, &log[0], &logSize));
-    log[logSize] = '\0';
+    auto log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&error);
+
     itkGenericExceptionMacro(
         << "OPENCL ERROR with clBuildProgram. The log is:\n"
         << &log[0]);

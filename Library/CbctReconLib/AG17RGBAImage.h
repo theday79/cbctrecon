@@ -30,8 +30,8 @@ public:
   QImage m_QImage;
   // QPainter* m_pPainter;
 
-  bool CopyFromBuffer(const std::valarray<unsigned short> &pImageBuf, int width,
-                      int height);
+  bool CopyFromBuffer(const std::valarray<unsigned short> &pImageBuf,
+                      size_t width, size_t height);
   bool CloneImage(AG17RGBAImage &other);
 
   bool CreateImage(int width, int height, unsigned short usVal);

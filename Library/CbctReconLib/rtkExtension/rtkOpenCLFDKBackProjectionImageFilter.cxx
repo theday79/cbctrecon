@@ -24,6 +24,8 @@
 
 #include "rtkOpenCLFDKBackProjectionImageFilter.h"
 
+#include <array>
+
 namespace rtk {
 
 OpenCLFDKBackProjectionImageFilter ::OpenCLFDKBackProjectionImageFilter() =
@@ -33,26 +35,21 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
   // OpenCL init (platform, device, context and command queue)
   auto platforms = GetListOfOpenCLPlatforms();
   auto devices = GetListOfOpenCLDevices(platforms[0]);
-  cl_context_properties properties[] = {
-      CL_CONTEXT_PLATFORM,
-      reinterpret_cast<cl_context_properties>(platforms[0]), 0};
 
   cl_int error;
-  m_Context = clCreateContext(properties, devices.size(), &devices[0], nullptr,
-                              nullptr, &error);
+  m_Context = cl::Context::getDefault(&error);
   if (error != CL_SUCCESS)
     itkExceptionMacro(<< "Could not create OpenCL context, error code: "
                       << error);
 
-  m_CommandQueue = clCreateCommandQueue(m_Context, devices[0],
-                                        CL_QUEUE_PROFILING_ENABLE, &error);
+  m_CommandQueue = cl::CommandQueue::getDefault(&error);
   if (error != CL_SUCCESS)
     itkExceptionMacro(<< "Could not create OpenCL command queue, error code: "
                       << error);
 
   // OpenCL memory allocation
-  m_DeviceMatrix = clCreateBuffer(m_Context, CL_MEM_READ_ONLY,
-                                  sizeof(cl_float) * 12, nullptr, &error);
+  m_DeviceMatrix = cl::Buffer(m_Context, CL_MEM_READ_ONLY,
+                              sizeof(cl_float) * 12, nullptr, &error);
   if (error != CL_SUCCESS)
     itkExceptionMacro(<< "Could not allocate OpenCL matrix buffer, error code: "
                       << error);
@@ -60,38 +57,23 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
   const auto volBytes =
       this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
       sizeof(float);
-  m_DeviceVolume = clCreateBuffer(
-      m_Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, volBytes,
-      (void *)this->GetInput()->GetBufferPointer(), &error);
+  m_DeviceVolume =
+      cl::Buffer(m_Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, volBytes,
+                 (void *)this->GetInput()->GetBufferPointer(), &error);
   if (error != CL_SUCCESS)
     itkExceptionMacro(<< "Could not allocate OpenCL volume buffer, error code: "
                       << error);
 
-  cl_image_format projFormat{};
-  projFormat.image_channel_order = CL_INTENSITY;
-  projFormat.image_channel_data_type = CL_FLOAT;
-  cl_image_desc im_desc{};
-  im_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
-  im_desc.image_width =
-      this->GetInput(1)->GetLargestPossibleRegion().GetSize()[0];
-  im_desc.image_height =
+  auto image_width = this->GetInput(1)->GetLargestPossibleRegion().GetSize()[0];
+  auto image_height =
       this->GetInput(1)->GetLargestPossibleRegion().GetSize()[1];
-  im_desc.image_row_pitch = 0;
-  im_desc.num_mip_levels = 0;
-  im_desc.num_samples = 0;
+  auto image_row_pitch = 0;
 
-  im_desc.image_depth = 0;
-  im_desc.image_array_size = 1; // If you ever change the above from Image2D to
-                                // Image2D Array performance will be worsened.
-  im_desc.image_slice_pitch = 0;
-#ifdef CL_VERSION_2_0
-  im_desc.mem_object = NULL;
-#else
-  im_desc.buffer = nullptr;
-#endif
-
-  m_DeviceProjection = clCreateImage(m_Context, CL_MEM_READ_ONLY, &projFormat,
-                                     &im_desc, nullptr, &error);
+  m_DeviceProjection = cl::Image2D(
+      m_Context, CL_MEM_READ_ONLY, cl::ImageFormat(CL_INTENSITY, CL_FLOAT),
+      image_width, image_height, image_row_pitch, nullptr, &error);
+  // If you ever change the above from Image2D to
+  // Image2D Array performance will be worsened.
 
   if (error != CL_SUCCESS)
     itkExceptionMacro(
@@ -100,8 +82,8 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
   std::string cl_file("fdk_opencl.cl");
   CreateAndBuildOpenCLProgramFromSourceFile(cl_file, m_Context, m_Program);
 
-  m_Kernel = clCreateKernel(m_Program,
-                            "OpenCLFDKBackProjectionImageFilterKernel", &error);
+  m_Kernel =
+      cl::Kernel(m_Program, "OpenCLFDKBackProjectionImageFilterKernel", &error);
   if (error != CL_SUCCESS)
     itkExceptionMacro(<< "Could not create OpenCL kernel, error code: "
                       << error);
@@ -113,13 +95,10 @@ void OpenCLFDKBackProjectionImageFilter ::InitDevice() {
   volumeDim.s[1] = img_size[1];
   volumeDim.s[2] = img_size[2];
   volumeDim.s[3] = 1;
-  OPENCL_CHECK_ERROR(
-      clSetKernelArg(m_Kernel, 0, sizeof(cl_mem), &m_DeviceVolume));
-  OPENCL_CHECK_ERROR(
-      clSetKernelArg(m_Kernel, 1, sizeof(cl_mem), &m_DeviceMatrix));
-  OPENCL_CHECK_ERROR(
-      clSetKernelArg(m_Kernel, 2, sizeof(cl_mem), &m_DeviceProjection));
-  OPENCL_CHECK_ERROR(clSetKernelArg(m_Kernel, 3, sizeof(cl_uint4), &volumeDim));
+  m_Kernel.setArg(0, m_DeviceVolume);
+  m_Kernel.setArg(1, m_DeviceMatrix);
+  m_Kernel.setArg(2, m_DeviceProjection);
+  m_Kernel.setArg(3, volumeDim);
 }
 
 void OpenCLFDKBackProjectionImageFilter ::CleanUpDevice() {
@@ -127,17 +106,20 @@ void OpenCLFDKBackProjectionImageFilter ::CleanUpDevice() {
       this->GetOutput()->GetRequestedRegion().GetNumberOfPixels() *
       sizeof(float);
 
-  OPENCL_CHECK_ERROR(clReleaseKernel(m_Kernel));
-  OPENCL_CHECK_ERROR(clReleaseProgram(m_Program));
-  OPENCL_CHECK_ERROR(clFinish(m_CommandQueue));
-  OPENCL_CHECK_ERROR(clEnqueueReadBuffer(
-      m_CommandQueue, m_DeviceVolume, CL_TRUE, 0, volBytes,
-      this->GetOutput()->GetBufferPointer(), 0, nullptr, nullptr));
-  OPENCL_CHECK_ERROR(clReleaseMemObject(m_DeviceProjection));
-  OPENCL_CHECK_ERROR(clReleaseMemObject(m_DeviceVolume));
-  OPENCL_CHECK_ERROR(clReleaseMemObject(m_DeviceMatrix));
-  OPENCL_CHECK_ERROR(clReleaseCommandQueue(m_CommandQueue));
-  OPENCL_CHECK_ERROR(clReleaseContext(m_Context));
+  // Most of these are unneccesarry assignments to trigger release calls, but
+  // kept in case CleanUpDevice is called anywhere but at the EOL of the class.
+
+  m_Kernel = nullptr;
+  m_Program = nullptr;
+  OPENCL_CHECK_ERROR(m_CommandQueue.finish());
+  OPENCL_CHECK_ERROR(
+      m_CommandQueue.enqueueReadBuffer(m_DeviceVolume, CL_TRUE, 0, volBytes,
+                                       this->GetOutput()->GetBufferPointer()));
+  m_DeviceProjection = nullptr;
+  m_DeviceVolume = nullptr;
+  m_DeviceMatrix = nullptr;
+  m_CommandQueue = nullptr;
+  m_Context = nullptr;
 }
 
 void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
@@ -207,28 +189,25 @@ void OpenCLFDKBackProjectionImageFilter ::GenerateData() {
       fMatrix[j * 4 + 3] = matrix[j][3];
     }
 
-    OPENCL_CHECK_ERROR(clEnqueueWriteBuffer(
-        m_CommandQueue, m_DeviceMatrix, CL_TRUE, 0, 12 * sizeof(float),
-        (void *)&fMatrix[0], 0, nullptr, nullptr));
+    OPENCL_CHECK_ERROR(m_CommandQueue.enqueueWriteBuffer(
+        m_DeviceMatrix, CL_TRUE, 0, 12 * sizeof(float), (void *)&fMatrix[0]));
 
-    const size_t origin[] = {0, 0, 0};
-    const size_t region[] = {
-        this->GetInput(1)->GetRequestedRegion().GetSize()[0],
-        this->GetInput(1)->GetRequestedRegion().GetSize()[1], 1};
-    OPENCL_CHECK_ERROR(clEnqueueWriteImage(
-        m_CommandQueue, m_DeviceProjection, CL_TRUE, &origin[0], &region[0], 0,
-        0, (void *)&projection->GetBufferPointer()[0], 0, nullptr, nullptr));
+    const std::array<size_t, 3> origin{{0, 0, 0}};
+    const std::array<size_t, 3> region{
+        {this->GetInput(1)->GetRequestedRegion().GetSize()[0],
+         this->GetInput(1)->GetRequestedRegion().GetSize()[1], 1}};
+    OPENCL_CHECK_ERROR(m_CommandQueue.enqueueWriteImage(
+        m_DeviceProjection, CL_TRUE, origin, region, 0, 0,
+        (void *)&projection->GetBufferPointer()[0]));
 
     // Execute kernel
-    cl_event events[2];
-    size_t local_work_size = 128;
-    auto global_work_size =
-        this->GetOutput()->GetRequestedRegion().GetNumberOfPixels();
-    OPENCL_CHECK_ERROR(clEnqueueNDRangeKernel(
-        m_CommandQueue, m_Kernel, 1, nullptr, &global_work_size,
-        &local_work_size, 0, nullptr, &events[0]));
-    OPENCL_CHECK_ERROR(clWaitForEvents(1, &events[0]));
-    OPENCL_CHECK_ERROR(clReleaseEvent(events[0]));
+    cl::Event event;
+    auto local_work_size = cl::NDRange(128);
+    auto global_work_size = cl::NDRange(
+        this->GetOutput()->GetRequestedRegion().GetNumberOfPixels());
+    OPENCL_CHECK_ERROR(m_CommandQueue.enqueueNDRangeKernel(
+        m_Kernel, 0, global_work_size, local_work_size, nullptr, &event));
+    OPENCL_CHECK_ERROR(event.wait());
   }
 }
 

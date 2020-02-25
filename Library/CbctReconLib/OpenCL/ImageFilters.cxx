@@ -31,6 +31,12 @@
 #include "itkSmoothingRecursiveGaussianImageFilter.h"
 #endif // LOWPASS_FFT
 
+// We want to use the opencl types as template args, but don't care that the
+// attributes (alignment) is ignored
+#ifndef _WIN32
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
 enum class enKernel {
   en_padding_kernel,
   en_multiply_kernel,
@@ -71,8 +77,15 @@ constexpr std::array<std::pair<enKernel, const char *>, 15> kernel_names = {
       "log_i_to_i_subtract_median_y_x"},
      {enKernel::en_ItoLogI, "i_to_log_i_kernel"}}};
 
+struct assert_failure {
+  explicit assert_failure(const char *sz) {
+    std::fprintf(stderr, "Assertion failure: %s\n", sz);
+    std::quick_exit(EXIT_FAILURE);
+  }
+};
+
 template <auto key, typename E, typename T, size_t N>
-constexpr auto ce_find_key(std::array<std::pair<E, T>, N> input_arr) noexcept {
+constexpr auto ce_find_key(std::array<std::pair<E, T>, N> input_arr) {
   static_assert(std::is_enum_v<E>, "Key must be enum type");
   static_assert(std::is_same_v<decltype(key), E>,
                 "Key didn't match enum type of array");
@@ -81,16 +94,22 @@ constexpr auto ce_find_key(std::array<std::pair<E, T>, N> input_arr) noexcept {
       return key_val.second;
     }
   }
-  throw std::range_error("Key not in array");
+  throw assert_failure("Key not in input_arr");
 }
 
-void print_prof_info(cl::Event evt) {
+void print_prof_info(cl::Event &evt) {
+  auto status = evt.getInfo<CL_EVENT_COMMAND_EXECUTION_STATUS>();
+  if (status != CL_COMPLETE) {
+    evt.wait();
+  }
+#ifdef DEBUG_OPENCL
   std::cerr << "Kernel took: "
             << static_cast<double>(
                    evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
                    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>()) *
-                   1e-6
+                   1e6 // ns to ms
             << " ms\n";
+#endif
 }
 
 class KernelMan {
@@ -213,8 +232,8 @@ public:
 
     const auto it_kernel = std::find_if(
         m_kernel_list.begin(), m_kernel_list.end(),
-        [kernel_name](auto cur_kernel) {
-          return cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>() == kernel_name;
+        [/*kernel_name captured for free*/](cl::Kernel cur_kernel) {
+          return (cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>()) == kernel_name;
         });
     if (it_kernel == m_kernel_list.end()) {
       std::cerr << "OH NO, SOMETHING BAD WILL HAPPEN SOON!\n";
