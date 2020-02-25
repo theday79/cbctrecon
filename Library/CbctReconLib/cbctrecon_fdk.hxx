@@ -500,10 +500,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     return;
   }
 
-  fs::path outFileInfo = fdk_options.outputFilePath;
-  auto outFileDir = fs::absolute(outFileInfo);
-
-  if (fdk_options.outputFilePath.empty() || !fs::exists(outFileDir)) {
+  if (fdk_options.outputFilePath.empty() ||
+      !fs::exists(fdk_options.outputFilePath)) {
     std::cout << "No available output path. Should be exported later"
               << std::endl;
   } else {
@@ -799,10 +797,12 @@ CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
 
     // a) size
     // std::cout << "chk1" << std::endl;
-    size[0] = m_spProjImg3DFloat->GetBufferedRegion()
-                  .GetSize()[0]; // crl::ce_round((double)DEFAULT_W*m_fResampleF);
-    size[1] = m_spProjImg3DFloat->GetBufferedRegion()
-                  .GetSize()[1]; // crl::ce_round((double)DEFAULT_H*m_fResampleF);
+    size[0] =
+        m_spProjImg3DFloat->GetBufferedRegion()
+            .GetSize()[0]; // crl::ce_round((double)DEFAULT_W*m_fResampleF);
+    size[1] =
+        m_spProjImg3DFloat->GetBufferedRegion()
+            .GetSize()[1]; // crl::ce_round((double)DEFAULT_H*m_fResampleF);
     size[2] = spGeometry->GetGantryAngles().size();
     // iNumOfProjections = size[2];
 
