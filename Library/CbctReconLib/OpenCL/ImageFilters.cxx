@@ -55,7 +55,11 @@ enum class enKernel {
   en_ItoLogI
 };
 
-constexpr std::array<std::pair<enKernel, const char *>, 15> kernel_names = {
+template <typename E, typename T, size_t N>
+using enum_map = std::array<std::pair<E, T>, N>;
+
+using kernel_map = enum_map<enKernel, const char *, 15>;
+constexpr kernel_map kernel_names = {
     {{enKernel::en_padding_kernel, "padding_kernel"},
      {enKernel::en_multiply_kernel, "multiply_kernel"},
      {enKernel::en_multiply_kernel2D, "multiply_kernel2D"},
@@ -77,24 +81,25 @@ constexpr std::array<std::pair<enKernel, const char *>, 15> kernel_names = {
       "log_i_to_i_subtract_median_y_x"},
      {enKernel::en_ItoLogI, "i_to_log_i_kernel"}}};
 
-struct assert_failure {
-  explicit assert_failure(const char *sz) {
-    std::fprintf(stderr, "Assertion failure: %s\n", sz);
-    std::quick_exit(EXIT_FAILURE);
-  }
-};
+template <auto key, typename EM>
+constexpr auto ce_find_key(const EM &input_arr) {
+  constexpr auto N = std::tuple_size_v<EM>;
+  static_assert(N > 0, "Array has 0 elements!");
 
-template <auto key, typename E, typename T, size_t N>
-constexpr auto ce_find_key(std::array<std::pair<E, T>, N> input_arr) {
+  // Pair type (a special case of tuple):
+  using PT = typename std::tuple_element_t<0, EM>;
+  static_assert(std::tuple_size_v<PT> == 2, "Array doesn't contain pair type");
+
+  using E = typename std::tuple_element_t<0, PT>;
   static_assert(std::is_enum_v<E>, "Key must be enum type");
   static_assert(std::is_same_v<decltype(key), E>,
                 "Key didn't match enum type of array");
+
   for (auto key_val : input_arr) {
     if (key_val.first == key) {
       return key_val.second;
     }
   }
-  throw assert_failure("Key not in input_arr");
 }
 
 void print_prof_info(cl::Event &evt) {
@@ -230,9 +235,10 @@ public:
 
     constexpr auto kernel_name = ce_find_key<kernel>(kernel_names);
 
+    /*kernel_name i is captured for free in clang but not in gcc, so we'll use
+     * auto-capturing, [=] */
     const auto it_kernel = std::find_if(
-        m_kernel_list.begin(), m_kernel_list.end(),
-        [/*kernel_name captured for free*/](cl::Kernel cur_kernel) {
+        m_kernel_list.begin(), m_kernel_list.end(), [=](cl::Kernel cur_kernel) {
           return (cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>()) == kernel_name;
         });
     if (it_kernel == m_kernel_list.end()) {
