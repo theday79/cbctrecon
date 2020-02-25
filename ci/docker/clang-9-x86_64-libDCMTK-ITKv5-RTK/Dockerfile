@@ -17,11 +17,13 @@ USER user
 
 # ITK
 RUN cd /home/user/ \
-    && git clone --depth 1 --branch "v5.1rc01" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    && git clone --depth 1 --branch "master" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
     && export CC=clang && export CXX=clang++ \
-    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    && export CXXFLAGS="-I/usr/include -I/usr/include/tbb -fopenmp-simd" \
+    && export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb" \
+    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
       -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
       -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \

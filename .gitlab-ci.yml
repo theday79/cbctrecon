@@ -14,24 +14,26 @@ Ubuntu-gcc9-superbuild:
     script:
       - export CC=/usr/bin/gcc-9
       - export CXX=/usr/bin/g++-9
-      - export CXXFLAGS="-std=c++17 -I/usr/include -I/usr/include/tbb -fopenmp-simd"
-      - export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb"
+      - export CXXFLAGS="-fopenmp-simd"
+      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 
-Ubuntu-gcc8-CUDA:
+Ubuntu-gcc9-CUDA:
     stage: test
     tags:
       - linux
       - docker
       - cuda
       - gpu
-    image: andreasga/cbctrecon:gcc-8-CUDA-x86_64
+    image: andreasga/cbctrecon:gcc-9-CUDA-x86_64
     variables:
       CUDA_AVAILABLE: "YES"
       COVERAGE: "YES"
     script:
-      - export CC=/usr/bin/gcc-8
-      - export CXX=/usr/bin/g++-8
+      - export CC=/usr/bin/gcc-9
+      - export CXX=/usr/bin/g++-9
+      - export CXXFLAGS="-fopenmp-simd"
+      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 
 Ubuntu-gcc9-coverage-prebuild-deps:
@@ -46,8 +48,8 @@ Ubuntu-gcc9-coverage-prebuild-deps:
     script:
       - export CC=/usr/bin/gcc-9
       - export CXX=/usr/bin/g++-9
-      - export CXXFLAGS="-std=c++17 -I/usr/include -I/usr/include/tbb -fopenmp-simd"
-      - export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb"
+      - export CXXFLAGS="-fopenmp-simd"
+      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 
 
@@ -61,6 +63,8 @@ Ubuntu-gcc9-coverage-prebuild-deps:
 #    script:
 #      - export CC=clang
 #      - export CXX=clang++
+#      - export CXXFLAGS="-I/usr/include -I/usr/include/tbb -fopenmp-simd"
+#      - export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb"
 #      - ./ci/ci.sh
 
 Ubuntu-clang9-prebuild-deps:
@@ -73,5 +77,7 @@ Ubuntu-clang9-prebuild-deps:
     script:
       - export CC=clang
       - export CXX=clang++
+      - export CXXFLAGS="-fopenmp-simd"
+      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 

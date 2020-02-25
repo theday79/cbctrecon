@@ -23,16 +23,22 @@ ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ## end OpenCL driver
 
-# Useful for debugging docker: bash sudo vim \
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja-build gcc-8 g++-8 git qt5-default \
-        libfftw3-dev libtinfo-dev libeigen3-dev \
+    && apt install -y ninja-build gcc-8 git qt5-default \
+        libfftw3-dev libtinfo-dev libeigen3-dev libtbb-dev \
         libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
         libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libffi-dev uuid-dev \
+        software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 # From libsqlite3-dev and forward is just explicit pip dependencies
+
+# We need GCC 9 for proper C++17 support
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test \
+    && apt update \
+    && apt install -y gcc-9 g++-9 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
 # Reference: https://github.com/clab/dynet/issues/1457
@@ -91,14 +97,25 @@ RUN cd /home/user/ \
     && git clone --depth 1 --branch "master" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
-    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=14 -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
-      -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
+    && export CC=gcc-9 && export CXX=g++-9 \
+    && export CXXFLAGS="-fopenmp-simd" && export LDFLAGS="-ltbb" \
+    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 \
+      -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
+      -DModule_ITKReview=ON \
+      -DITK_USE_GPU=ON \
+      -DITK_BUILD_DEFAULT_MODULES=OFF \
       -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
-      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON -DModule_ITKDeprecated=ON \
-      -DITK_USE_SYSTEM_ZLIB=ON -DModule_RTK=ON -DModule_ITKCudaCommon=ON \
-      -DRTK_USE_CUDA=ON -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
+      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON \
+      -DModule_ITKDeprecated=ON \
+      -DITK_USE_SYSTEM_ZLIB=ON \
+      -DModule_RTK=ON \
+      -DModule_ITKCudaCommon=ON \
+      -DRTK_USE_CUDA=ON \
+      -DRTK_BUILD_APPLICATIONS=OFF \
       -DREMOTE_GIT_TAG_RTK="master" \
-      -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
+      -DEXACT_GCC=gcc-8 \
+      -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
+      -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
     && cmake --build .
 
 WORKDIR /home/user/
