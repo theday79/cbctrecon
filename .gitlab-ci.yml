@@ -14,8 +14,6 @@ Ubuntu-gcc9-superbuild:
     script:
       - export CC=/usr/bin/gcc-9
       - export CXX=/usr/bin/g++-9
-      - export CXXFLAGS="-fopenmp-simd"
-      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 
 Ubuntu-gcc9-CUDA:
@@ -32,8 +30,6 @@ Ubuntu-gcc9-CUDA:
     script:
       - export CC=/usr/bin/gcc-9
       - export CXX=/usr/bin/g++-9
-      - export CXXFLAGS="-fopenmp-simd"
-      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 
 Ubuntu-gcc9-coverage-prebuild-deps:
@@ -48,8 +44,6 @@ Ubuntu-gcc9-coverage-prebuild-deps:
     script:
       - export CC=/usr/bin/gcc-9
       - export CXX=/usr/bin/g++-9
-      - export CXXFLAGS="-fopenmp-simd"
-      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 
 
@@ -77,7 +71,5 @@ Ubuntu-clang9-prebuild-deps:
     script:
       - export CC=clang
       - export CXX=clang++
-      - export CXXFLAGS="-fopenmp-simd"
-      - export LDFLAGS="-ltbb"
       - ./ci/ci.sh
 

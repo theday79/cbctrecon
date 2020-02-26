@@ -189,6 +189,17 @@ set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib" CACHE PATH "")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin" CACHE PATH "")
 set(EXECUTEABLE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "")
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(ABSEIL_LIBS
+      absl::base
+      absl::strings
+      )
+  # Require TBB for parralel stl
+  # It should be a free choice for which implementation to use, but TBB seems simplest for now
+  find_package(TBB REQUIRED)
+  message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
+endif()
+
 add_subdirectory(External)
 
 if(NOT USE_ITK_DCMTK)
@@ -218,13 +229,6 @@ endif()
 find_package(dlib)
 if(dlib_FOUND)
   set(DLIB_LIB dlib::dlib)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  set(ABSEIL_LIBS
-      absl::base
-      absl::strings
-      )
 endif()
 
 set(PLM_TARGETS
