@@ -100,6 +100,7 @@ constexpr auto ce_find_key(const EM &input_arr) {
       return key_val.second;
     }
   }
+  return std::tuple_element_t<1, PT>();
 }
 
 void print_prof_info(cl::Event &evt) {
@@ -234,6 +235,8 @@ public:
     assert(m_initialized);
 
     constexpr auto kernel_name = ce_find_key<kernel>(kernel_names);
+    static_assert(kernel_name != nullptr && kernel_name[0] != '\0',
+                  "Kernel name not found in array!");
 
     /*kernel_name i is captured for free in clang but not in gcc, so we'll use
      * auto-capturing, [=] */
