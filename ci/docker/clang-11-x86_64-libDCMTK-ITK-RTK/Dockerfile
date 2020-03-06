@@ -1,4 +1,4 @@
-FROM andreasga/cbctrecon:clang-9-x86_64
+FROM andreasga/cbctrecon:clang-11-x86_64
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER user
@@ -31,6 +31,7 @@ RUN cd /home/user/ \
       -DITK_USE_SYSTEM_ZLIB=ON -DModule_ITKDeprecated=ON \
       -DModule_RTK=ON -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
       -DREMOTE_GIT_TAG_RTK="master" \
+      -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
     && cmake --build .
 
 

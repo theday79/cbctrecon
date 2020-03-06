@@ -25,7 +25,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja-build gcc-8 git qt5-default \
+    && apt install -y ninja-build gcc-8 g++-8 git qt5-default \
         libfftw3-dev libtinfo-dev libeigen3-dev libtbb-dev \
         libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
@@ -93,8 +93,10 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 
 # Build ITK and RTK by themselves with CUDA support
 # "master" because 5.1rc01 are missing some set/get functions required for cuda part of RTK
+# Also, we'll have to use my patched fork of RTK to forward the correct std=c++ flag to CUDA
 RUN cd /home/user/ \
     && git clone --depth 1 --branch "master" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    && sed -i 's/SimonRit/agravgaard/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
     && export CC=gcc-9 && export CXX=g++-9 \
@@ -112,8 +114,9 @@ RUN cd /home/user/ \
       -DModule_ITKCudaCommon=ON \
       -DRTK_USE_CUDA=ON \
       -DRTK_BUILD_APPLICATIONS=OFF \
-      -DREMOTE_GIT_TAG_RTK="master" \
-      -DEXACT_GCC=gcc-8 \
+      -DREMOTE_GIT_TAG_RTK="patch-1" \
+      -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
+      -DCUDA_NVCC_FLAGS="--compiler-bindir /usr/bin/gcc-8" \
       -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
       -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
     && cmake --build .

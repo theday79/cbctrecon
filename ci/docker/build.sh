@@ -4,29 +4,36 @@ REPO="andreasga"
 NAME="cbctrecon"
 
 CC="conan-python"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
 CC="intel-opencl-runtime-cpu"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
 CC="gcc-9-x86_64"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
-DCMIRTK="libDCMTK-ITKv5-RTK"
+DCMIRTK="libDCMTK-ITK-RTK"
+echo "docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}"
 docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK}
 
 CC="gcc-9-CUDA-x86_64"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
-CC="clang-9-x86_64"
+CC="clang-11-x86_64"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
+echo "docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}"
 docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK}
 

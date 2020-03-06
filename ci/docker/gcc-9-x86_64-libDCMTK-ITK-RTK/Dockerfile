@@ -28,6 +28,7 @@ RUN export CC=/usr/bin/gcc-9 \
       -DITK_USE_SYSTEM_ZLIB=ON -DModule_RTK=ON \
       -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
       -DREMOTE_GIT_TAG_RTK="master" \
+      -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
     && cmake --build .
 
 WORKDIR /home/user/

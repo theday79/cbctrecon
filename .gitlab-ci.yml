@@ -1,7 +1,7 @@
 variables:
     GIT_STRATEGY: clone
-    BUILD_TESTING: "NO"
     CUDA_AVAILABLE: "NO"
+    COVERAGE: "NO"
 
 
 Ubuntu-gcc9-superbuild:
@@ -38,7 +38,7 @@ Ubuntu-gcc9-coverage-prebuild-deps:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:gcc-9-x86_64-libDCMTK-ITKv5-RTK
+    image: andreasga/cbctrecon:gcc-9-x86_64-libDCMTK-ITK-RTK
     variables:
       COVERAGE: "YES"
     script:
@@ -47,29 +47,15 @@ Ubuntu-gcc9-coverage-prebuild-deps:
       - ./ci/ci.sh
 
 
-#Ubuntu-clang6:
-#    stage: test
-#    tags:
-#      - linux
-#      - docker
-#      - gpu
-#    image: andreasga/cbctrecon:clang-6-x86_64
-#    script:
-#      - export CC=clang
-#      - export CXX=clang++
-#      - export CXXFLAGS="-I/usr/include -I/usr/include/tbb -fopenmp-simd"
-#      - export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb"
-#      - ./ci/ci.sh
-
-Ubuntu-clang9-prebuild-deps:
+Ubuntu-clang11-prebuild-deps:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:clang-9-x86_64-libDCMTK-ITKv5-RTK
+    image: andreasga/cbctrecon:clang-11-x86_64-libDCMTK-ITK-RTK
     script:
-      - export CC=clang
-      - export CXX=clang++
+      - export CC=/usr/local/bin/clang
+      - export CXX=/usr/local/bin/clang++
       - ./ci/ci.sh
 
