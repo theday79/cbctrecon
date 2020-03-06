@@ -14,7 +14,7 @@ RUN git clone https://github.com/llvm/llvm-project.git --depth=1 --shallow-submo
     && mkdir build \
     && cd build \
     && cmake -GNinja ../llvm \
-        -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" \
+        -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi;openmp;pstl" \
         -DCMAKE_BUILD_TYPE=Release \
     && ninja \
     && ninja install \

@@ -26,7 +26,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
     && apt install -y ninja-build gcc-8 g++-8 git qt5-default \
-        libfftw3-dev libtinfo-dev libeigen3-dev libtbb-dev \
+        libfftw3-dev libtinfo-dev libeigen3-dev \
         libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
         libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libffi-dev uuid-dev \
@@ -49,6 +49,17 @@ RUN mkdir /opt/cmake && cd /opt/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
     && rm cmake-3.16.4-Linux-x86_64.sh \
     && cmake --version
+
+RUN echo "deb http://archive.ubuntu.com/ubuntu/ eoan main universe" >> /etc/apt/sources.list \
+    && apt update \
+    && apt install -y libtbb-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && cd /usr/share/cmake/Modules/ \
+    && cmake -DINSTALL_DIR=/usr/lib/cmake/TBB \
+        -DSYSTEM_NAME=Linux \
+        -DLIB_PATH=/usr/lib/x86_64-linux-gnu \
+        -DINC_PATH=/usr/include \
+        -P tbb_config_installer.cmake
 
 RUN groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
@@ -100,7 +111,7 @@ RUN cd /home/user/ \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
     && export CC=gcc-9 && export CXX=g++-9 \
-    && export CXXFLAGS="-fopenmp-simd" && export LDFLAGS="-ltbb" \
+    && export CXXFLAGS="-fopenmp-simd" \
     && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 \
       -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
       -DModule_ITKReview=ON \
@@ -112,6 +123,7 @@ RUN cd /home/user/ \
       -DITK_USE_SYSTEM_ZLIB=ON \
       -DModule_RTK=ON \
       -DModule_ITKCudaCommon=ON \
+      -DModule_ITKTBB=ON \
       -DRTK_USE_CUDA=ON \
       -DRTK_BUILD_APPLICATIONS=OFF \
       -DREMOTE_GIT_TAG_RTK="patch-1" \
