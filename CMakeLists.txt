@@ -1,12 +1,16 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.10) # Yes, less won't do.
+CMAKE_MINIMUM_REQUIRED (VERSION 3.14) # Yes, less won't do.
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-include(HunterGate)
-HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.189.tar.gz"
-    SHA1 "7380b4754741ccb60b7229dfeda461c3f68a0ffe"
-)
+set(HUNTER_PACKAGES
+  dlib
+  ZLIB
+  OpenCL
+  )
+
+include(FetchContent)
+FetchContent_Declare(SetupHunter GIT_REPOSITORY https://github.com/cpp-pm/gate)
+FetchContent_MakeAvailable(SetupHunter)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -36,10 +40,15 @@ set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #-----------------------------------------------------------------------------
 
 # Check Instruction set available and set intel compiler flags
-include(feature_defs OPTIONAL)
+include(feature_defs optional)
 include(Sanitize)
 
-option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" ON)
+option(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" OFF)
+option(CBCTRECON_BUILD_SHARED_LIBS "Build shared libraries for CbctRecon" ${BUILD_SHARED_LIBS})
+option(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
+# BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests
+# And because ITK fails to download test data outside Master project source dir.
+
 option(HUNTER_ENABLED "Enable hunter for dependency management" OFF)
 option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
 option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)
@@ -48,19 +57,21 @@ option(USE_SYSTEM_dlib "ON=Use local dlib, OFF=cmake downloads and configs." ON)
 option(USE_SYSTEM_ITK "ON=Use local ITK, OFF=cmake downloads and configs." ON)
 option(USE_SYSTEM_DCMTK "ON=Use local DCMTK, OFF=cmake downloads and configs." ON)
 option(USE_SYSTEM_Plastimatch "ON=Use local Plastimatch, OFF=cmake downloads and configs." ON)
+option(USE_HUNTER_Eigen "ON=Use Eigen from Hunter, OFF=Use Hunter in ITK." OFF)
 
-OPTION(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
-OPTION(USE_OPENMP "Toggle OpenMP on or off" ON)
-OPTION(USE_ITK_DCMTK "Toggle DCMTK on or off" ON)
-OPTION(USE_ITK_GDCM "Toggle GDCM on or off" ON)
-OPTION(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
-OPTION(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
+option(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
+option(USE_OPENMP "Toggle OpenMP on or off" ON)
+option(USE_ITK_DCMTK "Toggle DCMTK on or off" OFF)
+option(USE_ITK_GDCM "Toggle GDCM on or off" ON)
+option(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
+option(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect developers to have access to gPMC binaries AND use VS2013 Debug when Release is much faster for everything else.
 option(USE_ITK_GDCM "Use the ITK implementation instead of downloading (Windows only)" OFF)
-OPTION(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" OFF) # Missing tests, so prefer not to use
+option(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" OFF) # Missing tests, so prefer not to use
 option(RTK_USE_OPENCL "Use the custom RTK OpenCL extensions (require device image support)" OFF)
-OPTION(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
-OPTION(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
-OPTION(CBCTRECON_BUILD_EXAMPLES "Build examples for CbctRecon" ON)
+
+option(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
+option(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
+option(CBCTRECON_BUILD_EXAMPLES "Build examples for CbctRecon" ON)
 option(CBCTRECON_SANITIZE "Sanitize build of CbctRecon" OFF)
 
 set(CBCTRECON_OPENCL_VERSION 120 CACHE STRING "Version of OpenCL to use, 1.2->120 etc.")
@@ -71,20 +82,16 @@ if (RTK_USE_OPENCL)
   add_definitions(-DSLAB_SIZE=${SLAB_SIZE})
 endif()
 
-OPTION(BUILD_SHARED_LIBS "Build shared libs in ITK, Plastimatch and RTK (for redistribution)" ON)
+# Windows doesn't handle /WX correctly with system (ITK) headers
+option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" OFF)
 if(NOT WIN32)
-  set(BUILD_SHARED_LIBS OFF)
-  OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF) # ON) <- May return when TinyRefl has a stable release
+  set(ENABLE_PEDANTIC ON)
+  option(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF) # ON) <- May return when TinyRefl has a stable release
   # We should prefer the official server, so we don't depend on Manu Sanchez to always have a build available for us.
   set(TINYREFL_LLVM_DOWNLOAD_FROM_OFFICIAL_SERVER ON CACHE BOOL "" FORCE)
 else()
-  OPTION(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
+  option(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
-OPTION(CBCTRECON_BUILD_SHARED_LIBS "Build shared libraries for CbctRecon" ${BUILD_SHARED_LIBS})
-
-OPTION(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
-# BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests
-# And because ITK fails to download test data outside Master project source dir.
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -107,7 +114,6 @@ if(APPLE OR USE_SYSTEM_OPENCL)
     # On macOS use system OpenCL library.
     find_package(OpenCL REQUIRED)
 else()
-    hunter_add_package(OpenCL)  # Requires mesa-common-dev on ubuntu
     find_package(OpenCL CONFIG REQUIRED)
 endif()
 if(OpenCL_FOUND)
@@ -156,7 +162,7 @@ if(USE_SYSTEM_QT)
 else()
   hunter_add_package(Qt)
 endif()
-find_package(Qt5Core 5.9 REQUIRED)
+find_package(Qt5Core 5.12.3 REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5PrintSupport REQUIRED)
@@ -164,7 +170,6 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Test REQUIRED)
 
 if(NOT USE_SYSTEM_ZLIB)
-  hunter_add_package(ZLIB)
   find_package(ZLIB CONFIG REQUIRED)
 else()
   find_package(ZLIB)

@@ -26,8 +26,8 @@ set(ITK_GIT_REPOSITORY "${git_protocol}hub.com/InsightSoftwareConsortium/ITK.git
 set(ITK_GIT_TAG master)
 
 # It looks like version 19.3 and forward would work with C++17
-set(dlib_GIT_REPOSITORY "${git_protocol}hub.com/davisking/dlib.git")
-set(dlib_GIT_TAG master)
+#set(dlib_GIT_REPOSITORY "${git_protocol}hub.com/davisking/dlib.git")
+#set(dlib_GIT_TAG master)
 
 set(plm Plastimatch)
 set(${plm}_GIT_REPOSITORY "${git_protocol}lab.com/plastimatch/plastimatch.git")
@@ -63,12 +63,16 @@ endif()
 # ITK/RTK
 external_proj(ITK)
 if (NOT USE_SYSTEM_ITK)
-    if (${ITK_GIT_TAG} STREQUAL "release-4.13")
+  if (${ITK_GIT_TAG} STREQUAL "release-4.13")
     configure_file(
       ${CbctRecon_SOURCE_DIR}/External/patches/ExternalRTK.remote.cmake
       ${ITK_SOURCE_DIR}/Modules/Remote/
       COPYONLY
     )
+  endif()
+  if (USE_CUDA)
+    # To fix ITKCudaCommon not in export set
+    export(TARGETS ITKCudaCommon APPEND FILE ${ITK_BINARY_DIR}/ITKTargets.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
   endif()
 else()
   include(${ITK_USE_FILE})
@@ -80,7 +84,10 @@ if(USE_ITK_DCMTK)
 endif()
 
 # dlib because the one in Plastimatch is two years old
-external_proj(dlib)
+#external_proj(dlib)
+#if(NOT USE_SYSTEM_dlib)
+#  set(dlib_FOUND ON)
+#endif()
 
 # Plastimatch
 external_proj(${plm})

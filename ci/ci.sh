@@ -13,8 +13,7 @@ export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DUSE_SYSTEM_dlib=ON -DUSE_SYSTE
 if [ -d /home/user/ITK-build ]; then # Use system ITK and RTK
     export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=ON -DITK_DIR=/home/user/ITK-build"
 else
-    # USE_SYSTEM_EIGEN = OFF with hunter disabled actually triggers the use of system eigen (will be corrected eventually)
-    export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=OFF -DITK_USE_SYSTEM_DCMTK=ON -DUSE_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_SYSTEM_EIGEN=OFF"
+    export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=OFF -DITK_USE_SYSTEM_DCMTK=ON -DUSE_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_HUNTER_Eigen=OFF"
 fi
 
 if [[ "$CUDA_AVAILABLE" = "YES" ]]; then

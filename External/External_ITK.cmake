@@ -1,5 +1,5 @@
 # Download Eigen
-if (NOT USE_SYSTEM_EIGEN)
+if (USE_HUNTER_Eigen)
   hunter_add_package(Eigen)
   find_package(Eigen3 CONFIG REQUIRED)
   set(ITK_USE_SYSTEM_EIGEN ON CACHE BOOL "Use Eigen from hunter (to avoid export error)")

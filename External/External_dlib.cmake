@@ -8,3 +8,4 @@ if(USE_CUDA)
 else()
   set(DLIB_USE_CUDA OFF CACHE BOOL "" FORCE)
 endif()
+
