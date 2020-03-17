@@ -5,7 +5,7 @@ USER root
 
 # Useful for debugging docker: bash sudo vim \
 RUN apt update \
-    && apt install -y ninja-build cmake qt5-default \
+    && apt install -y ninja-build qt5-default \
         libfftw3-dev libtinfo-dev libeigen3-dev \
         libdcmtk-dev valgrind
 
