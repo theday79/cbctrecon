@@ -1,6 +1,4 @@
 ### The main application ###
-set(CMAKE_CXX_STARDARD 14) # only for this sub directory
-# dlib headers are not ready for 17
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 

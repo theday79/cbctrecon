@@ -1,4 +1,5 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.14) # Yes, less won't do.
+cmake_minimum_required(VERSION 3.14) # Yes, less won't do.
+cmake_policy(SET CMP0074 NEW) # For hunter to use _ROOT variables without warnings
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
@@ -35,6 +36,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE STRING "Require C++ standard specificat
 # Extensions are required for named union members for the opencl types
 # which increases readability and safety significantly
 set(CMAKE_CXX_EXTENSIONS ON)
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus" CACHE STRING "")
+endif()
 
 set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #-----------------------------------------------------------------------------
@@ -93,6 +98,7 @@ else()
   option(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(USE_GPMC)
@@ -132,7 +138,11 @@ IF(USE_CUDA)
   add_definitions(-DUSE_CUDA=TRUE)
 ENDIF(USE_CUDA)
 
-FIND_PACKAGE(FFTW)
+if(ITK_USE_SYSTEM_FFTW)
+  find_package(FFTW REQUIRED)
+else()
+  find_package(FFTW)
+endif()
 
 # set(TBB_ROOT "" CACHE PATH "Root dir of intel TBB, (one level up from lib)")
 # FIND_PACKAGE(TBB) ## The world is not ready for this yet
@@ -202,6 +212,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
   # Require TBB for parralel stl
   # It should be a free choice for which implementation to use, but TBB seems simplest for now
   find_package(TBB REQUIRED)
+  message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
+endif()
+if(Module_ITKTBB AND TBB_DIR)
+  include(${TBB_DIR}/TBBConfig.cmake)
+  set(TBB_LIBRARIES TBB::tbb)
   message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
 endif()
 

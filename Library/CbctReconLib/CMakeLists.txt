@@ -1,6 +1,4 @@
 ### The main application ###
-set(CMAKE_CXX_STARDARD 17) # only for this sub directory
-
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include(CheckCXXCompilerFlag)

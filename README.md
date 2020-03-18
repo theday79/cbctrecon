@@ -37,7 +37,7 @@ In order to compile the software, you must have installed the following prerequi
 
 ## Below is downloaded and compiled automatically, if `USE_SYSTEM_XXXX=OFF`
  - [DCMTK](https://github.com/DCMTK/DCMTK)
- - [ITK](https://github.com/InsightSoftwareConsortium/ITK)
+ - [ITK](https://github.com/InsightSoftwareConsortium/ITK) (MSVC: Automatic download and configuration is broken, see "Build ITK for `USE_SYSTEM_ITK=ON`" below)
  - [RTK](https://github.com/SimonRit/RTK)
  - [Plastimatch](https://gitlab.com/plastimatch/plastimatch)
  - [dlib](https://github.com/davisking/dlib)
@@ -50,7 +50,7 @@ and the goPMC app must be compiled seperately.
 ## How to build
 I recommend that you look at the short bash script, [ci/ci.sh](https://gitlab.com/agravgaard/cbctrecon/blob/master/ci/ci.sh), for an example of how to configure and build the project.
 
-Possible config and build (on linux, with CUDA):
+Possible config and build on linux, with CUDA:
 
 ```
 git clone https://gitlab.com/agravgaard/cbctrecon.git
@@ -69,8 +69,85 @@ cmake -GNinja ../cbctrecon \
   -DUSE_SYSTEM_dlib=OFF
 
 ninja
+ninja INSTALL
 ```
 
 `EXACT_GCC` is needed for CUDA to work with newer versions of gcc or clang, it's an internal variable used in plastimatch and RTK, which may soon be deprecated.
 
 (using ninja because it's much faster than Make and msbuild)
+
+Possible config and build on Windows, with OpenCL 2.1:
+In the "x64 Native Tools Command Prompt for VS 2019"
+
+```
+REM cd %userprofile% or whereever you want the project
+
+git clone https://gitlab.com/agravgaard/cbctrecon.git
+mkdir build
+cd build
+
+cmake -G"Visual Studio 16 2019" -A"x64" ../cbctrecon ^
+  -DHUNTER_ENABLED=ON ^
+  -DRTK_USE_OPENCL=ON ^
+  -DCBCTRECON_OPENCL_VERSION=210 ^
+  -DITK_DIR="C:/Program Files (x86)/ITK/cmake" ^
+  -DUSE_SYSTEM_DCMTK=OFF ^
+  -DUSE_SYSTEM_Plastimatch=OFF ^
+  -DUSE_SYSTEM_ZLIB=OFF ^
+  -DUSE_SYSTEM_dlib=OFF
+
+cmake --build . --config RelWithDebInfo -j N
+REM Where N is the number of CPU cores you want to assign to compiling
+
+cmake --build . --config RelWithDebInfo --target INSTALL
+```
+Assuming git and cmake is in path
+
+## Build ITK for `USE_SYSTEM_ITK=ON`
+
+Certain option are necessary when you configure ITK manually:
+
+```
+// For RTK
+Module_RTK=ON
+
+// Optional for Cuda
+Module_ITKCudaCommon=ON
+RTK_USE_CUDA=ON
+
+// For Plastimatch
+Module_Review=ON
+Module_ITKDeprecated=ON
+
+// Optional but recommended for saving time and space:
+BUILD_TESTING=OFF
+ITK_BUILD_DEFAULT_MODULES=OFF
+BUILD_EXAMPLES=OFF
+ITK_USE_KWSTYLE=OFF
+
+// Optional for more performance
+ITK_USE_SYSTEM_FFTW=ON // Just download the binary, or use MKL or cuFFT
+ITK_USE_FFTWD=ON
+ITK_USE_FFTWF=ON
+Module_TBB=ON // A bit difficult to configure, as you'll have to generate the TBBConfig.cmake yourself
+
+```
+
+## Build DCMTK for `USE_SYSTEM_DCMTK=ON`
+```
+DCMTK_OVERWRITE_WIN32i_COMPILER_FLAGS=OFF
+```
+
+## Build Plastimatch for `USE_SYSTEM_Plastimatch=ON`
+These options are necessary to avoid linking errors (because the supertbuild would conflict with the ITK and DCMTK we need) and support C++ 17 (requires a newer version of dlib than the one included in plastimatch)
+```
+PLM_CONFIG_ENABLE_SUPERBUILD=OFF
+ITK_DIR=/*Whereever you built or installed ITK*/
+DCMTK_DIR=/*Whereever you built or installed DCMTK*/
+dlib_DIR=/*wherever you installed dlib*/
+```
+
+## Avoiding DLL and linker hell
+This is only a Windows problem. Make sure that all projects were compiled with the same linker option (shared / static) in all `CMAKE_CXX_FLAGS_*` and `CMAKE_C_FLAGS_*`, either `/MD` or `/MT`. These doesn't mix well. Prefer `/MT` and set `BUILD_SHARED_LIBS=OFF` in all projects, this seems to be the most stable configuration.
+
+

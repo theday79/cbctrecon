@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index aa00d3af..0eb16f5b 100755
+index 3c668f7..9742ffb 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -574,6 +574,7 @@ if (NOT ITK_FOUND AND NOT PLM_SYSTEM_ITK STREQUAL "YES")
@@ -21,7 +21,7 @@ index aa00d3af..0eb16f5b 100755
    set (PLM_PLASTIMATCH_TESTING_PATH
 diff --git a/cmake/FindDlib.cmake b/cmake/FindDlib.cmake
 deleted file mode 100755
-index ee108db4..00000000
+index ee108db..0000000
 --- a/cmake/FindDlib.cmake
 +++ /dev/null
 @@ -1,57 +0,0 @@
@@ -83,7 +83,7 @@ index ee108db4..00000000
 -
 -mark_as_advanced (DLIB_LIBRARY)
 diff --git a/src/plastimatch/CMakeLists.txt b/src/plastimatch/CMakeLists.txt
-index c2f0032d..2d3a04e8 100644
+index f8c9986..79138cd 100644
 --- a/src/plastimatch/CMakeLists.txt
 +++ b/src/plastimatch/CMakeLists.txt
 @@ -76,11 +76,12 @@ if (PLM_PREFER_SYSTEM_DLIB)
@@ -102,7 +102,7 @@ index c2f0032d..2d3a04e8 100644
    set (DLIB_LIBRARIES dlib::dlib)
    set (DLIB_FOUND TRUE)
 diff --git a/src/plastimatch/base/dcmtk_rtplan.cxx b/src/plastimatch/base/dcmtk_rtplan.cxx
-index 11634afa..e9fa2985 100644
+index 11634af..04be579 100644
 --- a/src/plastimatch/base/dcmtk_rtplan.cxx
 +++ b/src/plastimatch/base/dcmtk_rtplan.cxx
 @@ -352,7 +352,7 @@ Dcmtk_rt_study::rtplan_save (const char *dicom_dir)
@@ -115,7 +115,7 @@ index 11634afa..e9fa2985 100644
  	dcmtk_put (rbs_item, DCM_BeamDose,
  	    beam->beam_dose);
 diff --git a/src/plastimatch/clp/CMakeLists.txt b/src/plastimatch/clp/CMakeLists.txt
-index ca6520c0..68d47d01 100644
+index ca6520c..68d47d0 100644
 --- a/src/plastimatch/clp/CMakeLists.txt
 +++ b/src/plastimatch/clp/CMakeLists.txt
 @@ -21,3 +21,7 @@ set (PLMCLP_LIBRARY_SRC
@@ -126,3 +126,110 @@ index ca6520c0..68d47d01 100644
 +target_link_libraries(plmclp
 +  dlib::dlib
 +  )
+diff --git a/src/plastimatch/cuda/CMakeLists.txt b/src/plastimatch/cuda/CMakeLists.txt
+index fd0ccba..60e2729 100644
+--- a/src/plastimatch/cuda/CMakeLists.txt
++++ b/src/plastimatch/cuda/CMakeLists.txt
+@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${PLM_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/register)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/base)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/cuda)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/register)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/sys)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+ 
+diff --git a/src/plastimatch/reconstruct/cuda/CMakeLists.txt b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
+index b691fbf..a42a67f 100644
+--- a/src/plastimatch/reconstruct/cuda/CMakeLists.txt
++++ b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
+@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${PLM_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/reconstruct)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/base)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/cuda)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/reconstruct)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/sys)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${DLIB_INCLUDE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+@@ -40,7 +40,7 @@ if (CUDA_FOUND)
+     # build CUDA as separate plmreconstructcuda shared library
+     plm_add_gpu_plugin_library (plmreconstructcuda 
+       "${PLMRECONSTRUCTCUDA_LIBRARY_SRC}")
+-    target_link_libraries (plmreconstructcuda plmcuda ${CUDA_LIBRARIES})
++    target_link_libraries (plmreconstructcuda plmcuda ${CUDA_LIBRARIES} ${DLIB_LIBRARIES})
+ 
+     # set dependencies that plmreconstruct library needs 
+     if (WIN32 AND NOT CYGWIN AND NOT MINGW)
+diff --git a/src/plastimatch/register/cuda/CMakeLists.txt b/src/plastimatch/register/cuda/CMakeLists.txt
+index 65f15e7..0572d00 100644
+--- a/src/plastimatch/register/cuda/CMakeLists.txt
++++ b/src/plastimatch/register/cuda/CMakeLists.txt
+@@ -7,11 +7,11 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${PLM_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/register)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/base)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/cuda)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/register)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/sys)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${DLIB_INCLUDE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
+diff --git a/src/plastimatch/sys/smart_pointer.h b/src/plastimatch/sys/smart_pointer.h
+index 73613e5..5f72791 100644
+--- a/src/plastimatch/sys/smart_pointer.h
++++ b/src/plastimatch/sys/smart_pointer.h
+@@ -12,10 +12,7 @@
+ # define SMART_POINTER_SUPPORT(T)                         \
+     typedef void* Pointer
+ #else
+-# if __cplusplus < 201103L
+-#  include "dlib/smart_pointers.h"
+-#  define plm_shared_ptr dlib::shared_ptr
+-# elif SHARED_PTR_USE_MEMORY
++# if SHARED_PTR_USE_MEMORY
+ #  include <memory>
+ #  define plm_shared_ptr std::shared_ptr
+ # elif TR1_SHARED_PTR_USE_TR1_MEMORY
+diff --git a/src/plastimatch/util/cuda/CMakeLists.txt b/src/plastimatch/util/cuda/CMakeLists.txt
+index 6472a88..de6aa2e 100644
+--- a/src/plastimatch/util/cuda/CMakeLists.txt
++++ b/src/plastimatch/util/cuda/CMakeLists.txt
+@@ -7,10 +7,10 @@ set_directory_properties (PROPERTIES INCLUDE_DIRECTORIES "")
+ set_directory_properties (PROPERTIES COMPILE_DEFINITIONS "")
+ 
+ include_directories (BEFORE ${PLM_BINARY_DIR})
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/base)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/cuda)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/sys)
+-include_directories (BEFORE ${CMAKE_SOURCE_DIR}/src/plastimatch/util)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/base)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/cuda)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/sys)
++include_directories (BEFORE ${PLM_SOURCE_DIR}/src/plastimatch/util)
+ include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+ include_directories (AFTER ${DLIB_INCLUDE_DIR})
+ include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})

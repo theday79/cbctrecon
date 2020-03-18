@@ -11,6 +11,8 @@ macro(external_proj NAME)
   endif()
 endmacro()
 
+set(CMAKE_FOLDER External)
+
 # REPOSITORIES
 # set(ZLIB_GIT_REPOSITORY "${git_protocol}hub.com/madler/zlib.git")
 # set(ZLIB_GIT_TAG master)
@@ -43,10 +45,21 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
   external_proj(ABSEIL)
 endif()
 
+if( MSVC )
+  if ( NOT USE_SYSTEM_ITK )
+    message(FATAL_ERROR "Auto download and config of ITK currently doesn't work with MSVC")
+  endif()
+  if ( NOT USE_ITK_GDCM )
+    message(FATAL_ERROR "Auto download and config of GDCM currently doesn't work with MSVC")
+  endif()
+endif()
+
 if(WIN32 AND NOT (USE_ITK_GDCM OR USE_SYSTEM_ITK))
   external_proj(GDCM)
   if (NOT USE_SYSTEM_GDCM)
     set(GDCM_DIR ${GDCM_BUILD_DIR} CACHE PATH "")
+    export(TARGETS gdcmDICT APPEND FILE ${ITK_BINARY_DIR}/ITKTargets.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
+    export(TARGETS gdcmMSFF APPEND FILE ${ITK_BINARY_DIR}/ITKTargets.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
   endif()
 endif()
 
@@ -74,6 +87,7 @@ if (NOT USE_SYSTEM_ITK)
     # To fix ITKCudaCommon not in export set
     export(TARGETS ITKCudaCommon APPEND FILE ${ITK_BINARY_DIR}/ITKTargets.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
   endif()
+  set(ITK_DIR ${ITK_BINARY_DIR})
 else()
   include(${ITK_USE_FILE})
 endif()

@@ -1,5 +1,4 @@
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_FOLDER Testing)
 
 function(unpack_ext_data)
   cmake_parse_arguments(
