@@ -20,6 +20,14 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ eoan multiverse" >> /etc/apt/
     && adduser user sudo \
     && printf "user ALL= NOPASSWD: ALL\\n" >> /etc/sudoers
 
+RUN mkdir /opt/cmake && cd /opt/cmake \
+    && wget -nv https://cmake.org/files/v3.16/cmake-3.16.4-Linux-x86_64.sh \
+    && sh cmake-3.16.4-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
+    && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
+    && rm cmake-3.16.4-Linux-x86_64.sh \
+    && cmake --version
+
 ENV PYENV_ROOT=/opt/pyenv \
     PATH=/opt/pyenv/shims:${PATH}
 
