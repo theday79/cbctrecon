@@ -68,6 +68,7 @@ Windows10-msvc2019-CUDA:
     script:
       - Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
       - Enter-VsDevShell 512426f1
+      - $env:CUDA_PATH = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2"
       - mkdir build
       - cd build
       - cmake -G"Visual Studio 16 2019" -A"x64" .. `
@@ -76,7 +77,6 @@ Windows10-msvc2019-CUDA:
           -DHUNTER_ENABLED=ON `
           -DRTK_USE_OPENCL=ON `
           -DUSE_CUDA=ON `
-          -DCUDA_TOOLKIT_ROOT_DIR="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2" `
           -DITK_DIR="C:/Program Files (x86)/ITK/lib/cmake/ITK-5.1" `
           -DUSE_SYSTEM_DCMTK=OFF `
           -DUSE_SYSTEM_Plastimatch=OFF `
