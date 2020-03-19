@@ -37,10 +37,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE STRING "Require C++ standard specificat
 # which increases readability and safety significantly
 set(CMAKE_CXX_EXTENSIONS ON)
 
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus" CACHE STRING "")
-endif()
-
 set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #-----------------------------------------------------------------------------
 

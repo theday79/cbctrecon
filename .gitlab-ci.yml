@@ -59,3 +59,11 @@ Ubuntu-clang11-prebuild-deps:
       - export CXX=/usr/local/bin/clang++
       - ./ci/ci.sh
 
+Windows10-msvc2019-CUDA:
+    stage: test
+    tags:
+      - windows
+      - gpu
+      - shell
+    script:
+      - call ci/ci.bat
