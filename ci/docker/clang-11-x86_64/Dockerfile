@@ -18,6 +18,7 @@ RUN git clone https://github.com/llvm/llvm-project.git --depth=1 --shallow-submo
         -DCMAKE_BUILD_TYPE=Release \
     && ninja \
     && ninja install \
+    && ldconfig \
     && /usr/local/bin/clang --version
 
 RUN echo "export CC=/usr/local/bin/clang" >> /etc/profile \
