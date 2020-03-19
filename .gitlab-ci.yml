@@ -66,7 +66,7 @@ Windows10-msvc2019-CUDA:
       - gpu
       - shell
     script:
-      - Import-Module """C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"""
+      - Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
       - Enter-VsDevShell 512426f1
       - mkdir build
       - cd build
