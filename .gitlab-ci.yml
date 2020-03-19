@@ -73,6 +73,8 @@ Windows10-msvc2019-CUDA:
       - cd build
       - cmake -G"Visual Studio 16 2019" -A"x64" .. `
           -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+          -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="/MT /Zi /O2 /Ob1 /DNDEBUG /Zc:__cplusplus" `
+          -DCMAKE_C_FLAGS_RELWITHDEBINFO="/MT /Zi /O2 /Ob1 /DNDEBUG" `
           -DCMAKE_PREFIX_PATH="C:/Qt/5.14.1/msvc2017_64/" `
           -DHUNTER_ENABLED=ON `
           -DRTK_USE_OPENCL=ON `
