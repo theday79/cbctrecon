@@ -73,17 +73,19 @@ Windows10-msvc2019-CUDA:
       - cd build
       - cmake -G"Visual Studio 16 2019" -A"x64" .. `
           -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-          -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="/MT /Zi /O2 /Ob1 /DNDEBUG /Zc:__cplusplus" `
-          -DCMAKE_C_FLAGS_RELWITHDEBINFO="/MT /Zi /O2 /Ob1 /DNDEBUG" `
+          -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG /Zc:__cplusplus" `
+          -DCMAKE_C_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG" `
           -DCMAKE_PREFIX_PATH="C:/Qt/5.14.1/msvc2017_64/" `
-          -DHUNTER_ENABLED=ON `
+          -DHUNTER_ENABLED=OFF `
           -DRTK_USE_OPENCL=ON `
           -DUSE_CUDA=ON `
           -DITK_DIR="C:/Program Files (x86)/ITK/lib/cmake/ITK-5.1" `
-          -DUSE_SYSTEM_DCMTK=OFF `
+          -DUSE_SYSTEM_DCMTK=ON `
+          -DDCMTK_DIR="C:/Program Files (x86)/DCMTK/cmake/" `
           -DUSE_SYSTEM_Plastimatch=OFF `
-          -DUSE_SYSTEM_ZLIB=OFF `
-          -DUSE_SYSTEM_dlib=OFF
-      - cmake --build . --config RelWithDebInfo -j 12
-      - cmake --build . --config RelWithDebInfo --target INSTALL
+          -DUSE_SYSTEM_ZLIB=ON `
+          -DUSE_SYSTEM_dlib=ON `
+          -Ddlib_DIR="C:/Program Files (x86)/dlib_project/lib/cmake/dlib/" `
+      - cmake --build . --config Release -j 12
+      - cmake --build . --config Release --target INSTALL
       - ctest -VV -C RelWithDebInfo

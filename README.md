@@ -150,6 +150,6 @@ dlib_DIR=/*wherever you installed dlib*/
 ```
 
 ## Avoiding DLL and linker hell
-This is only a Windows problem. Make sure that all projects were compiled with the same linker option (shared / static) in all `CMAKE_CXX_FLAGS_*` and `CMAKE_C_FLAGS_*`, either `/MD` or `/MT`. These doesn't mix well. Prefer `/MT` and set `BUILD_SHARED_LIBS=OFF` in all projects, this seems to be the most stable configuration.
+This is only a Windows problem. Make sure that all projects were compiled with the same linker option (shared / static) in all `CMAKE_CXX_FLAGS_*` and `CMAKE_C_FLAGS_*`, either `/MD` or `/MT`. These doesn't mix well. Prefer `/MT` and set `BUILD_SHARED_LIBS=OFF` in all projects, this seems to be the most stable configuration, although it's not forwarded by hunter (at least not to dlib).
 
 
