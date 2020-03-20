@@ -1,7 +1,16 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3c668f7..9742ffb 100755
+index 08e45cb..3f468b5 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -60,7 +60,7 @@ include (SuperbuildOptions)
+ ##-----------------------------------------------------------------------------
+ ##  Set C++ compiler standard
+ ##-----------------------------------------------------------------------------
+-sb_set(CMAKE_CXX_STANDARD 11)
++sb_set(CMAKE_CXX_STANDARD 17)
+ sb_set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+ ##-----------------------------------------------------------------------------
 @@ -574,6 +574,7 @@ if (NOT ITK_FOUND AND NOT PLM_SYSTEM_ITK STREQUAL "YES")
  endif ()
  
@@ -147,6 +156,19 @@ index fd0ccba..60e2729 100644
  include_directories (BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
  include_directories (AFTER ${MSINTTYPES_INCLUDE_DIR})
  
+diff --git a/src/plastimatch/dose/rt_spot_map.h b/src/plastimatch/dose/rt_spot_map.h
+index 2051c64..6095cc7 100755
+--- a/src/plastimatch/dose/rt_spot_map.h
++++ b/src/plastimatch/dose/rt_spot_map.h
+@@ -7,6 +7,8 @@
+ #include "plmdose_config.h"
+ #include "smart_pointer.h"
+ 
++#include <string>
++
+ class Rt_spot_map_private;
+ 
+ class PLMDOSE_API Rt_spot {
 diff --git a/src/plastimatch/reconstruct/cuda/CMakeLists.txt b/src/plastimatch/reconstruct/cuda/CMakeLists.txt
 index b691fbf..a42a67f 100644
 --- a/src/plastimatch/reconstruct/cuda/CMakeLists.txt
