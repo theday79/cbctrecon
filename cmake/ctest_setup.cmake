@@ -30,6 +30,7 @@ set(ExternalData_URL_ALGO_MD5_lower md5)
 set(ExternalData_URL_TEMPLATES
   # Local:
   "file://$ENV{HOME}/assets/%(algo)/%(hash)"
+  "file:///C:/assets/%(algo)/%(hash)"
   # Data published on Girder
   #"ExternalDataCustomScript://silent_download/https://data.kitware.com/api/v1/file/hashsum/%(algo)/%(hash)/download"
   "https://data.kitware.com/api/v1/file/hashsum/%(algo)/%(hash)/download"

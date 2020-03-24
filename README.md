@@ -87,10 +87,12 @@ mkdir build
 cd build
 
 cmake -G"Visual Studio 16 2019" -A"x64" ../cbctrecon ^
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+  -DCMAKE_PREFIX_PATH="C:/Qt/5.14.1/msvc2017_64/" ^
   -DHUNTER_ENABLED=ON ^
   -DRTK_USE_OPENCL=ON ^
   -DCBCTRECON_OPENCL_VERSION=210 ^
-  -DITK_DIR="C:/Program Files (x86)/ITK/cmake" ^
+  -DITK_DIR="C:/Program Files (x86)/ITK/lib/cmake/ITK-5.1" ^
   -DUSE_SYSTEM_DCMTK=OFF ^
   -DUSE_SYSTEM_Plastimatch=OFF ^
   -DUSE_SYSTEM_ZLIB=OFF ^
@@ -148,6 +150,6 @@ dlib_DIR=/*wherever you installed dlib*/
 ```
 
 ## Avoiding DLL and linker hell
-This is only a Windows problem. Make sure that all projects were compiled with the same linker option (shared / static) in all `CMAKE_CXX_FLAGS_*` and `CMAKE_C_FLAGS_*`, either `/MD` or `/MT`. These doesn't mix well. Prefer `/MT` and set `BUILD_SHARED_LIBS=OFF` in all projects, this seems to be the most stable configuration.
+This is only a Windows problem. Make sure that all projects were compiled with the same linker option (shared / static) in all `CMAKE_CXX_FLAGS_*` and `CMAKE_C_FLAGS_*`, either `/MD` or `/MT`. These doesn't mix well. Prefer `/MT` and set `BUILD_SHARED_LIBS=OFF` in all projects, this seems to be the most stable configuration, although it's not forwarded by hunter (at least not to dlib).
 
 
