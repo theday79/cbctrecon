@@ -59,6 +59,21 @@ Ubuntu-clang11-prebuild-deps:
       - export CXX=/usr/local/bin/clang++
       - ./ci/ci.sh
 
+Ubuntu-clang11-ROCm:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - rocm
+# Our ROCm docker exported gfx900 as the target arch, so:
+      - vega
+      - gpu
+    image: andreasga/cbctrecon:clang-11-ROCm-x86_64
+    script:
+      - export CC=/opt/rocm/hip/bin/hipcc
+      - export CXX=/opt/rocm/hip/bin/hipcc
+      - ./ci/ci.sh
+
 Windows10-msvc2019-CUDA:
     stage: test
     tags:

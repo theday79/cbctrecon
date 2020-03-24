@@ -14,10 +14,12 @@ RUN git clone https://github.com/llvm/llvm-project.git --depth=1 --shallow-submo
     && mkdir build \
     && cd build \
     && cmake -GNinja ../llvm \
-        -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi;openmp;pstl" \
+        -DLLVM_ENABLE_PROJECTS="clang;lld;libcxx;libcxxabi;openmp;pstl" \
         -DCMAKE_BUILD_TYPE=Release \
     && ninja \
     && ninja install \
+    && cd ../.. \
+    && rm -Rf ./llvm-project \
     && ldconfig \
     && /usr/local/bin/clang --version
 
