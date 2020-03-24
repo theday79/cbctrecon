@@ -101,7 +101,7 @@ Windows10-msvc2019-CUDA:
           -DUSE_SYSTEM_Plastimatch=OFF `
           -DUSE_SYSTEM_ZLIB=ON `
           -DUSE_SYSTEM_dlib=ON `
-          -Ddlib_DIR="C:/Program Files (x86)/dlib_project/lib/cmake/dlib/" `
+          -Ddlib_DIR="C:/Program Files (x86)/dlib_project/lib/cmake/dlib/"
       - cmake --build . --config Release -j 12
       - cmake --build . --config Release --target INSTALL
       - ctest -VV -C RelWithDebInfo
