@@ -72,6 +72,7 @@ Ubuntu-clang11-ROCm:
     script:
       - export CC=/opt/rocm/hip/bin/hipcc
       - export CXX=/opt/rocm/hip/bin/hipcc
+      - export CXXFLAGS="-fopenmp=libomp"
       - ./ci/ci.sh
 
 Windows10-msvc2019-CUDA:
