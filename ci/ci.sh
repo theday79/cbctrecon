@@ -38,7 +38,8 @@ cmake $COMMON_FLAGS \
     $COMMON_NONSYSTEM_ITK \
     $CUDA_FLAGS \
     $COVERAGE_FLAGS \
-    $DLIBDIR
+    $DLIBDIR \
+    $CUSTOM_CMAKE_FLAGS
 
 cmake --build . --target CbctData
 cmake --build .
