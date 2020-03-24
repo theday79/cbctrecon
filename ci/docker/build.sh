@@ -37,4 +37,9 @@ echo "docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK
 docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK}
 
+CC="clang-11-ROCm-x86_64"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
+docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
+docker push ${REPO}/${NAME}:${CC}
+
 # docker run -it --rm ${REPO}/${NAME}:gcc7-x86_64 bash

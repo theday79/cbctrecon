@@ -23,16 +23,25 @@ RUN cd /home/user/ \
     && export CC=clang && export CXX=clang++ \
     && export CXXFLAGS="-I/usr/include -I/usr/include/tbb -fopenmp-simd" \
     && export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb" \
-    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
-      -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
-      -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
-      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON \
-      -DITK_USE_SYSTEM_ZLIB=ON -DModule_ITKDeprecated=ON \
-      -DModule_RTK=ON -DRTK_USE_CUDA=OFF -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
-      -DREMOTE_GIT_TAG_RTK="master" \
-      -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
-    && cmake --build .
+    && cmake -G Ninja ../ITK \
+      -D CMAKE_CXX_STANDARD=17 \
+      -D CMAKE_BUILD_TYPE=Release \
+      -D BUILD_TESTING=OFF -D BUILD_EXAMPLES=OFF \
+      -D Module_ITKReview=ON \
+      -D ITK_USE_GPU=ON \
+      -D ITK_BUILD_DEFAULT_MODULES=OFF \
+      -D ITK_USE_SYSTEM_FFTW=ON \
+      -D ITK_USE_FFTWF=ON -D ITK_USE_FFTWD=ON \
+      -D Module_ITKDCMTK=ON \
+      -D ITK_USE_SYSTEM_DCMTK=ON \
+      -D ITK_USE_SYSTEM_ZLIB=ON \
+      -D Module_ITKDeprecated=ON \
+      -D Module_RTK=ON \
+      -D RTK_USE_CUDA=OFF \
+      -D RTK_BUILD_APPLICATIONS=OFF \
+      -D ModuleRTK_GIT_TAG="master" \
+      -D ITK_MINIMUM_COMPLIANCE_LEVEL=3 \
+    && ninja
 
 
 WORKDIR /home/user/
