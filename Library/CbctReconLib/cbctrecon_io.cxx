@@ -508,8 +508,7 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
     return nullptr;
   }
 
-  rt_struct->num_structures = sqi->GetNumberOfItems();
-  rt_struct->slist.resize(rt_struct->num_structures);
+  rt_struct->slist.resize(sqi->GetNumberOfItems());
 
   // For each Item in the DataSet create a vtkPolyData
   for (size_t pd = 0; pd < sqi->GetNumberOfItems(); ++pd) {
@@ -588,7 +587,6 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       continue;
     }
     rt_roi.pslist.resize(nitems);
-    rt_roi.num_contours = nitems;
 
     for (size_t ii = 0; ii < nitems; ++ii) {
       const auto &item2 = sqi2->GetItem(ii + 1ull); // Item start at #1
@@ -644,7 +642,6 @@ RequestData_RTStructureSetStorage(gdcm::Reader const &reader) {
       assert(npts == static_cast<unsigned int>(numcontpoints.GetValue()));
       assert(npts * 3 == at.GetNumberOfValues());
       auto &rt_contour = rt_roi.pslist.at(ii);
-      rt_contour.num_vertices = npts;
       rt_contour.coordinates.reserve(npts);
 
       for (size_t i = 0; i < npts * 3; i += 3) {

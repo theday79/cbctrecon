@@ -193,6 +193,34 @@ auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
   return output;
 }
 
+void save_orig_with_only_distal(const std::string &voi_name,
+                                const Rtss_modern *ss,
+                                const std::string &suffix,
+                                const fs::path &orig_file, const double gantry,
+                                const double couch) {
+  auto ss_distal = Rtss_modern(*ss);
+
+  const auto direction = crl::wepl::get_basis_from_angles(gantry, couch);
+  auto voi_distal_it =
+      std::find_if(ss_distal.slist.begin(), ss_distal.slist.end(),
+                   [voi_name](Rtss_roi_modern structure) {
+                     return structure.name == voi_name;
+                   });
+  for (auto &contour : voi_distal_it->pslist) {
+    contour.coordinates = crl::wepl::distal_points_only(contour, direction);
+  }
+
+  const auto out_distal_orig_dcm = "RS.orig_distal_structure_"s;
+  const fs::path out_distal_orig_dcm_file(out_distal_orig_dcm + voi_name +
+                                          "_CT"s + suffix);
+  std::cerr << "Writing distal struct to dicom...\n";
+  if (!crl::AlterData_RTStructureSetStorage(orig_file, ss,
+                                            out_distal_orig_dcm_file)) {
+    std::cerr << "\a"
+              << "Could not write dcm\n";
+  }
+}
+
 int main(const int argc, char *argv[]) {
 
   if (argc < 6) {
@@ -299,6 +327,14 @@ int main(const int argc, char *argv[]) {
   }
   std::cerr << voi << "\n";
 
+  const auto gantry_angle = std::stod(argv[4], &sz);
+  const auto couch_angle = std::stod(argv[5], &sz);
+  const auto descriptive_suffix = "_G"s + argv[4] + "_C" + argv[5] + ".dcm";
+
+  save_orig_with_only_distal(voi, ss, descriptive_suffix,
+                             cbctrecon_test->m_cbctrecon->m_strPathRS,
+                             gantry_angle, couch_angle);
+
   /* calculate WEPL coordinates */
   UShortImageType::PointType first_point;
   UShortImageType::IndexType index{0, 0, 0};
@@ -316,11 +352,9 @@ int main(const int argc, char *argv[]) {
             << ", " << last_point[2] << "\n";
 
   const auto orig_voi = ss->get_roi_by_name(voi);
-  const auto gantry_angle = std::stod(argv[4], &sz);
-  const auto couch_angle = std::stod(argv[5], &sz);
   // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
-  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI(
+  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<true>(
       orig_voi.get(), gantry_angle, couch_angle, ct_img, recalc_img);
 
   /* Generate a vector of vectors with distances */
@@ -335,14 +369,14 @@ int main(const int argc, char *argv[]) {
   const auto out_dcm = "RS.wepl_structure_"s;
   // http://www.plastimatch.org/plastimatch.html#plastimatch-dice
   const fs::path out_dcm_file(out_dcm + argv[3] + "_"s +
-                              recalc_dcm_dir.filename().string() + "_G" +
-                              argv[4] + "_C" + argv[5] + ".dcm");
+                              recalc_dcm_dir.filename().string() + descriptive_suffix);
   std::cerr << "Writing WEPL struct to dicom...\n";
   if (!crl::AlterData_RTStructureSetStorage(
           cbctrecon_test->m_cbctrecon->m_strPathRS, ss, out_dcm_file)) {
     std::cerr << "\a"
               << "Could not write dcm\n";
   }
+
 
   /* Write distances to file */
   auto better_name = orig_voi->name;

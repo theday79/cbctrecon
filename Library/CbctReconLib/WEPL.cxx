@@ -262,6 +262,36 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
   return WEPL_contour;
 }
 
+FloatVector operator-(const FloatVector lhs, const FloatVector rhs) {
+  return FloatVector{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
+}
+
+std::vector<FloatVector>
+distal_points_only(const Rtss_contour_modern &points,
+                   const std::array<double, 3> &direction) {
+  const auto eps_scale = 1.0e-8;
+  const auto eps_dir = FloatVector{static_cast<float>(eps_scale * std::get<0>(direction)),
+                                   static_cast<float>(eps_scale * std::get<1>(direction)),
+                                   static_cast<float>(eps_scale * std::get<2>(direction))};
+
+  auto out = std::vector<FloatVector>();
+  std::copy_if(points.coordinates.begin(), points.coordinates.end(), std::back_inserter(out),
+               [eps_dir, &points](const FloatVector point) {
+                 return points.is_inside(point - eps_dir);
+      });
+
+  return out;
+}
+
+std::vector<WEPLVector>
+DistalWEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
+                           const std::array<double, 3> &vec_basis,
+                           const FloatImageType::Pointer &wepl_cube) {
+  auto tmp_rt_contour = rt_contour;
+  tmp_rt_contour.coordinates = distal_points_only(rt_contour, vec_basis);
+  return WEPLContourFromRtssContour(tmp_rt_contour, vec_basis, wepl_cube);
+}
+
 FloatImageType::PointType point_from_WEPL(
     const vnl_vector_fixed<double, 3> &start_point /* Physical point */,
     const double fWEPL, const vnl_vector_fixed<double, 3> &vec_basis,
@@ -515,65 +545,6 @@ ConvertUshort2WeplFloat(const UShortImageType::Pointer &spImgUshort) {
   return wepl_image;
 }
 
-Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
-                                    const double gantry_angle,
-                                    const double couch_angle,
-                                    const UShortImageType::Pointer &spMoving,
-                                    const UShortImageType::Pointer &spFixed) {
-
-  // Get basis from angles
-  const auto vec_basis = get_basis_from_angles(gantry_angle, couch_angle);
-
-  // Get Fixed and Moving
-  // Tranlate fixed and moving to dEdx
-  const auto wepl_cube = ConvertUshort2WeplFloat(spMoving);
-  const auto wepl_cube_fixed = ConvertUshort2WeplFloat(spFixed);
-
-  // Initialize WEPL contour
-  auto WEPL_voi = std::make_unique<Rtss_roi_modern>();
-  WEPL_voi->name = "WEPL" + voi->name;
-  WEPL_voi->color = "255 0 0";
-  WEPL_voi->id = voi->id;   /* Used for import/export (must be >= 1) */
-  WEPL_voi->bit = voi->bit; /* Used for ss-img (-1 for no bit) */
-  WEPL_voi->num_contours = voi->num_contours;
-  WEPL_voi->pslist.resize(WEPL_voi->num_contours);
-
-  auto i = 0U;
-  // Calculate WEPL
-  for (const auto &contour : voi->pslist) {
-    auto WEPL_contour = std::make_unique<Rtss_contour_modern>(contour);
-    WEPL_contour->ct_slice_uid = contour.ct_slice_uid;
-    WEPL_contour->slice_no = contour.slice_no;
-    WEPL_contour->num_vertices = contour.num_vertices;
-
-    const auto start_time_wepl = std::chrono::steady_clock::now();
-    // Actually calculate WEPL on spMoving
-    auto WEPL_points =
-        WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
-
-    const auto start_time_rev_wepl = std::chrono::steady_clock::now();
-    // Inversely calc WEPL on spFixed
-    // And put WEPL point in contour
-    std::transform(std::begin(WEPL_points), std::end(WEPL_points),
-                   std::begin(WEPL_contour->coordinates),
-                   [&vec_basis, &wepl_cube_fixed](const WEPLVector &val) {
-                     return NewPoint_from_WEPLVector(val, vec_basis,
-                                                     wepl_cube_fixed);
-                   });
-    const auto end_time_rev_wepl = std::chrono::steady_clock::now();
-    std::cerr << "The " << i << ". contour took "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     start_time_rev_wepl - start_time_wepl)
-                     .count()
-              << " ms to calculate wepl, and "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     end_time_rev_wepl - start_time_rev_wepl)
-                     .count()
-              << " ms to calculate new points\n";
-    WEPL_voi->pslist.at(i++) = *WEPL_contour.release();
-  }
-  return WEPL_voi.release();
-}
 
 } // namespace wepl
 

@@ -64,7 +64,6 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
 
 Rtss_modern::Rtss_modern(const Rtss_modern &old)
     : slist(old.slist), have_geometry(old.have_geometry),
-      num_structures(old.num_structures),
       ready(old.ready) { /* thread_obj shouldn't need initialization */
 }
 
@@ -105,4 +104,19 @@ bool Rtss_modern::wait() {
     this->ready = true;
   }
   return this->ready;
+}
+
+bool Rtss_contour_modern::is_inside(const FloatVector point) const {
+  // Modified from: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+  const auto &vert = this->coordinates;
+  auto nvert = vert.size();
+  int i, j, c = 0;
+  for (i = 0, j = nvert - 1; i < nvert; j = i++) {
+    if (((vert[i].y > point.y) != (vert[j].y > point.y)) &&
+        (point.x < (vert[j].x - vert[i].x) * (point.y - vert[i].y) /
+                           (vert[j].y - vert[i].y) +
+                       vert[i].x))
+      c = !c;
+  }
+  return c == 1;
 }
