@@ -88,14 +88,12 @@ Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
     WEPL_contour->slice_no = contour.slice_no;
     WEPL_contour->coordinates.clear();
 
-    const auto start_time_wepl = std::chrono::steady_clock::now();
     // Actually calculate WEPL on spMoving
     auto WEPL_points =
         DISTAL_ONLY
             ? DistalWEPLContourFromRtssContour(contour, vec_basis, wepl_cube)
             : WEPLContourFromRtssContour(contour, vec_basis, wepl_cube);
 
-    const auto start_time_rev_wepl = std::chrono::steady_clock::now();
     // Inversely calc WEPL on spFixed
     // And put WEPL point in contour
     std::transform(std::begin(WEPL_points), std::end(WEPL_points),
@@ -104,7 +102,6 @@ Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
                      return NewPoint_from_WEPLVector(val, vec_basis,
                                                      wepl_cube_fixed);
                    });
-    const auto end_time_rev_wepl = std::chrono::steady_clock::now();
     WEPL_voi->pslist.at(i++) = *WEPL_contour.release();
   }
   return WEPL_voi.release();
