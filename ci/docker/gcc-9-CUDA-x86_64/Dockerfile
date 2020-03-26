@@ -25,7 +25,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
 RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja-build gcc-8 g++-8 git qt5-default \
+    && apt install -y ninja-build gcc-8 g++-8 git \
         libfftw3-dev libtinfo-dev libeigen3-dev \
         libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
@@ -50,9 +50,10 @@ RUN mkdir /opt/cmake && cd /opt/cmake \
     && rm cmake-3.16.4-Linux-x86_64.sh \
     && cmake --version
 
+# Get a newer version of TBB and Qt
 RUN echo "deb http://archive.ubuntu.com/ubuntu/ eoan main universe" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y libtbb-dev \
+    && apt install -y libtbb-dev qt5-default \
     && rm -rf /var/lib/apt/lists/* \
     && cd /usr/share/cmake/Modules/ \
     && cmake -DINSTALL_DIR=/usr/lib/cmake/TBB \
