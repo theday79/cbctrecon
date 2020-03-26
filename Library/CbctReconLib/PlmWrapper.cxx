@@ -110,7 +110,7 @@ bool Rtss_contour_modern::is_inside(const FloatVector point) const {
   // Modified from: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
   const auto &vert = this->coordinates;
   auto nvert = vert.size();
-  int i, j, c = 0;
+  size_t i, j, c = 0;
   for (i = 0, j = nvert - 1; i < nvert; j = i++) {
     if (((vert[i].y > point.y) != (vert[j].y > point.y)) &&
         (point.x < (vert[j].x - vert[i].x) * (point.y - vert[i].y) /
