@@ -265,6 +265,9 @@ if(WIN32)
   if(USE_CLFFT)
     install (FILES ${CLFFT_ROOT_DIR}/bin/clFFT.dll DESTINATION bin)
   endif()
+  if (TBB_FOUND)
+      install (TARGETS ${TBB_LIBRARIES} RUNTIME DESTINATION bin)
+  endif()
 
   #Add FFT dlls to Install
   if(FFTW_FOUND)
