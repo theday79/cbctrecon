@@ -204,7 +204,7 @@ void save_orig_with_only_distal(const std::string &voi_name,
   auto voi_distal_it =
       std::find_if(ss_distal.slist.begin(), ss_distal.slist.end(),
                    [voi_name](Rtss_roi_modern structure) {
-                     return structure.name == voi_name;
+                     return structure.name.find(voi_name) != std::string::npos;
                    });
   for (auto &contour : voi_distal_it->pslist) {
     contour.coordinates = crl::wepl::distal_points_only(contour, direction);
@@ -331,7 +331,7 @@ int main(const int argc, char *argv[]) {
   const auto couch_angle = std::stod(argv[5], &sz);
   const auto descriptive_suffix = "_G"s + argv[4] + "_C" + argv[5] + ".dcm";
 
-  save_orig_with_only_distal(voi, ss, descriptive_suffix,
+  save_orig_with_only_distal(argv[3], ss, descriptive_suffix,
                              cbctrecon_test->m_cbctrecon->m_strPathRS,
                              gantry_angle, couch_angle);
 
@@ -369,14 +369,14 @@ int main(const int argc, char *argv[]) {
   const auto out_dcm = "RS.wepl_structure_"s;
   // http://www.plastimatch.org/plastimatch.html#plastimatch-dice
   const fs::path out_dcm_file(out_dcm + argv[3] + "_"s +
-                              recalc_dcm_dir.filename().string() + descriptive_suffix);
+                              recalc_dcm_dir.filename().string() +
+                              descriptive_suffix);
   std::cerr << "Writing WEPL struct to dicom...\n";
   if (!crl::AlterData_RTStructureSetStorage(
           cbctrecon_test->m_cbctrecon->m_strPathRS, ss, out_dcm_file)) {
     std::cerr << "\a"
               << "Could not write dcm\n";
   }
-
 
   /* Write distances to file */
   auto better_name = orig_voi->name;
