@@ -48,9 +48,9 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
 
   const typename Superclass::GeometryType *geometry = this->GetGeometry();
   const unsigned int Dimension = TInputImage::ImageDimension;
-  const size_t iFirstProj =
+  const auto iFirstProj =
       this->GetInput(0)->GetRequestedRegion().GetIndex(Dimension - 1);
-  const size_t nProj =
+  const auto nProj =
       this->GetInput(0)->GetRequestedRegion().GetSize(Dimension - 1);
 
   OpenCL_forwardProject_options fwd_opts;
@@ -58,12 +58,14 @@ void OpenCLForwardProjectionImageFilter<TInputImage,
   fwd_opts.vectorLength =
       itk::PixelTraits<typename TInputImage::PixelType>::Dimension;
 
-  auto largestReg = this->GetOutput()->GetLargestPossibleRegion();
-  this->GetOutput()->SetRegions(largestReg);
-  this->GetOutput()->Allocate();
+  auto* out_ptr = this->GetOutput();
+  auto largestReg = out_ptr->GetLargestPossibleRegion();
 
-  fwd_opts.projSize.at(0) = this->GetOutput()->GetBufferedRegion().GetSize()[0];
-  fwd_opts.projSize.at(1) = this->GetOutput()->GetBufferedRegion().GetSize()[1];
+  out_ptr->SetRegions(largestReg);
+  out_ptr->Allocate();
+
+  fwd_opts.projSize.at(0) = out_ptr->GetBufferedRegion().GetSize()[0];
+  fwd_opts.projSize.at(1) = out_ptr->GetBufferedRegion().GetSize()[1];
 
   const auto nPixelsPerProj =
       fwd_opts.projSize.at(0) * fwd_opts.projSize.at(1) * fwd_opts.vectorLength;

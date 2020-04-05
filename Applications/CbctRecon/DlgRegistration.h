@@ -49,7 +49,7 @@ public:
   void UpdateVOICombobox(ctType ct_type) const;
   void UpdateListOfComboBox(int idx) const;
   void SelectComboExternal(int idx, enREGI_IMAGES iImage);
-  void LoadImgFromComboBox(int idx, QString strSelectedComboTxt);
+  void LoadImgFromComboBox(int idx, const QString& strSelectedComboTxt);
   void initDlgRegistration(std::string &strDCMUID);
 
 private:

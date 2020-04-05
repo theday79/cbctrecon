@@ -81,18 +81,18 @@ void DlgHistogram::SLT_DrawGraph() const {
 
   ui.customPlot->clearGraphs();
 
-  ui.customPlot->addGraph();
-  ui.customPlot->graph(0)->setData(vAxisX, vAxisY_raw);
-  ui.customPlot->graph(0)->setPen(QPen(Qt::red));
-  ui.customPlot->graph(0)->setName("Raw proj. histogram");
+  auto graph_0 = ui.customPlot->addGraph();
+  graph_0->setData(vAxisX, vAxisY_raw);
+  graph_0->setPen(QPen(Qt::red));
+  graph_0->setName("Raw proj. histogram");
 
   QVector<double> vAxisY_ct;
   std::copy(std::begin(histogram_ct.hist_data),
             std::end(histogram_ct.hist_data), std::back_inserter(vAxisY_ct));
-  ui.customPlot->addGraph();
-  ui.customPlot->graph(1)->setData(vAxisX, vAxisY_ct);
-  ui.customPlot->graph(1)->setPen(QPen(Qt::blue));
-  ui.customPlot->graph(1)->setName("CT fwd. proj. histogram");
+  auto graph_1 = ui.customPlot->addGraph();
+  graph_1->setData(vAxisX, vAxisY_ct);
+  graph_1->setPen(QPen(Qt::blue));
+  graph_1->setName("CT fwd. proj. histogram");
 
   // Set limits of graph
   const auto minX = 0.0;

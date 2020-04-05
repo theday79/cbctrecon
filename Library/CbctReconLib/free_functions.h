@@ -250,7 +250,7 @@ template <enProjFormat PF, typename T> T BeamHardening(T val) {
 }
 
 template <enProjFormat PF, typename T>
-void BeamHardening(T *pBuffer, const int nPix) {
+void BeamHardening(T *pBuffer, const size_t nPix) {
   std::transform(std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
                  &pBuffer[0], [](auto val) { return BeamHardening<PF>(val); });
 }

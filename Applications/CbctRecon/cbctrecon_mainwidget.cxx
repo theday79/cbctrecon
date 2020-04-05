@@ -137,7 +137,7 @@ void CbctReconWidget::init_DlgRegistration(std::string &str_dcm_uid) const
 }
 
 void CbctReconWidget::SLT_DrawRawImages() const {
-  const auto crntIdx = this->ui.spinBoxImgIdx->value();
+  const auto crntIdx = static_cast<size_t>(this->ui.spinBoxImgIdx->value());
 
   if (crntIdx >= this->m_cbctrecon->m_iImgCnt) {
     return;
@@ -307,7 +307,7 @@ void CbctReconWidget::SLT_ApplyCalibration() const {
   const auto bDarkCorrApply = this->ui.checkBox_offsetOn->isChecked();
   const auto bGainCorrApply = this->ui.checkBox_gainOn->isChecked();
   const auto bDefectMapApply = this->ui.checkBox_badpixelOn->isChecked();
-  for (auto i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
+  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt); i++) {
     crl::CorrectSingleFile(this->m_cbctrecon.get(),
                            &this->m_cbctrecon->m_arrYKImage[i], bDarkCorrApply,
                            bGainCorrApply,
@@ -744,8 +744,7 @@ CbctReconWidget::ReadBowtieFileWhileProbing(const fs::path &proj_path,
     bowtiePath = getBowtiePath(this, calDir);
     if (bowtiePath.length() > 1) {
       std::cout << "loading bowtie-filter..." << std::endl;
-      std::vector<std::string> filepath;
-      filepath.push_back(bowtiePath.toStdString());
+      std::vector<std::string> filepath{bowtiePath.toStdString()};
       bowtiereader->SetFileNames(filepath);
       // std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
       std::thread calc_thread_bowtie(
@@ -996,7 +995,7 @@ void CbctReconWidget::SLT_DataProbeProj() const {
     // fProbeValue = m_dspYKImgProj->m_pData[dataWidth*dataY +
     // dataX]/m_multiplyFactor;
     const auto fProbeValue =
-        static_cast<double>(p_ykproj->m_pData[dataWidth * dataY + dataX]) /
+        static_cast<double>(p_ykproj->m_pData[static_cast<size_t>(dataWidth) * dataY + dataX]) /
             this->m_cbctrecon->m_multiplyFactor +
         this->m_cbctrecon->m_fProjImgValueMin;
     const auto dspText = QString("(%1, %2, %3): %4")
@@ -1938,7 +1937,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
 // called whenver recon 3D image for display changes.
 void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
-                                       const QString fileName) {
+                                       const QString& fileName) {
   this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
   const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
@@ -2464,7 +2463,7 @@ void CbctReconWidget::SLT_TimerEvent() {
 
   // unsigned short* imgBuf = new unsigned short [pix_size];
 
-  for (auto i = 0; i < pix_size; i++) {
+  for (size_t i = 0; i < pix_size; i++) {
     const auto idxA = i * 2 + 1;
     const auto idxB = i * 2;
     // 0: 1,0  1: 3,2 ...
@@ -2878,9 +2877,9 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   if (ok && !text.isEmpty()) {
     const auto iRefImgVal = text.toInt();
 
-    if (iRefImgVal == 0) {
-      enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
-    } else if (iRefImgVal == 1) {
+    // if (iRefImgVal == 0) {
+    //  enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
+    if (iRefImgVal == 1) {
       enRegImg = enREGI_IMAGES::REGISTER_AUTO_RIGID;
     } else if (iRefImgVal == 2) {
       enRegImg = enREGI_IMAGES::REGISTER_MANUAL_RIGID;
@@ -3432,7 +3431,7 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
 
   const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
   const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
-  for (auto i = 0; i < iCntFiles; i++) {
+  for (size_t i = 0; i < iCntFiles; i++) {
     this->m_cbctrecon->GetWEPLDataFromSingleFile(
         listFilePath.at(i), this->m_cbctrecon->m_vPOI_DCM, vArrOutputWEPL.at(i),
         fAngleStart, fAngleEnd);
@@ -3447,7 +3446,7 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
        << "\t"
        << "Sample Number";
 
-  for (auto i = 0; i < iCntFiles; i++) {
+  for (size_t i = 0; i < iCntFiles; i++) {
     const auto fInfo = listFilePath.at(i);
     auto strFileName = fInfo.filename().string();
 
@@ -3457,7 +3456,7 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
 
   const auto first_wepl = vArrOutputWEPL.at(0);
   const auto cnt_wepl = first_wepl.size();
-  for (auto i = 0; i < iCntFiles; i++) {
+  for (size_t i = 0; i < iCntFiles; i++) {
     const auto cur_count = vArrOutputWEPL.at(i).size();
     if (cnt_wepl != cur_count) {
       std::cout << "Error! some of the WEPL count doesn't match!" << std::endl;
@@ -3465,11 +3464,11 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
     }
   }
 
-  for (auto i = 0U; i < cnt_wepl; i++) {
+  for (size_t i = 0; i < cnt_wepl; i++) {
     fout << first_wepl.at(i).ptIndex << "\t" << first_wepl.at(i).fGanAngle
          << "\t" << i;
 
-    for (auto j = 0; j < iCntFiles; j++) {
+    for (size_t j = 0; j < iCntFiles; j++) {
       fout << "\t" << vArrOutputWEPL.at(j).at(i).fWEPL;
     }
     fout << std::endl;
@@ -3603,7 +3602,7 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
     return;
   }
 
-  for (auto i = 0; i < iCnt; i++) {
+  for (size_t i = 0; i < iCnt; i++) {
     const auto &curPath = targetFilePaths.at(i);
 
     // Overritting
@@ -3951,7 +3950,7 @@ void CbctReconWidget::SLT_ExportHis() {
 
   // FileName should be same, only selected folder
 
-  for (auto i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
+  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt); i++) {
     auto tmpInfo = this->m_cbctrecon->m_arrYKImage[i].m_strFilePath;
     auto newPath = dir / tmpInfo.filename();
     if (!this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(newPath, false)) {
@@ -4145,7 +4144,6 @@ void CbctReconWidget::SLT_LoadRawImages() {
     return;
   }
   m_pTableModel.reset();
-  m_pTableModel = nullptr;
   this->m_cbctrecon->ReleaseMemory();
 
   this->m_cbctrecon->m_arrYKImage.resize(this->m_cbctrecon->m_iImgCnt);
