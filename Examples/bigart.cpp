@@ -33,10 +33,10 @@ UShortImageType::Pointer get_image_from_dicom(
   // auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   auto dcm_path = fs::absolute(dcm_dir);
-  if (!fs::exists(dcm_dir)) {
+  if (!fs::exists(dcm_path)) {
     std::cerr << "Directory didn't exist: " << dcm_path << "\n";
   }
-  if (fs::is_empty(dcm_dir)) {
+  if (fs::is_empty(dcm_path)) {
     std::cerr << "Directory was empty: " << dcm_path << "\n";
   }
 
@@ -111,6 +111,7 @@ UShortImageType::Pointer get_image_from_dicom(
 
   if (!ct_img) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
+    return nullptr;
   }
   /* Some debug info: */
   UShortImageType::PointType first_point;
@@ -280,6 +281,10 @@ int main(const int argc, char *argv[]) {
       recalc_dcm_path, ct_img->GetSpacing(),
       ct_img->GetLargestPossibleRegion().GetSize(), ct_img->GetOrigin(),
       ct_img->GetDirection(), translation, rotation);
+
+  if (!recalc_img) {
+    return -5;
+  }
 
   cbctrecon_test->m_cbctrecon->m_spRawReconImg = recalc_img;
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);

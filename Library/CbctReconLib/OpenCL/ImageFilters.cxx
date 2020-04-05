@@ -37,6 +37,9 @@
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 
+namespace crl {
+namespace opencl {
+
 enum class enKernel {
   en_padding_kernel,
   en_multiply_kernel,
@@ -165,7 +168,7 @@ private:
       }
     }
 
-    std::vector<cl::Device> devices = OpenCL_getDeviceList();
+    std::vector<cl::Device> devices = getDeviceList();
 
     // Attempt first device if none with image_support
     auto device = devices.at(0);
@@ -259,12 +262,12 @@ public:
 
 static KernelMan kernel_man;
 
-void OpenCL_initialize(const size_t required_mem_alloc_size,
+void initialize(const size_t required_mem_alloc_size,
                        std::string &defines) {
   kernel_man.initialize(defines, required_mem_alloc_size);
 }
 
-void OpenCL_initialize(std::string &defines) { kernel_man.initialize(defines); }
+void initialize(std::string &defines) { kernel_man.initialize(defines); }
 
 cl::NDRange get_local_work_size_small(const cl::Device &device) {
   const auto device_name = device.getInfo<CL_DEVICE_NAME>();
@@ -295,7 +298,7 @@ auto initialize_opencl(std::string &defines, size_t buffer_size) {
   return std::make_pair(ctx, queue);
 }
 
-void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
+void padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
                     const cl_uint4 &inputSize,
                     const float *hostVolume, // input
                     float *hostPaddedVolume, // output
@@ -358,7 +361,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   checkError(err, "Padding copy back from device");
 }
 
-void OpenCL_subtract2Dfrom3DbySlice_InPlace(
+void subtract2Dfrom3DbySlice_InPlace(
     FloatImageType::Pointer &projections,
     const FloatImage2DType::Pointer &filter) {
 
@@ -410,7 +413,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   checkError(err, "Sub, copy back from device");
 }
 
-itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
+itk::Image<float, 3U>::Pointer divide3Dby3D_loginv_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Num3D,
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
@@ -476,13 +479,13 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
 #ifdef USE_XEON_PHI
 #include "C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2017.8.275\windows\mkl\include\mkl.h"
 
-void OpenCL_AddConst_InPlace(cl_float *buffer,
+void AddConst_InPlace(cl_float *buffer,
                              const itk::Image<float, 3U>::SizeType &inputSize,
                              const cl_float constant) {}
 
 #else
 
-void OpenCL_AddConst_InPlace(cl_float *buffer,
+void AddConst_InPlace(cl_float *buffer,
                              const itk::Image<float, 3U>::SizeType &inputSize,
                              const cl_float constant) {
 
@@ -521,7 +524,7 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
 }
 #endif
 
-void OpenCL_AddConst_MulConst_InPlace(
+void AddConst_MulConst_InPlace(
     cl_float *buffer, const itk::Image<float, 3U>::SizeType &inputSize,
     const cl_float add_constant, const cl_float mul_constant) {
 
@@ -559,7 +562,7 @@ void OpenCL_AddConst_MulConst_InPlace(
   checkError(err, "addMul, copy data back from device");
 }
 
-void OpenCL_AddConst_InPlace_2D(
+void AddConst_InPlace_2D(
     cl_float *buffer, const itk::Image<float, 2U>::SizeType &inputSize,
     const cl_float constant) {
 
@@ -597,23 +600,23 @@ void OpenCL_AddConst_InPlace_2D(
   checkError(err, "add2d could not copy back from device");
 }
 
-cl_float2 OpenCL_min_max_3D(cl_float *buffer,
+cl_float2 min_max_3D(cl_float *buffer,
                             const itk::Image<float, 3U>::SizeType &inputSize) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
 
-  return OpenCL_min_max_1D(buffer, memorySizeInput);
+  return min_max_1D(buffer, memorySizeInput);
 }
 
-cl_float2 OpenCL_min_max_2D(cl_float *buffer,
+cl_float2 min_max_2D(cl_float *buffer,
                             const itk::Image<float, 2U>::SizeType &inputSize) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1];
 
-  return OpenCL_min_max_1D(buffer, memorySizeInput);
+  return min_max_1D(buffer, memorySizeInput);
 }
 
-cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
+cl_float2 min_max_recurse_unified(const size_t inputSize,
                                          cl::Buffer &deviceBuffer) {
   auto err = CL_SUCCESS;
   auto queue = cl::CommandQueue::getDefault(&err);
@@ -642,7 +645,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
     }
 
     err = queue.enqueueUnmapMemObject(deviceBuffer, buffer);
-    checkError(err, "OpenCL_min_max_recurse_unified unmap");
+    checkError(err, "min_max_recurse_unified unmap");
 
     return out;
   }
@@ -673,7 +676,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
         (outputDim + outputDim % local_work_size) / local_work_size;
     if (n_work_groups % 2 !=
             0 // global must be evenly divisable with local work group
-        || n_work_groups * local_work_size < local_work_size) {
+        || n_work_groups < 1) {
       local_work_size /= 2;
     } else {
       break;
@@ -704,7 +707,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
   checkError(err, "Finish min_max_recurse queue");
 
   const auto result =
-      OpenCL_min_max_recurse_unified(outputDim, deviceSubBuffer);
+      min_max_recurse_unified(outputDim, deviceSubBuffer);
 
   err = queue.finish();
   checkError(err, "Finish unmap min_max_recurse queue");
@@ -712,7 +715,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
   return result;
 }
 
-cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
+cl_float2 min_max_unified(cl_float *buffer, const size_t memorySizeInput,
                                  const size_t memorySizeSub,
                                  const cl::NDRange local_work_size,
                                  const size_t divider) {
@@ -745,7 +748,7 @@ cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
   checkError(err, "Finish add_const queue");
 
   const auto result =
-      OpenCL_min_max_recurse_unified(memorySizeSub, deviceSubBuffer);
+      min_max_recurse_unified(memorySizeSub, deviceSubBuffer);
 
   err = queue.finish();
   checkError(err, "add_const finish");
@@ -753,7 +756,7 @@ cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
   return result;
 }
 
-cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
+cl_float2 min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
                                 const size_t memorySizeSub,
                                 const cl::NDRange local_work_size,
                                 const size_t divider) {
@@ -791,7 +794,7 @@ cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
   checkError(err, "Finish add_const queue");
 
   const auto result =
-      OpenCL_min_max_recurse(sub_buffer, memorySizeSub, deviceSubBuffer);
+      min_max_recurse(sub_buffer, memorySizeSub, deviceSubBuffer);
 
   err = queue.enqueueUnmapMemObject(devicePinnedSubBuffer, sub_buffer);
   checkError(err, "add_const unmap");
@@ -801,7 +804,7 @@ cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
   return result;
 }
 
-cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
+cl_float2 min_max_recurse(cl_float2 *buffer, const size_t inputSize,
                                  cl::Buffer &deviceBuffer) {
 
   const auto recurse_local_work_size =
@@ -855,7 +858,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
         (outputDim + outputDim % local_work_size) / local_work_size;
     if (n_work_groups % 2 !=
             0 // global must be evenly divisable with local work group
-        || n_work_groups * local_work_size < local_work_size) {
+        || n_work_groups < 1) {
       local_work_size /= 2;
     } else {
       break;
@@ -893,7 +896,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   checkError(err, "Finish read sub buffer min_max_recurse queue");
 
   const auto result =
-      OpenCL_min_max_recurse(sub_buffer, outputDim, deviceSubBuffer);
+      min_max_recurse(sub_buffer, outputDim, deviceSubBuffer);
 
   err = queue.enqueueUnmapMemObject(devicePinnedSubBuffer, sub_buffer);
   checkError(err, "Unmap sub pinned min_max_recurse queue");
@@ -903,7 +906,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   return result;
 }
 
-cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
+cl_float2 min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
 
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
   auto defines = std::string("");
@@ -929,15 +932,15 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   auto dev = cl::Device::getDefault();
   const auto unified_memory = dev.getInfo<CL_DEVICE_HOST_UNIFIED_MEMORY>();
   if (unified_memory) {
-    return OpenCL_min_max_unified(buffer, memorySizeInput, memorySizeSub,
+    return min_max_unified(buffer, memorySizeInput, memorySizeSub,
                                   local_work_size, divider);
   }
 #endif
-  return OpenCL_min_max_pinned(buffer, memorySizeInput, memorySizeSub,
+  return min_max_pinned(buffer, memorySizeInput, memorySizeSub,
                                local_work_size, divider);
 }
 
-void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
+void crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
                                    const Rtss_roi_modern &voi) {
 
   const auto inputSize = ct_image->GetBufferedRegion().GetSize();
@@ -1030,7 +1033,7 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
   }
 }
 
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
+FloatImage2DType::Pointer LogItoI_subtract_median_ItoLogI(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_scatter_intensity,
     const unsigned int median_radius) {
@@ -1247,7 +1250,7 @@ FloatImage2DType::Pointer gaussian_filter(FloatImage2DType::Pointer input,
 }
 #endif
 
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
+FloatImage2DType::Pointer LogItoI_subtract_median_gaussian(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_prim,
     const unsigned int median_radius, const float gaussian_sigma) {
@@ -1354,3 +1357,6 @@ print_prof_info(evt);
   */
   return proj_sca;
 }
+
+} // namespace opencl
+} // namespace crl

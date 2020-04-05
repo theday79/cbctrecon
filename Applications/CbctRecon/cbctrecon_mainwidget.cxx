@@ -2224,14 +2224,14 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
 
-    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spRefCTImg) {
     auto structures = this->m_cbctrecon->m_structures->get_ss(ctType::PLAN_CT);
     const auto voi =
         structures->get_roi_ref_by_name(struct_to_crop.toStdString());
-    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRefCTImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spRefCTImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spScatCorrReconImg) {
@@ -2244,7 +2244,7 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
 
-    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
 }

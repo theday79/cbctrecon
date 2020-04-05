@@ -188,6 +188,7 @@ template <typename T> std::string stringify(T arg) {
   } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
     return arg.string();
   }
+  return "UNHANDLED_ERROR";
 }
 
 template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {

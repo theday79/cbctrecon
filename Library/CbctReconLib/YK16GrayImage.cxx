@@ -488,7 +488,7 @@ bool YK16GrayImage::SaveDataAsHis(const std::filesystem::path &filePath,
 
   {
     std::ofstream fd(filePath, std::ios::binary);
-    fd.write(m_pElektaHisHeader, sizeof(m_pElektaHisHeader));
+    fd.write(m_pElektaHisHeader, 100);
     // fwrite(m_pElektaHisHeader, 100, 1, fd);
 
     for (auto i = 0; i < imgSize; i++) {

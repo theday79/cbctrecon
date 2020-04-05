@@ -152,11 +152,9 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
   fout << std::endl;
 
   // std::string strOptim = ui.comboBoxDeformOption->currentText();
-  std::string strOptim;
+  std::string strOptim = "mi";
   if (optim_mse) {
     strOptim = "mse";
-  } else {
-    strOptim = "mi";
   }
 
   auto strListOption1 =
@@ -241,11 +239,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
       fout << "regularization_lambda=" << std::get<double>(option_vals.at(4))
            << "\n";
 
-      if (strOptim.empty()) {
-        fout << "metric=mi\n";
-      } else {
-        fout << "metric=" << strOptim << "\n";
-      }
+      fout << "metric=" << strOptim << "\n";
 
       fout << "max_its=" << std::get<int>(option_vals.at(6)) << "\n";
       const auto grid_spacing = std::get<int>(option_vals.at(3));
@@ -271,11 +265,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
       fout << "regularization_lambda=" << std::get<double>(option_vals.at(4))
            << "\n";
 
-      if (strOptim.empty()) {
-        fout << "metric=mi\n";
-      } else {
-        fout << "metric=" << strOptim << "\n";
-      }
+      fout << "metric=" << strOptim << "\n";
 
       fout << "max_its=" << std::get<int>(option_vals.at(6)) << "\n";
       const auto grid_spacing = std::get<int>(option_vals.at(3));
@@ -300,11 +290,7 @@ void CbctRegistration::GenPlastiRegisterCommandFile(
       fout << "regularization_lambda=" << std::get<double>(option_vals.at(4))
            << "\n";
 
-      if (strOptim.empty()) {
-        fout << "metric=mi\n";
-      } else {
-        fout << "metric=" << strOptim << "\n";
-      }
+      fout << "metric=" << strOptim << "\n";
 
       fout << "max_its=" << std::get<int>(option_vals.at(6)) << "\n";
       const auto grid_spacing = std::get<int>(option_vals.at(3));
@@ -1242,7 +1228,7 @@ void CbctRegistration::PostSkinRemovingCBCT(UShortImageType::Pointer &spCBCT,
     return;
   }
   const auto voi = ss->get_roi_ref_by_name(voi_name);
-  OpenCL_crop_by_struct_InPlace(spCBCT, voi);
+  crl::opencl::crop_by_struct_InPlace(spCBCT, voi);
 }
 
 void CbctRegistration::ThermoMaskRemovingCBCT(
