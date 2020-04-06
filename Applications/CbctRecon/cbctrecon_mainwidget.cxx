@@ -995,7 +995,9 @@ void CbctReconWidget::SLT_DataProbeProj() const {
     // fProbeValue = m_dspYKImgProj->m_pData[dataWidth*dataY +
     // dataX]/m_multiplyFactor;
     const auto fProbeValue =
-        static_cast<double>(p_ykproj->m_pData[static_cast<size_t>(dataWidth) * dataY + dataX]) /
+        static_cast<double>(p_ykproj->m_pData[static_cast<size_t>(dataWidth) *
+                                                  static_cast<size_t>(dataY) +
+                                              static_cast<size_t>(dataX)]) /
             this->m_cbctrecon->m_multiplyFactor +
         this->m_cbctrecon->m_fProjImgValueMin;
     const auto dspText = QString("(%1, %2, %3): %4")
@@ -2445,7 +2447,7 @@ void CbctReconWidget::SLT_TimerEvent() {
   }
 
   const auto size = 1024 * 1024 * 2;
-  const auto pix_size = static_cast<int>(size / 2.0);
+  const auto pix_size = static_cast<size_t>(size / 2.0);
   const auto char_buf = static_cast<unsigned char *>(
       MapViewOfFile(handle, FILE_MAP_READ, 0, 0, size));
 
