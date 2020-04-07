@@ -188,6 +188,7 @@ template <typename T> std::string stringify(T arg) {
   } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
     return arg.string();
   }
+  return "UNHANDLED_ERROR";
 }
 
 template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
@@ -249,7 +250,7 @@ template <enProjFormat PF, typename T> T BeamHardening(T val) {
 }
 
 template <enProjFormat PF, typename T>
-void BeamHardening(T *pBuffer, const int nPix) {
+void BeamHardening(T *pBuffer, const size_t nPix) {
   std::transform(std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
                  &pBuffer[0], [](auto val) { return BeamHardening<PF>(val); });
 }

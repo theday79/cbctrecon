@@ -314,13 +314,13 @@ int main(const int argc, char **argv) {
 
   // Cuts off about 150 ms per filter:
   auto defines = std::string("");
-  OpenCL_initialize(0, defines);
+  crl::opencl::initialize(0, defines);
 
   if (filter_str == "add_const_filter") {
 
     auto image_ocl = GenerateImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_AddConst_InPlace(image_ocl->GetBufferPointer(),
+    crl::opencl::AddConst_InPlace(image_ocl->GetBufferPointer(),
                             image_ocl->GetLargestPossibleRegion().GetSize(),
                             17.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
@@ -357,7 +357,7 @@ int main(const int argc, char **argv) {
 
     auto image_ocl = GenerateImage<float, 2U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_AddConst_InPlace_2D(image_ocl->GetBufferPointer(),
+    crl::opencl::AddConst_InPlace_2D(image_ocl->GetBufferPointer(),
                                image_ocl->GetLargestPossibleRegion().GetSize(),
                                17.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
@@ -393,7 +393,7 @@ int main(const int argc, char **argv) {
 
     auto image_ocl = GenerateImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_AddConst_MulConst_InPlace(
+    crl::opencl::AddConst_MulConst_InPlace(
         image_ocl->GetBufferPointer(),
         image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f, 2.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
@@ -435,7 +435,7 @@ int main(const int argc, char **argv) {
     auto image_in = GenerateRandImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto minmax_ocl =
-        OpenCL_min_max_3D(image_in->GetBufferPointer(),
+        crl::opencl::min_max_3D(image_in->GetBufferPointer(),
                           image_in->GetLargestPossibleRegion().GetSize());
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -475,7 +475,7 @@ int main(const int argc, char **argv) {
     auto image_in = GenerateRandImage<float, 2U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto minmax_ocl =
-        OpenCL_min_max_2D(image_in->GetBufferPointer(),
+        crl::opencl::min_max_2D(image_in->GetBufferPointer(),
                           image_in->GetLargestPossibleRegion().GetSize());
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -519,7 +519,7 @@ int main(const int argc, char **argv) {
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto image_ocl =
-        OpenCL_divide3Dby3D_loginv_OutOfPlace(image_in1, image_in2);
+        crl::opencl::divide3Dby3D_loginv_OutOfPlace(image_in1, image_in2);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -569,7 +569,7 @@ int main(const int argc, char **argv) {
     auto image = read_dicom_image(dcmdir_str);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_crop_by_struct_InPlace(image, body_struct);
+    crl::opencl::crop_by_struct_InPlace(image, body_struct);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -608,7 +608,7 @@ int main(const int argc, char **argv) {
         GenerateRandImage<float, 2U>(6969, -1.0f, 1.0f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
+    const auto proj_corr = crl::opencl::LogItoI_subtract_median_ItoLogI(
         proj_raw, proj_scatter_intensity, median_radius);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -672,7 +672,7 @@ int main(const int argc, char **argv) {
         GenerateRandImage_small<float, 2U>(6969, -1.0f, 1.0f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
+    const auto proj_corr = crl::opencl::LogItoI_subtract_median_ItoLogI(
         proj_raw, proj_scatter_intensity, median_radius);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -738,7 +738,7 @@ int main(const int argc, char **argv) {
     const auto proj_raw = add_filter->GetOutput();
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_scatter = OpenCL_LogItoI_subtract_median_gaussian(
+    const auto proj_scatter = crl::opencl::LogItoI_subtract_median_gaussian(
         proj_raw, proj_prim, median_radius, gaussian_sigma);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 

@@ -603,7 +603,7 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
                     << std::endl;
           return spProj3D;
         }
-      } else if (m_projFormat == enProjFormat::HIS_FORMAT) {
+      } else {
         std::cout << "File save error: The specified folder does not exist."
                   << std::endl;
         return spProj3D;

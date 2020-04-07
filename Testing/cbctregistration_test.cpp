@@ -1443,7 +1443,7 @@ void CbctRegistrationTest::SLT_ConfirmManualRegistration() {
     const auto voi_name = this->ui_comboBox_VOItoCropBy->currentText();
     if (structures != nullptr) {
       const auto voi = structures->get_roi_ref_by_name(voi_name.toStdString());
-      OpenCL_crop_by_struct_InPlace(p_parent->m_spRawReconImg, voi);
+      crl::opencl::crop_by_struct_InPlace(p_parent->m_spRawReconImg, voi);
     }
 
     /*auto update_message = QString("CBCT cropped outside of ") + voi_name;

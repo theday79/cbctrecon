@@ -562,9 +562,9 @@ void DlgRegistration::SLT_DrawImageInFixedSlice() const
   // For dose overlay
   if (m_cbctregistration->dose_loaded) {
     if (this->ui.checkBoxDrawSplit->isChecked()) {
-      for (auto i = 0; i < 3; i++) {
+      for (size_t i = 0; i < 3; i++) {
         auto idxAdd =
-            static_cast<int>(m_enViewArrange); // m_iViewArrange = 0,1,2
+            static_cast<size_t>(m_enViewArrange); // m_iViewArrange = 0,1,2
         if (idxAdd + i >= 3) {
           idxAdd = idxAdd - 3;
         }
@@ -579,8 +579,8 @@ void DlgRegistration::SLT_DrawImageInFixedSlice() const
         }
       }
     } else {
-      for (auto i = 0; i < 3; i++) {
-        auto addedViewIdx = static_cast<int>(m_enViewArrange);
+      for (size_t i = 0; i < 3; i++) {
+        auto addedViewIdx = static_cast<size_t>(m_enViewArrange);
         if (i + addedViewIdx >= 3) {
           addedViewIdx = addedViewIdx - 3;
         }
@@ -964,7 +964,7 @@ void DlgRegistration::updateSliceLabel() const {
 
 void DlgRegistration::LoadImgFromComboBox(
     const int idx,
-    const QString
+    const QString&
         strSelectedComboTxt) // -->when fixed image loaded will be called here!
 {
 
@@ -2437,7 +2437,7 @@ void DlgRegistration::SLT_ConfirmManualRegistration() {
     const auto voi_name = this->ui.comboBox_VOItoCropBy->currentText();
     if (structures != nullptr) {
       const auto voi = structures->get_roi_ref_by_name(voi_name.toStdString());
-      OpenCL_crop_by_struct_InPlace(p_parent->m_spRawReconImg, voi);
+      crl::opencl::crop_by_struct_InPlace(p_parent->m_spRawReconImg, voi);
     }
 
     auto update_message = QString("CBCT cropped outside of ") + voi_name;
