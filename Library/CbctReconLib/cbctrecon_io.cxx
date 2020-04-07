@@ -696,13 +696,16 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
     // ROI name: 3006, 0026
     check_gdcm_errc(ss_item.getROIName(roi_name));
     const auto trimmed_roi_name = trim_string(rt_roi.name);
-    if (trimmed_roi_name.find("WEPL") != std::string::npos) {
+    if (trimmed_roi_name.find("WEPL") == std::string::npos) {
       check_gdcm_errc(roi_seq.gotoNextItem());
       check_gdcm_errc(ss_seq.gotoNextItem());
       continue;
     }
     std::cerr << "Writing " << rt_roi.name << " to dicom file!\n";
     check_gdcm_errc(ss_item.setROIName(rt_roi.name.c_str()));
+
+    auto pos_to_delete = std::vector<size_t>();
+    size_t cur_pos = 0;
     // Contour Seq: 3006, 0040
     auto &contour_seq = item.getContourSequence();
     check_gdcm_errc(contour_seq.gotoFirstItem());
@@ -720,15 +723,31 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
       if (!status.good()) {
         std::cerr << "Could not set contour data: " << status.text() << "\n";
       }
+
+      // At least 3 points is required for plastimatch calculations
+      // At least 2 points is required for VTK in Slicer 3D
+      // Empty contours will crash DCMTK when saving
+      if (!contour.isValid() || contour.isEmpty() ||
+          rt_contour.coordinates.empty() || rt_contour.coordinates.size() < 3) {
+        pos_to_delete.push_back(cur_pos);
+      }
+
       check_gdcm_errc(contour_seq.gotoNextItem());
+      ++cur_pos;
     }
+
+    std::for_each(pos_to_delete.crbegin(), pos_to_delete.crend(),
+                  [&contour_seq](auto pos) { contour_seq.removeItem(pos); });
+
     check_gdcm_errc(roi_seq.gotoNextItem());
     check_gdcm_errc(ss_seq.gotoNextItem());
   }
+
   //
   status = rtstruct.write(*fileformat.getDataset());
   if (!status.good()) {
-    std::cerr << "Could not write RT struct dcm file: " << input_file << "\n";
+    std::cerr << "Could not write RT struct dcm file: " << status.text()
+              << "\n";
     return false;
   }
   status = fileformat.saveFile(output_file.string().c_str());
