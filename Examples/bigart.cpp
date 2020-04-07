@@ -33,10 +33,10 @@ UShortImageType::Pointer get_image_from_dicom(
   // auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   auto dcm_path = fs::absolute(dcm_dir);
-  if (!fs::exists(dcm_dir)) {
+  if (!fs::exists(dcm_path)) {
     std::cerr << "Directory didn't exist: " << dcm_path << "\n";
   }
-  if (fs::is_empty(dcm_dir)) {
+  if (fs::is_empty(dcm_path)) {
     std::cerr << "Directory was empty: " << dcm_path << "\n";
   }
 
@@ -111,6 +111,7 @@ UShortImageType::Pointer get_image_from_dicom(
 
   if (!ct_img) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
+    return nullptr;
   }
   /* Some debug info: */
   UShortImageType::PointType first_point;
@@ -193,32 +194,34 @@ auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
   return output;
 }
 
-void save_orig_with_only_distal(const std::string &voi_name,
+bool save_orig_with_only_distal(const std::string &voi_name,
                                 const Rtss_modern *ss,
                                 const std::string &suffix,
                                 const fs::path &orig_file, const double gantry,
                                 const double couch) {
-  auto ss_distal = Rtss_modern(*ss);
+  auto ss_distal = std::make_unique<Rtss_modern>(*ss);
 
   const auto direction = crl::wepl::get_basis_from_angles(gantry, couch);
-  auto voi_distal_it =
-      std::find_if(ss_distal.slist.begin(), ss_distal.slist.end(),
-                   [voi_name](Rtss_roi_modern structure) {
-                     return structure.name == voi_name;
-                   });
-  for (auto &contour : voi_distal_it->pslist) {
-    contour.coordinates = crl::wepl::distal_points_only(contour, direction);
+  for (auto &voi_distal_it : ss_distal->slist) {
+    if (voi_distal_it.name.find(voi_name) != std::string::npos) {
+      for (auto &contour : voi_distal_it.pslist) {
+        contour.coordinates = crl::wepl::distal_points_only(contour, direction);
+      }
+      voi_distal_it.name = "WEPLorig" + voi_distal_it.name;
+    }
   }
 
   const auto out_distal_orig_dcm = "RS.orig_distal_structure_"s;
   const fs::path out_distal_orig_dcm_file(out_distal_orig_dcm + voi_name +
                                           "_CT"s + suffix);
   std::cerr << "Writing distal struct to dicom...\n";
-  if (!crl::AlterData_RTStructureSetStorage(orig_file, ss,
+  if (!crl::AlterData_RTStructureSetStorage(orig_file, ss_distal.get(),
                                             out_distal_orig_dcm_file)) {
     std::cerr << "\a"
               << "Could not write dcm\n";
+    return false;
   }
+  return true;
 }
 
 int main(const int argc, char *argv[]) {
@@ -281,6 +284,10 @@ int main(const int argc, char *argv[]) {
       ct_img->GetLargestPossibleRegion().GetSize(), ct_img->GetOrigin(),
       ct_img->GetDirection(), translation, rotation);
 
+  if (!recalc_img) {
+    return -5;
+  }
+
   cbctrecon_test->m_cbctrecon->m_spRawReconImg = recalc_img;
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(0);
   cbctrecon_test->m_dlgRegistration->UpdateListOfComboBox(1);
@@ -331,9 +338,11 @@ int main(const int argc, char *argv[]) {
   const auto couch_angle = std::stod(argv[5], &sz);
   const auto descriptive_suffix = "_G"s + argv[4] + "_C" + argv[5] + ".dcm";
 
-  save_orig_with_only_distal(voi, ss, descriptive_suffix,
-                             cbctrecon_test->m_cbctrecon->m_strPathRS,
-                             gantry_angle, couch_angle);
+  if (!save_orig_with_only_distal(argv[3], ss, descriptive_suffix,
+                                  cbctrecon_test->m_cbctrecon->m_strPathRS,
+                                  gantry_angle, couch_angle)) {
+    return -6;
+  }
 
   /* calculate WEPL coordinates */
   UShortImageType::PointType first_point;
@@ -369,14 +378,15 @@ int main(const int argc, char *argv[]) {
   const auto out_dcm = "RS.wepl_structure_"s;
   // http://www.plastimatch.org/plastimatch.html#plastimatch-dice
   const fs::path out_dcm_file(out_dcm + argv[3] + "_"s +
-                              recalc_dcm_dir.filename().string() + descriptive_suffix);
+                              recalc_dcm_dir.filename().string() +
+                              descriptive_suffix);
   std::cerr << "Writing WEPL struct to dicom...\n";
   if (!crl::AlterData_RTStructureSetStorage(
           cbctrecon_test->m_cbctrecon->m_strPathRS, ss, out_dcm_file)) {
     std::cerr << "\a"
               << "Could not write dcm\n";
+    return -7;
   }
-
 
   /* Write distances to file */
   auto better_name = orig_voi->name;
@@ -405,6 +415,7 @@ int main(const int argc, char *argv[]) {
     f_stream.close();
   } else {
     std::cerr << "Could not open file: " << output_filename << "\n";
+    return -8;
   }
 
   std::cerr << "Done!\n";

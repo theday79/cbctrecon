@@ -1367,7 +1367,7 @@ void CbctRecon::FindAllRelevantPaths(
       m_projFormat = enProjFormat::HND_FORMAT;
       return;
     }
-    if (fs::absolute(curHisDir).string().find("Acquisitions")) {
+    if (fs::absolute(curHisDir).string().find("Acquisitions") != std::string::npos) {
       std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
       m_strPathGeomXML =
           fs::absolute(curHisDir).parent_path().parent_path() / "Scan.xml";
@@ -1606,7 +1606,7 @@ void CbctRecon::FindAllRelevantPaths(
   } else {
     for (auto &listFile : fs::directory_iterator(movingDirCBCTRS)) {
       if (listFile.is_regular_file() &&
-          (listFile.path().extension().compare("DCM") == 0 ||
+          (listFile.path().extension().compare("dcm") == 0 ||
            listFile.path().extension().compare("DCM") == 0)) {
         m_strPathRS_CBCT = fs::absolute(listFile.path());
         break;

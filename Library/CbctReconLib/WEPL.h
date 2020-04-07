@@ -8,8 +8,7 @@
 
 #include <itkPoint.h>
 
-struct Rtss_roi_modern;
-struct Rtss_contour_modern;
+#include "PlmWrapper.h"
 
 namespace crl {
 
@@ -41,8 +40,8 @@ WEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
 
 std::vector<WEPLVector>
 DistalWEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
-                           const std::array<double, 3> &vec_basis,
-                           const FloatImageType::Pointer &wepl_cube);
+                                 const std::array<double, 3> &vec_basis,
+                                 const FloatImageType::Pointer &wepl_cube);
 
 FloatImageType::PointType
 point_from_WEPL(const vnl_vector_fixed<double, 3> &start_point, double fWEPL,
@@ -56,8 +55,7 @@ FloatVector NewPoint_from_WEPLVector(const WEPLVector &vwepl,
 FloatImageType::Pointer
 ConvertUshort2WeplFloat(const UShortImageType::Pointer &spImgUshort);
 
-
-template<bool DISTAL_ONLY=false>
+template <bool DISTAL_ONLY = false>
 Rtss_roi_modern *CalculateWEPLtoVOI(const Rtss_roi_modern *voi,
                                     const double gantry_angle,
                                     const double couch_angle,

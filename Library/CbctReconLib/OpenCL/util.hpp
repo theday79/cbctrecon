@@ -74,7 +74,7 @@ class Timer
 private:
 #if defined(_WIN32)
     LARGE_INTEGER frequency_;
-    DWORD         startTick_;
+    unsigned long long startTick_;
     LONGLONG      prevElapsedTime_;
     LARGE_INTEGER startTime_;
 #elif defined(__APPLE__) || defined(__MACOSX)
@@ -103,7 +103,7 @@ private:
         // Check for unexpected leaps in the Win32 performance counter.
         // (This is caused by unexpected data across the PCI to ISA
         // bridge, aka south bridge.  See Microsoft KB274323.)
-        unsigned long elapsedTicks = GetTickCount64() - startTick_;
+        auto elapsedTicks = GetTickCount64() - startTick_;
 
         signed long msecOff = (signed long)(msecTicks - elapsedTicks);
         if (msecOff < -100 || msecOff > 100) {
