@@ -6,10 +6,13 @@
 
 #include "cbctrecon.h"
 
+#include <execution>
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "itkEuler3DTransform.h"
 #include "itkMinimumMaximumImageCalculator.h"
@@ -21,6 +24,75 @@
 
 namespace fs = std::filesystem;
 using namespace std::literals;
+
+constexpr float ce_distance(const FloatVector& point_a, const FloatVector& point_b) {
+  return crl::ce_sqrt<float>(crl::ce_pow(point_a.x - point_b.x, 2) +
+                      crl::ce_pow(point_a.y - point_b.y, 2) +
+                      crl::ce_pow(point_a.z - point_b.z, 2));
+}
+
+template<typename T>
+struct hausdorff_result {
+  T h_min = std::numeric_limits<T>::max();
+  T h_max = std::numeric_limits<T>::max();
+  T h_percent = std::numeric_limits<T>::max();
+};
+
+template<typename T>
+T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
+  auto to_roi_distances = std::vector<T>();
+  for (const auto &to_contour : to_roi.pslist) {
+    auto &to_coords = to_contour.coordinates;
+    auto to_contour_distances = std::vector<T>(to_coords.size());
+    std::transform(std::execution::par_unseq, to_coords.begin(),
+                   to_coords.end(), to_contour_distances.begin(),
+                   [from_point](const auto to_point) {
+                     return ce_distance(from_point, to_point);
+                   })
+        to_roi_distances.push_back(std::min_element(
+            to_contour_distances.begin(), to_contour_distances.end()));
+  }
+  return std::min_element(to_roi_distances.begin(), to_roi_distances.end());
+}
+
+template<typename T, unsigned char percent>
+hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
+                                        const Rtss_roi_modern &to_roi) {
+  static_assert(
+      percent <= 100,
+      "Percent should be less than 100 as a higher value doesn't make sense.");
+
+  const auto n_total_points =
+      std::reduce(std::execution::par_unseq, from_roi.begin(), from_roi.end(),
+                  0UL, [](auto val, const Rtss_contour_modern &contour) {
+                    return val + contour.coordinates.size();
+                  });
+
+  auto distances = std::vector<T>(n_total_points);
+  auto dist_iterator = distances.begin();
+  for (const auto &from_contour : from_roi.pslist) {
+    auto &from_coords = from_contour.coordinates;
+    dist_iterator = std::transform(
+        std::execution::par_unseq, from_coords.begin(), from_coords.end(),
+        dist_iterator, [&to_roi](const auto from_point) {
+          return min_distance<T>(from_point, to_roi);
+        });
+  }
+
+  std::sort(std::execution::par_unseq, distances.begin(), distances.end());
+
+  hausdorff_result hausdorff_output;
+  hausdorff_output.hmin = distances.first();
+  hausdorff_output.hmax = distances.last();
+
+  const auto percent_index = static_cast<size_t>(
+      crl::ce_round((percent / 100.0) * static_cast<double>(distances.size())));
+
+  hausdorff_output.hpercent = distances.at(percent_index);
+
+  return hausdorff_output;
+}
+
 
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
@@ -93,8 +165,8 @@ UShortImageType::Pointer get_image_from_dicom(
 
   USHORT_PixelType outputMinVal, outputMaxVal;
   if (!bNKI) {
-    outputMinVal = static_cast<USHORT_PixelType>(minVal + 1024);
-    outputMaxVal = static_cast<USHORT_PixelType>(maxVal + 1024);
+    outputMinVal = static_cast<USHORT_PixelType>(minVal) + 1024U;
+    outputMaxVal = static_cast<USHORT_PixelType>(maxVal) + 1024U;
   } else {
     outputMinVal = static_cast<USHORT_PixelType>(minVal);
     outputMaxVal = static_cast<USHORT_PixelType>(maxVal);
@@ -215,16 +287,11 @@ bool save_orig_with_only_distal(const std::string &voi_name,
   const fs::path out_distal_orig_dcm_file(out_distal_orig_dcm + voi_name +
                                           "_CT"s + suffix);
   std::cerr << "Writing distal struct to dicom...\n";
-  if (!crl::AlterData_RTStructureSetStorage(orig_file, ss_distal.get(),
-                                            out_distal_orig_dcm_file)) {
-    std::cerr << "\a"
-              << "Could not write dcm\n";
-    return false;
-  }
-  return true;
+  return crl::AlterData_RTStructureSetStorage(orig_file, ss_distal.get(),
+                                              out_distal_orig_dcm_file);
 }
 
-int main(const int argc, char *argv[]) {
+int main(const int argc, char **argv) {
 
   if (argc < 6) {
     std::cerr << "Usage:\n"
@@ -265,16 +332,16 @@ int main(const int argc, char *argv[]) {
     return -4;
   }
   std::string::size_type sz;
-  auto translation_str = QString(argv[6]);
+  auto translation_str_list = QString(argv[6]).split(",");
   const auto translation = DoubleVector{
-      std::stod(translation_str.split(",").at(0).toStdString(), &sz),
-      std::stod(translation_str.split(",").at(1).toStdString(), &sz),
-      std::stod(translation_str.split(",").at(2).toStdString(), &sz)};
-  auto rotation_str = QString(argv[7]);
+      std::stod(translation_str_list.at(0).toStdString(), &sz),
+      std::stod(translation_str_list.at(1).toStdString(), &sz),
+      std::stod(translation_str_list.at(2).toStdString(), &sz)};
+  auto rotation_str_list = QString(argv[7]).split(",");
   const auto rotation =
-      DoubleVector{std::stod(rotation_str.split(",").at(0).toStdString(), &sz),
-                   std::stod(rotation_str.split(",").at(1).toStdString(), &sz),
-                   std::stod(rotation_str.split(",").at(2).toStdString(), &sz)};
+      DoubleVector{std::stod(rotation_str_list.at(0).toStdString(), &sz),
+                   std::stod(rotation_str_list.at(1).toStdString(), &sz),
+                   std::stod(rotation_str_list.at(2).toStdString(), &sz)};
 
   auto recalc_dcm_dir = fs::path(argv[2]);
   const auto recalc_dcm_path = fs::absolute(recalc_dcm_dir);

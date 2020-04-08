@@ -16,13 +16,6 @@ namespace fs = std::filesystem;
 
 class CBCTRECON_API StructureSet {
 public:
-  StructureSet();
-  ~StructureSet();
-  StructureSet(const StructureSet &) =
-      delete; // Maybe these should be implemented?
-  void operator=(const StructureSet &) = delete;
-  StructureSet(StructureSet &&) = delete;
-  void operator=(StructureSet &&) = delete;
 
   void set_planCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
   void set_rigidCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
@@ -30,16 +23,48 @@ public:
 
   Rtss_modern *get_ss(ctType struct_set) const;
 
-  template <ctType CT_TYPE> bool is_ss_null() const {
-    switch (CT_TYPE) {
-    case ctType::PLAN_CT:
-      return m_plan_ss == nullptr;
-    case ctType::RIGID_CT:
-      return m_rigid_ss == nullptr;
-    case ctType::DEFORM_CT:
-      return m_deform_ss == nullptr;
+  template <ctType CT_TYPE> constexpr auto& get_ss() {
+    if (m_plan_ss == nullptr) {
+        // return & unique nullptr:
+      return m_plan_ss;
     }
-    return true;
+    if constexpr (CT_TYPE == ctType::PLAN_CT) {
+      m_plan_ss->wait();
+      return m_plan_ss;
+    }
+    if constexpr (CT_TYPE == ctType::RIGID_CT) {
+      if (m_rigid_ss == nullptr) {
+        std::cerr << "Rigid reg. structs not ready, falling back to plan CT!\n";
+        m_plan_ss->wait();
+        return m_plan_ss;
+      }
+      m_rigid_ss->wait();
+      return m_rigid_ss;
+    }
+    if constexpr (CT_TYPE == ctType::DEFORM_CT) {
+      m_deform_ss->wait();
+      return m_deform_ss;
+    }
+    static_assert(CT_TYPE == ctType::PLAN_CT || CT_TYPE == ctType::RIGID_CT ||
+                      CT_TYPE == ctType::DEFORM_CT,
+                  "Invalid CT type");
+    return m_plan_ss;
+  }
+
+  template <ctType CT_TYPE> bool is_ss_null() const {
+    bool is_null = true;
+
+    if constexpr (CT_TYPE == ctType::PLAN_CT) {
+      is_null = this->m_plan_ss == nullptr;
+    }
+    else if constexpr (CT_TYPE == ctType::RIGID_CT) {
+      is_null = this->m_rigid_ss == nullptr;
+    }
+    else if constexpr (CT_TYPE == ctType::DEFORM_CT) {
+      is_null = this->m_deform_ss == nullptr;
+    }
+
+    return is_null;
   }
 
   template <ctType CT_TYPE>
@@ -49,36 +74,14 @@ public:
 
   template <ctType CT_TYPE>
   void ApplyVectorTransform_InPlace(const FloatVector &vec) {
-    switch (CT_TYPE) {
-    case ctType::PLAN_CT:
-      transform_by_vector(CT_TYPE, vec, m_plan_ss);
-      break;
-    case ctType::RIGID_CT:
-      transform_by_vector(CT_TYPE, vec, m_rigid_ss);
-      break;
-    case ctType::DEFORM_CT:
-      transform_by_vector(CT_TYPE, vec, m_deform_ss);
-      break;
-    }
+    assert(!is_ss_null<CT_TYPE>());
+    transform_by_vector(CT_TYPE, vec, get_ss<CT_TYPE>());
   }
 
   template <ctType CT_TYPE> bool ApplyTransformTo(const fs::path &transform_file) {
-    switch (CT_TYPE) {
-    case ctType::PLAN_CT:
-      if (m_plan_ss == nullptr) {
-        return false;
-      }
-      break;
-    case ctType::RIGID_CT:
-      if (m_rigid_ss == nullptr) {
-        return false;
-      }
-      break;
-    case ctType::DEFORM_CT:
-      if (m_deform_ss == nullptr) {
-        return false;
-      }
-      break;
+
+    if (is_ss_null<CT_TYPE>()) {
+      return false;
     }
 
     auto xform = Xform::New();
@@ -93,9 +96,9 @@ public:
       case ctType::PLAN_CT:
         transform_by_Lambda(CT_TYPE, transform, m_rigid_ss);
         break;
-      case ctType::RIGID_CT:
-        [[fallthrough]];
-      case ctType::DEFORM_CT:
+      default:
+      //case ctType::RIGID_CT:
+      //case ctType::DEFORM_CT:
         transform_by_Lambda(CT_TYPE, transform, m_deform_ss);
         break;
       }

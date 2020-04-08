@@ -13,10 +13,6 @@
 
 #define USE_THREADING true
 
-StructureSet::StructureSet() = default;
-
-StructureSet::~StructureSet() = default;
-
 void StructureSet::set_planCT_ss(std::unique_ptr<Rtss_modern> &&struct_set) {
   m_plan_ss = std::move(struct_set);
 }

@@ -125,40 +125,41 @@ bool is_scan_direction_CW(const std::vector<T> &angles) {
 /// Template Meta Functions:
 
 template <typename T> constexpr bool from_sv(std::string_view sv, T &val) {
+  bool success = false;
   if constexpr (std::is_floating_point_v<T>) {
     if (auto [ptr, ec] =
             float_from_chars(sv.data(), sv.data() + sv.size(), val);
         ec == std::errc()) {
-      return true;
+      success = true;
     }
   } else {
     if (auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), val);
         ec == std::errc()) {
-      return true;
+      success = true;
     }
   }
-  return false;
+  return success;
 }
 
 template <>
 constexpr bool
 from_sv<std::variant<int, double>>(std::string_view sv,
                                    std::variant<int, double> &val) {
+  bool success = false;
   if (sv.find_first_of('.') != std::string::npos) {
     double tmp_val = 0.0;
     if (from_sv(sv, tmp_val)) {
       val = tmp_val;
-      return true;
+      success = true;
     }
-    return false;
+  } else {
+    int tmp_val = 0;
+    if (from_sv(sv, tmp_val)) {
+      val = tmp_val;
+      success = true;
+    }
   }
-
-  int tmp_val = 0;
-  if (from_sv(sv, tmp_val)) {
-    val = tmp_val;
-    return true;
-  }
-  return false;
+  return success;
 }
 
 template <bool spaces_only = false>
@@ -277,7 +278,7 @@ template <typename T,
           typename std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 T constexpr sqrtNewtonRaphson(T x, T curr, T prev) {
   return curr == prev ? curr
-                      : sqrtNewtonRaphson(x, 0.5 * (curr + x / curr), curr);
+                      : sqrtNewtonRaphson<T>(x, 0.5 * (curr + x / curr), curr);
 }
 
 /*

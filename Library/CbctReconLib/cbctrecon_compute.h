@@ -173,7 +173,7 @@ bool GetOutputResolutionFromFOV(
 template <class T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
 constexpr auto float_to_(const float input) {
   const auto max_ushort = std::numeric_limits<T>::max();
-  if (input < 0.0f) {
+  if (input < 0.0F) {
     return static_cast<T>(0);
   }
   if (input > static_cast<float>(max_ushort)) {

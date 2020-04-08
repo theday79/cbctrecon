@@ -514,7 +514,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     std::cout << "Writing the image to: " << fdk_options.outputFilePath
               << std::endl;
 
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
+    writer->Update();
     std::cout << std::endl;
     std::cout << "Output generation was succeeded" << std::endl;
   }
@@ -843,7 +843,7 @@ CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     ForwardProjection->SetInput(1, spCTImg_mu); // reference plan CT image
     ForwardProjection->SetGeometry(spGeometry);
     projProbe.Start();
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(ForwardProjection->Update());
+    ForwardProjection->Update();
     projProbe.Stop();
     spResultProjImageFloat = ForwardProjection->GetOutput();
     std::cout << "Forward projection done in:	" << projProbe.GetMean() << ' '
@@ -1045,7 +1045,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
   forward_projection->SetGeometry(spGeometry);
 
   projProbe.Start();
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(forward_projection->Update())
+  forward_projection->Update();
   projProbe.Stop();
 
   const FloatImageType::Pointer resultFwdImg = forward_projection->GetOutput();
