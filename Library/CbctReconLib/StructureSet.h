@@ -23,29 +23,32 @@ public:
 
   Rtss_modern *get_ss(ctType struct_set) const;
 
-  template <ctType CT_TYPE> constexpr Rtss_modern *get_ss() {
+  template <ctType CT_TYPE> constexpr auto& get_ss() {
     if (m_plan_ss == nullptr) {
-      return nullptr;
+        // return & unique nullptr:
+      return m_plan_ss;
     }
     if constexpr (CT_TYPE == ctType::PLAN_CT) {
       m_plan_ss->wait();
-      return m_plan_ss.get();
+      return m_plan_ss;
     }
     if constexpr (CT_TYPE == ctType::RIGID_CT) {
       if (m_rigid_ss == nullptr) {
         std::cerr << "Rigid reg. structs not ready, falling back to plan CT!\n";
         m_plan_ss->wait();
-        return m_plan_ss.get();
+        return m_plan_ss;
       }
       m_rigid_ss->wait();
-      return m_rigid_ss.get();
+      return m_rigid_ss;
     }
     if constexpr (CT_TYPE == ctType::DEFORM_CT) {
       m_deform_ss->wait();
-      return m_deform_ss.get();
+      return m_deform_ss;
     }
-    std::cerr << "Invalid CT type" << std::endl;
-    return nullptr;
+    static_assert(CT_TYPE == ctType::PLAN_CT || CT_TYPE == ctType::RIGID_CT ||
+                      CT_TYPE == ctType::DEFORM_CT,
+                  "Invalid CT type");
+    return m_plan_ss;
   }
 
   template <ctType CT_TYPE> bool is_ss_null() const {
