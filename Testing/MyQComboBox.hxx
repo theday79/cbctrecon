@@ -105,9 +105,9 @@ public:
   MyQComboBox() = default;
   ~MyQComboBox() = default;
 
-  int count() const { return m_container.size(); }
-  void setMaxCount(const int max) { m_container.reserve(max); }
-  int maxCount() const { return m_container.capacity(); }
+  size_t count() const { return m_container.size(); }
+  void setMaxCount(const size_t max) { m_container.reserve(max); }
+  size_t maxCount() const { return m_container.capacity(); }
 
   int findText(const QString &text,
                const Qt::MatchFlags flags = static_cast<Qt::MatchFlags>(
@@ -146,18 +146,18 @@ public:
   bool isEditable() const { return m_editable; }
   void setEditable(const bool editable) { m_editable = editable; }
 
-  int currentIndex() const { return m_current_index; }
+  size_t currentIndex() const { return m_current_index; }
   QString currentText() const { return m_container.at(m_current_index).first; }
 
   QVariant currentData(int role = Qt::UserRole) const {
     return m_container.at(m_current_index).second;
   }
 
-  QString itemText(const int index) const {
+  QString itemText(const size_t index) const {
     return m_container.at(index).first;
   }
 
-  QVariant itemData(const int index, int role = Qt::UserRole) const {
+  QVariant itemData(const size_t index, int role = Qt::UserRole) const {
     return m_container.at(index).second;
   }
 
@@ -193,7 +193,7 @@ public:
     m_container.insert(it + index, pair);
   }
 
-  void insertItems(const int index, const QStringList &texts) {
+  void insertItems(const size_t index, const QStringList &texts) {
     size_t i = index;
     for (auto &item : texts) {
       insertItem(i, item);
@@ -201,20 +201,20 @@ public:
     }
   }
 
-  void removeItem(const int index) {
+  void removeItem(const size_t index) {
     const auto it = m_container.begin();
     m_container.erase(it + index);
   }
 
-  void setItemText(const int index, const QString &text) {
-    if (!m_editable || index < 0 ||
+  void setItemText(const size_t index, const QString &text) {
+    if (!m_editable ||
         m_container.size() <= static_cast<size_t>(index)) {
       return;
     }
     m_container.at(index).first = text;
   }
 
-  void setItemData(const int index, const QVariant &value,
+  void setItemData(const size_t index, const QVariant &value,
                    int role = Qt::UserRole) {
     if (!m_editable || index < 0 ||
         m_container.size() <= static_cast<size_t>(index)) {
@@ -228,7 +228,7 @@ public:
     m_current_index = 0;
   }
 
-  void setCurrentIndex(const int index) { m_current_index = index; }
+  void setCurrentIndex(const size_t index) { m_current_index = index; }
 
   void setCurrentText(const QString &text) {
     m_container.at(m_current_index) = std::make_pair(text, QVariant(text));
