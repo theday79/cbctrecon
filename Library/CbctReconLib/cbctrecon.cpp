@@ -1800,7 +1800,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     // The OpenCL version: ~49ms CPU ~76ms
 #ifndef _WIN32
-    ImageType::Pointer spImg2DScat = OpenCL_LogItoI_subtract_median_gaussian(
+    ImageType::Pointer spImg2DScat = crl::opencl::LogItoI_subtract_median_gaussian(
         spImg2DRaw, spImg2DPrim, medianRadius, gaussianSigma);
 #else
 
@@ -2007,7 +2007,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     }
 
 #ifndef _WIN32
-    auto spImg2DCorr = OpenCL_LogItoI_subtract_median_ItoLogI(
+    auto spImg2DCorr = crl::opencl::LogItoI_subtract_median_ItoLogI(
         spImg2DRaw, spImg2DScat, postMedian);
 #else
     using ImageType = FloatImage2DType;
