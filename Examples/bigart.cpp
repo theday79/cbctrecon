@@ -48,11 +48,11 @@ T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
                    to_coords.end(), to_contour_distances.begin(),
                    [from_point](const auto to_point) {
                      return ce_distance(from_point, to_point);
-                   })
-        to_roi_distances.push_back(std::min_element(
-            to_contour_distances.begin(), to_contour_distances.end()));
+                   });
+    to_roi_distances.push_back(*std::min_element(to_contour_distances.begin(),
+                                                to_contour_distances.end()));
   }
-  return std::min_element(to_roi_distances.begin(), to_roi_distances.end());
+  return *std::min_element(to_roi_distances.begin(), to_roi_distances.end());
 }
 
 template<typename T, unsigned char percent>
@@ -63,9 +63,9 @@ hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
       "Percent should be less than 100 as a higher value doesn't make sense.");
 
   const auto n_total_points =
-      std::reduce(std::execution::par_unseq, from_roi.begin(), from_roi.end(),
-                  0UL, [](auto val, const Rtss_contour_modern &contour) {
-                    return val + contour.coordinates.size();
+      std::transform_reduce(std::execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
+                  static_cast<size_t>(0), std::plus<size_t>(), [](const Rtss_contour_modern &contour) {
+                    return contour.coordinates.size();
                   });
 
   auto distances = std::vector<T>(n_total_points);
@@ -81,14 +81,14 @@ hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
 
   std::sort(std::execution::par_unseq, distances.begin(), distances.end());
 
-  hausdorff_result hausdorff_output;
-  hausdorff_output.hmin = distances.first();
-  hausdorff_output.hmax = distances.last();
+  hausdorff_result<T> hausdorff_output;
+  hausdorff_output.h_min = distances.front();
+  hausdorff_output.h_max = distances.back();
 
   const auto percent_index = static_cast<size_t>(
       crl::ce_round((percent / 100.0) * static_cast<double>(distances.size())));
 
-  hausdorff_output.hpercent = distances.at(percent_index);
+  hausdorff_output.h_percent = distances.at(percent_index);
 
   return hausdorff_output;
 }
@@ -266,6 +266,18 @@ auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
   return output;
 }
 
+auto roi_to_distal_only_roi(const Rtss_roi_modern *roi, const double gantry,
+                                const double couch) {
+  const auto direction = crl::wepl::get_basis_from_angles(gantry, couch);
+  auto out_roi = Rtss_roi_modern(*roi);
+
+  for (auto &contour : out_roi.pslist) {
+    contour.coordinates = crl::wepl::distal_points_only(contour, direction);
+  }
+  
+  return out_roi;
+}
+
 bool save_orig_with_only_distal(const std::string &voi_name,
                                 const Rtss_modern *ss,
                                 const std::string &suffix,
@@ -289,6 +301,38 @@ bool save_orig_with_only_distal(const std::string &voi_name,
   std::cerr << "Writing distal struct to dicom...\n";
   return crl::AlterData_RTStructureSetStorage(orig_file, ss_distal.get(),
                                               out_distal_orig_dcm_file);
+}
+
+auto get_ss_from_dir(const fs::path &dir) {
+  const auto filenamelist = crl::get_dcm_image_files(dir);
+
+  for (auto &&filename : fs::directory_iterator(dir)) {
+    if (!(filename.is_regular_file() ||
+          filename.is_symlink())) { // I guess symlinks should be allowed?
+      continue;
+    }
+    if (filename.path().string().find("-hash-stamp") != std::string::npos) {
+      continue; // Just so the test data is less annoying.
+    }
+    const auto fullfilename = filename.path();
+    const auto modality = crl::get_dcm_modality(fullfilename);
+    switch (modality) {
+    case DCM_MODALITY::RTSTRUCT:
+      return crl::load_rtstruct(fullfilename);
+      break;
+    default:
+      break;
+    }
+  }
+  auto out = std::make_unique<Rtss_modern>();
+  out = nullptr;
+  return out;
+}
+
+template<typename T>
+auto stringify_hausdorff(const hausdorff_result<T> &hd) {
+  return crl::stringify(hd.h_max) + ";" + crl::stringify(hd.h_min) + ";" +
+         crl::stringify(hd.h_percent);
 }
 
 int main(const int argc, char **argv) {
@@ -430,12 +474,13 @@ int main(const int argc, char **argv) {
   const auto orig_voi = ss->get_roi_by_name(voi);
   // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
-  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<true>(
+  constexpr auto distal_only = true;
+  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
       orig_voi.get(), gantry_angle, couch_angle, ct_img, recalc_img);
 
   /* Generate a vector of vectors with distances */
-  const auto output =
-      get_signed_difference(wepl_voi, orig_voi.get()); //, basis);
+  //const auto output =
+  //    get_signed_difference(wepl_voi, orig_voi.get()); //, basis);
 
   for (auto &cur_voi : ss->slist) {
     if (cur_voi.name.find(argv[3]) != std::string::npos) {
@@ -459,25 +504,50 @@ int main(const int argc, char **argv) {
   auto better_name = orig_voi->name;
   std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
   std::replace(std::begin(better_name), std::end(better_name), '/', '-');
-  const auto output_filename = "WEPLstruct_" + better_name + "_" +
+  const auto output_filename = "Hausdorff_" + better_name + "_" +
                                dcm_dir.filename().string() + "_to_" +
                                recalc_dcm_dir.filename().string() + ".txt";
-  // + "_at_G" + std::to_string(gantry_angle) + "C" +
-  // std::to_string(couch_angle) + ".txt";
 
-  std::cerr << "Writing WEPL struct to txt...\n";
+  const auto rct_ss = get_ss_from_dir(recalc_dcm_dir);
+  const auto rct_voi = rct_ss->get_roi_by_name(voi);
+  const auto distal_rct_voi = roi_to_distal_only_roi( rct_voi.get(), gantry_angle, couch_angle);
+  const auto distal_orig_voi =
+      roi_to_distal_only_roi(orig_voi.get(), gantry_angle, couch_angle);
+  const auto &cref_wepl_voi = *wepl_voi;
+
+  constexpr auto percent = 95;
+  const auto hd_orig_to_wepl =
+      calculate_hausdorff<float, percent>(distal_orig_voi, cref_wepl_voi);
+  const auto hd_wepl_to_orig =
+      calculate_hausdorff<float, percent>(cref_wepl_voi, distal_orig_voi);
+
+  const auto hd_orig_to_rct =
+      calculate_hausdorff<float, percent>(distal_orig_voi, distal_rct_voi);
+  const auto hd_rct_to_orig =
+      calculate_hausdorff<float, percent>(distal_rct_voi, distal_orig_voi);
+
+  const auto hd_rct_to_wepl =
+      calculate_hausdorff<float, percent>(distal_rct_voi, cref_wepl_voi);
+  const auto hd_wepl_to_rct =
+      calculate_hausdorff<float, percent>(cref_wepl_voi, distal_rct_voi);
+
+  const auto str_percent = crl::stringify(percent);
+
+  std::cerr << "Writing hausdorff to txt...\n";
   std::ofstream f_stream;
   f_stream.open(output_filename);
   if (f_stream.is_open()) {
     // f_stream << std::fixed << std::setprecision(5);
+    f_stream << "from;to;HD;min;max;percent\n";
 
-    std::for_each(std::begin(output), std::end(output),
-                  [&f_stream](const std::vector<QString> out_vec) {
-                    std::for_each(std::begin(out_vec), std::end(out_vec),
-                                  [&f_stream](const QString &val) {
-                                    f_stream << val.toStdString();
-                                  });
-                  });
+    f_stream << "orig;wepl;" + stringify_hausdorff(hd_orig_to_wepl) + "\n";
+    f_stream << "orig;wepl;" + stringify_hausdorff(hd_wepl_to_orig) + "\n";
+
+    f_stream << "orig;rct;" + stringify_hausdorff(hd_orig_to_rct) + "\n";
+    f_stream << "rct;orig;" + stringify_hausdorff(hd_rct_to_orig) + "\n";
+
+    f_stream << "rct;wepl;" + stringify_hausdorff(hd_rct_to_wepl) + "\n";
+    f_stream << "wepl;rct;" + stringify_hausdorff(hd_wepl_to_rct) + "\n";
 
     f_stream.close();
   } else {
