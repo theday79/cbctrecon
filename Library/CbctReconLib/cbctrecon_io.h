@@ -77,6 +77,8 @@ template <typename ImageType> auto loadMHAImageAs(const std::string &filename) {
   return reader->GetOutput();
 }
 
+DCM_MODALITY get_dcm_modality(const fs::path &filename);
+
 std::vector<std::string> CBCTRECON_API get_dcm_image_files(const fs::path &dir);
 
 template <int group, int element, typename T>
