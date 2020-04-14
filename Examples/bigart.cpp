@@ -6,8 +6,8 @@
 
 #include "cbctrecon.h"
 
-#include <execution>
 #include <algorithm>
+#include <execution>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -25,24 +25,27 @@
 namespace fs = std::filesystem;
 using namespace std::literals;
 
-constexpr float ce_distance(const FloatVector& point_a, const FloatVector& point_b) {
+constexpr float ce_distance(const FloatVector &point_a,
+                            const FloatVector &point_b) {
   return crl::ce_sqrt<float>(crl::ce_pow(point_a.x - point_b.x, 2) +
-                      crl::ce_pow(point_a.y - point_b.y, 2) +
-                      crl::ce_pow(point_a.z - point_b.z, 2));
+                             crl::ce_pow(point_a.y - point_b.y, 2) +
+                             crl::ce_pow(point_a.z - point_b.z, 2));
 }
 
-template<typename T>
-struct hausdorff_result {
+template <typename T> struct hausdorff_result {
   T h_min = std::numeric_limits<T>::max();
   T h_max = std::numeric_limits<T>::max();
   T h_percent = std::numeric_limits<T>::max();
 };
 
-template<typename T>
+template <typename T>
 T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
   auto to_roi_distances = std::vector<T>();
   for (const auto &to_contour : to_roi.pslist) {
     auto &to_coords = to_contour.coordinates;
+    if (to_coords.size() == 0) {
+      continue;
+    }
     auto to_contour_distances = std::vector<T>(to_coords.size());
     std::transform(std::execution::par_unseq, to_coords.begin(),
                    to_coords.end(), to_contour_distances.begin(),
@@ -50,23 +53,24 @@ T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
                      return ce_distance(from_point, to_point);
                    });
     to_roi_distances.push_back(*std::min_element(to_contour_distances.begin(),
-                                                to_contour_distances.end()));
+                                                 to_contour_distances.end()));
   }
   return *std::min_element(to_roi_distances.begin(), to_roi_distances.end());
 }
 
-template<typename T, unsigned char percent>
+template <typename T, unsigned char percent>
 hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
                                         const Rtss_roi_modern &to_roi) {
   static_assert(
       percent <= 100,
       "Percent should be less than 100 as a higher value doesn't make sense.");
 
-  const auto n_total_points =
-      std::transform_reduce(std::execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
-                  static_cast<size_t>(0), std::plus<size_t>(), [](const Rtss_contour_modern &contour) {
-                    return contour.coordinates.size();
-                  });
+  const auto n_total_points = std::transform_reduce(
+      std::execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
+      static_cast<size_t>(0), std::plus<size_t>(),
+      [](const Rtss_contour_modern &contour) {
+        return contour.coordinates.size();
+      });
 
   auto distances = std::vector<T>(n_total_points);
   auto dist_iterator = distances.begin();
@@ -92,7 +96,6 @@ hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
 
   return hausdorff_output;
 }
-
 
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
@@ -232,14 +235,14 @@ UShortImageType::Pointer get_image_from_dicom(
 }
 
 // Currently just writes the points to a vector of vectors of QStrings
-auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
-                           const Rtss_roi_modern *orig_voi/*,
+auto get_signed_difference(const Rtss_roi_modern &wepl_voi,
+                           const Rtss_roi_modern &orig_voi/*,
                            const std::array<double, 3> basis*/) {
 
-  auto output = std::vector<std::vector<QString>>(orig_voi->pslist.size());
+  auto output = std::vector<std::vector<QString>>(orig_voi.pslist.size());
 
-  std::transform(std::begin(wepl_voi->pslist), std::end(wepl_voi->pslist),
-                 std::begin(orig_voi->pslist), std::begin(output),
+  std::transform(std::begin(wepl_voi.pslist), std::end(wepl_voi.pslist),
+                 std::begin(orig_voi.pslist), std::begin(output),
                  [/*&basis*/](const Rtss_contour_modern &wepl_contour,
                               const Rtss_contour_modern &orig_contour) {
                    auto out_contour =
@@ -266,15 +269,15 @@ auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
   return output;
 }
 
-auto roi_to_distal_only_roi(const Rtss_roi_modern *roi, const double gantry,
-                                const double couch) {
+auto roi_to_distal_only_roi(const Rtss_roi_modern &roi, const double gantry,
+                            const double couch) {
   const auto direction = crl::wepl::get_basis_from_angles(gantry, couch);
-  auto out_roi = Rtss_roi_modern(*roi);
+  auto out_roi = Rtss_roi_modern(roi);
 
   for (auto &contour : out_roi.pslist) {
     contour.coordinates = crl::wepl::distal_points_only(contour, direction);
   }
-  
+
   return out_roi;
 }
 
@@ -329,8 +332,7 @@ auto get_ss_from_dir(const fs::path &dir) {
   return out;
 }
 
-template<typename T>
-auto stringify_hausdorff(const hausdorff_result<T> &hd) {
+template <typename T> auto stringify_hausdorff(const hausdorff_result<T> &hd) {
   return crl::stringify(hd.h_max) + ";" + crl::stringify(hd.h_min) + ";" +
          crl::stringify(hd.h_percent);
 }
@@ -377,10 +379,10 @@ int main(const int argc, char **argv) {
   }
   std::string::size_type sz;
   auto translation_str_list = QString(argv[6]).split(",");
-  const auto translation = DoubleVector{
-      std::stod(translation_str_list.at(0).toStdString(), &sz),
-      std::stod(translation_str_list.at(1).toStdString(), &sz),
-      std::stod(translation_str_list.at(2).toStdString(), &sz)};
+  const auto translation =
+      DoubleVector{std::stod(translation_str_list.at(0).toStdString(), &sz),
+                   std::stod(translation_str_list.at(1).toStdString(), &sz),
+                   std::stod(translation_str_list.at(2).toStdString(), &sz)};
   auto rotation_str_list = QString(argv[7]).split(",");
   const auto rotation =
       DoubleVector{std::stod(rotation_str_list.at(0).toStdString(), &sz),
@@ -471,15 +473,15 @@ int main(const int argc, char **argv) {
   std::cerr << "Last pixel point: " << last_point[0] << ", " << last_point[1]
             << ", " << last_point[2] << "\n";
 
-  const auto orig_voi = ss->get_roi_by_name(voi);
+  const auto orig_voi = ss->get_roi_ref_by_name(voi);
   // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
   constexpr auto distal_only = true;
   const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
-      orig_voi.get(), gantry_angle, couch_angle, ct_img, recalc_img);
+      &orig_voi, gantry_angle, couch_angle, ct_img, recalc_img);
 
   /* Generate a vector of vectors with distances */
-  //const auto output =
+  // const auto output =
   //    get_signed_difference(wepl_voi, orig_voi.get()); //, basis);
 
   for (auto &cur_voi : ss->slist) {
@@ -501,18 +503,29 @@ int main(const int argc, char **argv) {
   }
 
   /* Write distances to file */
-  auto better_name = orig_voi->name;
+  auto better_name = orig_voi.name;
   std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
   std::replace(std::begin(better_name), std::end(better_name), '/', '-');
-  const auto output_filename = "Hausdorff_" + better_name + "_" +
-                               dcm_dir.filename().string() + "_to_" +
-                               recalc_dcm_dir.filename().string() + ".txt";
+  const auto output_filename =
+      "Hausdorff_" + recalc_dcm_path.parent_path().filename().string() +
+      better_name + "_" + dcm_dir.filename().string() + "_to_" +
+      recalc_dcm_dir.filename().string() + ".txt";
 
   const auto rct_ss = get_ss_from_dir(recalc_dcm_dir);
-  const auto rct_voi = rct_ss->get_roi_by_name(voi);
-  const auto distal_rct_voi = roi_to_distal_only_roi( rct_voi.get(), gantry_angle, couch_angle);
+
+  const auto remove_space = orig_voi.name.back() == ' ' ? 1 : 0;
+  // length of "pCT" is 3, so:
+  const auto voi_postfix = std::string_view(
+      orig_voi.name.data() + 3, orig_voi.name.size() - (3 + remove_space));
+  const auto rct_voi_name =
+      recalc_dcm_dir.filename().string() + std::string(voi_postfix);
+  std::cerr << "\"" << rct_voi_name << "\"\n";
+
+  const auto rct_voi = rct_ss->get_roi_ref_by_name(rct_voi_name);
+  const auto distal_rct_voi =
+      roi_to_distal_only_roi(rct_voi, gantry_angle, couch_angle);
   const auto distal_orig_voi =
-      roi_to_distal_only_roi(orig_voi.get(), gantry_angle, couch_angle);
+      roi_to_distal_only_roi(orig_voi, gantry_angle, couch_angle);
   const auto &cref_wepl_voi = *wepl_voi;
 
   constexpr auto percent = 95;
@@ -541,7 +554,7 @@ int main(const int argc, char **argv) {
     f_stream << "from;to;HD;min;max;percent\n";
 
     f_stream << "orig;wepl;" + stringify_hausdorff(hd_orig_to_wepl) + "\n";
-    f_stream << "orig;wepl;" + stringify_hausdorff(hd_wepl_to_orig) + "\n";
+    f_stream << "wepl;orig;" + stringify_hausdorff(hd_wepl_to_orig) + "\n";
 
     f_stream << "orig;rct;" + stringify_hausdorff(hd_orig_to_rct) + "\n";
     f_stream << "rct;orig;" + stringify_hausdorff(hd_rct_to_orig) + "\n";

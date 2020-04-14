@@ -74,7 +74,7 @@ Rtss_modern::get_roi_by_name(const std::string &name) {
     ready = true;
   }
   for (auto &roi : slist) {
-    if (roi.name == name) {
+    if (roi.name.find(name) != std::string::npos) {
       return std::make_unique<Rtss_roi_modern>(roi);
     }
   }
@@ -88,7 +88,7 @@ Rtss_roi_modern &Rtss_modern::get_roi_ref_by_name(const std::string &name) {
     ready = true;
   }
   for (auto &roi : slist) {
-    if (roi.name == name) {
+    if (roi.name.find(name) != std::string::npos) {
       return roi;
     }
   }
