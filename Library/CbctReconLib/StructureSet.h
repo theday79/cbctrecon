@@ -1,6 +1,7 @@
 #ifndef STRUCTURESET_H
 #define STRUCTURESET_H
 
+#include <execution>
 #include <filesystem>
 
 #undef TIMEOUT
@@ -9,23 +10,24 @@
 
 #include "PlmWrapper.h"
 
+#include "WEPL.h"
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
+#include "free_functions.h"
 
 namespace fs = std::filesystem;
 
 class CBCTRECON_API StructureSet {
 public:
-
   void set_planCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
   void set_rigidCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
   void set_deformCT_ss(std::unique_ptr<Rtss_modern> &&struct_set);
 
   Rtss_modern *get_ss(ctType struct_set) const;
 
-  template <ctType CT_TYPE> constexpr auto& get_ss() {
+  template <ctType CT_TYPE> constexpr auto &get_ss() {
     if (m_plan_ss == nullptr) {
-        // return & unique nullptr:
+      // return & unique nullptr:
       return m_plan_ss;
     }
     if constexpr (CT_TYPE == ctType::PLAN_CT) {
@@ -56,11 +58,9 @@ public:
 
     if constexpr (CT_TYPE == ctType::PLAN_CT) {
       is_null = this->m_plan_ss == nullptr;
-    }
-    else if constexpr (CT_TYPE == ctType::RIGID_CT) {
+    } else if constexpr (CT_TYPE == ctType::RIGID_CT) {
       is_null = this->m_rigid_ss == nullptr;
-    }
-    else if constexpr (CT_TYPE == ctType::DEFORM_CT) {
+    } else if constexpr (CT_TYPE == ctType::DEFORM_CT) {
       is_null = this->m_deform_ss == nullptr;
     }
 
@@ -78,7 +78,8 @@ public:
     transform_by_vector(CT_TYPE, vec, get_ss<CT_TYPE>());
   }
 
-  template <ctType CT_TYPE> bool ApplyTransformTo(const fs::path &transform_file) {
+  template <ctType CT_TYPE>
+  bool ApplyTransformTo(const fs::path &transform_file) {
 
     if (is_ss_null<CT_TYPE>()) {
       return false;
@@ -97,8 +98,8 @@ public:
         transform_by_Lambda(CT_TYPE, transform, m_rigid_ss);
         break;
       default:
-      //case ctType::RIGID_CT:
-      //case ctType::DEFORM_CT:
+        // case ctType::RIGID_CT:
+        // case ctType::DEFORM_CT:
         transform_by_Lambda(CT_TYPE, transform, m_deform_ss);
         break;
       }
@@ -134,5 +135,86 @@ private:
   std::unique_ptr<Rtss_modern> m_rigid_ss;
   std::unique_ptr<Rtss_modern> m_deform_ss;
 };
+
+namespace crl {
+
+template <typename T>
+auto roi_to_distal_only_roi(const Rtss_roi_modern &roi, const T gantry,
+                            const T couch) {
+  const auto direction = crl::wepl::get_basis_from_angles(gantry, couch);
+  auto out_roi = Rtss_roi_modern(roi);
+
+  for (auto &contour : out_roi.pslist) {
+    contour.coordinates = crl::wepl::distal_points_only(contour, direction);
+  }
+
+  return out_roi;
+}
+
+template <typename T> struct hausdorff_result {
+  T h_min = std::numeric_limits<T>::max();
+  T h_max = std::numeric_limits<T>::max();
+  T h_percent = std::numeric_limits<T>::max();
+};
+
+template <typename T>
+T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
+  auto to_roi_distances = std::vector<T>();
+  for (const auto &to_contour : to_roi.pslist) {
+    auto &to_coords = to_contour.coordinates;
+    if (to_coords.size() == 0) {
+      continue;
+    }
+    auto to_contour_distances = std::vector<T>(to_coords.size());
+    std::transform(std::execution::par_unseq, to_coords.begin(),
+                   to_coords.end(), to_contour_distances.begin(),
+                   [from_point](const auto to_point) {
+                     return crl::ce_distance<T>(from_point, to_point);
+                   });
+    to_roi_distances.push_back(*std::min_element(to_contour_distances.begin(),
+                                                 to_contour_distances.end()));
+  }
+  return *std::min_element(to_roi_distances.begin(), to_roi_distances.end());
+}
+
+template <typename T, unsigned char percent>
+hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
+                                        const Rtss_roi_modern &to_roi) {
+  static_assert(
+      percent <= 100,
+      "Percent should be less than 100 as a higher value doesn't make sense.");
+
+  const auto n_total_points = std::transform_reduce(
+      std::execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
+      static_cast<size_t>(0), std::plus<size_t>(),
+      [](const Rtss_contour_modern &contour) {
+        return contour.coordinates.size();
+      });
+
+  auto distances = std::vector<T>(n_total_points);
+  auto dist_iterator = distances.begin();
+  for (const auto &from_contour : from_roi.pslist) {
+    auto &from_coords = from_contour.coordinates;
+    dist_iterator = std::transform(
+        std::execution::par_unseq, from_coords.begin(), from_coords.end(),
+        dist_iterator, [&to_roi](const auto from_point) {
+          return min_distance<T>(from_point, to_roi);
+        });
+  }
+
+  std::sort(std::execution::par_unseq, distances.begin(), distances.end());
+
+  hausdorff_result<T> hausdorff_output;
+  hausdorff_output.h_min = distances.front();
+  hausdorff_output.h_max = distances.back();
+
+  const auto percent_index = static_cast<size_t>(
+      crl::ce_round((percent / 100.0) * static_cast<double>(distances.size())));
+
+  hausdorff_output.h_percent = distances.at(percent_index);
+
+  return hausdorff_output;
+}
+} // namespace crl
 
 #endif

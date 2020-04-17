@@ -318,6 +318,14 @@ inline T fullFan_Function(const T a, const T b, const T c, const T d, const T e,
          es.size();
 }
 
+template <typename T>
+constexpr T ce_distance(const FloatVector &point_a,
+                        const FloatVector &point_b) {
+  return crl::ce_sqrt<T>(crl::ce_pow(point_a.x - point_b.x, 2) +
+                         crl::ce_pow(point_a.y - point_b.y, 2) +
+                         crl::ce_pow(point_a.z - point_b.z, 2));
+}
+
 /// Functors:
 
 // From line integral to raw intensity

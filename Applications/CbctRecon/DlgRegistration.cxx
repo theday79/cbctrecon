@@ -964,8 +964,8 @@ void DlgRegistration::updateSliceLabel() const {
 
 void DlgRegistration::LoadImgFromComboBox(
     const int idx,
-    const QString&
-        strSelectedComboTxt) // -->when fixed image loaded will be called here!
+    const QString
+        &strSelectedComboTxt) // -->when fixed image loaded will be called here!
 {
 
   UShortImageType::Pointer spTmpImg;
@@ -2292,9 +2292,20 @@ void DlgRegistration::SLT_WEPLcalc() {
   const auto ss = m_pParent->m_cbctrecon->m_structures->get_ss(ct_type);
   m_cbctregistration->cur_voi = ss->get_roi_by_name(voi_name);
 
-  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI(
+  constexpr auto distal_only = true;
+  const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
       m_cbctregistration->cur_voi.get(), gantry_angle, couch_angle, m_spMoving,
       m_spFixed);
+
+  // Calculate Hausdorff distance from the original structure to the WEPL
+  // structure:
+  const auto &orig_voi = *(m_cbctregistration->cur_voi.get());
+  const auto distal_orig_voi =
+      crl::roi_to_distal_only_roi(orig_voi, gantry_angle, couch_angle);
+  constexpr auto hd_pct = 95;
+  const auto hd = crl::calculate_hausdorff<float, hd_pct>(orig_voi, *wepl_voi);
+  std::cerr << hd_pct << "% Hausdorff Orig to WEPL: " << hd.h_percent << "\n";
+
   m_cbctregistration->WEPL_voi = std::make_unique<Rtss_roi_modern>(*wepl_voi);
 
   // Draw WEPL
