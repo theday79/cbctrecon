@@ -52,6 +52,7 @@ CbctRegistration::CbctRegistration(CbctRecon *parent) {
 
   m_pDcmStudyPlan = nullptr;
   WEPL_voi = std::make_unique<Rtss_roi_modern>();
+  extra_voi = std::make_unique<Rtss_roi_modern>();
   cur_voi = std::make_unique<Rtss_roi_modern>();
 }
 

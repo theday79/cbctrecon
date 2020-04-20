@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include <QString>
+
 #include "itkEuler3DTransform.h"
 #include "itkMinimumMaximumImageCalculator.h"
 #include "itkRescaleIntensityImageFilter.h"
@@ -121,24 +123,21 @@ auto get_signed_difference(const Rtss_roi_modern &wepl_voi,
                            const Rtss_roi_modern &orig_voi/*,
                            const std::array<double, 3> basis*/) {
 
-  auto output = std::vector<std::vector<QString>>(orig_voi.pslist.size());
+  auto output = std::vector<std::vector<std::string>>(orig_voi.pslist.size());
 
   std::transform(std::begin(wepl_voi.pslist), std::end(wepl_voi.pslist),
                  std::begin(orig_voi.pslist), std::begin(output),
                  [/*&basis*/](const Rtss_contour_modern &wepl_contour,
                               const Rtss_contour_modern &orig_contour) {
                    auto out_contour =
-                       std::vector<QString>(orig_contour.coordinates.size());
+                       std::vector<std::string>(orig_contour.coordinates.size());
                    std::transform(std::begin(wepl_contour.coordinates),
                                   std::end(wepl_contour.coordinates),
                                   /*std::begin(orig_contour.coordinates),*/
                                   std::begin(out_contour),
                                   [/*&basis*/](const FloatVector &wepl_coord /*,
                                                const FloatVector &orig_coord*/) {
-                                    return QString("%1,%2,%3\n")
-                                        .arg(wepl_coord.x)
-                                        .arg(wepl_coord.y)
-                                        .arg(wepl_coord.z);
+                                    return crl::make_sep_str<','>(wepl_coord.x, wepl_coord.y, wepl_coord.z) + "\n";
                                     /*return basis.at(0) * (orig_coord.x -
                                        wepl_coord.x) + basis.at(1) *
                                        (orig_coord.y - wepl_coord.y) +
