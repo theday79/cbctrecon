@@ -13,11 +13,11 @@ export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DUSE_SYSTEM_dlib=ON -DUSE_SYSTE
 if [ -d /home/user/ITK-build ]; then # Use system ITK and RTK
     export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=ON -DITK_DIR=/home/user/ITK-build"
 else
-    export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=OFF -DITK_USE_SYSTEM_DCMTK=ON -DUSE_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_HUNTER_Eigen=OFF"
+    export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=OFF -DITK_USE_SYSTEM_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_HUNTER_Eigen=OFF -DModule_RTK_GIT_TAG=master"
 fi
 
 if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
-    export CUDA_FLAGS="-DUSE_CUDA=ON -DEXACT_GCC=/usr/bin/gcc-8"
+    export CUDA_FLAGS="-DUSE_CUDA=ON -DEXACT_GCC=/usr/bin/gcc-8 -DCUDA_HOST_COMPILER=/usr/bin/gcc-8"
     nvidia-smi
     # Ubuntu Bionic:
     export DLIBDIR="-Ddlib_DIR=/usr/lib/cmake/dlib/"
