@@ -92,7 +92,7 @@ Windows10-msvc2019-CUDA:
           -DCMAKE_BUILD_TYPE=RelWithDebInfo `
           -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG /Zc:__cplusplus" `
           -DCMAKE_C_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG" `
-          -DCMAKE_PREFIX_PATH="C:/Qt/5.14.1/msvc2017_64/" `
+          -DCMAKE_PREFIX_PATH="C:/Qt/5.14.2/msvc2017_64/" `
           -DHUNTER_ENABLED=OFF `
           -DRTK_USE_OPENCL=ON `
           -DUSE_CUDA=ON `
