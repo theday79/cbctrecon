@@ -7,7 +7,9 @@ USER root
 RUN apt update \
     && apt install -y g++-9 gcc-9 ninja-build qt5-default \
         libfftw3-dev libtinfo-dev \
-        libdcmtk-dev libeigen3-dev valgrind
+        libdcmtk-dev libeigen3-dev valgrind \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 USER user
 

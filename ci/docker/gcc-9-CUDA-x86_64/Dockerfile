@@ -27,7 +27,7 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
     && apt update \
     && apt install -y ninja-build gcc-8 g++-8 git \
         libfftw3-dev libtinfo-dev libeigen3-dev \
-        libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libdlib-dev libopenblas-dev liblapack-dev \
+        libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
         libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libffi-dev uuid-dev \
         software-properties-common \
@@ -50,10 +50,10 @@ RUN mkdir /opt/cmake && cd /opt/cmake \
     && rm cmake-3.16.4-Linux-x86_64.sh \
     && cmake --version
 
-# Get a newer version of TBB and Qt
+# Get a newer version of TBB, Qt and dlib
 RUN echo "deb http://archive.ubuntu.com/ubuntu/ eoan main universe" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y libtbb-dev qt5-default \
+    && apt install -y libtbb-dev qt5-default libdlib-dev \
     && rm -rf /var/lib/apt/lists/* \
     && cd /usr/share/cmake/Modules/ \
     && cmake -DINSTALL_DIR=/usr/lib/cmake/TBB \
@@ -128,11 +128,13 @@ RUN cd /home/user/ \
       -DModule_ITKTBB=ON \
       -DRTK_USE_CUDA=ON \
       -DRTK_BUILD_APPLICATIONS=OFF \
-      -DREMOTE_GIT_TAG_RTK="patch-1" \
       -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
       -DCUDA_NVCC_FLAGS="--compiler-bindir /usr/bin/gcc-8" \
       -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
       -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
-    && cmake --build .
+    && ninja \
+    && sudo ninja install \
+    && cd .. \
+    && rm -Rf ITK*
 
 WORKDIR /home/user/

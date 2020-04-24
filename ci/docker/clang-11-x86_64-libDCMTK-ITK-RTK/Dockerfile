@@ -28,20 +28,23 @@ RUN cd /home/user/ \
       -D CMAKE_BUILD_TYPE=Release \
       -D BUILD_TESTING=OFF -D BUILD_EXAMPLES=OFF \
       -D Module_ITKReview=ON \
-      -D ITK_USE_GPU=ON \
       -D ITK_BUILD_DEFAULT_MODULES=OFF \
       -D ITK_USE_SYSTEM_FFTW=ON \
       -D ITK_USE_FFTWF=ON -D ITK_USE_FFTWD=ON \
       -D Module_ITKDCMTK=ON \
       -D ITK_USE_SYSTEM_DCMTK=ON \
+      -D ITK_USE_SYSTEM_GDCM=ON \
       -D ITK_USE_SYSTEM_ZLIB=ON \
       -D Module_ITKDeprecated=ON \
       -D Module_RTK=ON \
       -D RTK_USE_CUDA=OFF \
       -D RTK_BUILD_APPLICATIONS=OFF \
-      -D ModuleRTK_GIT_TAG="master" \
+      -D Module_RTK_GIT_TAG="master" \
       -D ITK_MINIMUM_COMPLIANCE_LEVEL=3 \
-    && ninja
+    && ninja \
+    && sudo ninja install \
+    && cd ../ \
+    && rm -Rf ITK*
 
 
 WORKDIR /home/user/

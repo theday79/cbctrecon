@@ -17,13 +17,6 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cd /usr/share/cmake/Modules/ \
-    && cmake -D INSTALL_DIR=/usr/lib/cmake/TBB \
-        -D SYSTEM_NAME=Linux \
-        -D LIB_PATH=/usr/lib/x86_64-linux-gnu \
-        -D INC_PATH=/usr/include \
-        -P tbb_config_installer.cmake
-
 RUN cd /opt/rocm \
     && ln -s /usr/local/ llvm
 
@@ -60,6 +53,48 @@ ENV HCC_AMDGPU_TARGET=gfx900
 # Verify installation:
 RUN /opt/rocm/hip/bin/hipconfig --full
 
+# hipSYCL
+RUN git clone https://github.com/illuhad/hipSYCL --recurse-submodules \
+  && cd hipSYCL \
+  && mkdir build && cd build \
+  && cmake ../ -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_DIR=/usr/local/lib/cmake/llvm/ \
+    -DDISABLE_LLVM_VERSION_CHECK=ON \
+    -DWITH_ROCM_BACKEND=ON \
+    -DHIPCC_COMPILER=/opt/rocm/bin/hipcc \
+    -DCLANG_INCLUDE_PATH=/usr/local/lib/clang/11.0.0/ \
+    -DWITH_CPU_BACKEND=ON \
+  && ninja \
+  && ninja install \
+  && cd ../.. \
+  && rm -Rf hipSYCL
+
+ENV HIPSYCL_GPU_ARCH=gfx900
+
+# SyclParallelSTL
+RUN git clone https://github.com/KhronosGroup/SyclParallelSTL.git \
+  && cd SyclParallelSTL \
+  && sed -i '/endif/a target_include_directories(${ADD_SYCL_TARGET} PUBLIC /usr/local/include/hipSYCL/contrib/)' /usr/local/lib/cmake/hipsycl-config.cmake \
+  && sed -i 's/include(FindTriSYCL)/find_package(hipsycl REQUIRED)/g' ./CMakeLists.txt \
+  && sed -i 's/triSYCL/hipSYCL/g' ./CMakeLists.txt \
+  && sed -i 's/sycl_to_target(/sycl_to_target(TARGET /g' ./examples/CMakeLists.txt \
+  && sed -i 's/sycl_to_target(/sycl_to_target(TARGET /g' ./tests/pstl-tests/CMakeLists.txt \
+  && mkdir build && cd build \
+  && cmake ../ -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_FLAGS="-fopenmp" \
+    -DUSE_COMPUTECPP=OFF \
+    -DHIPSYCL_PLATFORM=rocm \
+    -DHIPSYCL_GPU_ARCH=gfx900 \
+    -Dhipsycl_DIR=/usr/local/lib/cmake/ \
+  && ninja \
+  && ninja install \
+  && cd ../.. \
+  && rm -Rf SyclParallelSTL
+
+
 USER user
 
 # Plastimatch won't download unless a git user is given:
@@ -86,11 +121,11 @@ RUN cd /home/user/ \
       -D CMAKE_BUILD_TYPE=Release \
       -D BUILD_TESTING=OFF -D BUILD_EXAMPLES=OFF \
       -D Module_ITKReview=ON \
-      -D ITK_USE_GPU=ON \
       -D ITK_BUILD_DEFAULT_MODULES=OFF \
       -D ITK_USE_SYSTEM_FFTW=ON -D ITK_USE_FFTWF=ON -D ITK_USE_FFTWD=ON \
       -D Module_ITKDCMTK=ON \
       -D ITK_USE_SYSTEM_DCMTK=ON \
+      -D ITK_USE_SYSTEM_GDCM=ON \
       -D Module_ITKDeprecated=ON \
       -D ITK_USE_SYSTEM_ZLIB=ON \
       -D Module_RTK=ON \
@@ -98,6 +133,9 @@ RUN cd /home/user/ \
       -D RTK_USE_CUDA=OFF \
       -D RTK_BUILD_APPLICATIONS=OFF \
       -D ITK_MINIMUM_COMPLIANCE_LEVEL=3 \
-    && ninja
+    && ninja \
+    && sudo ninja install \
+    && cd ../ \
+    && rm -Rf ITK*
 
 WORKDIR /home/user/
