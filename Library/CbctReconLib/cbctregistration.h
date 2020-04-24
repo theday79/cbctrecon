@@ -150,6 +150,7 @@ public:
   AG17RGBAImage m_DoseImgMoving[3];  // CBCT in this study
   AG17RGBAImage m_AGDisp_Overlay[3]; // CBCT in this study
   std::unique_ptr<Rtss_roi_modern> WEPL_voi;
+  std::unique_ptr<Rtss_roi_modern> extra_voi;
   std::unique_ptr<Rtss_roi_modern> cur_voi;
   bool dose_loaded = false;
 

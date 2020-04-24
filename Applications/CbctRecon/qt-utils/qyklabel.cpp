@@ -179,6 +179,10 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
     for (auto &it : m_vPt_green) {
       painter.drawPoint(it.x(), it.y());
     }
+    painter.setPen(QPen(Qt::blue, 2));
+    for (auto &it : m_vPt_blue) {
+      painter.drawPoint(it.x(), it.y());
+    }
   }
   if (m_pYK16Image == nullptr) {
     return;

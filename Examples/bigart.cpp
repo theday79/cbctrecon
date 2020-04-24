@@ -6,17 +6,20 @@
 
 #include "cbctrecon.h"
 
-#include <execution>
 #include <algorithm>
+#include <execution>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include <QString>
+
 #include "itkEuler3DTransform.h"
 #include "itkMinimumMaximumImageCalculator.h"
 #include "itkRescaleIntensityImageFilter.h"
+#include "itkTransformFileWriter.h"
 
 #include "WEPL.h"
 #include "cbctrecon_io.h"
@@ -25,84 +28,16 @@
 namespace fs = std::filesystem;
 using namespace std::literals;
 
-constexpr float ce_distance(const FloatVector& point_a, const FloatVector& point_b) {
-  return crl::ce_sqrt<float>(crl::ce_pow(point_a.x - point_b.x, 2) +
-                      crl::ce_pow(point_a.y - point_b.y, 2) +
-                      crl::ce_pow(point_a.z - point_b.z, 2));
-}
-
-template<typename T>
-struct hausdorff_result {
-  T h_min = std::numeric_limits<T>::max();
-  T h_max = std::numeric_limits<T>::max();
-  T h_percent = std::numeric_limits<T>::max();
-};
-
-template<typename T>
-T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
-  auto to_roi_distances = std::vector<T>();
-  for (const auto &to_contour : to_roi.pslist) {
-    auto &to_coords = to_contour.coordinates;
-    auto to_contour_distances = std::vector<T>(to_coords.size());
-    std::transform(std::execution::par_unseq, to_coords.begin(),
-                   to_coords.end(), to_contour_distances.begin(),
-                   [from_point](const auto to_point) {
-                     return ce_distance(from_point, to_point);
-                   });
-    to_roi_distances.push_back(*std::min_element(to_contour_distances.begin(),
-                                                to_contour_distances.end()));
-  }
-  return *std::min_element(to_roi_distances.begin(), to_roi_distances.end());
-}
-
-template<typename T, unsigned char percent>
-hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
-                                        const Rtss_roi_modern &to_roi) {
-  static_assert(
-      percent <= 100,
-      "Percent should be less than 100 as a higher value doesn't make sense.");
-
-  const auto n_total_points =
-      std::transform_reduce(std::execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
-                  static_cast<size_t>(0), std::plus<size_t>(), [](const Rtss_contour_modern &contour) {
-                    return contour.coordinates.size();
-                  });
-
-  auto distances = std::vector<T>(n_total_points);
-  auto dist_iterator = distances.begin();
-  for (const auto &from_contour : from_roi.pslist) {
-    auto &from_coords = from_contour.coordinates;
-    dist_iterator = std::transform(
-        std::execution::par_unseq, from_coords.begin(), from_coords.end(),
-        dist_iterator, [&to_roi](const auto from_point) {
-          return min_distance<T>(from_point, to_roi);
-        });
-  }
-
-  std::sort(std::execution::par_unseq, distances.begin(), distances.end());
-
-  hausdorff_result<T> hausdorff_output;
-  hausdorff_output.h_min = distances.front();
-  hausdorff_output.h_max = distances.back();
-
-  const auto percent_index = static_cast<size_t>(
-      crl::ce_round((percent / 100.0) * static_cast<double>(distances.size())));
-
-  hausdorff_output.h_percent = distances.at(percent_index);
-
-  return hausdorff_output;
-}
-
-
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
 
-UShortImageType::Pointer get_image_from_dicom(
-    const fs::path &dcm_dir, const UShortImageType::SpacingType &new_spacing,
-    const UShortImageType::SizeType &new_size,
-    const UShortImageType::PointType &new_origin,
-    const UShortImageType::DirectionType &new_direction,
-    const DoubleVector &translation_vec, const DoubleVector &rotation_vec) {
-  // auto cbctrecon_test = std::make_unique<CbctReconTest>();
+std::pair<UShortImageType::Pointer, std::unique_ptr<Rtss_modern>>
+get_image_from_dicom(const fs::path &dcm_dir,
+                     const UShortImageType::SpacingType &new_spacing,
+                     const UShortImageType::SizeType &new_size,
+                     const UShortImageType::PointType &new_origin,
+                     const UShortImageType::DirectionType &new_direction,
+                     const DoubleVector &translation_vec,
+                     const DoubleVector &rotation_vec) {
 
   auto dcm_path = fs::absolute(dcm_dir);
   if (!fs::exists(dcm_path)) {
@@ -112,78 +47,17 @@ UShortImageType::Pointer get_image_from_dicom(
     std::cerr << "Directory was empty: " << dcm_path << "\n";
   }
 
-  // cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
-  // cbctrecon_test->test_LoadDICOMdir();
-  // auto ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
-  auto mha_reader = itk::ImageFileReader<ShortImageType>::New();
-  mha_reader->SetFileName((dcm_path / "recalc_in.mha").string());
-  mha_reader->Update();
-
-  using ImageCalculatorFilterType =
-      itk::MinimumMaximumImageCalculator<ShortImageType>;
-  auto imageCalculatorFilter = ImageCalculatorFilterType::New();
-  imageCalculatorFilter->SetImage(mha_reader->GetOutput());
-  imageCalculatorFilter->Compute();
-
-  const auto minVal0 = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  const auto maxVal0 = static_cast<double>(imageCalculatorFilter->GetMaximum());
-
-  std::cout << "Original Min and Max Values are	" << minVal0 << "	"
-            << maxVal0 << std::endl;
-
-  auto bNKI = false;
-  if (minVal0 > -600) // impossible for normal Short image. IN NKI, always -512.
-                      // don't know why
-  {
-    bNKI = true;
-  }
-
-  // Thresholding
-  using ThresholdImageFilterType = itk::ThresholdImageFilter<ShortImageType>;
-  auto thresholdFilter = ThresholdImageFilterType::New();
-
-  if (!bNKI) {
-    thresholdFilter->SetInput(mha_reader->GetOutput());
-    thresholdFilter->ThresholdOutside(-1024, 3072); //--> 0 ~ 4095
-    thresholdFilter->SetOutsideValue(-1024);
-    thresholdFilter->Update();
-  } else {
-    thresholdFilter->SetInput(mha_reader->GetOutput());
-    thresholdFilter->ThresholdOutside(0, 4095); //--> 0 ~ 4095
-    thresholdFilter->SetOutsideValue(0);
-    thresholdFilter->Update();
-  }
-
-  imageCalculatorFilter->SetImage(thresholdFilter->GetOutput());
-  imageCalculatorFilter->Compute();
-
-  const auto minVal = static_cast<double>(imageCalculatorFilter->GetMinimum());
-  const auto maxVal = static_cast<double>(imageCalculatorFilter->GetMaximum());
-
-  std::cout << "Current Min and Max Values are	" << minVal << "	"
-            << maxVal << std::endl;
-
-  USHORT_PixelType outputMinVal, outputMaxVal;
-  if (!bNKI) {
-    outputMinVal = static_cast<USHORT_PixelType>(minVal) + 1024U;
-    outputMaxVal = static_cast<USHORT_PixelType>(maxVal) + 1024U;
-  } else {
-    outputMinVal = static_cast<USHORT_PixelType>(minVal);
-    outputMaxVal = static_cast<USHORT_PixelType>(maxVal);
-  }
-
-  using RescaleFilterType =
-      itk::RescaleIntensityImageFilter<ShortImageType, UShortImageType>;
-  auto spRescaleFilter = RescaleFilterType::New();
-  spRescaleFilter->SetInput(thresholdFilter->GetOutput());
-  spRescaleFilter->SetOutputMinimum(outputMinVal);
-  spRescaleFilter->SetOutputMaximum(outputMaxVal);
-  spRescaleFilter->Update();
-  const auto ct_img = spRescaleFilter->GetOutput();
+  auto cbctrecon_test = std::make_unique<CbctReconTest>();
+  cbctrecon_test->m_cbctrecon->m_strPathDirDefault = dcm_path;
+  cbctrecon_test->test_LoadDICOMdir();
+  auto ct_img = cbctrecon_test->m_cbctrecon->m_spManualRigidCT;
+  // auto mha_reader = itk::ImageFileReader<ShortImageType>::New();
+  // mha_reader->SetFileName((dcm_path / "recalc_in.mha").string());
+  // mha_reader->Update();
 
   if (!ct_img) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
-    return nullptr;
+    return std::make_pair(nullptr, nullptr);
   }
   /* Some debug info: */
   UShortImageType::PointType first_point;
@@ -217,6 +91,17 @@ UShortImageType::Pointer get_image_from_dicom(
       2, -translation_vec.z); // -6.4281); // -Z in eclipse -> Z itk
   transform->SetTranslation(translation);
 
+  // Write transform to file so it can be handled by plastimatch and translated
+  // into an appropriate lambda
+  auto transform_writer = itk::TransformFileWriterTemplate<double>::New();
+  transform_writer->SetInput(transform);
+  constexpr auto transform_file = "affine_transform_tmp.txt";
+  transform_writer->SetFileName(transform_file);
+  transform_writer->Update();
+
+  cbctrecon_test->m_cbctrecon->m_structures->ApplyTransformTo<ctType::PLAN_CT>(
+      transform_file);
+
   resampler->SetInput(ct_img);
   const auto interpolator =
       itk::LinearInterpolateImageFunction<UShortImageType, double>::New();
@@ -228,32 +113,31 @@ UShortImageType::Pointer get_image_from_dicom(
   resampler->SetTransform(transform);
   resampler->Update();
 
-  return resampler->GetOutput();
+  return std::make_pair(resampler->GetOutput(),
+                        std::move(cbctrecon_test->m_cbctrecon->m_structures
+                                      ->get_ss<ctType::RIGID_CT>()));
 }
 
 // Currently just writes the points to a vector of vectors of QStrings
-auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
-                           const Rtss_roi_modern *orig_voi/*,
+auto get_signed_difference(const Rtss_roi_modern &wepl_voi,
+                           const Rtss_roi_modern &orig_voi/*,
                            const std::array<double, 3> basis*/) {
 
-  auto output = std::vector<std::vector<QString>>(orig_voi->pslist.size());
+  auto output = std::vector<std::vector<std::string>>(orig_voi.pslist.size());
 
-  std::transform(std::begin(wepl_voi->pslist), std::end(wepl_voi->pslist),
-                 std::begin(orig_voi->pslist), std::begin(output),
+  std::transform(std::begin(wepl_voi.pslist), std::end(wepl_voi.pslist),
+                 std::begin(orig_voi.pslist), std::begin(output),
                  [/*&basis*/](const Rtss_contour_modern &wepl_contour,
                               const Rtss_contour_modern &orig_contour) {
                    auto out_contour =
-                       std::vector<QString>(orig_contour.coordinates.size());
+                       std::vector<std::string>(orig_contour.coordinates.size());
                    std::transform(std::begin(wepl_contour.coordinates),
                                   std::end(wepl_contour.coordinates),
                                   /*std::begin(orig_contour.coordinates),*/
                                   std::begin(out_contour),
                                   [/*&basis*/](const FloatVector &wepl_coord /*,
                                                const FloatVector &orig_coord*/) {
-                                    return QString("%1,%2,%3\n")
-                                        .arg(wepl_coord.x)
-                                        .arg(wepl_coord.y)
-                                        .arg(wepl_coord.z);
+                                    return crl::make_sep_str<','>(wepl_coord.x, wepl_coord.y, wepl_coord.z) + "\n";
                                     /*return basis.at(0) * (orig_coord.x -
                                        wepl_coord.x) + basis.at(1) *
                                        (orig_coord.y - wepl_coord.y) +
@@ -266,19 +150,7 @@ auto get_signed_difference(const Rtss_roi_modern *wepl_voi,
   return output;
 }
 
-auto roi_to_distal_only_roi(const Rtss_roi_modern *roi, const double gantry,
-                                const double couch) {
-  const auto direction = crl::wepl::get_basis_from_angles(gantry, couch);
-  auto out_roi = Rtss_roi_modern(*roi);
-
-  for (auto &contour : out_roi.pslist) {
-    contour.coordinates = crl::wepl::distal_points_only(contour, direction);
-  }
-  
-  return out_roi;
-}
-
-bool save_orig_with_only_distal(const std::string &voi_name,
+bool save_orig_with_only_distal(const std::string_view voi_name,
                                 const Rtss_modern *ss,
                                 const std::string &suffix,
                                 const fs::path &orig_file, const double gantry,
@@ -296,43 +168,61 @@ bool save_orig_with_only_distal(const std::string &voi_name,
   }
 
   const auto out_distal_orig_dcm = "RS.orig_distal_structure_"s;
-  const fs::path out_distal_orig_dcm_file(out_distal_orig_dcm + voi_name +
-                                          "_CT"s + suffix);
+  const fs::path out_distal_orig_dcm_file(
+      out_distal_orig_dcm + std::string(voi_name) + "_CT"s + suffix);
   std::cerr << "Writing distal struct to dicom...\n";
   return crl::AlterData_RTStructureSetStorage(orig_file, ss_distal.get(),
                                               out_distal_orig_dcm_file);
 }
 
-auto get_ss_from_dir(const fs::path &dir) {
-  const auto filenamelist = crl::get_dcm_image_files(dir);
+auto get_rct_voi(Rtss_modern *rct_ss, const std::string &rct_name,
+                 const std::string &orig_voi_name) {
 
-  for (auto &&filename : fs::directory_iterator(dir)) {
-    if (!(filename.is_regular_file() ||
-          filename.is_symlink())) { // I guess symlinks should be allowed?
-      continue;
-    }
-    if (filename.path().string().find("-hash-stamp") != std::string::npos) {
-      continue; // Just so the test data is less annoying.
-    }
-    const auto fullfilename = filename.path();
-    const auto modality = crl::get_dcm_modality(fullfilename);
-    switch (modality) {
-    case DCM_MODALITY::RTSTRUCT:
-      return crl::load_rtstruct(fullfilename);
-      break;
-    default:
-      break;
-    }
-  }
-  auto out = std::make_unique<Rtss_modern>();
-  out = nullptr;
-  return out;
+  const auto remove_space = orig_voi_name.back() == ' ' ? 1 : 0;
+  // length of "pCT" is 3, so:
+  const auto voi_postfix = std::string_view(
+      orig_voi_name.data() + 3, orig_voi_name.size() - (3 + remove_space));
+  const auto rct_voi_name = rct_name + std::string(voi_postfix);
+  std::cerr << "\"" << rct_voi_name << "\"\n";
+
+  return rct_ss->get_roi_ref_by_name(rct_voi_name);
 }
 
-template<typename T>
-auto stringify_hausdorff(const hausdorff_result<T> &hd) {
-  return crl::stringify(hd.h_max) + ";" + crl::stringify(hd.h_min) + ";" +
-         crl::stringify(hd.h_percent);
+// max(%);max(min);max(max)
+template <typename T, class BinOp>
+auto stringify_hausdorff(const crl::hausdorff_result<T> &hd_lhs,
+                         const crl::hausdorff_result<T> &hd_rhs, BinOp op) {
+  return crl::stringify(op(hd_lhs.h_percent, hd_rhs.h_percent)) + ";" +
+         crl::stringify(op(hd_lhs.h_min, hd_rhs.h_min)) + ";" +
+         crl::stringify(op(hd_lhs.h_max, hd_rhs.h_max));
+}
+
+template <typename T, class BinOp>
+bool write_hd_to_file(const fs::path &out_fn, const int dose_level,
+                      const double gantry_angle, const std::string &rct,
+                      const crl::hausdorff_result<T> &hd_lhs,
+                      const crl::hausdorff_result<T> &hd_rhs, BinOp op) {
+  std::cerr << "Writing hausdorff to txt...\n";
+  std::ofstream f_stream;
+  f_stream.open(out_fn, std::ios::out | std::ios::app);
+  if (f_stream.is_open()) {
+    if (f_stream.tellp() == 0) {
+      f_stream << "Dose;gantry;rct;hausdorff_percent;min;max\n";
+    }
+    f_stream << dose_level << ";" << gantry_angle << ";" << rct << ";"
+             << stringify_hausdorff(hd_lhs, hd_rhs, op) << "\n";
+    f_stream.close();
+  } else {
+    std::cerr << "Could not open file: " << out_fn << "\n";
+    return false;
+  }
+  return true;
+}
+
+auto sv_to_dvec(std::string_view sv) {
+  const auto sv_v = crl::split_string(sv, ",");
+  const auto vec = crl::from_sv_v<double>(sv_v);
+  return DoubleVector{vec.at(0), vec.at(1), vec.at(2)};
 }
 
 int main(const int argc, char **argv) {
@@ -352,11 +242,17 @@ int main(const int argc, char **argv) {
             << argv[3] << " " << argv[4] << " " << argv[5] << " " << argv[6]
             << " " << argv[7] << "\n";
 
+  const auto dcm_dir = fs::path(argv[1]);
+  const auto recalc_dcm_dir = fs::path(argv[2]);
+  const auto voi_str = std::string_view(argv[3]);
+  const auto gantry_str = std::string_view(argv[4]);
+  const auto couch_str = std::string_view(argv[5]);
+  const auto translation = sv_to_dvec(argv[6]);
+  const auto rotation = sv_to_dvec(argv[7]);
+
   /* Read dicom and structures */
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
-  const auto dcm_dir_str = std::string(argv[1]);
 
-  auto dcm_dir = fs::path(dcm_dir_str);
   const auto dcm_path = fs::absolute(dcm_dir);
   if (!fs::exists(dcm_dir)) {
     std::cerr << "Directory didn't exist: " << dcm_path << "\n";
@@ -375,22 +271,10 @@ int main(const int argc, char **argv) {
     std::cerr << "Manual Rigid CT was NULL -> Dicom dir was not read!\n";
     return -4;
   }
-  std::string::size_type sz;
-  auto translation_str_list = QString(argv[6]).split(",");
-  const auto translation = DoubleVector{
-      std::stod(translation_str_list.at(0).toStdString(), &sz),
-      std::stod(translation_str_list.at(1).toStdString(), &sz),
-      std::stod(translation_str_list.at(2).toStdString(), &sz)};
-  auto rotation_str_list = QString(argv[7]).split(",");
-  const auto rotation =
-      DoubleVector{std::stod(rotation_str_list.at(0).toStdString(), &sz),
-                   std::stod(rotation_str_list.at(1).toStdString(), &sz),
-                   std::stod(rotation_str_list.at(2).toStdString(), &sz)};
 
-  auto recalc_dcm_dir = fs::path(argv[2]);
   const auto recalc_dcm_path = fs::absolute(recalc_dcm_dir);
 
-  auto recalc_img = get_image_from_dicom(
+  auto [recalc_img, rct_ss] = get_image_from_dicom(
       recalc_dcm_path, ct_img->GetSpacing(),
       ct_img->GetLargestPossibleRegion().GetSize(), ct_img->GetOrigin(),
       ct_img->GetDirection(), translation, rotation);
@@ -428,28 +312,32 @@ int main(const int argc, char **argv) {
   auto voi = std::string();
 
   for (auto &structure : ss->slist) {
-    if (structure.name == argv[3]) {
+    if (structure.name == voi_str) {
       voi = structure.name;
     }
   }
   if (voi.empty()) {
     for (auto &structure : ss->slist) {
-      if (structure.name.find(argv[3]) != std::string::npos) {
+      if (structure.name.find(voi_str) != std::string::npos) {
         voi = structure.name;
       }
     }
   }
   if (voi.empty()) {
-    std::cerr << "Couldn't find: \"" << argv[3] << "\"\n";
+    std::cerr << "Couldn't find: \"" << voi_str << "\"\n";
     return -5;
   }
   std::cerr << voi << "\n";
 
-  const auto gantry_angle = std::stod(argv[4], &sz);
-  const auto couch_angle = std::stod(argv[5], &sz);
-  const auto descriptive_suffix = "_G"s + argv[4] + "_C" + argv[5] + ".dcm";
+  auto gantry_angle = 0;
+  crl::from_sv(gantry_str, gantry_angle);
+  auto couch_angle = 0;
+  crl::from_sv(couch_str, couch_angle);
 
-  if (!save_orig_with_only_distal(argv[3], ss, descriptive_suffix,
+  const auto descriptive_suffix = "_G"s + crl::stringify(gantry_angle) + "_C" +
+                                  crl::stringify(couch_angle) + ".dcm";
+
+  if (!save_orig_with_only_distal(voi_str, ss, descriptive_suffix,
                                   cbctrecon_test->m_cbctrecon->m_strPathRS,
                                   gantry_angle, couch_angle)) {
     return -6;
@@ -471,25 +359,25 @@ int main(const int argc, char **argv) {
   std::cerr << "Last pixel point: " << last_point[0] << ", " << last_point[1]
             << ", " << last_point[2] << "\n";
 
-  const auto orig_voi = ss->get_roi_by_name(voi);
+  const auto orig_voi = ss->get_roi_ref_by_name(voi);
   // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
   constexpr auto distal_only = true;
   const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
-      orig_voi.get(), gantry_angle, couch_angle, ct_img, recalc_img);
+      &orig_voi, gantry_angle, couch_angle, ct_img, recalc_img);
 
   /* Generate a vector of vectors with distances */
-  //const auto output =
+  // const auto output =
   //    get_signed_difference(wepl_voi, orig_voi.get()); //, basis);
 
   for (auto &cur_voi : ss->slist) {
-    if (cur_voi.name.find(argv[3]) != std::string::npos) {
+    if (cur_voi.name.find(voi_str) != std::string::npos) {
       cur_voi = *wepl_voi;
     }
   }
   const auto out_dcm = "RS.wepl_structure_"s;
   // http://www.plastimatch.org/plastimatch.html#plastimatch-dice
-  const fs::path out_dcm_file(out_dcm + argv[3] + "_"s +
+  const fs::path out_dcm_file(out_dcm + std::string(voi_str) + "_"s +
                               recalc_dcm_dir.filename().string() +
                               descriptive_suffix);
   std::cerr << "Writing WEPL struct to dicom...\n";
@@ -500,59 +388,100 @@ int main(const int argc, char **argv) {
     return -7;
   }
 
-  /* Write distances to file */
-  auto better_name = orig_voi->name;
-  std::replace(std::begin(better_name), std::end(better_name), ' ', '_');
-  std::replace(std::begin(better_name), std::end(better_name), '/', '-');
-  const auto output_filename = "Hausdorff_" + better_name + "_" +
-                               dcm_dir.filename().string() + "_to_" +
-                               recalc_dcm_dir.filename().string() + ".txt";
-
-  const auto rct_ss = get_ss_from_dir(recalc_dcm_dir);
-  const auto rct_voi = rct_ss->get_roi_by_name(voi);
-  const auto distal_rct_voi = roi_to_distal_only_roi( rct_voi.get(), gantry_angle, couch_angle);
   const auto distal_orig_voi =
-      roi_to_distal_only_roi(orig_voi.get(), gantry_angle, couch_angle);
+      crl::roi_to_distal_only_roi(orig_voi, gantry_angle, couch_angle);
+
   const auto &cref_wepl_voi = *wepl_voi;
 
   constexpr auto percent = 95;
   const auto hd_orig_to_wepl =
-      calculate_hausdorff<float, percent>(distal_orig_voi, cref_wepl_voi);
+      crl::calculate_hausdorff<float, percent>(distal_orig_voi, cref_wepl_voi);
   const auto hd_wepl_to_orig =
-      calculate_hausdorff<float, percent>(cref_wepl_voi, distal_orig_voi);
+      crl::calculate_hausdorff<float, percent>(cref_wepl_voi, distal_orig_voi);
+
+  // pCT vs rCT
+  const auto rct_str = recalc_dcm_dir.filename().string();
+  const auto rct_voi = get_rct_voi(rct_ss.get(), rct_str, orig_voi.name);
+
+  const auto distal_rct_voi =
+      crl::roi_to_distal_only_roi(rct_voi, gantry_angle, couch_angle);
 
   const auto hd_orig_to_rct =
-      calculate_hausdorff<float, percent>(distal_orig_voi, distal_rct_voi);
+      crl::calculate_hausdorff<float, percent>(distal_orig_voi, distal_rct_voi);
   const auto hd_rct_to_orig =
-      calculate_hausdorff<float, percent>(distal_rct_voi, distal_orig_voi);
+      crl::calculate_hausdorff<float, percent>(distal_rct_voi, distal_orig_voi);
 
+  // rCT vs WEPL
   const auto hd_rct_to_wepl =
-      calculate_hausdorff<float, percent>(distal_rct_voi, cref_wepl_voi);
+      crl::calculate_hausdorff<float, percent>(distal_rct_voi, cref_wepl_voi);
   const auto hd_wepl_to_rct =
-      calculate_hausdorff<float, percent>(cref_wepl_voi, distal_rct_voi);
+      crl::calculate_hausdorff<float, percent>(cref_wepl_voi, distal_rct_voi);
 
   const auto str_percent = crl::stringify(percent);
 
-  std::cerr << "Writing hausdorff to txt...\n";
-  std::ofstream f_stream;
-  f_stream.open(output_filename);
-  if (f_stream.is_open()) {
-    // f_stream << std::fixed << std::setprecision(5);
-    f_stream << "from;to;HD;min;max;percent\n";
-
-    f_stream << "orig;wepl;" + stringify_hausdorff(hd_orig_to_wepl) + "\n";
-    f_stream << "orig;wepl;" + stringify_hausdorff(hd_wepl_to_orig) + "\n";
-
-    f_stream << "orig;rct;" + stringify_hausdorff(hd_orig_to_rct) + "\n";
-    f_stream << "rct;orig;" + stringify_hausdorff(hd_rct_to_orig) + "\n";
-
-    f_stream << "rct;wepl;" + stringify_hausdorff(hd_rct_to_wepl) + "\n";
-    f_stream << "wepl;rct;" + stringify_hausdorff(hd_wepl_to_rct) + "\n";
-
-    f_stream.close();
-  } else {
-    std::cerr << "Could not open file: " << output_filename << "\n";
+  /* Write distances to file */
+  const auto pos_dose = orig_voi.name.find_first_of('D');
+  const auto pos_pct = orig_voi.name.find_first_of('%');
+  const auto sv_dose_level = std::string_view(&orig_voi.name.at(pos_dose + 1),
+                                              (pos_pct - 1) - (pos_dose + 1));
+  auto dose_level = 0;
+  if (!crl::from_sv(sv_dose_level, dose_level)) {
+    std::cerr << "Could not determine dose level from: " << sv_dose_level
+              << "\n";
     return -8;
+  }
+
+  const auto out_filebase =
+      "Hausdorff_" + recalc_dcm_path.parent_path().filename().string();
+
+  auto write_hd_max = [dose_level, gantry_angle, rct_str, out_filebase](
+                          const std::string &name,
+                          const crl::hausdorff_result<float> &hd_lhs,
+                          const crl::hausdorff_result<float> &hd_rhs) {
+    fs::path out_file = out_filebase + "_" + name + "_max.txt";
+    return write_hd_to_file(out_file, dose_level, gantry_angle, rct_str, hd_lhs,
+                            hd_rhs,
+                            [](auto x, auto y) { return std::max(x, y); });
+  };
+  auto write_hd_min = [dose_level, gantry_angle, rct_str, out_filebase](
+                          const std::string &name,
+                          const crl::hausdorff_result<float> &hd_lhs,
+                          const crl::hausdorff_result<float> &hd_rhs) {
+    fs::path out_file = out_filebase + "_" + name + "_min.txt";
+    return write_hd_to_file(out_file, dose_level, gantry_angle, rct_str, hd_lhs,
+                            hd_rhs,
+                            [](auto x, auto y) { return std::min(x, y); });
+  };
+  auto write_hd_directed = [dose_level, gantry_angle, rct_str, out_filebase](
+                               const std::string &name,
+                               const crl::hausdorff_result<float> &hd_lhs) {
+    fs::path out_file = out_filebase + "_" + name + ".txt";
+    return write_hd_to_file(out_file, dose_level, gantry_angle, rct_str, hd_lhs,
+                            hd_lhs, [](auto x, auto y) { return x; });
+  };
+
+  auto success = write_hd_max("pct_vs_wepl", hd_orig_to_wepl, hd_wepl_to_orig);
+  success =
+      success && write_hd_min("pct_vs_wepl", hd_orig_to_wepl, hd_wepl_to_orig);
+  success = success && write_hd_directed("pct_vs_wepl", hd_orig_to_wepl);
+  success = success && write_hd_directed("wepl_vs_pct", hd_wepl_to_orig);
+
+  success =
+      success && write_hd_max("rct_vs_wepl", hd_rct_to_wepl, hd_wepl_to_rct);
+  success =
+      success && write_hd_min("rct_vs_wepl", hd_rct_to_wepl, hd_wepl_to_rct);
+  success = success && write_hd_directed("rct_vs_wepl", hd_rct_to_wepl);
+  success = success && write_hd_directed("wepl_vs_rct", hd_wepl_to_rct);
+
+  success =
+      success && write_hd_max("pct_vs_rct", hd_orig_to_rct, hd_rct_to_orig);
+  success =
+      success && write_hd_min("pct_vs_rct", hd_orig_to_rct, hd_rct_to_orig);
+  success = success && write_hd_directed("pct_vs_rct", hd_orig_to_rct);
+  success = success && write_hd_directed("rct_vs_pct", hd_rct_to_orig);
+
+  if (!success) {
+    return -9;
   }
 
   std::cerr << "Done!\n";
