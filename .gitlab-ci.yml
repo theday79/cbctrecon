@@ -76,6 +76,18 @@ Ubuntu-clang11-ROCm:
       - export CUSTOM_CMAKE_FLAGS="-DOpenMP_CXX_FLAGS='-fopenmp=libomp' -DOpenMP_CXX_LIB_NAMES=omp"
       - ./ci/ci.sh
 
+Ubuntu-icc21-oneAPI:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:icc-21-oneAPI-x86_64
+    script:
+      - source /opt/intel/inteloneapi/setvars.sh
+      - export CC=icc
+      - export CXX=icpc
+      - ./ci/ci.sh
+
 Windows10-msvc2019-CUDA:
     stage: test
     tags:

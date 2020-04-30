@@ -42,4 +42,9 @@ echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
 docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
 docker push ${REPO}/${NAME}:${CC}
 
+CC="icc-21-oneAPI-x86_64"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
+docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
+docker push ${REPO}/${NAME}:${CC}
+
 # docker run -it --rm ${REPO}/${NAME}:gcc7-x86_64 bash

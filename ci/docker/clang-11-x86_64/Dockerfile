@@ -25,7 +25,7 @@ RUN git clone https://github.com/llvm/llvm-project.git --depth=1 --shallow-submo
     && mkdir build \
     && cd build \
     && cmake -GNinja ../llvm \
-        -D LLVM_ENABLE_PROJECTS="clang;lld;libcxx;libcxxabi;openmp;pstl" \
+        -D LLVM_ENABLE_PROJECTS="clang;lld;libcxx;libcxxabi;openmp;libclc;pstl" \
         -D LLVM_EXTERNAL_PSTL_SOURCE_DIR="../pstl" \
         -D CMAKE_BUILD_TYPE=Release \
         -D PSTL_PARALLEL_BACKEND="tbb" \
