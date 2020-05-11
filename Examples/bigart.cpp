@@ -16,8 +16,8 @@
 
 #include <QString>
 
-#include "itkEuler3DTransform.h"
 #include "itkMinimumMaximumImageCalculator.h"
+#include "itkQuaternionRigidTransform.h"
 #include "itkRescaleIntensityImageFilter.h"
 #include "itkTransformFileWriter.h"
 
@@ -29,6 +29,31 @@ namespace fs = std::filesystem;
 using namespace std::literals;
 
 constexpr auto deg2rad(const double deg) { return deg / 180.0 * itk::Math::pi; }
+
+auto get_transform(const DoubleVector &rot, const DoubleVector &translation) {
+  using TransformType = itk::QuaternionRigidTransform<double>;
+  auto transform = TransformType::New();
+
+  auto quart = TransformType::VnlQuaternionType(deg2rad(rot.x), deg2rad(rot.y),
+                                                deg2rad(rot.z));
+
+  transform->SetRotation(quart);
+
+  auto translation_vec = TransformType::InputVectorType();
+  translation_vec.SetElement(0, translation.x);
+  translation_vec.SetElement(1, translation.y);
+  translation_vec.SetElement(2, translation.z);
+  transform->SetTranslation(translation_vec);
+
+  std::cerr << "Transform Matrix: " << transform->GetMatrix() << "\n";
+
+  auto out_transform = TransformType::New();
+  if (!transform->GetInverse(out_transform)) {
+    std::cerr << "Could not invert transformation, cringe!?\n";
+  }
+
+  return out_transform;
+}
 
 std::pair<UShortImageType::Pointer, std::unique_ptr<Rtss_modern>>
 get_image_from_dicom(const fs::path &dcm_dir,
@@ -78,24 +103,13 @@ get_image_from_dicom(const fs::path &dcm_dir,
   auto resampler =
       itk::ResampleImageFilter<UShortImageType, UShortImageType>::New();
 
-  auto transform = itk::Euler3DTransform<double>::New();
-  transform->SetRotation(deg2rad(-rotation_vec.x), deg2rad(-rotation_vec.y),
-                         deg2rad(-rotation_vec.z));
-
-  auto translation = itk::Euler3DTransform<double>::InputVectorType();
-  translation.SetElement(
-      0, -translation_vec.x); // 5.5185);  // -X in eclipse -> X itk
-  translation.SetElement(
-      1, -translation_vec.y); // -2.6872); // -Y in eclipse -> Y itk
-  translation.SetElement(
-      2, -translation_vec.z); // -6.4281); // -Z in eclipse -> Z itk
-  transform->SetTranslation(translation);
+  const auto transform = get_transform(rotation_vec, translation_vec);
 
   // Write transform to file so it can be handled by plastimatch and translated
   // into an appropriate lambda
   auto transform_writer = itk::TransformFileWriterTemplate<double>::New();
   transform_writer->SetInput(transform);
-  constexpr auto transform_file = "affine_transform_tmp.txt";
+  const auto transform_file = dcm_dir / "QuarternionRigid3D_transform.txt"s;
   transform_writer->SetFileName(transform_file);
   transform_writer->Update();
 
@@ -129,8 +143,8 @@ auto get_signed_difference(const Rtss_roi_modern &wepl_voi,
                  std::begin(orig_voi.pslist), std::begin(output),
                  [/*&basis*/](const Rtss_contour_modern &wepl_contour,
                               const Rtss_contour_modern &orig_contour) {
-                   auto out_contour =
-                       std::vector<std::string>(orig_contour.coordinates.size());
+                   auto out_contour = std::vector<std::string>(
+                       orig_contour.coordinates.size());
                    std::transform(std::begin(wepl_contour.coordinates),
                                   std::end(wepl_contour.coordinates),
                                   /*std::begin(orig_contour.coordinates),*/

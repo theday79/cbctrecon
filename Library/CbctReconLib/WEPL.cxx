@@ -269,24 +269,26 @@ FloatVector operator-(const FloatVector lhs, const FloatVector rhs) {
 std::vector<FloatVector>
 distal_points_only(const Rtss_contour_modern &points,
                    const std::array<double, 3> &direction) {
-  const auto eps_scale = 1.0e-8;
-  const auto eps_dir = FloatVector{static_cast<float>(eps_scale * std::get<0>(direction)),
-                                   static_cast<float>(eps_scale * std::get<1>(direction)),
-                                   static_cast<float>(eps_scale * std::get<2>(direction))};
+  const auto eps_scale = 1.0;
+  const auto eps_dir =
+      FloatVector{static_cast<float>(eps_scale * std::get<0>(direction)),
+                  static_cast<float>(eps_scale * std::get<1>(direction)),
+                  static_cast<float>(eps_scale * std::get<2>(direction))};
 
   auto out = std::vector<FloatVector>();
-  std::copy_if(points.coordinates.begin(), points.coordinates.end(), std::back_inserter(out),
+  std::copy_if(points.coordinates.begin(), points.coordinates.end(),
+               std::back_inserter(out),
                [eps_dir, &points](const FloatVector point) {
                  return points.is_inside(point - eps_dir);
-      });
+               });
 
   return out;
 }
 
 std::vector<WEPLVector>
 DistalWEPLContourFromRtssContour(const Rtss_contour_modern &rt_contour,
-                           const std::array<double, 3> &vec_basis,
-                           const FloatImageType::Pointer &wepl_cube) {
+                                 const std::array<double, 3> &vec_basis,
+                                 const FloatImageType::Pointer &wepl_cube) {
   auto tmp_rt_contour = rt_contour;
   tmp_rt_contour.coordinates = distal_points_only(rt_contour, vec_basis);
   return WEPLContourFromRtssContour(tmp_rt_contour, vec_basis, wepl_cube);
@@ -544,7 +546,6 @@ ConvertUshort2WeplFloat(const UShortImageType::Pointer &spImgUshort) {
 
   return wepl_image;
 }
-
 
 } // namespace wepl
 

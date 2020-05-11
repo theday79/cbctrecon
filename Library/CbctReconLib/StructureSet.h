@@ -178,8 +178,8 @@ T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
 }
 
 template <typename T, unsigned char percent>
-hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
-                                        const Rtss_roi_modern &to_roi) {
+auto calculate_hausdorff(const Rtss_roi_modern &from_roi,
+                         const Rtss_roi_modern &to_roi) {
   static_assert(
       percent <= 100,
       "Percent should be less than 100 as a higher value doesn't make sense.");
@@ -212,8 +212,32 @@ hausdorff_result<T> calculate_hausdorff(const Rtss_roi_modern &from_roi,
       crl::ce_round((percent / 100.0) * static_cast<double>(distances.size())));
 
   hausdorff_output.h_percent = distances.at(percent_index);
-
   return hausdorff_output;
+}
+
+template <typename T, unsigned char percent>
+auto calculate_hausdorff_and_top5(const Rtss_roi_modern &from_roi,
+                                  const Rtss_roi_modern &to_roi) {
+  const auto hausdorff_output =
+      calculate_hausdorff<T, percent>(from_roi, to_roi);
+
+  // Return also a roi for displaying the top 5% points
+  auto top5 = std::make_unique<Rtss_roi_modern>();
+  top5->color = "0/127/127";
+  top5->name = "Top5%";
+  for (const auto &from_contour : from_roi.pslist) {
+    const auto &from_coords = from_contour.coordinates;
+    auto top5_contour = Rtss_contour_modern();
+    std::copy_if(from_coords.begin(), from_coords.end(),
+                 std::back_inserter(top5_contour.coordinates),
+                 [&to_roi, hausdorff_output](const auto &from_point) {
+                   return min_distance<T>(from_point, to_roi) >
+                          hausdorff_output.h_percent;
+                 });
+    top5->pslist.push_back(top5_contour);
+  }
+
+  return std::make_tuple(hausdorff_output, std::move(top5));
 }
 } // namespace crl
 

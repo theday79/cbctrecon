@@ -19,6 +19,8 @@ public:
   std::vector<QPoint> m_vPt;
   std::vector<QPoint> m_vPt_green;
   std::vector<QPoint> m_vPt_blue;
+  std::vector<QPoint> m_vPt_yellow;
+  std::vector<QPoint> m_vPt_magenta;
   bool m_bDrawPoints;
   int m_iMouseWheelDelta;
 

@@ -106,17 +106,35 @@ bool Rtss_modern::wait() {
   return this->ready;
 }
 
-bool Rtss_contour_modern::is_inside(const FloatVector point) const {
-  // Modified from: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-  const auto &vert = this->coordinates;
-  auto nvert = vert.size();
-  size_t i, j, c = 0;
-  for (i = 0, j = nvert - 1; i < nvert; j = i++) {
-    if (((vert[i].y > point.y) != (vert[j].y > point.y)) &&
-        (point.x < (vert[j].x - vert[i].x) * (point.y - vert[i].y) /
-                           (vert[j].y - vert[i].y) +
-                       vert[i].x))
-      c = !c;
+// Copyright 2000 softSurfer, 2012 Dan Sunday
+// This code may be freely used and modified for any purpose
+// providing that this copyright notice is included with it.
+// SoftSurfer makes no warranty for this code, and cannot be held
+// liable for any real or imagined damage resulting from its use.
+// Users of this code must verify correctness for their application.
+
+// cn_PnPoly(): crossing number test for a point in a polygon
+//      Input:   P = a point,
+//               V[] = vertex points of a polygon V[n+1] with V[n]=V[0]
+//      Return:  0 = outside, 1 = inside
+// This code is patterned after [Franklin, 2000]
+inline int cn_PnPoly(const FloatVector &P, const std::vector<FloatVector> &V) {
+  const auto n = V.size();
+  int cn = 0; // the  crossing number counter
+
+  // loop through all edges of the polygon
+  for (size_t i = 0; i < n; i++) {              // edge from V[i]  to V[i+1]
+    if (((V[i].y <= P.y) && (V[i + 1].y > P.y)) // an upward crossing
+        || ((V[i].y > P.y) && (V[i + 1].y <= P.y))) { // a downward crossing
+      // compute  the actual edge-ray intersect x-coordinate
+      float vt = (float)(P.y - V[i].y) / (V[i + 1].y - V[i].y);
+      if (P.x < V[i].x + vt * (V[i + 1].x - V[i].x)) // P.x < intersect
+        ++cn; // a valid crossing of y=P.y right of P.x
+    }
   }
-  return c == 1;
+  return (cn & 1); // 0 if even (out), and 1 if  odd (in)
+}
+
+bool Rtss_contour_modern::is_inside(const FloatVector point) const {
+  return cn_PnPoly(point, this->coordinates) == 1;
 }
