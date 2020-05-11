@@ -92,7 +92,8 @@ public:
                           UShortImageType::Pointer &spFixedDose,
                           UShortImageType::Pointer &spMovingDose);
 
-  void plm_dmap_main(const fs::path &img_in_fn, const fs::path &img_out_fn) const;
+  void plm_dmap_main(const fs::path &img_in_fn,
+                     const fs::path &img_out_fn) const;
   void plm_threshold_main(std::string &strRange, const fs::path &img_in_fn,
                           const fs::path &img_out_fn) const;
   void plm_mask_main(Mask_operation mask_option, const fs::path &input_fn,
@@ -106,15 +107,16 @@ public:
                                   const fs::path &strPath_msk_exp_cont,
                                   double fExpVal) const;
 
-  void plm_synth_trans_xf(const fs::path &strPath_fixed, const fs::path &strPath_out_xf,
-                          double transX, double transY, double transZ) const;
+  void plm_synth_trans_xf(const fs::path &strPath_fixed,
+                          const fs::path &strPath_out_xf, double transX,
+                          double transY, double transZ) const;
 
   fs::path gen_and_expand_skinmask_plm(const fs::path &mskSkinCT_manRegi_path,
-                                      const fs::path &XFAutoRigid_path,
-                                      const fs::path &rawCBCT_path,
-                                      double skinExp);
+                                       const fs::path &XFAutoRigid_path,
+                                       const fs::path &rawCBCT_path,
+                                       double skinExp);
   fs::path gen_bubble_mask_plm(float bubble_thresh, float bubble_fill,
-                              const fs::path &strPathOutputCBCT);
+                               const fs::path &strPathOutputCBCT);
 
   void ProcessCBCT_beforeDeformRegi(
       const fs::path &strPathRawCBCT, const fs::path &strPath_mskSkinCT_manRegi,
@@ -136,8 +138,9 @@ public:
                               int noTouchThreshold /*= 1100*/,
                               double innerMargin, double outerMargin) const;
 
-  void GenShellMask(const fs::path &strPathInputMask, const fs::path &strPathOutputMask,
-                    double fInnerMargin, double fOuterMargin) const;
+  void GenShellMask(const fs::path &strPathInputMask,
+                    const fs::path &strPathOutputMask, double fInnerMargin,
+                    double fOuterMargin) const;
 
   VEC3D GetIsocenterDCM_FromRTPlan(const fs::path &strFilePath) const;
 
@@ -152,12 +155,14 @@ public:
   std::unique_ptr<Rtss_roi_modern> WEPL_voi;
   std::unique_ptr<Rtss_roi_modern> extra_voi;
   std::unique_ptr<Rtss_roi_modern> cur_voi;
+  std::unique_ptr<Rtss_roi_modern> WEPL_voi_top5;
+  std::unique_ptr<Rtss_roi_modern> extra_voi_top5;
   bool dose_loaded = false;
 
-  fs::path m_strPathPlastimatch;     // full path
-  fs::path m_strPathCTSkin;          // shared data among functions
-  fs::path m_strPathCTSkin_autoRegi; // shared data among functions w/ margin (10
-                                    // mm), registered to CBCT
+  fs::path m_strPathPlastimatch;       // full path
+  fs::path m_strPathCTSkin;            // shared data among functions
+  fs::path m_strPathCTSkin_autoRegi;   // shared data among functions w/ margin
+                                       // (10 mm), registered to CBCT
   fs::path m_strPathCTSkin_deformRegi; // this is for WEPL calculation
   fs::path m_strPathXFAutoRigid;       // Updated during SLT_DoRegistrationRigid
   fs::path m_strPathMskCBCTBubble;     // Updated during SLT_DoRegistrationRigid

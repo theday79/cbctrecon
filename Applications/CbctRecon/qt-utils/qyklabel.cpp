@@ -1,5 +1,6 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
 
 #include "qyklabel.h"
 #include "AG17RGBAImage.h"
@@ -112,6 +113,24 @@ QImage *compose_image_with_overlay(QRect *rect, QImage *src, QImage *overlay) {
   return src;
 }
 
+template <Qt::GlobalColor COLOR, bool FILL = false>
+void paint_structure(QPainter &painter, const std::vector<QPoint> &points) {
+  constexpr auto pensize = 4;
+  const auto pen = QPen(COLOR, pensize);
+  painter.setPen(pen);
+  painter.drawPoints(points.data(), points.size());
+  const auto thin_pen = QPen(COLOR, pensize / 2);
+  painter.setPen(thin_pen);
+  painter.drawPolyline(points.data(), points.size());
+
+  if constexpr (FILL) {
+    painter.setBrush(QBrush(COLOR));
+    painter.setOpacity(.5);
+    painter.drawPolygon(points.data(), points.size(), Qt::WindingFill);
+    painter.setOpacity(1);
+  }
+}
+
 void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   QPainter painter(this);
   painter.setPen(QPen(Qt::black, 2));
@@ -171,18 +190,11 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
   }
 
   if (m_bDrawPoints) {
-    painter.setPen(QPen(Qt::red, 2));
-    for (auto &it : m_vPt) {
-      painter.drawPoint(it.x(), it.y());
-    }
-    painter.setPen(QPen(Qt::green, 2));
-    for (auto &it : m_vPt_green) {
-      painter.drawPoint(it.x(), it.y());
-    }
-    painter.setPen(QPen(Qt::blue, 2));
-    for (auto &it : m_vPt_blue) {
-      painter.drawPoint(it.x(), it.y());
-    }
+    paint_structure<Qt::red, true>(painter, m_vPt);
+    paint_structure<Qt::green>(painter, m_vPt_green);
+    paint_structure<Qt::blue>(painter, m_vPt_blue);
+    paint_structure<Qt::yellow>(painter, m_vPt_yellow);
+    paint_structure<Qt::magenta>(painter, m_vPt_magenta);
   }
   if (m_pYK16Image == nullptr) {
     return;
@@ -331,8 +343,8 @@ QPoint qyklabel::GetDataPtFromMousePos() const {
     return {0, 0};
   }
 
-  if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 && m_pYK16Image->m_iOffsetX == 0 &&
-      m_pYK16Image->m_iOffsetY == 0)
+  if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 &&
+      m_pYK16Image->m_iOffsetX == 0 && m_pYK16Image->m_iOffsetY == 0)
     return View2Data(QPoint(this->x, this->y), width(), height(),
                      m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
   return View2DataExt(
@@ -342,14 +354,14 @@ QPoint qyklabel::GetDataPtFromMousePos() const {
       m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) const {
+QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX,
+                                     const int viewPtY) const {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }
 
   if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 &&
-      m_pYK16Image->m_iOffsetX == 0 &&
-      m_pYK16Image->m_iOffsetY == 0)
+      m_pYK16Image->m_iOffsetX == 0 && m_pYK16Image->m_iOffsetY == 0)
     return View2Data(QPoint(viewPtX, viewPtY), width(), height(),
                      m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
   return View2DataExt(
@@ -359,14 +371,14 @@ QPoint qyklabel::GetDataPtFromViewPt(const int viewPtX, const int viewPtY) const
       m_pYK16Image->m_fZoom);
 }
 
-QPoint qyklabel::GetViewPtFromDataPt(const int dataPtX, const int dataPtY) const {
+QPoint qyklabel::GetViewPtFromDataPt(const int dataPtX,
+                                     const int dataPtY) const {
   if (m_pYK16Image == nullptr) {
     return {0, 0};
   }
 
   if (fabs(m_pYK16Image->m_fZoom - 1.0) < 0.001 &&
-      m_pYK16Image->m_iOffsetX == 0 &&
-      m_pYK16Image->m_iOffsetY == 0)
+      m_pYK16Image->m_iOffsetX == 0 && m_pYK16Image->m_iOffsetY == 0)
     return Data2View(QPoint(dataPtX, dataPtY), width(), height(),
                      m_pYK16Image->m_iWidth, m_pYK16Image->m_iHeight);
   return Data2ViewExt(

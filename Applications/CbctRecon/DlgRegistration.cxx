@@ -29,6 +29,8 @@ enum class enCOLOR {
   RED,
   GREEN,
   BLUE,
+  YELLOW,
+  MAGENTA,
 };
 
 DlgRegistration::DlgRegistration() {
@@ -173,6 +175,10 @@ template <enCOLOR color> auto get_qtpoint_vector(qyklabel *window) {
     return &window->m_vPt_green;
   case enCOLOR::BLUE:
     return &window->m_vPt_blue;
+  case enCOLOR::YELLOW:
+    return &window->m_vPt_yellow;
+  case enCOLOR::MAGENTA:
+    return &window->m_vPt_magenta;
   default:
     return &window->m_vPt_green;
   }
@@ -445,15 +451,49 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
         arr_wnd.at(refIdx % 3), p_extra_voi, curPhysPos, imgSpacing,
         imgOriginFixed, imgSize);
 
-    set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL,
-                        enCOLOR::BLUE>(arr_wnd.at((refIdx + 1) % 3),
-                                        p_extra_voi, curPhysPos, imgSpacing,
-                                        imgOriginFixed, imgSize);
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL, enCOLOR::BLUE>(
+        arr_wnd.at((refIdx + 1) % 3), p_extra_voi, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
 
     set_points_by_slice<UShortImageType, enPLANE::PLANE_SAGITTAL,
                         enCOLOR::BLUE>(arr_wnd.at((refIdx + 2) % 3),
-                                        p_extra_voi, curPhysPos, imgSpacing,
-                                        imgOriginFixed, imgSize);
+                                       p_extra_voi, curPhysPos, imgSpacing,
+                                       imgOriginFixed, imgSize);
+  }
+  if (m_cbctregistration->extra_voi_top5 != nullptr) {
+    const auto p_extra_voi_top5 = m_cbctregistration->extra_voi_top5.get();
+
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_AXIAL, enCOLOR::YELLOW>(
+        arr_wnd.at(refIdx % 3), p_extra_voi_top5, curPhysPos, imgSpacing,
+        imgOriginFixed, imgSize);
+
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL,
+                        enCOLOR::YELLOW>(arr_wnd.at((refIdx + 1) % 3),
+                                         p_extra_voi_top5, curPhysPos,
+                                         imgSpacing, imgOriginFixed, imgSize);
+
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_SAGITTAL,
+                        enCOLOR::YELLOW>(arr_wnd.at((refIdx + 2) % 3),
+                                         p_extra_voi_top5, curPhysPos,
+                                         imgSpacing, imgOriginFixed, imgSize);
+  }
+  if (m_cbctregistration->WEPL_voi_top5 != nullptr) {
+    const auto p_WEPL_voi_top5 = m_cbctregistration->WEPL_voi_top5.get();
+
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_AXIAL,
+                        enCOLOR::MAGENTA>(arr_wnd.at(refIdx % 3),
+                                          p_WEPL_voi_top5, curPhysPos,
+                                          imgSpacing, imgOriginFixed, imgSize);
+
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL,
+                        enCOLOR::MAGENTA>(arr_wnd.at((refIdx + 1) % 3),
+                                          p_WEPL_voi_top5, curPhysPos,
+                                          imgSpacing, imgOriginFixed, imgSize);
+
+    set_points_by_slice<UShortImageType, enPLANE::PLANE_SAGITTAL,
+                        enCOLOR::MAGENTA>(arr_wnd.at((refIdx + 2) % 3),
+                                          p_WEPL_voi_top5, curPhysPos,
+                                          imgSpacing, imgOriginFixed, imgSize);
   }
 
   SLT_DrawImageInFixedSlice();
@@ -2301,67 +2341,94 @@ void DlgRegistration::SLT_gPMCrecalc() {
   SLT_DrawImageWhenSliceChange();
 }
 
+auto get_rct_voiname(const std::string &rct_name,
+                     const std::string &orig_voi_name) {
+
+  const auto remove_space = orig_voi_name.back() == ' ' ? 1 : 0;
+  // length of "pCT" is 3, so:
+  const auto voi_postfix = std::string_view(
+      orig_voi_name.data() + 3, orig_voi_name.size() - (3 + remove_space));
+  const auto rct_voi_name = rct_name + std::string(voi_postfix);
+  std::cerr << "\"" << rct_voi_name << "\"\n";
+
+  return rct_voi_name;
+}
+
 void DlgRegistration::SLT_WEPLcalc() {
   // Get VOI
   const auto voi_name = this->ui.comboBox_VOI->currentText().toStdString();
 
-#pragma omp parallel sections
-  {
-#pragma omp section
-    {
-      const auto gantry_angle = this->ui.spinBox_GantryAngle->value();
-      const auto couch_angle = this->ui.spinBox_CouchAngle->value();
+  const auto gantry_angle = this->ui.spinBox_GantryAngle->value();
+  const auto couch_angle = this->ui.spinBox_CouchAngle->value();
 
-      const auto ct_type = get_ctType(ui.comboBoxImgMoving->currentText());
-      const auto ss = m_pParent->m_cbctrecon->m_structures->get_ss(ct_type);
-      m_cbctregistration->cur_voi = ss->get_roi_by_name(voi_name);
+  constexpr auto hd_pct = 95;
 
-      constexpr auto distal_only = true;
-      const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
-          m_cbctregistration->cur_voi.get(), gantry_angle, couch_angle,
-          m_spMoving, m_spFixed);
+  { // to keep the stack somewhat clean
+    const auto ct_type = get_ctType(ui.comboBoxImgMoving->currentText());
+    const auto ss = m_pParent->m_cbctrecon->m_structures->get_ss(ct_type);
+    m_cbctregistration->cur_voi = ss->get_roi_by_name(voi_name);
 
-      // Calculate Hausdorff distance from the original structure to the WEPL
-      // structure:
-      const auto &orig_voi = *(m_cbctregistration->cur_voi.get());
-      const auto distal_orig_voi =
-          crl::roi_to_distal_only_roi(orig_voi, gantry_angle, couch_angle);
-      constexpr auto hd_pct = 95;
-      const auto hd =
-          crl::calculate_hausdorff<float, hd_pct>(orig_voi, *wepl_voi);
-      std::cerr << hd_pct << "% Hausdorff Orig to WEPL: " << hd.h_percent
-                << "\n";
+    constexpr auto distal_only = true;
+    const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
+        m_cbctregistration->cur_voi.get(), gantry_angle, couch_angle,
+        m_spMoving, m_spFixed);
 
-      m_cbctregistration->cur_voi = std::make_unique<Rtss_roi_modern>(orig_voi);
-      m_cbctregistration->WEPL_voi =
-          std::make_unique<Rtss_roi_modern>(*wepl_voi);
-    }
-#pragma omp section
-    {
-      const auto rtss_dir = QFileDialog::getExistingDirectory(
-          this, "Open extra DCMRT Plan file (optional)",
-          to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault));
-      if (!rtss_dir.isEmpty()) {
-        // We create a cbctrecon object temporarily to read a seperate dicom dir
-        // and only return a single roi from the ss.
-        auto cr = CbctRecon();
-        if (crl::ReadDicomDir(&cr, to_path(rtss_dir))) {
-          const auto xform_file = QFileDialog::getOpenFileName(
-              this, "XForm file for registration of extra structures",
-              to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault),
-              "xform (*.txt)");
+    // Calculate Hausdorff distance from the original structure to the WEPL
+    // structure:
+    const auto &orig_voi = *(m_cbctregistration->cur_voi);
+    const auto distal_orig_voi =
+        crl::roi_to_distal_only_roi(orig_voi, gantry_angle, couch_angle);
+    const auto [hd, top5_wepl] =
+        crl::calculate_hausdorff_and_top5<float, hd_pct>(*wepl_voi, orig_voi);
+    std::cerr << hd_pct << "% Hausdorff WEPL to ORIG: " << hd.h_percent << "\n";
+    m_cbctregistration->WEPL_voi_top5 =
+        std::make_unique<Rtss_roi_modern>(*top5_wepl);
 
-          cr.m_structures->ApplyTransformTo<ctType::PLAN_CT>(
-              to_path(xform_file));
+    m_cbctregistration->cur_voi = std::make_unique<Rtss_roi_modern>(orig_voi);
+    m_cbctregistration->WEPL_voi = std::make_unique<Rtss_roi_modern>(*wepl_voi);
+  }
 
-          const auto extra_roi =
-              cr.m_structures->get_ss<ctType::RIGID_CT>()->get_roi_by_name(
-                  voi_name);
+  { // to keep the stack somewhat clean
+    const auto rtss_dir = QFileDialog::getExistingDirectory(
+        this, "Open extra DCMRT Plan file (optional)",
+        to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault),
+        QFileDialog::ShowDirsOnly);
+    if (!rtss_dir.isEmpty()) {
+      // We create a cbctrecon object temporarily to read a seperate dicom dir
+      // and only return a single roi from the ss.
+      auto cr = CbctRecon();
+      if (crl::ReadDicomDir(&cr, to_path(rtss_dir))) {
+        const auto xform_file = to_path(QFileDialog::getOpenFileName(
+            this, "XForm file for registration of extra structures",
+            to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault),
+            "xform (*.txt)"));
+
+        cr.m_structures->ApplyTransformTo<ctType::PLAN_CT>(xform_file);
+
+        const auto extra_roi_name =
+            get_rct_voiname(to_path(rtss_dir).filename(), voi_name);
+
+        const auto extra_roi =
+            cr.m_structures->get_ss<ctType::RIGID_CT>()->get_roi_by_name(
+                extra_roi_name);
+        if (extra_roi) {
+          const auto distal_extra_roi = crl::roi_to_distal_only_roi(
+              *extra_roi, gantry_angle, couch_angle);
           m_cbctregistration->extra_voi =
-              std::make_unique<Rtss_roi_modern>(extra_roi);
+              std::make_unique<Rtss_roi_modern>(distal_extra_roi);
         }
       }
     }
+  }
+
+  if (m_cbctregistration->extra_voi) {
+    const auto [hd, top5_extra] =
+        crl::calculate_hausdorff_and_top5<float, hd_pct>(
+            *m_cbctregistration->extra_voi, *m_cbctregistration->cur_voi);
+    std::cerr << hd_pct << "% Hausdorff Extra to ORIG: " << hd.h_percent
+              << "\n";
+    m_cbctregistration->extra_voi_top5 =
+        std::make_unique<Rtss_roi_modern>(*top5_extra);
   }
   // Draw WEPL
   SLT_DrawImageWhenSliceChange();
