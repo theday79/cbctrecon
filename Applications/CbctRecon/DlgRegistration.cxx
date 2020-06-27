@@ -2406,7 +2406,7 @@ void DlgRegistration::SLT_WEPLcalc() {
         cr.m_structures->ApplyTransformTo<ctType::PLAN_CT>(xform_file);
 
         const auto extra_roi_name =
-            get_rct_voiname(to_path(rtss_dir).filename(), voi_name);
+            get_rct_voiname(to_path(rtss_dir).filename().string(), voi_name);
 
         const auto extra_roi =
             cr.m_structures->get_ss<ctType::RIGID_CT>()->get_roi_by_name(

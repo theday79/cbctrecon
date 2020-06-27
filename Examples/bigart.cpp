@@ -110,7 +110,7 @@ get_image_from_dicom(const fs::path &dcm_dir,
   auto transform_writer = itk::TransformFileWriterTemplate<double>::New();
   transform_writer->SetInput(transform);
   const auto transform_file = dcm_dir / "QuarternionRigid3D_transform.txt"s;
-  transform_writer->SetFileName(transform_file);
+  transform_writer->SetFileName(transform_file.string());
   transform_writer->Update();
 
   cbctrecon_test->m_cbctrecon->m_structures->ApplyTransformTo<ctType::PLAN_CT>(
