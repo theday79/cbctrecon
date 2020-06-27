@@ -8,7 +8,7 @@ RUN apt update \
     && apt install -y \
         ninja-build g++ qt5-default \
         libfftw3-dev libtinfo-dev libeigen3-dev \
-        libdcmtk-dev libgdcm2-dev valgrind \
+        libdcmtk-dev libgdcm-dev valgrind \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -20,16 +20,16 @@ RUN cd /usr/share/cmake/Modules/ \
         -P tbb_config_installer.cmake
 
 # The flag -DLIBCXX_ENABLE_PARALLEL_ALGORITHMS=ON  creates problems in cmake config.
+        # -D LLVM_ENABLE_PROJECTS="clang;lld;libcxx;libcxxabi;openmp;libclc;pstl"
+        # -D LIBCXX_ENABLE_PARALLEL_ALGORITHMS=ON \
 RUN git clone https://github.com/llvm/llvm-project.git --depth=1 --shallow-submodules \
     && cd llvm-project \
     && mkdir build \
     && cd build \
     && cmake -GNinja ../llvm \
-        -D LLVM_ENABLE_PROJECTS="clang;lld;libcxx;libcxxabi;openmp;libclc;pstl" \
-        -D LLVM_EXTERNAL_PSTL_SOURCE_DIR="../pstl" \
+        -D LLVM_ENABLE_PROJECTS="all" \
         -D CMAKE_BUILD_TYPE=Release \
         -D PSTL_PARALLEL_BACKEND="tbb" \
-        -D LIBCXX_ENABLE_PARALLEL_ALGORITHMS=ON \
     && ninja \
     && ninja install \
     && cd ../.. \

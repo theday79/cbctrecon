@@ -1,4 +1,4 @@
-FROM andreasga/cbctrecon:gcc-9-x86_64
+FROM andreasga/cbctrecon:gcc-10-x86_64
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
@@ -7,15 +7,15 @@ RUN apt-get update \
     && apt-get install -y software-properties-common \
     && add-apt-repository ppa:ubuntu-toolchain-r/test \
     && apt-get update \
-    && apt-get install -y gcc-9 g++-9 lcov \
+    && apt-get install -y gcc-10 g++-10 lcov \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 USER user
 
 # ITK
-RUN export CC=/usr/bin/gcc-9 \
-    && export CXX=/usr/bin/g++-9 \
+RUN export CC=/usr/bin/gcc-10 \
+    && export CXX=/usr/bin/g++-10 \
     && export CXXFLAGS="-I/usr/include -I/usr/include/tbb -fopenmp-simd" \
     && export LDFLAGS="-L/usr/lib/x86_64-linux-gnu -ltbb" \
     && cd /home/user/ \

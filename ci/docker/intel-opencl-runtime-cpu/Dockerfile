@@ -3,7 +3,9 @@ MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
 
-RUN apt update \
+# noninteractive is necessary for installing tzdata (i'm not sure which package requires it)
+RUN export DEBIAN_FRONTEND="noninteractive" \
+    && apt update \
     && echo "Install dependencies for Intel OpenCL runtime" \
     && apt install -y numactl libtbb2 zlib1g libncurses5 wget tar gzip libarchive-tools \
         ocl-icd-opencl-dev clinfo libtbb-dev libdlib-dev libopenblas-dev liblapack-dev \

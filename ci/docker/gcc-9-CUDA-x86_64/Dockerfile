@@ -34,26 +34,24 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
     && rm -rf /var/lib/apt/lists/*
 # From libsqlite3-dev and forward is just explicit pip dependencies
 
-# We need GCC 9 for proper C++17 support
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test \
-    && apt update \
-    && apt install -y gcc-9 g++-9 \
-    && rm -rf /var/lib/apt/lists/*
 
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
 # Reference: https://github.com/clab/dynet/issues/1457
 RUN mkdir /opt/cmake && cd /opt/cmake \
-    && wget -nv https://cmake.org/files/v3.16/cmake-3.16.4-Linux-x86_64.sh \
-    && sh cmake-3.16.4-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && wget -nv https://cmake.org/files/v3.17/cmake-3.17.2-Linux-x86_64.sh \
+    && sh cmake-3.17.2-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
-    && rm cmake-3.16.4-Linux-x86_64.sh \
+    && rm cmake-3.17.2-Linux-x86_64.sh \
     && cmake --version
 
 # Get a newer version of TBB, Qt and dlib
-RUN echo "deb http://archive.ubuntu.com/ubuntu/ eoan main universe" >> /etc/apt/sources.list \
+# We need at least GCC 9 for proper C++17 support
+# noninteractive to install tzdata (maybe a dependency of qt or dlib?)
+RUN export DEBIAN_FRONTEND="noninteractive" \
+    && echo "deb http://archive.ubuntu.com/ubuntu/ focal main universe" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y libtbb-dev qt5-default libdlib-dev \
+    && apt install -y gcc-10 g++-10 libtbb-dev qt5-default libdlib-dev \
     && rm -rf /var/lib/apt/lists/* \
     && cd /usr/share/cmake/Modules/ \
     && cmake -DINSTALL_DIR=/usr/lib/cmake/TBB \
@@ -112,7 +110,7 @@ RUN cd /home/user/ \
     && sed -i 's/GIT_TAG .*/GIT_TAG master/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
-    && export CC=gcc-9 && export CXX=g++-9 \
+    && export CC=gcc-10 && export CXX=g++-10 \
     && export CXXFLAGS="-fopenmp-simd" \
     && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 \
       -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
