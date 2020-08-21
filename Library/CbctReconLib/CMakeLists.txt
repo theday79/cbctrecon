@@ -32,14 +32,45 @@ configure_file (
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 
-if(RTK_USE_OPENCL)
-  set(RTK_OPENCL_SRC
-    rtkExtension/rtkOpenCLUtilities.cxx
-    rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
-    rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
-    OpenCL/ForwardProjectionImageFilter.cpp
-  )
+if(USE_OPENCL)
+  if(RTK_USE_OPENCL)
+    set(RTK_OPENCL_SRC
+      rtkExtension/rtkOpenCLUtilities.cxx
+      rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.cxx
+      rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.cxx
+      OpenCL/ForwardProjectionImageFilter.cpp
+    )
+  endif()
+
+  set(OPENCLEXT_SOURCES
+    ${RTK_OPENCL_SRC}
+    OpenCL/ImageFilters.cxx
+    OpenCL/device_picker.cpp
+    OpenCL/err_code.cpp
+    )
+
+  set(OPENCLEXT_HEADERS
+    rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
+    rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
+    rtkExtension/rtkOpenCLFFTRampImageFilter.h
+    rtkExtension/rtkOpenCLFFTConvolutionImageFilter.h
+    rtkExtension/rtkOpenCLFFTConvolutionImageFilter.hxx
+    rtkExtension/itkOpenCLImageToImageFilter.h
+    rtkExtension/itkOpenCLImageToImageFilter.hxx
+    rtkExtension/rtkOpenCLUtilities.h
+    rtkExtension/rtkOpenCLForwardProjectionImageFilter.h
+    rtkExtension/rtkOpenCLForwardProjectionImageFilter.hxx
+    OpenCL/ForwardProjectionImageFilter.hpp
+    OpenCL/ImageFilters.hpp
+    OpenCL/device_picker.hpp
+    OpenCL/err_code.hpp
+    )
+elseif(USE_SYCL)
+  add_subdirectory(SYCLext)
+else()
+    message(FATAL_ERROR "Either SYCL or OPENCL should be enabled!")
 endif()
+
 
 ############## Qt start wrapping ##############
 SET(CbctReconLib_SOURCES
@@ -54,11 +85,8 @@ SET(CbctReconLib_SOURCES
   cbctrecon_compute.cxx
   cbctrecon_fdk.cxx
   cbctrecon_fdk.hxx
-  ${RTK_OPENCL_SRC}
-  OpenCL/ImageFilters.cxx
-  OpenCL/device_picker.cpp
-  OpenCL/err_code.cpp
   free_functions.cpp
+  ${OPENCLEXT_SOURCES}
 )
 
 SET(CbctReconLib_HEADERS
@@ -73,20 +101,7 @@ SET(CbctReconLib_HEADERS
   cbctrecon_compute.h
   StructureSet.h
   free_functions.h
-  rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
-  rtkExtension/rtkOpenCLFDKBackProjectionImageFilter.h
-  rtkExtension/rtkOpenCLFFTRampImageFilter.h
-  rtkExtension/rtkOpenCLFFTConvolutionImageFilter.h
-  rtkExtension/rtkOpenCLFFTConvolutionImageFilter.hxx
-  rtkExtension/itkOpenCLImageToImageFilter.h
-  rtkExtension/itkOpenCLImageToImageFilter.hxx
-  rtkExtension/rtkOpenCLUtilities.h
-  rtkExtension/rtkOpenCLForwardProjectionImageFilter.h
-  rtkExtension/rtkOpenCLForwardProjectionImageFilter.hxx
-  OpenCL/ForwardProjectionImageFilter.hpp
-  OpenCL/ImageFilters.hpp
-  OpenCL/device_picker.hpp
-  OpenCL/err_code.hpp
+  ${OPENCLEXT_HEADERS}
   ${CMAKE_CURRENT_BINARY_DIR}/cbctrecon_config.h
 )
 
@@ -103,6 +118,10 @@ add_library(CbctReconLib ${SHARED_FLAG}
   ${CbctReconLib_SOURCES}
   ${CbctReconLib_HEADERS}
   )
+
+if(USE_SYCL)
+  target_link_libraries(CbctReconLib PUBLIC sycl_ext)
+endif()
 
 # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
 set_target_cpu_flags(CbctReconLib)

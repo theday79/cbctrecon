@@ -245,9 +245,9 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
   typename ImageType::Pointer targetImg;
 
-  if (Tdev == enDeviceType::OPENCL_DEVT) {
+  if constexpr (Tdev == enDeviceType::OPENCL_DEVT) {
 #ifdef RTK_USE_OPENCL
-    std::cout << "Starting RTK fdk" << std::endl;
+    std::cout << "OpenCL will be used for FDK reconstruction" << std::endl;
     targetImg = RTKOpenCLFDK<ImageType>(spCurImg, m_spCustomGeometry, spacing,
                                         sizeOutput, fdk_options);
 #else
@@ -273,7 +273,11 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
     typename FDKType::Pointer feldkamp = FDKType::New();
 
-    std::cout << "CUDA will be used for FDK reconstruction" << std::endl;
+    if constexpr (Tdev == enDeviceType::CUDA_DEVT) {
+      std::cout << "CUDA will be used for FDK reconstruction" << std::endl;
+    } else {
+      std::cout << "CPU will be used for FDK reconstruction" << std::endl;
+    }
     feldkamp->SetInput(0, constantImageSource->GetOutput());
     feldkamp->SetInput(1, spCurImg);
     feldkamp->SetGeometry(m_spCustomGeometry);

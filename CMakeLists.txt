@@ -62,6 +62,14 @@ option(USE_HUNTER_Eigen "ON=Use Eigen from Hunter, OFF=Use Hunter in ITK." OFF)
 
 option(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 option(USE_OPENMP "Toggle OpenMP on or off" ON)
+option(USE_OPENCL "Use OpenCL as compute backend" ON)
+option(USE_SYCL "Use SYCL as compute backend" OFF)
+if( USE_SYCL AND USE_OPENCL )
+    message(FATAL_ERROR "Only one compute backend is allowed")
+elseif(NOT USE_SYCL AND NOT USE_OPENCL)
+    message(FATAL_ERROR "At least one compute backend must be selected")
+endif()
+
 option(USE_ITK_DCMTK "Toggle DCMTK on or off" OFF)
 option(USE_ITK_GDCM "Toggle GDCM on or off" ON)
 option(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because it doesn't yet work
