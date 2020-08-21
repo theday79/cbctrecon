@@ -23,7 +23,9 @@ ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ## end OpenCL driver
 
-RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
+# noninteractive to install tzdata
+RUN export DEBIAN_FRONTEND="noninteractive" \
+    && echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
     && apt update \
     && apt install -y ninja-build gcc-8 g++-8 git \
         libfftw3-dev libtinfo-dev libeigen3-dev \
