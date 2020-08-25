@@ -2100,13 +2100,21 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
 
     const auto scatDirName = "cor_" + m_strDCMUID;
 
-    if (!fs::create_directory(crntDir / scatDirName)) {
+    auto strSavingFolder = fs::absolute(crntDir) / scatDirName;
+    if (fs::exists(strSavingFolder)) {
       std::cout << "Corrected projection directory seems to exist already. "
                    "Files will be overwritten."
                 << std::endl;
     }
+     else {
+      try {
+        fs::create_directory(strSavingFolder);
+      } catch (std::exception &e) {
+        std::cerr << "Could not create folder for saving corrected image:\n"
+                  << e.what() << "\n";
+      }
+    }
 
-    auto strSavingFolder = fs::absolute(crntDir) / scatDirName;
 
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
       if (!bHighResolMacro) {
