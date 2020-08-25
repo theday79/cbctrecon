@@ -83,7 +83,9 @@ Ubuntu-icc21-oneAPI:
       - docker
     image: andreasga/cbctrecon:icc-21-oneAPI-x86_64
     script:
+      - export pre_setvars_path=$PATH
       - source /opt/intel/inteloneapi/setvars.sh
+      - export PATH=$PATH:$pre_setvars_path
       - export CC=icc
       - export CXX=icpc
       - ./ci/ci.sh
