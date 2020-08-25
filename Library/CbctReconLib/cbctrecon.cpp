@@ -1914,13 +1914,21 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     const auto scatDirName = "sca_" + m_strDCMUID;
 
-    if (!fs::create_directory(crntDir / scatDirName)) {
-      std::cout << "Scatter map directory seems to exist already. Files will "
-                   "be overwritten."
+    auto strSavingFolder = fs::absolute(crntDir) / scatDirName;
+    if (fs::exists(strSavingFolder)) {
+      std::cout << "Scatter map directory seems to exist already. "
+                   "Files will be overwritten."
                 << std::endl;
     }
+     else {
+      try {
+        fs::create_directory(strSavingFolder);
+      } catch (std::exception &e) {
+        std::cerr << "Could not create folder for saving scatter map:\n"
+                  << e.what() << "\n";
+      }
+    }
 
-    auto strSavingFolder = crntDir / scatDirName;
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
       SaveProjImageAsHIS(spProjScat3D, m_arrYKBufProj, strSavingFolder,
                          m_fResampleF);
