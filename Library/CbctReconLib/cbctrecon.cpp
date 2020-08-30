@@ -2116,7 +2116,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
     }
      else {
       try {
-        fs::create_directory(strSavingFolder);
+        fs::create_directories(strSavingFolder);
       } catch (std::exception &e) {
         std::cerr << "Could not create folder for saving corrected image:\n"
                   << e.what() << "\n";
