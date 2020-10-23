@@ -94,10 +94,10 @@ int main(const int argc, char *argv[]) {
       const auto sum = std::accumulate(
           std::begin(contour.coordinates), std::end(contour.coordinates), start,
           [](auto acc_val, auto val) {
-            return FloatVector{val.x + acc_val.x, val.y + acc_val.y,
-                               val.z + acc_val.z};
+            return val + acc_val; /* FloatVector(val[0] + acc_val[0], val[1] +
+                               acc_val[1], val[2] + acc_val[2]);*/
           });
-      super_sum += sum.x + sum.y + sum.z;
+      super_sum += sum.sum(); // sum.x + sum.y + sum.z;
     }
 
     if (*true_super_sum == float_to_hex(super_sum)) {

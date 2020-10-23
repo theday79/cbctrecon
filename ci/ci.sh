@@ -10,8 +10,8 @@ export COMMON_FLAGS=".. -GNinja -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=Relea
 # Eigen should be included in ITK if necessary:
 export COMMON_SYSTEM_LIBS="-DUSE_SYSTEM_ZLIB=ON -DUSE_SYSTEM_dlib=ON -DUSE_SYSTEM_DCMTK=ON -DHUNTER_ENABLED=OFF -DUSE_SYSTEM_Plastimatch=OFF"
 
-if [ -d /usr/local/lib/cmake/ITK-5.1 ]; then # Use system ITK and RTK
-    export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=ON -DITK_DIR=/usr/local/lib/cmake/ITK-5.1/"
+if [ -d /usr/local/lib/cmake/ITK-5.2 ]; then # Use system ITK and RTK
+    export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=ON -DITK_DIR=/usr/local/lib/cmake/ITK-5.2/"
 else
     export COMMON_NONSYSTEM_ITK="-DUSE_SYSTEM_ITK=OFF -DITK_USE_SYSTEM_DCMTK=ON -DUSE_ITK_DCMTK=OFF -DUSE_HUNTER_Eigen=OFF -DModule_RTK_GIT_TAG=master"
 fi

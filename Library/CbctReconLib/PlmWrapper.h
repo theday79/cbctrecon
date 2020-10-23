@@ -2,6 +2,7 @@
 #define PLMWRAPPER_H
 
 #include <memory>
+#include <optional>
 #include <thread>
 
 #undef TIMEOUT
@@ -21,7 +22,11 @@ struct CBCTRECON_API Rtss_contour_modern { // : public Rtss_contour {
   /* Plastimatch specific */
   int slice_no = -1;
   std::string ct_slice_uid = "";
+  FloatVector centre;
+  FloatVector get_centre() const;
   bool is_inside(FloatVector point) const;
+  bool is_distal(FloatVector point, FloatVector point_in_plane,
+                 FloatVector direction) const;
 };
 
 struct CBCTRECON_API Rtss_roi_modern { // : public Rtss_roi {

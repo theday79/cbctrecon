@@ -200,13 +200,36 @@ using VnlVectorType = vnl_vector_fixed<double, 3U>;
 using VectorFieldType = itk::Image<ItkVectorType, 3U>;
 using PointType = itk::Point<double, 3U>;
 // Sorry, I can't control myself, I just love std::function
-using TransformType = std::function<VnlVectorType(const VnlVectorType &)>;
 
-struct FloatVector {
+using FloatVector = vnl_vector_fixed<float, 3U>;
+
+template <typename T, typename U, size_t N>
+constexpr vnl_vector_fixed<T, N>
+static_vec_cast(const vnl_vector_fixed<U, N> &vec) {
+  static_assert(std::is_convertible_v<T, U>, "T is not convertible to U");
+  vnl_vector_fixed<T, N> out;
+  for (auto i = 0ul; i < N; ++i) {
+    out[i] = static_cast<T>(vec[i]);
+  }
+  return out;
+}
+
+template <typename T, typename U, size_t N>
+constexpr vnl_vector_fixed<T, N> static_vec_cast(const vnl_vector<U> &vec) {
+  static_assert(std::is_convertible_v<T, U>, "T is not convertible to U");
+  vnl_vector_fixed<T, N> out;
+  for (auto i = 0ul; i < N; ++i) {
+    out[i] = static_cast<T>(vec[i]);
+  }
+  return out;
+}
+
+using TransformType = std::function<FloatVector(const FloatVector &)>;
+/*struct FloatVector {
   float x;
   float y;
   float z;
-};
+};*/
 
 struct WEPLVector {
   double WEPL;

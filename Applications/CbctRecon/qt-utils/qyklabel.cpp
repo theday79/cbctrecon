@@ -119,9 +119,9 @@ void paint_structure(QPainter &painter, const std::vector<QPoint> &points) {
   const auto pen = QPen(COLOR, pensize);
   painter.setPen(pen);
   painter.drawPoints(points.data(), points.size());
-  const auto thin_pen = QPen(COLOR, pensize / 2);
-  painter.setPen(thin_pen);
-  painter.drawPolyline(points.data(), points.size());
+  // const auto thin_pen = QPen(COLOR, pensize / 2);
+  // painter.setPen(thin_pen);
+  // painter.drawPolyline(points.data(), points.size());
 
   if constexpr (FILL) {
     painter.setBrush(QBrush(COLOR));
@@ -191,6 +191,7 @@ void qyklabel::paintEvent(QPaintEvent * /*unused*/) {
 
   if (m_bDrawPoints) {
     paint_structure<Qt::red, true>(painter, m_vPt);
+    paint_structure<Qt::darkRed>(painter, m_vPt_darkred);
     paint_structure<Qt::green>(painter, m_vPt_green);
     paint_structure<Qt::blue>(painter, m_vPt_blue);
     paint_structure<Qt::yellow>(painter, m_vPt_yellow);

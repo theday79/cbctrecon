@@ -66,7 +66,7 @@ static bool
 QString_Matches(const QString &str, const QString &pattern,
                 const Qt::MatchFlags &flags = (Qt::MatchCaseSensitive |
                                                Qt::MatchFixedString)) {
-  if (flags.testFlag(Qt::MatchRegExp)) {
+  if (flags.testFlag(Qt::MatchRegularExpression)) {
     QRegularExpression::PatternOptions options =
         QRegularExpression::NoPatternOption;
     if (!flags.testFlag(Qt::MatchCaseSensitive)) {
@@ -207,8 +207,7 @@ public:
   }
 
   void setItemText(const size_t index, const QString &text) {
-    if (!m_editable ||
-        m_container.size() <= static_cast<size_t>(index)) {
+    if (!m_editable || m_container.size() <= static_cast<size_t>(index)) {
       return;
     }
     m_container.at(index).first = text;

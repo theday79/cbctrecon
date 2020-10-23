@@ -27,6 +27,7 @@ using namespace std::literals;
 
 enum class enCOLOR {
   RED,
+  DARKRED,
   GREEN,
   BLUE,
   YELLOW,
@@ -171,6 +172,8 @@ template <enCOLOR color> auto get_qtpoint_vector(qyklabel *window) {
   switch (color) {
   case enCOLOR::RED:
     return &window->m_vPt;
+  case enCOLOR::DARKRED:
+    return &window->m_vPt_darkred;
   case enCOLOR::GREEN:
     return &window->m_vPt_green;
   case enCOLOR::BLUE:
@@ -218,30 +221,30 @@ auto set_points_by_slice(qyklabel *window, Rtss_roi_modern *voi,
     }
     const auto first_point = contour.coordinates.at(0);
     // Axial
-    if (first_point.z > curPhysPos[0] - imgSpacing[2] &&
-        first_point.z < curPhysPos[0] + imgSpacing[2] &&
+    if (first_point[2] > curPhysPos[0] - imgSpacing[2] &&
+        first_point[2] < curPhysPos[0] + imgSpacing[2] &&
         plane == enPLANE::PLANE_AXIAL) {
       for (auto point : contour.coordinates) {
-        Wnd_contour->emplace_back((point.x - imgOriginFixed[0]) / x_scale,
-                                  (point.y - imgOriginFixed[1]) / y_scale);
+        Wnd_contour->emplace_back((point[0] - imgOriginFixed[0]) / x_scale,
+                                  (point[1] - imgOriginFixed[1]) / y_scale);
       }
     }
     for (auto &point : contour.coordinates) {
       // Frontal
-      if (point.y > curPhysPos[1] - imgSpacing[1] &&
-          point.y < curPhysPos[1] + imgSpacing[1] &&
+      if (point[1] > curPhysPos[1] - imgSpacing[1] &&
+          point[1] < curPhysPos[1] + imgSpacing[1] &&
           plane == enPLANE::PLANE_FRONTAL) {
-        Wnd_contour->emplace_back((point.x - imgOriginFixed[0]) / x_scale,
+        Wnd_contour->emplace_back((point[0] - imgOriginFixed[0]) / x_scale,
                                   wnd_height -
-                                      (point.z - imgOriginFixed[2]) / y_scale);
+                                      (point[2] - imgOriginFixed[2]) / y_scale);
       }
       // Sagittal
-      if (point.x > curPhysPos[2] - imgSpacing[0] &&
-          point.x < curPhysPos[2] + imgSpacing[0] &&
+      if (point[0] > curPhysPos[2] - imgSpacing[0] &&
+          point[0] < curPhysPos[2] + imgSpacing[0] &&
           plane == enPLANE::PLANE_SAGITTAL) {
-        Wnd_contour->emplace_back((point.y - imgOriginFixed[1]) / x_scale,
+        Wnd_contour->emplace_back((point[1] - imgOriginFixed[1]) / x_scale,
                                   wnd_height -
-                                      (point.z - imgOriginFixed[2]) / y_scale);
+                                      (point[2] - imgOriginFixed[2]) / y_scale);
       }
     }
   }
@@ -391,8 +394,8 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   // strPos3.sprintf("%3.1f", curPhysPos[2]);
 
   this->ui.lineEditCurPosX->setText(to_qstr(crl::stringify(curPhysPos[0])));
-  this->ui.lineEditCurPosY->setText(to_qstr(crl::stringify(curPhysPos[0])));
-  this->ui.lineEditCurPosZ->setText(to_qstr(crl::stringify(curPhysPos[0])));
+  this->ui.lineEditCurPosY->setText(to_qstr(crl::stringify(curPhysPos[1])));
+  this->ui.lineEditCurPosZ->setText(to_qstr(crl::stringify(curPhysPos[2])));
 
   ////Update Origin text box
   auto imgOriginFixed = m_spFixed->GetOrigin();
@@ -428,6 +431,28 @@ void DlgRegistration::SLT_DrawImageWhenSliceChange() {
   }
 
   if (m_cbctregistration->WEPL_voi != nullptr) {
+    if (m_cbctregistration->cur_voi != nullptr) {
+      const auto gantry_angle = this->ui.spinBox_GantryAngle->value();
+      const auto couch_angle = this->ui.spinBox_CouchAngle->value();
+      const auto &orig_voi = *(m_cbctregistration->cur_voi);
+      auto p_cur_voi_distal =
+          crl::roi_to_distal_only_roi(orig_voi, gantry_angle, couch_angle);
+
+      set_points_by_slice<UShortImageType, enPLANE::PLANE_AXIAL,
+                          enCOLOR::DARKRED>(
+          arr_wnd.at(refIdx % 3), &p_cur_voi_distal, curPhysPos, imgSpacing,
+          imgOriginFixed, imgSize);
+
+      set_points_by_slice<UShortImageType, enPLANE::PLANE_FRONTAL,
+                          enCOLOR::DARKRED>(
+          arr_wnd.at((refIdx + 1) % 3), &p_cur_voi_distal, curPhysPos,
+          imgSpacing, imgOriginFixed, imgSize);
+
+      set_points_by_slice<UShortImageType, enPLANE::PLANE_SAGITTAL,
+                          enCOLOR::DARKRED>(
+          arr_wnd.at((refIdx + 2) % 3), &p_cur_voi_distal, curPhysPos,
+          imgSpacing, imgOriginFixed, imgSize);
+    }
     const auto p_wepl_voi = m_cbctregistration->WEPL_voi.get();
 
     set_points_by_slice<UShortImageType, enPLANE::PLANE_AXIAL, enCOLOR::GREEN>(
@@ -505,7 +530,7 @@ void DlgRegistration::whenFixedImgLoaded() const {
     return;
   }
 
-  auto imgSize = m_spFixed->GetRequestedRegion().GetSize(); // 1016x1016 x z
+  auto imgSize = m_spFixed->GetBufferedRegion().GetSize(); // 1016x1016 x z
 
   // to avoid first unnecessary action.
   disconnect(this->ui.sliderPosDisp1, SIGNAL(valueChanged(int)), this,
