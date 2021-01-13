@@ -1,17 +1,27 @@
 #ifndef SYCLEXT_FUNCTIONS_HPP
 #define SYCLEXT_FUNCTIONS_HPP
 
-#include "itk_sycl_wrapper.hpp"
+// #include "itk_sycl_wrapper.hpp"
+
+#include <CL/sycl.hpp>
 
 #include "syclext_utils.hpp"
 
 namespace crl {
 namespace sycl {
+namespace util {
+template <typename T> class image_buffer {
+
+private:
+  T *m_data = nullptr;
+  size_t m_size = 0;
+};
+} // namespace util
 
 template <typename T> class add;
 
 template <typename T, size_t D>
-void add_const_inplace(util::itk_image_buffer<T, D> &image, const T value) {
+void add_const_inplace(util::image_buffer<T> &image, const T value) {
   using namespace cl::sycl;
 
   auto size = image.size();

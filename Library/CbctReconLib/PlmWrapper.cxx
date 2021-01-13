@@ -2,17 +2,32 @@
 // it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
 // http://www.viva64.com
 
+#include <execution>
 #include <memory>
+#include <numeric>
 
 #include "PlmWrapper.h"
 #include <itkImageRegionIterator.h>
+
+struct RawFloatVector {
+  float x;
+  float y;
+  float z;
+  RawFloatVector(FloatVector vec);
+};
+
+RawFloatVector::RawFloatVector(FloatVector vec) {
+  x = vec[0];
+  y = vec[1];
+  z = vec[2];
+}
 
 VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   /*return this->convert_gpuit_to_itk<VectorFieldType::Pointer, float(*)[3]>(
     vol);*/
 
   using ImageType = VectorFieldType;
-  const auto img = reinterpret_cast<FloatVector *>(vol->img);
+  const auto img = reinterpret_cast<RawFloatVector *>(vol->img);
   ImageType::SizeType sz;
   ImageType::IndexType st;
   ImageType::RegionType rg;
@@ -47,10 +62,10 @@ VectorFieldType::Pointer Plm_image_friend::friend_convert_to_itk(Volume *vol) {
   IteratorType it(itk_img, rg);
   size_t i;
   for (it.GoToBegin(), i = 0; !it.IsAtEnd(); ++it, ++i) {
-    auto vec = itk::Vector<float, 3>();
-    vec.SetElement(0, img[i].x);
-    vec.SetElement(1, img[i].y);
-    vec.SetElement(2, img[i].z);
+    ImageType::PixelType vec;
+    vec[0] = img[i].x;
+    vec[1] = img[i].y;
+    vec[2] = img[i].z;
     it.Set(vec);
   }
 
@@ -118,17 +133,20 @@ bool Rtss_modern::wait() {
 //               V[] = vertex points of a polygon V[n+1] with V[n]=V[0]
 //      Return:  0 = outside, 1 = inside
 // This code is patterned after [Franklin, 2000]
-inline int cn_PnPoly(const FloatVector &P, const std::vector<FloatVector> &V) {
+inline int cn_PnPoly(const RawFloatVector &P,
+                     const std::vector<FloatVector> &V) {
   const auto n = V.size();
   int cn = 0; // the  crossing number counter
 
   // loop through all edges of the polygon
-  for (size_t i = 0; i < n; i++) {              // edge from V[i]  to V[i+1]
-    if (((V[i].y <= P.y) && (V[i + 1].y > P.y)) // an upward crossing
-        || ((V[i].y > P.y) && (V[i + 1].y <= P.y))) { // a downward crossing
+  for (size_t i = 0; i < n; i++) { // edge from V[i]  to V[i+1]
+    auto V_crnt = RawFloatVector(V[i]);
+    auto V_next = RawFloatVector(V[i + 1]);
+    if (((V_crnt.y <= P.y) && (V_next.y > P.y))       // an upward crossing
+        || ((V_crnt.y > P.y) && (V_next.y <= P.y))) { // a downward crossing
       // compute  the actual edge-ray intersect x-coordinate
-      float vt = (float)(P.y - V[i].y) / (V[i + 1].y - V[i].y);
-      if (P.x < V[i].x + vt * (V[i + 1].x - V[i].x)) // P.x < intersect
+      float vt = (float)(P.y - V_crnt.y) / (V_next.y - V_crnt.y);
+      if (P.x < V_crnt.x + vt * (V_next.x - V_crnt.x)) // P.x < intersect
         ++cn; // a valid crossing of y=P.y right of P.x
     }
   }
@@ -136,5 +154,22 @@ inline int cn_PnPoly(const FloatVector &P, const std::vector<FloatVector> &V) {
 }
 
 bool Rtss_contour_modern::is_inside(const FloatVector point) const {
-  return cn_PnPoly(point, this->coordinates) == 1;
+  return cn_PnPoly(RawFloatVector(point), this->coordinates) == 1;
+}
+
+FloatVector Rtss_contour_modern::get_centre() const {
+  FloatVector zero(0.0f, 0.0f, 0.0f);
+  const auto sum =
+      std::reduce(std::execution ::par_unseq, this->coordinates.begin(),
+                  this->coordinates.end(), zero,
+                  [](auto crnt_point, auto sum) { return sum + crnt_point; });
+  const auto n_points = static_cast<float>(this->coordinates.size());
+  return FloatVector(sum[0] / n_points, sum[1] / n_points, sum[2] / n_points);
+}
+
+bool Rtss_contour_modern::is_distal(const FloatVector point,
+                                    const FloatVector point_in_plane,
+                                    const FloatVector direction) const {
+  auto d = -dot_product(direction, point_in_plane);
+  return dot_product(direction, point) + d > 0;
 }

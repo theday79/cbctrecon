@@ -714,8 +714,8 @@ bool AlterData_RTStructureSetStorage(const fs::path &input_file,
 
       auto data_str = std::string("");
       for (auto &coord : rt_contour.coordinates) {
-        data_str += std::to_string(coord.x) + "\\" + std::to_string(coord.y) +
-                    "\\" + std::to_string(coord.z) + "\\";
+        data_str += std::to_string(coord[0]) + "\\" + std::to_string(coord[1]) +
+                    "\\" + std::to_string(coord[2]) + "\\";
       }
       data_str.pop_back();
       // Contour data: 3006, 0050

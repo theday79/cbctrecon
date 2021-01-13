@@ -152,9 +152,9 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
         return val + std::accumulate(
                          contour.coordinates.begin(), contour.coordinates.end(),
                          0.0, [](const double val, const FloatVector &vec) {
-                           return val +
-                                  std::sqrt(vec.x * vec.x + vec.y * vec.y +
-                                            vec.z * vec.z);
+                           return val + vec.magnitude();
+                           /*std::sqrt(vec.x * vec.x + vec.y * vec.y +
+                                     vec.z * vec.z);*/
                          });
       });
   const auto sum_wepl = std::accumulate(
@@ -163,9 +163,9 @@ int calculate_wepl(CbctReconTest *cbctrecon_test) {
         return val + std::accumulate(
                          contour.coordinates.begin(), contour.coordinates.end(),
                          0.0, [](const double val, const FloatVector &vec) {
-                           return val +
-                                  std::sqrt(vec.x * vec.x + vec.y * vec.y +
-                                            vec.z * vec.z);
+                           return val + vec.magnitude();
+                           /*std::sqrt(vec.x * vec.x + vec.y * vec.y +
+                                     vec.z * vec.z);*/
                          });
       });
   std::cerr << "Total difference between WEPL contour and CT contour: "

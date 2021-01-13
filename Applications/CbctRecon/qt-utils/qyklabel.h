@@ -17,6 +17,7 @@ public:
   AG17RGBAImage *m_pRGBAImage;
   QRect m_Rt;
   std::vector<QPoint> m_vPt;
+  std::vector<QPoint> m_vPt_darkred;
   std::vector<QPoint> m_vPt_green;
   std::vector<QPoint> m_vPt_blue;
   std::vector<QPoint> m_vPt_yellow;

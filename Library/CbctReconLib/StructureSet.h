@@ -155,6 +155,7 @@ template <typename T> struct hausdorff_result {
   T h_min = std::numeric_limits<T>::max();
   T h_max = std::numeric_limits<T>::max();
   T h_percent = std::numeric_limits<T>::max();
+  std::vector<T> h_all;
 };
 
 template <typename T>
@@ -212,6 +213,7 @@ auto calculate_hausdorff(const Rtss_roi_modern &from_roi,
       crl::ce_round((percent / 100.0) * static_cast<double>(distances.size())));
 
   hausdorff_output.h_percent = distances.at(percent_index);
+  hausdorff_output.h_all = distances;
   return hausdorff_output;
 }
 
