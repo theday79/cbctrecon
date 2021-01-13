@@ -143,6 +143,19 @@ void DlgRegistration::initDlgRegistration(std::string &strDCMUID) {
                       enREGI_IMAGES::REGISTER_MANUAL_RIGID); // WILL BE IGNORED
 }
 
+void DlgRegistration::SetMovingDose(UShortImageType::Pointer dose) {
+  this->m_spMovingDose = dose;
+  if (this->m_spMovingDose) {
+    this->m_cbctregistration->dose_loaded = true;
+  }
+}
+void DlgRegistration::SetFixedDose(UShortImageType::Pointer dose) {
+  this->m_spFixedDose = dose;
+  if (this->m_spFixedDose) {
+    this->m_cbctregistration->dose_loaded = true;
+  }
+}
+
 void DlgRegistration::SLT_CrntPosGo() const {
   if (m_spFixed == nullptr) {
     return;

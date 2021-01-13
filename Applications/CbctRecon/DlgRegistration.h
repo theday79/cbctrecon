@@ -49,8 +49,10 @@ public:
   void UpdateVOICombobox(ctType ct_type) const;
   void UpdateListOfComboBox(int idx) const;
   void SelectComboExternal(int idx, enREGI_IMAGES iImage);
-  void LoadImgFromComboBox(int idx, const QString& strSelectedComboTxt);
+  void LoadImgFromComboBox(int idx, const QString &strSelectedComboTxt);
   void initDlgRegistration(std::string &strDCMUID);
+  void SetMovingDose(UShortImageType::Pointer dose);
+  void SetFixedDose(UShortImageType::Pointer dose);
 
 private:
   QComboBox *&get_combo_box_FixMov(int comboIdx);

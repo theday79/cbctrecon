@@ -383,7 +383,7 @@ int main(const int argc, char **argv) {
   const auto orig_voi = ss->get_roi_ref_by_name(voi);
   // const auto basis = get_basis_from_angles(gantry_angle, couch_angle);
 
-  constexpr auto distal_only = true;
+  constexpr auto distal_only = false;
   const auto wepl_voi = crl::wepl::CalculateWEPLtoVOI<distal_only>(
       &orig_voi, gantry_angle, couch_angle, ct_img, recalc_img);
 

@@ -307,7 +307,8 @@ void CbctReconWidget::SLT_ApplyCalibration() const {
   const auto bDarkCorrApply = this->ui.checkBox_offsetOn->isChecked();
   const auto bGainCorrApply = this->ui.checkBox_gainOn->isChecked();
   const auto bDefectMapApply = this->ui.checkBox_badpixelOn->isChecked();
-  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt); i++) {
+  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt);
+       i++) {
     crl::CorrectSingleFile(this->m_cbctrecon.get(),
                            &this->m_cbctrecon->m_arrYKImage[i], bDarkCorrApply,
                            bGainCorrApply,
@@ -1939,7 +1940,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
 // called whenver recon 3D image for display changes.
 void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
-                                       const QString& fileName) {
+                                       const QString &fileName) {
   this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
   const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
@@ -2225,7 +2226,8 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
 
-    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg,
+                                        voi);
     UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spRefCTImg) {
@@ -2245,7 +2247,8 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
 
-    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg,
+                                        voi);
     UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
 }
@@ -3715,11 +3718,21 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
   reader->SetFileName(fileName.toLocal8Bit().constData());
   reader->Update();
 
+  using FlipFilterType = itk::FlipImageFilter<FloatImageType>;
+  typename FlipFilterType::Pointer flipFilter = FlipFilterType::New();
+  using FlipAxesArrayType = typename FlipFilterType::FlipAxesArrayType;
+  FlipAxesArrayType arrFlipAxes;
+  arrFlipAxes[0] = false;
+  arrFlipAxes[1] = false;
+  arrFlipAxes[2] = true;
+  flipFilter->SetFlipAxes(arrFlipAxes);
+  flipFilter->SetInput(reader->GetOutput());
+
   // Multiply: Gy to mGy
   using MultiplyImageFilterType =
       itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
   auto multiplyImageFilter = MultiplyImageFilterType::New();
-  multiplyImageFilter->SetInput(reader->GetOutput());
+  multiplyImageFilter->SetInput(flipFilter->GetOutput());
   multiplyImageFilter->SetConstant(100.0); // calculated already //Gy to cGy
 
   using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
@@ -3728,13 +3741,14 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
 
   castFilter->Update();
 
-  this->m_cbctrecon->m_spRawReconImg = castFilter->GetOutput();
-  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRawReconImg;
+  this->m_dlgRegistration->SetMovingDose(castFilter->GetOutput());
+  this->m_dlgRegistration->SetFixedDose(castFilter->GetOutput());
+  this->m_cbctrecon->m_spCrntReconImg = castFilter->GetOutput();
 
   // Update UI
   auto imgDim =
-      this->m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
-  auto spacing = this->m_cbctrecon->m_spRawReconImg->GetSpacing();
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+  auto spacing = this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
@@ -3952,7 +3966,8 @@ void CbctReconWidget::SLT_ExportHis() {
 
   // FileName should be same, only selected folder
 
-  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt); i++) {
+  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt);
+       i++) {
     auto tmpInfo = this->m_cbctrecon->m_arrYKImage[i].m_strFilePath;
     auto newPath = dir / tmpInfo.filename();
     if (!this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(newPath, false)) {
