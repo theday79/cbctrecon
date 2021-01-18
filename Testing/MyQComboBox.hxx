@@ -66,7 +66,11 @@ static bool
 QString_Matches(const QString &str, const QString &pattern,
                 const Qt::MatchFlags &flags = (Qt::MatchCaseSensitive |
                                                Qt::MatchFixedString)) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+  if (flags.testFlag(Qt::MatchRegExp)) {
+#else
   if (flags.testFlag(Qt::MatchRegularExpression)) {
+#endif
     QRegularExpression::PatternOptions options =
         QRegularExpression::NoPatternOption;
     if (!flags.testFlag(Qt::MatchCaseSensitive)) {
