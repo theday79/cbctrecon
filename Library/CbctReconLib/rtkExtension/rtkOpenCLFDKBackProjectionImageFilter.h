@@ -55,7 +55,7 @@ public:
   using ProjectionImagePointer = ProjectionImageType::Pointer;
 
   /** Method for creation through the object factory. */
-  itkNewMacro(Self);
+  itkNewMacro(Self)
 
   /** Run-time type information (and related methods). */
   itkTypeMacro(OpenCLFDKBackProjectionImageFilter, ImageToImageFilter);
