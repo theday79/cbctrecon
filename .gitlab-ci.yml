@@ -119,7 +119,7 @@ Windows10-msvc2019-CUDA:
           -Ddlib_DIR="C:/Program Files (x86)/dlib_project/lib/cmake/dlib/"
       - cmake --build . --config Release -j 12
       - cmake --build . --config Release --target INSTALL
-      - ctest -VV -C Release -LE test_opencl_filter_ItoLogI_subtract_median
+      - ctest -VV -C Release -E test_opencl_filter_ItoLogI_subtract_median
       - cmake --build . --config Release --target PACKAGE
     artifacts:
       name: "$env:CI_JOB_STAGE-$env:CI_COMMIT_REF_NAME"
