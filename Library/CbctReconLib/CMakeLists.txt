@@ -265,7 +265,12 @@ if(WIN32)
     install(FILES ${CLFFT_ROOT_DIR}/bin/clFFT.dll DESTINATION bin)
   endif()
   if(TBB_FOUND)
-    install(TARGETS ${TBB_LIBRARIES} RUNTIME DESTINATION bin)
+    get_target_property(TBB_DLLS TBB::tbb IMPORTED_LOCATION_RELEASE)
+    install(FILES ${TBB_DLLS} DESTINATION bin)
+    get_target_property(TBB_DLLS TBB::tbbmalloc IMPORTED_LOCATION_RELEASE)
+    install(FILES ${TBB_DLLS} DESTINATION bin)
+    get_target_property(TBB_DLLS TBB::tbbmalloc_proxy IMPORTED_LOCATION_RELEASE)
+    install(FILES ${TBB_DLLS} DESTINATION bin)
   endif()
 
   # Add FFT dlls to Install
