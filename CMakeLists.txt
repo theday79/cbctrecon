@@ -170,7 +170,7 @@ if(USE_SYSTEM_QT)
   if(WIN32)
     set(CMAKE_PREFIX_PATH
       ${CMAKE_PREFIX_PATH}
-      "C:\\Qt\\5.12.1\\msvc2015_64"
+      "C:\\Qt\\5.15.2\\msvc2019_64"
       )
   endif()
 else()
@@ -224,7 +224,10 @@ if(Module_ITKTBB AND TBB_DIR)
   message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
 elseif(NOT TBB_FOUND)
   find_package(TBB)
-  message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
+  if (TBB_FOUND)
+    set(TBB_LIBRARIES TBB::tbb)
+    message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
+  endif()
 endif()
 
 add_subdirectory(External)

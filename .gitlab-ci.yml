@@ -99,18 +99,18 @@ Windows10-msvc2019-CUDA:
     script:
       - Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
       - Enter-VsDevShell 512426f1
-      - $env:CUDA_PATH = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2"
+      - $env:CUDA_PATH = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.1"
       - mkdir build
       - cd build
       - cmake -G"Visual Studio 16 2019" -A"x64" .. `
           -DCMAKE_BUILD_TYPE=Release `
           -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG /Zc:__cplusplus" `
           -DCMAKE_C_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG" `
-          -DCMAKE_PREFIX_PATH="C:/Qt/5.14.2/msvc2017_64/" `
+          -DCMAKE_PREFIX_PATH="C:/Qt/5.15.2/msvc2019_64/" `
           -DHUNTER_ENABLED=OFF `
           -DRTK_USE_OPENCL=ON `
           -DUSE_CUDA=ON `
-          -DITK_DIR="C:/Program Files (x86)/ITK/lib/cmake/ITK-5.1" `
+          -DITK_DIR="C:/Program Files (x86)/ITK/lib/cmake/ITK-5.2" `
           -DUSE_SYSTEM_DCMTK=ON `
           -DDCMTK_DIR="C:/Program Files (x86)/DCMTK/cmake/" `
           -DUSE_SYSTEM_Plastimatch=OFF `
@@ -119,9 +119,10 @@ Windows10-msvc2019-CUDA:
           -Ddlib_DIR="C:/Program Files (x86)/dlib_project/lib/cmake/dlib/"
       - cmake --build . --config Release -j 12
       - cmake --build . --config Release --target INSTALL
-# Copy TBB dll's linked to by local ITK install (Could and maybe should be done in CMake)
-      - cp "C:\Users\au451932\Projects\tbb\build\vs2013\x64\Release-MT\tbb.dll" .\bin\
-      - cp "C:\Users\au451932\Projects\tbb\build\vs2013\x64\Release-MT\tbbmalloc.dll" .\bin\
-      - cp "C:\Users\au451932\Projects\tbb\build\vs2013\x64\Release-MT\tbbmalloc_proxy.dll" .\bin\
-      - ctest -VV -C Release
+      - ctest -VV -C Release -LE test_opencl_filter_ItoLogI_subtract_median
+      - cmake --build . --config Release --target PACKAGE
+    artifacts:
+      name: "$env:CI_JOB_STAGE-$env:CI_COMMIT_REF_NAME"
+      paths:
+        - build/*.msi
 
