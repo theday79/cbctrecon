@@ -152,7 +152,7 @@ Windows10-msvc2019-CUDA:
 
 pages:
   stage: deploy
-  dependencies:
+  needs:
     - Ubuntu-gcc10-CUDA
     - Ubuntu-clang11-ROCm
     - Ubuntu-icc21-oneAPI
