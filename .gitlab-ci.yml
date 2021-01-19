@@ -151,7 +151,7 @@ Windows10-msvc2019-CUDA:
         - build/*.msi
 
 pages:
-  stage: coverage
+  stage: deploy
   dependencies:
     - Ubuntu-gcc10-CUDA
     - Ubuntu-clang11-ROCm
