@@ -11,6 +11,13 @@ RUN apt update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN cd /usr/share/cmake/Modules/ \
+    && cmake -D INSTALL_DIR=/usr/lib/cmake/TBB \
+        -D SYSTEM_NAME=Linux \
+        -D LIB_PATH=/usr/lib/x86_64-linux-gnu \
+        -D INC_PATH=/usr/include \
+        -P tbb_config_installer.cmake
+
 USER user
 
 RUN git config --global user.email "andreasga22@gmail.com" \

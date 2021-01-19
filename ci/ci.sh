@@ -34,8 +34,10 @@ else
 fi
 
 # TBB
-export CXXFLAGS="$CXXFLAGS -I/usr/include -I/usr/include/tbb -fopenmp-simd"
-export LDFLAGS="$LDFLAGS -L/usr/lib/x86_64-linux-gnu -ltbb"
+if [ -d /usr/include/tbb ]; then # Use system ITK and RTK
+    export CXXFLAGS="$CXXFLAGS -I/usr/include -I/usr/include/tbb -fopenmp-simd"
+    export LDFLAGS="$LDFLAGS -L/usr/lib/x86_64-linux-gnu -ltbb"
+fi
 
 cmake $COMMON_FLAGS \
     $COMMON_SYSTEM_LIBS \
