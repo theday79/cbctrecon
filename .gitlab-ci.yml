@@ -55,8 +55,8 @@ Ubuntu-clang11-prebuild-deps:
       - gpu
     image: andreasga/cbctrecon:clang-11-x86_64-libDCMTK-ITK-RTK
     script:
-      - export CC=/usr/local/bin/clang
-      - export CXX=/usr/local/bin/clang++
+      - export CC=/usr/bin/clang
+      - export CXX=/usr/bin/clang++
       - ./ci/ci.sh
 
 Ubuntu-clang11-ROCm:

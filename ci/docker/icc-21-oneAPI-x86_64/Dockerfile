@@ -17,7 +17,12 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     && apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB \
     && echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list \
     && apt-get -qqq update \
-    && apt-get install -y --no-install-recommends intel-basekit intel-hpckit \
+    && apt-get install -y --no-install-recommends \
+        intel-oneapi-tbb-devel \
+        intel-oneapi-mkl-devel \
+        intel-oneapi-libdpstd-devel \
+        intel-oneapi-compiler-dpcpp-cpp \
+        intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic \
     && apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -42,8 +47,8 @@ RUN ["/bin/bash", "-c", "cd /home/user/ \
     && source /opt/intel/oneapi/setvars.sh \
     && export CC=icc  \
     && export CXX=icpc \
-    && export CXXFLAGS='-I/opt/intel/inteloneapi/tbb/latest/include/ -I/opt/intel/inteloneapi/tbb/latest/include/tbb' \
-    && export LDFLAGS='-L/opt/intel/inteloneapi/tbb/latest/lib/intel64/gcc4.8/ -ltbb' \
+    && export CXXFLAGS='-I/opt/intel/oneapi/tbb/latest/include/ -I/opt/intel/oneapi/tbb/latest/include/tbb' \
+    && export LDFLAGS='-L/opt/intel/oneapi/tbb/latest/lib/intel64/gcc4.8/ -ltbb' \
     && cmake -G Ninja ../ITK \
       -D CMAKE_CXX_STANDARD=17 \
       -D CMAKE_BUILD_TYPE=Release \
