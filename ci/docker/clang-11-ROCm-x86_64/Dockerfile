@@ -1,54 +1,46 @@
-FROM andreasga/cbctrecon:clang-11-x86_64
+FROM andreasga/cbctrecon:intel-opencl-runtime-cpu
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
 
-# Register the ROCM package repository, and install rocm-dev package
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl libnuma-dev gnupg \
-    && curl -sL http://repo.radeon.com/rocm/apt/debian/rocm.gpg.key | apt-key add - \
-    && printf "deb [arch=amd64] http://repo.radeon.com/rocm/apt/debian/ xenial main" | tee /etc/apt/sources.list.d/rocm.list \
-    && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libelf1 rocm-dev build-essential \
-        qt5-default lcov openssl libgdbm-dev \
-        libgdbm-compat-dev liblzma-dev libffi-dev uuid-dev \
-        software-properties-common apt-utils \
+RUN apt update \
+    && apt install -y \
+        ninja-build qt5-default \
+        libfftw3-dev libtinfo-dev libeigen3-dev \
+        libdcmtk-dev libgdcm-dev valgrind \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cd /opt/rocm \
-    && ln -s /usr/local/ llvm
+RUN cd /usr/share/cmake/Modules/ \
+    && cmake -D INSTALL_DIR=/usr/lib/cmake/TBB \
+        -D SYSTEM_NAME=Linux \
+        -D LIB_PATH=/usr/lib/x86_64-linux-gnu \
+        -D INC_PATH=/usr/include \
+        -P tbb_config_installer.cmake
 
-# Build ROCm device library
-RUN export PATH=/opt/rocm/llvm/bin/:$PATH \
-    && git clone -b amd-stg-open https://github.com/RadeonOpenCompute/ROCm-Device-Libs.git \
-    && cd ROCm-Device-Libs \
-    && mkdir -p build && cd build \
-    && CC=clang CXX=clang++ cmake -G Ninja .. \
-        -D LLVM_DIR=/opt/rocm/llvm/ \
-        -D CMAKE_BUILD_TYPE=Release \
-        -D LLVM_ENABLE_ASSERTIONS=1 \
-    && ninja \
-    && ninja install
+# Register the ROCM package repository, and install rocm-dev package
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl gnupg \
+    && curl -sL http://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
+    && sh -c 'echo deb [arch=amd64] http://repo.radeon.com/rocm/apt/debian/ xenial main > /etc/apt/sources.list.d/rocm.list' \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libnuma-dev libelf1 build-essential \
+        qt5-default lcov openssl libgdbm-dev \
+        libgdbm-compat-dev liblzma-dev libffi-dev uuid-dev \
+        rocm-dev rocm-utils rocm-opencl rocm-device-libs \
+        hip-base hip-rocclr llvm-amdgpu \
+        libboost-dev libboost-context-dev libboost-fiber-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Build HIP (not hip-hcc)
-RUN apt update \
-    && apt install -y --no-install-recommends libtinfo5 kmod \
-    && rm -rf /var/lib/apt/lists/* \
-    && git clone -b master https://github.com/ROCm-Developer-Tools/HIP.git \
-    && cd HIP \
-    && mkdir build && cd build \
-    && cmake -G Ninja .. \
-        -D CMAKE_INSTALL_PREFIX=/opt/rocm/hip \
-        -D HIP_COMPILER=clang \
-        -D CMAKE_BUILD_TYPE=Release \
-    && ninja \
-    && ninja install \
-    && cd ../.. \
-    && rm -Rf ./HIP
+RUN usermod -a -G video user \
+    && echo 'export PATH=$PATH:/opt/rocm/bin:/opt/rocm/rocprofiler/bin:/opt/rocm/opencl/bin' | sudo tee -a /etc/profile.d/rocm.sh
 
 ENV HCC_AMDGPU_TARGET=gfx900
+
+ENV PATH=$PATH:/opt/rocm/bin:/opt/rocm/llvm/bin:/opt/rocm/rocprofiler/bin:/opt/rocm/opencl/bin
+ENV ROCM_PATH="/opt/rocm/"
 
 # Verify installation:
 RUN /opt/rocm/hip/bin/hipconfig --full
@@ -59,11 +51,9 @@ RUN git clone https://github.com/illuhad/hipSYCL --recurse-submodules \
   && mkdir build && cd build \
   && cmake ../ -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_DIR=/usr/local/lib/cmake/llvm/ \
-    -DDISABLE_LLVM_VERSION_CHECK=ON \
+    -DLLVM_DIR=/opt/rocm/llvm/lib/cmake/ \
     -DWITH_ROCM_BACKEND=ON \
-    -DHIPCC_COMPILER=/opt/rocm/bin/hipcc \
-    -DCLANG_INCLUDE_PATH=/usr/local/lib/clang/11.0.0/ \
+    -DCLANG_INCLUDE_PATH=/opt/rocm/llvm/lib/clang/12.0.0/ \
     -DWITH_CPU_BACKEND=ON \
   && ninja \
   && ninja install \
@@ -72,14 +62,12 @@ RUN git clone https://github.com/illuhad/hipSYCL --recurse-submodules \
 
 ENV HIPSYCL_GPU_ARCH=gfx900
 
+COPY ./pstl.patch ./pstl.patch
+
 # SyclParallelSTL
 RUN git clone https://github.com/KhronosGroup/SyclParallelSTL.git \
   && cd SyclParallelSTL \
-  && sed -i '/endif/a target_include_directories(${ADD_SYCL_TARGET} PUBLIC /usr/local/include/hipSYCL/contrib/)' /usr/local/lib/cmake/hipsycl-config.cmake \
-  && sed -i 's/include(FindTriSYCL)/find_package(hipsycl REQUIRED)/g' ./CMakeLists.txt \
-  && sed -i 's/triSYCL/hipSYCL/g' ./CMakeLists.txt \
-  && sed -i 's/sycl_to_target(/sycl_to_target(TARGET /g' ./examples/CMakeLists.txt \
-  && sed -i 's/sycl_to_target(/sycl_to_target(TARGET /g' ./tests/pstl-tests/CMakeLists.txt \
+  && git apply ../pstl.patch \
   && mkdir build && cd build \
   && cmake ../ -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
@@ -88,12 +76,15 @@ RUN git clone https://github.com/KhronosGroup/SyclParallelSTL.git \
     -DUSE_COMPUTECPP=OFF \
     -DHIPSYCL_PLATFORM=rocm \
     -DHIPSYCL_GPU_ARCH=gfx900 \
+    -DHIPSYCL_ROCM_PATH=/opt/rocm/ \
+    -DHIPSYCL_SYCLCC_EXTRA_ARGS="--rocm-device-lib-path=/opt/rocm/amdgcn/bitcode/" \
     -Dhipsycl_DIR=/usr/local/lib/cmake/ \
   && ninja \
   && ninja install \
   && cd ../.. \
   && rm -Rf SyclParallelSTL
 
+WORKDIR /home/user/
 
 USER user
 
@@ -106,7 +97,7 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 # Also, we'll have to use my patched fork of RTK to forward the correct std=c++ flag to CUDA
 RUN cd /home/user/ \
     && git clone --depth 1 --branch "master" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
-    && sed -i 's/SimonRit/agravgaard/g' ./ITK/Modules/Remote/RTK.remote.cmake \
+    # && sed -i 's/SimonRit/agravgaard/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && sed -i 's/GIT_TAG .*/GIT_TAG master/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && sed -i 's/<<</<< </g' ./ITK/Modules/Core/Common/include/itkArray.h \
     && sed -i 's/<<</<< </g' ./ITK/Modules/Core/Common/src/itkArrayOutputSpecialization.cxx \

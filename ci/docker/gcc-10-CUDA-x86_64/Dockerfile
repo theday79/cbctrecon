@@ -1,5 +1,4 @@
-# Latest = 10.0 devel ubuntu 18.04, devel is FROM runtime which is FROM base (30/11/2018)
-FROM nvidia/cuda:latest
+FROM nvidia/cuda:11.1-devel-ubuntu20.04
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
@@ -25,9 +24,9 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
 # noninteractive to install tzdata
 RUN export DEBIAN_FRONTEND="noninteractive" \
-    && echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
+    && echo "deb http://us.archive.ubuntu.com/ubuntu/ groovy main universe" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja-build gcc-8 g++-8 git \
+    && apt install -y ninja-build gcc-10 g++-10 git \
         libfftw3-dev libtinfo-dev libeigen3-dev \
         libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
@@ -40,18 +39,18 @@ RUN export DEBIAN_FRONTEND="noninteractive" \
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
 # Reference: https://github.com/clab/dynet/issues/1457
 RUN mkdir /opt/cmake && cd /opt/cmake \
-    && wget -nv https://cmake.org/files/v3.17/cmake-3.17.2-Linux-x86_64.sh \
-    && sh cmake-3.17.2-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && wget -nv https://cmake.org/files/v3.19/cmake-3.19.3-Linux-x86_64.sh \
+    && sh cmake-3.19.3-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
-    && rm cmake-3.17.2-Linux-x86_64.sh \
+    && rm cmake-3.19.3-Linux-x86_64.sh \
     && cmake --version
 
 # Get a newer version of TBB, Qt and dlib
 # We need at least GCC 9 for proper C++17 support
 # noninteractive to install tzdata (maybe a dependency of qt or dlib?)
 RUN export DEBIAN_FRONTEND="noninteractive" \
-    && echo "deb http://archive.ubuntu.com/ubuntu/ focal main universe" >> /etc/apt/sources.list \
+    && echo "deb http://archive.ubuntu.com/ubuntu/ groovy main universe" >> /etc/apt/sources.list \
     && apt update \
     && apt install -y gcc-10 g++-10 libtbb-dev qt5-default libdlib-dev \
     && rm -rf /var/lib/apt/lists/* \
@@ -108,7 +107,7 @@ RUN git config --global user.email "andreasga22@gmail.com" \
 # Also, we'll have to use my patched fork of RTK to forward the correct std=c++ flag to CUDA
 RUN cd /home/user/ \
     && git clone --depth 1 --branch "master" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
-    && sed -i 's/SimonRit/agravgaard/g' ./ITK/Modules/Remote/RTK.remote.cmake \
+    #&& sed -i 's/SimonRit/agravgaard/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && sed -i 's/GIT_TAG .*/GIT_TAG master/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
@@ -129,7 +128,7 @@ RUN cd /home/user/ \
       -DRTK_USE_CUDA=ON \
       -DRTK_BUILD_APPLICATIONS=OFF \
       -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
-      -DCUDA_NVCC_FLAGS="--compiler-bindir /usr/bin/gcc-8" \
+      -DCUDA_NVCC_FLAGS="--compiler-bindir /usr/bin/gcc-10" \
       -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
       -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
     && ninja \

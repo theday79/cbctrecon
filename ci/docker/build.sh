@@ -24,10 +24,10 @@ docker build --tag ${REPO}/${NAME}:${CC}-${DCMIRTK} docker/${CC}-${DCMIRTK}
 docker push ${REPO}/${NAME}:${CC}-${DCMIRTK} || { echo "failed" ; exit 1; }
 
 ## commented out until RTK fixes compute flags for CUDA 11
-#CC="gcc-9-CUDA-x86_64"
-#echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
-#docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
-#docker push ${REPO}/${NAME}:${CC} || { echo "failed" ; exit 1; }
+CC="gcc-10-CUDA-x86_64"
+echo "docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}"
+docker build --tag ${REPO}/${NAME}:${CC} docker/${CC}
+docker push ${REPO}/${NAME}:${CC} || { echo "failed" ; exit 1; }
 
 CC="clang-11-x86_64"
 if [ "$1" != "" ]; then

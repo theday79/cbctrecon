@@ -11,12 +11,15 @@ RUN apt update \
         pkg-config cmake ca-certificates gnupg \
         ninja-build qt5-default \
         libfftw3-dev libtinfo-dev libeigen3-dev \
-        libdcmtk-dev libgdcm-dev valgrind gcc-10 g++-10 \
-    && wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB \
+        libdcmtk-dev libgdcm-dev valgrind gcc-10 g++-10
+
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB \
     && apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB \
     && echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list \
     && apt-get -qqq update \
-    && apt-get install -y intel-oneapi-icc
+    && apt-get install -y --no-install-recommends intel-basekit intel-hpckit \
+    && apt clean -y \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN echo "export CC=icc" >> /etc/profile \
     && echo "export CXX=icpc" >> /etc/profile
@@ -36,7 +39,7 @@ RUN ["/bin/bash", "-c", "cd /home/user/ \
     && git clone --depth 1 --branch 'master' https://github.com/InsightSoftwareConsortium/ITK.git ITK \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
-    && source /opt/intel/inteloneapi/setvars.sh \
+    && source /opt/intel/oneapi/setvars.sh \
     && export CC=icc  \
     && export CXX=icpc \
     && export CXXFLAGS='-I/opt/intel/inteloneapi/tbb/latest/include/ -I/opt/intel/inteloneapi/tbb/latest/include/tbb' \

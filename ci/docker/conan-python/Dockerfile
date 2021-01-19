@@ -1,11 +1,12 @@
-FROM ubuntu:focal
+FROM ubuntu:groovy
 # focal = 20.04
+# groovy = 20.10
 
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
 
-RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ focal multiverse" >> /etc/apt/sources.list \
+RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ groovy multiverse" >> /etc/apt/sources.list \
     && apt update \
     && echo "Install dependencies for conan" \
     && apt install -y wget sudo git gcc make \
@@ -23,11 +24,11 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ focal multiverse" >> /etc/apt
     && printf "user ALL= NOPASSWD: ALL\\n" >> /etc/sudoers
 
 RUN mkdir /opt/cmake && cd /opt/cmake \
-    && wget -nv https://cmake.org/files/v3.17/cmake-3.17.2-Linux-x86_64.sh \
-    && sh cmake-3.17.2-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && wget -nv https://cmake.org/files/v3.19/cmake-3.19.3-Linux-x86_64.sh \
+    && sh cmake-3.19.3-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
-    && rm cmake-3.17.2-Linux-x86_64.sh \
+    && rm cmake-3.19.3-Linux-x86_64.sh \
     && cmake --version
 
 ENV PYENV_ROOT=/opt/pyenv \
