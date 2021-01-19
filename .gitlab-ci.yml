@@ -150,3 +150,18 @@ Windows10-msvc2019-CUDA:
       paths:
         - build/*.msi
 
+pages:
+  stage: coverage
+  dependencies:
+    - Ubuntu-gcc10-CUDA
+    - Ubuntu-clang11-ROCm
+    - Ubuntu-icc21-oneAPI
+  image: alpine:3.13
+  script:
+    - mkdir public
+    - cp *.svg ./public/
+  artifacts:
+    paths:
+      - public
+
+
