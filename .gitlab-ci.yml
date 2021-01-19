@@ -31,6 +31,7 @@ Ubuntu-gcc10-CUDA:
       - export CC=/usr/bin/gcc-10
       - export CXX=/usr/bin/g++-10
       - ./ci/ci.sh
+    allow_failure: true
 
 Ubuntu-gcc10-coverage-prebuild-deps:
     stage: test
@@ -77,6 +78,7 @@ Ubuntu-clang11-ROCm:
       - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_SYCLCC_EXTRA_ARGS='--rocm-device-lib-path=/opt/rocm/amdgcn/bitcode/'"
       - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_ROCM_PATH=/opt/rocm/"
       - ./ci/ci.sh
+    allow_failure: true
 
 Ubuntu-icc21-oneAPI:
     stage: test
@@ -92,6 +94,7 @@ Ubuntu-icc21-oneAPI:
       - export CC=icc
       - export CXX=icpc
       - ./ci/ci.sh
+    allow_failure: true
 
 Windows10-msvc2019-CUDA:
     stage: test
