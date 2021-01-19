@@ -50,6 +50,9 @@ cmake $COMMON_FLAGS \
 cmake --build . --target CbctData
 cmake --build .
 
+# Make sure the OpenCL files are in the exe path (CMake is being quirky)
+cmake --build . --target INSTALL
+
 ctest -VV
 
 if [[ "$COVERAGE" = "YES" ]]; then
