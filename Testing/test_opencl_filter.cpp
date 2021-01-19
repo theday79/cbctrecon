@@ -320,9 +320,9 @@ int main(const int argc, char **argv) {
 
     auto image_ocl = GenerateImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    crl::opencl::AddConst_InPlace(image_ocl->GetBufferPointer(),
-                            image_ocl->GetLargestPossibleRegion().GetSize(),
-                            17.0f);
+    crl::opencl::AddConst_InPlace(
+        image_ocl->GetBufferPointer(),
+        image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -357,9 +357,9 @@ int main(const int argc, char **argv) {
 
     auto image_ocl = GenerateImage<float, 2U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    crl::opencl::AddConst_InPlace_2D(image_ocl->GetBufferPointer(),
-                               image_ocl->GetLargestPossibleRegion().GetSize(),
-                               17.0f);
+    crl::opencl::AddConst_InPlace_2D(
+        image_ocl->GetBufferPointer(),
+        image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -436,7 +436,7 @@ int main(const int argc, char **argv) {
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto minmax_ocl =
         crl::opencl::min_max_3D(image_in->GetBufferPointer(),
-                          image_in->GetLargestPossibleRegion().GetSize());
+                                image_in->GetLargestPossibleRegion().GetSize());
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -476,7 +476,7 @@ int main(const int argc, char **argv) {
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto minmax_ocl =
         crl::opencl::min_max_2D(image_in->GetBufferPointer(),
-                          image_in->GetLargestPossibleRegion().GetSize());
+                                image_in->GetLargestPossibleRegion().GetSize());
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -598,6 +598,9 @@ int main(const int argc, char **argv) {
     }
 
   } else if (filter_str == "ItoLogI_subtract_median_filter") {
+    std::cout << "This test seems to mess with some GPU drivers!\n"
+              << "Only difference from *_small is the size of the generated "
+                 "input images\n";
     using ImageType = itk::Image<float, 2U>;
     const auto median_radius = 3U;
 

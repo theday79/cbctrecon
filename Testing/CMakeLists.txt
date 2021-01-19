@@ -151,11 +151,11 @@ add_test(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 
-add_test(
-    NAME ${test_target}_ItoLogI_subtract_median
-    COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
+#add_test(
+#    NAME ${test_target}_ItoLogI_subtract_median
+#    COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_filter
+#  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+#  )
 
 add_test(
     NAME ${test_target}_ItoLogI_subtract_median_small
