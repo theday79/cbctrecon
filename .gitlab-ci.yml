@@ -72,8 +72,10 @@ Ubuntu-clang11-ROCm:
     script:
       - export CC=/opt/rocm/hip/bin/hipcc
       - export CXX=/opt/rocm/hip/bin/hipcc
-      - export CXXFLAGS="-stdlib=libc++"
+      # - export CXXFLAGS="-stdlib=libc++"
       - export CUSTOM_CMAKE_FLAGS="-DOpenMP_CXX_FLAGS='-fopenmp=libomp' -DOpenMP_CXX_LIB_NAMES=omp"
+      - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_SYCLCC_EXTRA_ARGS='--rocm-device-lib-path=/opt/rocm/amdgcn/bitcode/'"
+      - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_ROCM_PATH=/opt/rocm/"
       - ./ci/ci.sh
 
 Ubuntu-icc21-oneAPI:

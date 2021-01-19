@@ -17,7 +17,7 @@ else
 fi
 
 if [[ "$CUDA_AVAILABLE" = "YES" ]]; then
-    export CUDA_FLAGS="-DUSE_CUDA=ON -DEXACT_GCC=/usr/bin/gcc-8 -DCUDA_HOST_COMPILER=/usr/bin/gcc-8"
+    export CUDA_FLAGS="-DUSE_CUDA=ON -DEXACT_GCC=/usr/bin/gcc-10 -DCUDA_HOST_COMPILER=/usr/bin/gcc-10"
     nvidia-smi
     # Ubuntu Bionic:
     export DLIBDIR="-Ddlib_DIR=/usr/lib/cmake/dlib/"
