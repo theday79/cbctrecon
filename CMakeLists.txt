@@ -216,18 +216,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
   # Require TBB for parralel stl
   # It should be a free choice for which implementation to use, but TBB seems simplest for now
   find_package(TBB REQUIRED)
-  message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
 endif()
 if(Module_ITKTBB AND TBB_DIR)
   include(${TBB_DIR}/TBBConfig.cmake)
-  set(TBB_LIBRARIES TBB::tbb)
-  message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
 elseif(NOT TBB_FOUND)
   find_package(TBB)
-  if (TBB_FOUND)
-    set(TBB_LIBRARIES TBB::tbb)
-    message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
-  endif()
+endif()
+if (TBB_FOUND)
+  set(TBB_LIBRARIES TBB::tbb)
+  message(STATUS "TBB Libs: ${TBB_LIBRARIES}")
 endif()
 
 add_subdirectory(External)
