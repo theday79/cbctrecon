@@ -83,10 +83,11 @@ Ubuntu-icc21-oneAPI:
     tags:
       - linux
       - docker
+      - gpu
     image: andreasga/cbctrecon:icc-21-oneAPI-x86_64
     script:
       - export pre_setvars_path=$PATH
-      - source /opt/intel/inteloneapi/setvars.sh
+      - source /opt/intel/oneapi/setvars.sh
       - export PATH=$PATH:$pre_setvars_path
       - export CC=icc
       - export CXX=icpc
