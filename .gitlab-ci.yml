@@ -35,6 +35,7 @@ Ubuntu-gcc10-CUDA:
       - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-passing-green.svg
     allow_failure: true
     artifacts:
+      when: always
       paths:
         - cuda_pass.svg
 
@@ -87,6 +88,7 @@ Ubuntu-clang11-ROCm:
       - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-passing-green.svg
     allow_failure: true
     artifacts:
+      when: always
       paths:
         - rocm_pass.svg
 
@@ -108,6 +110,7 @@ Ubuntu-icc21-oneAPI:
       - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-green.svg
     allow_failure: true
     artifacts:
+      when: always
       paths:
         - oneapi_pass.svg
 
