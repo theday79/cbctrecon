@@ -30,9 +30,9 @@ Ubuntu-gcc10-CUDA:
     script:
       - export CC=/usr/bin/gcc-10
       - export CXX=/usr/bin/g++-10
-      - curl -fSsl -o cuda_pass.svg https://img.shields.io/badge/CUDA-passing-red.svg
+      - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-passing-red.svg
       - ./ci/ci.sh
-      - curl -fSsl -o cuda_pass.svg https://img.shields.io/badge/CUDA-passing-green.svg
+      - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-passing-green.svg
     allow_failure: true
     artifacts:
       paths:
@@ -82,9 +82,9 @@ Ubuntu-clang11-ROCm:
       - export CUSTOM_CMAKE_FLAGS="-DOpenMP_CXX_FLAGS='-fopenmp=libomp' -DOpenMP_CXX_LIB_NAMES=omp"
       - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_SYCLCC_EXTRA_ARGS='--rocm-device-lib-path=/opt/rocm/amdgcn/bitcode/'"
       - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_ROCM_PATH=/opt/rocm/"
-      - curl -fSsl -o rocm_pass.svg https://img.shields.io/badge/ROCm-passing-red.svg
+      - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-passing-red.svg
       - ./ci/ci.sh
-      - curl -fSsl -o rocm_pass.svg https://img.shields.io/badge/ROCm-passing-green.svg
+      - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-passing-green.svg
     allow_failure: true
     artifacts:
       paths:
@@ -103,9 +103,9 @@ Ubuntu-icc21-oneAPI:
       - export PATH=$PATH:$pre_setvars_path
       - export CC=icc
       - export CXX=icpc
-      - curl -fSsl -o oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-red.svg
+      - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-red.svg
       - ./ci/ci.sh
-      - curl -fSsl -o oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-green.svg
+      - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-green.svg
     allow_failure: true
     artifacts:
       paths:
