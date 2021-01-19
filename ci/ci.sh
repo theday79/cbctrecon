@@ -34,10 +34,8 @@ else
 fi
 
 # TBB
-if [ -d /usr/include/tbb ]; then
-    export CXXFLAGS="$CXXFLAGS -I/usr/include -I/usr/include/tbb -fopenmp-simd"
-    export LDFLAGS="$LDFLAGS -L/usr/lib/x86_64-linux-gnu -ltbb"
-fi
+export CXXFLAGS="$CXXFLAGS -I/usr/include -I/usr/include/tbb -fopenmp-simd"
+export LDFLAGS="$LDFLAGS -L/usr/lib/x86_64-linux-gnu -ltbb"
 
 cmake $COMMON_FLAGS \
     $COMMON_SYSTEM_LIBS \
