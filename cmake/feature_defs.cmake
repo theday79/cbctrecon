@@ -13,7 +13,8 @@
 # This and the two included files are taken from the OpenVINO project Modified by A.
 # Gravgaard 10/10/2018
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.14)
+# only 2.8 is needed but cmake was complaining that was too old
 
 include(CPUID)
 include(OptimizationFlags)
