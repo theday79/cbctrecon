@@ -31,7 +31,7 @@ public:
 
   bool LoadGeometry(const fs::path &geomFileInfo,
                     std::vector<std::string> &names);
-  void LoadSelectedProj(const std::vector<size_t> &exclude_ids,
+  bool LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                         const std::vector<std::string> &names);
   void saveHisHeader();
   void NormalizeProjections(const FloatImageType::Pointer &reader_output);

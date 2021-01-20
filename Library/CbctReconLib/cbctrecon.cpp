@@ -293,7 +293,7 @@ bool CbctRecon::LoadGeometry(const fs::path &geomFileInfo,
   return true;
 }
 
-void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
+bool CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
                                  const std::vector<std::string> &names) {
   // 3) Seletively load projection file
 
@@ -354,6 +354,7 @@ void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
   fout.open("DebugFileNames.txt");
   if (!fout.is_open()) {
     std::cerr << "Couldn't open file: DebugFileNames.txt for writing!\n";
+    return false;
   }
 
   for (auto &it_idx : exclude_ids) {
@@ -366,6 +367,8 @@ void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
 
   m_iCntSelectedProj =
       m_vSelectedFileNames.size(); // Used to check in ScatterCorr_PrioriCT
+
+  return true;
 }
 
 void CbctRecon::saveHisHeader() {

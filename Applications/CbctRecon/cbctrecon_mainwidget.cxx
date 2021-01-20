@@ -870,7 +870,9 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
       crl::is_scan_direction_CW(angle_gaps),
       this->ui.Radio_ManualProjAngleGap->isChecked(), gantryAngleInterval);
 
-  this->m_cbctrecon->LoadSelectedProj(exclude_ids, names);
+  if (!this->m_cbctrecon->LoadSelectedProj(exclude_ids, names)) {
+    return;
+  }
 
   // Reads the cone beam projections
   using ReaderType = rtk::ProjectionsReader<FloatImageType>;

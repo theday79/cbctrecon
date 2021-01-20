@@ -57,7 +57,8 @@ void CbctReconTest::test_LoadCTdeformMHA() {}
 void CbctReconTest::test_LoadNKIImage() {}
 
 fs::path getBowtiePath(const fs::path &calDir) {
-  return fs::absolute(calDir) / "AIR-Full-Bowtie-100KV" / "Current" / "FilterBowtie.xim";
+  return fs::absolute(calDir) / "AIR-Full-Bowtie-100KV" / "Current" /
+         "FilterBowtie.xim";
 }
 
 FilterReaderType::Pointer CbctReconTest::ReadBowtieFileWhileProbing(
@@ -177,13 +178,15 @@ bool CbctReconTest::test_LoadSelectedProjFiles(const QString &proj_path,
   const auto gantryAngleInterval = 1.0;
   // this->ui.lineEdit_ManualProjAngleGap->text().toDouble();
 
-
   const auto scan_direction = crl::is_scan_direction_CW(angle_gaps);
-  const auto exclude_ids = crl::GetExcludeProjFiles(this->m_cbctrecon->m_spFullGeometry, scan_direction,
+  const auto exclude_ids = crl::GetExcludeProjFiles(
+      this->m_cbctrecon->m_spFullGeometry, scan_direction,
       false /*this->ui.Radio_ManualProjAngleGap->isChecked()*/,
       gantryAngleInterval);
 
-  this->m_cbctrecon->LoadSelectedProj(exclude_ids, names);
+  if (!this->m_cbctrecon->LoadSelectedProj(exclude_ids, names)) {
+    return false;
+  }
 
   // Reads the cone beam projections
   using ReaderType = rtk::ProjectionsReader<FloatImageType>;
