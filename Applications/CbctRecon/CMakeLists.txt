@@ -42,9 +42,8 @@ qt5_wrap_cpp(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
 qt5_wrap_ui(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
 qt5_add_resources(CbctRecon_RCC ui/style.qrc)
 
-set(CBCTRECON_INCLUDE_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ui
-    ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils)
+set(CBCTRECON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ui
+                           ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils)
 
 # Executable
 add_executable(
@@ -111,8 +110,7 @@ target_include_directories(
 target_link_libraries(CbctRecon PRIVATE CbctReconLib)
 
 # ############# INSTALL ##############
-# Using install/bin as storage for all dependencies before copy to
-# INSTALL_PREFIX/bin ##
+# Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
 
 file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin)
 file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/lut)
@@ -146,9 +144,7 @@ elseif(APPLE)
               ""
               QT_LIB_NAME_tmp
               ${QT_LIB_NAME_tmp})
-    message(
-      STATUS
-        "Attmpting installing ${QT_LIB_NAME_tmp} from dir: ${QT_LIB_DIR_tmp}")
+    message(STATUS "Attmpting installing ${QT_LIB_NAME_tmp} from dir: ${QT_LIB_DIR_tmp}")
     install(
       DIRECTORY ${QT_LIB_DIR_tmp}/
       DESTINATION bin/${QT_LIB_NAME_tmp}.framework/
@@ -207,8 +203,8 @@ endif()
 # -----------------------------------------------------------------------------
 # Simple version: "make package_source" to create tarball
 #
-# Advanced version: to generate... * zip    : cpack -G ZIP <source tree> *
-# tar.bz2: cpack -G TBZ2 <source tree>
+# Advanced version: to generate... * zip    : cpack -G ZIP <source tree> * tar.bz2: cpack
+# -G TBZ2 <source tree>
 #
 # ...from within your build directory
 # -----------------------------------------------------------------------------
@@ -222,8 +218,8 @@ else()
 endif()
 set(CPACK_SOURCE_GENERATOR "TBZ2")
 
-# For WiX install, and possibly for debian -dev targets, we should properly set
-# up the install components. Until then, let's just kill it
+# For WiX install, and possibly for debian -dev targets, we should properly set up the
+# install components. Until then, let's just kill it
 set(CPACK_MONOLITHIC_INSTALL 1)
 
 # General stuff
@@ -231,8 +227,7 @@ set(CPACK_INSTALL_PREFIX "")
 set(CPACK_PACKAGE_CONTACT "agravgaard@protonmail.com")
 set(CPACK_PACKAGE_NAME "cbctrecon")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "CbctRecon")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "CbctRecon - A Medical Imaging Application")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "CbctRecon - A Medical Imaging Application")
 set(CPACK_PACKAGE_VENDOR "CbctRecon Dev Team")
 set(CPACK_PACKAGE_VERSION_MAJOR "${CbctRecon_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${CbctRecon_VERSION_MINOR}")
@@ -246,26 +241,22 @@ set(CPACK_NSIS_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
 set(CPACK_NSIS_URL_INFO_ABOUT "https://gitlab.com/agravgaard/cbctrecon")
 set(CPACK_NSIS_CONTACT "andreasga22@gmail.com")
 set(CbctRecon_NSIS_VERSION_STRING
-    "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
-)
+    "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}")
 
 # WIX stuff
-set(CbctRecon_WINDOWS_INSTALL_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows-install")
+set(CbctRecon_WINDOWS_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows-install")
 set(CPACK_WIX_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
 set(CPACK_WIX_UPGRADE_GUID "43DF18E5-D982-413F-834C-2865B977C145")
 set(CPACK_WIX_LICENSE_RTF "${CbctRecon_WINDOWS_INSTALL_DIR}/License.rtf")
 set(CPACK_WIX_UI_BANNER "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo.jpg")
-set(CPACK_WIX_UI_DIALOG
-    "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo_GUI.jpg")
+set(CPACK_WIX_UI_DIALOG "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo_GUI.jpg")
 
 set(CPACK_WIX_EXTRA_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/cmake_extra_dialog.wxs"
     "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/install_dir.wxs"
     "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/start_menu.wxs")
-set(CPACK_WIX_PATCH_FILE
-    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_path_env.xml"
-    # "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_start_menu.xml"
+set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_path_env.xml"
+                         # "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_start_menu.xml"
 )
 set(CPACK_WIX_UI_REF "CMakeUI_InstallDir")
 if(CPACK_GENERATOR STREQUAL "WIX")

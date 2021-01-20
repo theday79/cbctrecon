@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.14) # Yes, less won't do.
-cmake_policy(SET CMP0074 NEW) # For hunter to use _ROOT variables without
-                              # warnings
+cmake_policy(SET CMP0074 NEW) # For hunter to use _ROOT variables without warnings
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
@@ -19,16 +18,14 @@ set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
 # -----------------------------------------------------------------------------
 # BASIC CMAKE
-set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release
-                                 # version
+set(CbctRecon_VERSION_MAJOR "1") # bump at major change -> does NOT mean release version
 set(CbctRecon_VERSION_MINOR "5") # bump at functionality change
 set(CbctRecon_VERSION_PATCH "2") # bump at minor change
 
 project(
   CbctRecon
   VERSION
-    "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
-)
+    "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}")
 
 set(CMAKE_CXX_STANDARD
     17
@@ -37,8 +34,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED
     ON
     CACHE STRING "Require C++ standard specification")
 
-# Extensions are required for named union members for the opencl types which
-# increases readability and safety significantly
+# Extensions are required for named union members for the opencl types which increases
+# readability and safety significantly
 set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CbctRecon_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -53,26 +50,22 @@ option(BUILD_SHARED_LIBS
 option(CBCTRECON_BUILD_SHARED_LIBS "Build shared libraries for CbctRecon"
        ${BUILD_SHARED_LIBS})
 option(BUILD_TESTING "Build testing in ITK, RTK and Plastimatch" OFF)
-# BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests And
-# because ITK fails to download test data outside Master project source dir.
+# BUILD_TESTING is OFF by default, because ITK and RTK has decent CI tests And because ITK
+# fails to download test data outside Master project source dir.
 
 option(HUNTER_ENABLED "Enable hunter for dependency management" OFF)
-option(USE_SYSTEM_QT
-       "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
-option(USE_SYSTEM_OPENCL
-       "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL" ON)
-option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs."
+option(USE_SYSTEM_QT "ON=Use local Qt, OFF=hunter downloads and configs. qtbase" ON)
+option(USE_SYSTEM_OPENCL "ON=Use local OpenCL, OFF=hunter downloads and configs. OpenCL"
        ON)
+option(USE_SYSTEM_ZLIB "ON=Use local Zlib, OFF=hunter downloads and configs." ON)
 option(USE_SYSTEM_dlib "ON=Use local dlib, OFF=cmake downloads and configs." ON)
 option(USE_SYSTEM_ITK "ON=Use local ITK, OFF=cmake downloads and configs." ON)
-option(USE_SYSTEM_DCMTK "ON=Use local DCMTK, OFF=cmake downloads and configs."
-       ON)
+option(USE_SYSTEM_DCMTK "ON=Use local DCMTK, OFF=cmake downloads and configs." ON)
 option(USE_SYSTEM_Plastimatch
        "ON=Use local Plastimatch, OFF=cmake downloads and configs." ON)
 option(USE_HUNTER_Eigen "ON=Use Eigen from Hunter, OFF=Use Hunter in ITK." OFF)
 
-option(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple
-                                             # reasons
+option(USE_CUDA "Toggle CUDA on or off" OFF) # OFF by default for multiple reasons
 option(USE_OPENMP "Toggle OpenMP on or off" ON)
 option(USE_OPENCL "Use OpenCL as compute backend" ON)
 option(USE_SYCL "Use SYCL as compute backend" OFF)
@@ -84,22 +77,18 @@ endif()
 
 option(USE_ITK_DCMTK "Toggle DCMTK on or off" OFF)
 option(USE_ITK_GDCM "Toggle GDCM on or off" ON)
-option(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default
-                                                                # because it
-                                                                # doesn't yet
-                                                                # work
-option(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't
-                                             # expect developers to have access
-                                             # to gPMC binaries AND use VS2013
-                                             # Debug when Release is much faster
-                                             # for everything else.
-option(USE_ITK_GDCM
-       "Use the ITK implementation instead of downloading (Windows only)" OFF)
+option(USE_CLFFT "Toggle CLFFT (in development) on or off" OFF) # OFF by default because
+                                                                # it doesn't yet work
+option(USE_GPMC "Toggle gPMC on or off" OFF) # OFF by default because you can't expect
+                                             # developers to have access to gPMC binaries
+                                             # AND use VS2013 Debug when Release is much
+                                             # faster for everything else.
+option(USE_ITK_GDCM "Use the ITK implementation instead of downloading (Windows only)"
+       OFF)
 option(USE_LOWPASS_FFT "Gauss FFT as low-pass filter for scatter smoothing" OFF
 )# Missing tests, so prefer not to use
 option(RTK_USE_OPENCL
-       "Use the custom RTK OpenCL extensions (require device image support)"
-       OFF)
+       "Use the custom RTK OpenCL extensions (require device image support)" OFF)
 
 option(CBCTRECON_CLANG_COMPLETE "Generate .clang_complete for vim" ON)
 option(CBCTRECON_BUILD_TESTS "Build tests for CbctRecon" ON)
@@ -111,10 +100,8 @@ set(CBCTRECON_OPENCL_VERSION
     CACHE STRING "Version of OpenCL to use, 1.2->120 etc.")
 set(SLAB_SIZE
     16
-    CACHE
-      STRING
-      "Number of projections to process simultaneously in OpenCL/CUDA fwd proj."
-)
+    CACHE STRING
+          "Number of projections to process simultaneously in OpenCL/CUDA fwd proj.")
 add_definitions(-DCBCTRECON_OPENCL_VERSION=${CBCTRECON_OPENCL_VERSION})
 if(RTK_USE_OPENCL)
   add_definitions(-DRTK_USE_OPENCL)
@@ -125,17 +112,15 @@ endif()
 option(ENABLE_PEDANTIC "Enable pedantic warnings from compiler" OFF)
 if(NOT WIN32)
   set(ENABLE_PEDANTIC ON)
-  option(USE_TINYREFL
-         "Enable tinyrefl static reflection tool for CbctRecon tests" OFF
+  option(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF
   )# ON) <- May return when TinyRefl has a stable release
-  # We should prefer the official server, so we don't depend on Manu Sanchez to
-  # always have a build available for us.
+  # We should prefer the official server, so we don't depend on Manu Sanchez to always
+  # have a build available for us.
   set(TINYREFL_LLVM_DOWNLOAD_FROM_OFFICIAL_SERVER
       ON
       CACHE BOOL "" FORCE)
 else()
-  option(USE_TINYREFL
-         "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
+  option(USE_TINYREFL "Enable tinyrefl static reflection tool for CbctRecon tests" OFF)
 endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -148,9 +133,7 @@ endif(USE_GPMC)
 
 if(USE_LOWPASS_FFT)
   message(
-    STATUS
-      "Compiling with Gauss FFT as low-pass filter for scatter smoothing option"
-  )
+    STATUS "Compiling with Gauss FFT as low-pass filter for scatter smoothing option")
   add_definitions(-DLOWPASS_FFT=TRUE)
 endif(USE_LOWPASS_FFT)
 
@@ -175,8 +158,7 @@ if(USE_CUDA)
   message(STATUS "Compiling with CUDA option")
   if(NOT CUDACXX)
     find_package(CUDA_wrap)
-    get_filename_component(CUDA_TOOLKIT_ROOT_DIR "${CUDA_TOOLKIT_INCLUDE}/.."
-                           ABSOLUTE)
+    get_filename_component(CUDA_TOOLKIT_ROOT_DIR "${CUDA_TOOLKIT_INCLUDE}/.." ABSOLUTE)
   endif()
   find_package(CUDA REQUIRED)
   add_definitions(-DUSE_CUDA=TRUE)
@@ -253,8 +235,8 @@ if(NOT
    STREQUAL
    "MSVC")
   set(ABSEIL_LIBS absl::base absl::strings)
-  # Require TBB for parralel stl It should be a free choice for which
-  # implementation to use, but TBB seems simplest for now
+  # Require TBB for parralel stl It should be a free choice for which implementation to
+  # use, but TBB seems simplest for now
   find_package(TBB REQUIRED)
 endif()
 if(Module_ITKTBB AND TBB_DIR)
@@ -348,8 +330,7 @@ if(CBCTRECON_COVERAGE)
   set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} --coverage -g -O0 -fprofile-arcs -ftest-coverage")
 
-  # from
-  # https://github.com/RWTH-HPC/CMake-codecov/blob/master/cmake/FindGcov.cmake
+  # from https://github.com/RWTH-HPC/CMake-codecov/blob/master/cmake/FindGcov.cmake
   get_filename_component(COMPILER_PATH "${CMAKE_CXX_COMPILER}" PATH)
   string(
     REGEX MATCH
@@ -363,38 +344,33 @@ if(CBCTRECON_COVERAGE)
 
   # collect all source files from the chosen include dir
   file(GLOB_RECURSE SOURCE_H_FILES ${CbctRecon_SOURCE_DIR}/Library/*.h*)
-  file(GLOB_RECURSE SOURCE_CPP_FILES
-       ${CbctRecon_SOURCE_DIR}/Library/*.c[xp][xp])
+  file(GLOB_RECURSE SOURCE_CPP_FILES ${CbctRecon_SOURCE_DIR}/Library/*.c[xp][xp])
   set(SOURCE_FILES ${SOURCE_H_FILES} ${SOURCE_CPP_FILES})
 
-  # add target to collect coverage information and generate HTML file (filter
-  # script from https://stackoverflow.com/a/43726240/266378)
+  # add target to collect coverage information and generate HTML file (filter script from
+  # https://stackoverflow.com/a/43726240/266378)
   add_custom_target(
     lcov_html
     COMMAND lcov --directory . --capture --output-file cbctrecon.info --rc
             lcov_branch_coverage=1
-    COMMAND
-      lcov -e cbctrecon.info ${SOURCE_FILES} --output-file
-      cbctrecon.info.filtered --gcov-tool ${GCOV_BIN} --rc
-      lcov_branch_coverage=1
+    COMMAND lcov -e cbctrecon.info ${SOURCE_FILES} --output-file cbctrecon.info.filtered
+            --gcov-tool ${GCOV_BIN} --rc lcov_branch_coverage=1
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/imapdl/filterbr.py
             cbctrecon.info.filtered > cbctrecon.info.filtered.noexcept
-    COMMAND
-      genhtml --title "CbctRecon" --legend --demangle-cpp --output-directory
-      html --show-details --branch-coverage cbctrecon.info.filtered.noexcept
+    COMMAND genhtml --title "CbctRecon" --legend --demangle-cpp --output-directory html
+            --show-details --branch-coverage cbctrecon.info.filtered.noexcept
     COMMENT "Generating HTML report html/index.html")
 
   add_custom_target(
     fastcov_html
     COMMAND
-      ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/fastcov/fastcov.py
-      --branch-coverage --lcov -o cbctrecon.info --gcov ${GCOV_BIN}
-      --compiler-directory ${CMAKE_BINARY_DIR} --source-files ${SOURCE_FILES}
+      ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/fastcov/fastcov.py --branch-coverage
+      --lcov -o cbctrecon.info --gcov ${GCOV_BIN} --compiler-directory ${CMAKE_BINARY_DIR}
+      --source-files ${SOURCE_FILES}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Testing/thirdparty/imapdl/filterbr.py
             cbctrecon.info > cbctrecon.info.noexcept
-    COMMAND
-      genhtml --title "CbctRecon" --legend --demangle-cpp --output-directory
-      html --show-details --branch-coverage cbctrecon.info.noexcept
+    COMMAND genhtml --title "CbctRecon" --legend --demangle-cpp --output-directory html
+            --show-details --branch-coverage cbctrecon.info.noexcept
     COMMENT "Generating HTML report html/index.html")
 endif()
 

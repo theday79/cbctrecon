@@ -106,8 +106,7 @@ if(CBCTRECON_BUILD_SHARED_LIBS)
   set(SHARED_FLAG SHARED)
 endif()
 
-add_library(CbctReconLib ${SHARED_FLAG} ${CbctReconLib_SOURCES}
-                         ${CbctReconLib_HEADERS})
+add_library(CbctReconLib ${SHARED_FLAG} ${CbctReconLib_SOURCES} ${CbctReconLib_HEADERS})
 
 if(USE_SYCL)
   target_link_libraries(CbctReconLib PUBLIC sycl_ext)
@@ -213,11 +212,9 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/fdk_opencl.cl DESTINATION bin)
 add_custom_command(
   TARGET CbctReconLib
   POST_BUILD
-  COMMAND
-    ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl" "${RUNTIME_DIR}")
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl
-        DESTINATION bin)
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl" "${RUNTIME_DIR}")
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/rtkExtension/forward_proj.cl DESTINATION bin)
 
 add_custom_command(
   TARGET CbctReconLib
@@ -260,8 +257,8 @@ if(WIN32)
     install(FILES ${RTK_DIR}/bin/release/RTK.dll DESTINATION bin)
     install(FILES ${RTK_DIR}/bin/release/rtkcuda.dll DESTINATION bin)
     install(FILES ${RTK_DIR}/bin/release/ITKCudaCommon.dll DESTINATION bin)
-    install(FILES ${RTK_DIR}/bin/release/lpsolve55.dll DESTINATION bin
-    )# is 55 a version number?
+    install(FILES ${RTK_DIR}/bin/release/lpsolve55.dll DESTINATION bin) # is 55 a version
+                                                                        # number?
   endif()
 
   if(Plastimatch_FOUND)

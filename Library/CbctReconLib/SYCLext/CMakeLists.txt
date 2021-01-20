@@ -9,8 +9,7 @@ option(SYCL_USE_COMPUTECPP "Configure to compile with ComputeCpp" OFF)
 option(SYCL_USE_HIPSYCL "Configure to compile with hipSYCL" OFF)
 option(SYCL_USE_TRISYCL "Configure to compile with TriSYCL" OFF)
 
-option(USE_SYSTEM_COMPUTECPP_SDK "OFF = Download and configure ComputeCpp SDK"
-       ON)
+option(USE_SYSTEM_COMPUTECPP_SDK "OFF = Download and configure ComputeCpp SDK" ON)
 
 # Find SYCL
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/SYCLUtils.cmake)

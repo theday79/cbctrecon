@@ -11,8 +11,7 @@ function(unpack_ext_data)
   add_custom_command(
     TARGET ${ARGS_TARGET}
     POST_BUILD # Because after build the tars must have been downloaded
-    COMMAND ${CMAKE_COMMAND} -E tar xzf ${ARGS_TAR_FILE} DEPENDS
-            ${ARGS_TAR_FILE}
+    COMMAND ${CMAKE_COMMAND} -E tar xzf ${ARGS_TAR_FILE} DEPENDS ${ARGS_TAR_FILE}
     WORKING_DIRECTORY ${ARGS_TAR_OUTPUT_PATH}
     COMMENT "Unpacking ${ARGS_TAR_FILE}"
     VERBATIM)
@@ -175,8 +174,7 @@ add_cbctrecon_test(
 
 set(test_target test_end_to_end)
 
-set(${test_target}_DATA DATA{Input/Alderson/CT.tar.gz}
-                        DATA{Input/Alderson/CBCT.tar.gz})
+set(${test_target}_DATA DATA{Input/Alderson/CT.tar.gz} DATA{Input/Alderson/CBCT.tar.gz})
 
 add_cbctrecon_test(
   TARGET

@@ -17,16 +17,14 @@ if(SYCL_USE_TRISYCL)
 endif()
 if(${SYCL_IMPLEMENTATIONS_USED} EQUAL 0)
   message(
-    FATAL_ERROR
-      "No SYCL implementation specified, please set either "
-      "SYCL_USE_COMPUTECPP or SYCL_USE_HIPSYCL or SYCL_USE_TRISYCL to ON.")
+    FATAL_ERROR "No SYCL implementation specified, please set either "
+                "SYCL_USE_COMPUTECPP or SYCL_USE_HIPSYCL or SYCL_USE_TRISYCL to ON.")
 endif()
 if(${SYCL_IMPLEMENTATIONS_USED} GREATER 1)
   message(
     FATAL_ERROR
       "Multiple SYCL implementations specified, please only "
-      "set one of SYCL_USE_COMPUTECPP or  SYCL_USE_HIPSYCL or SYCL_USE_TRISYCL to ON."
-  )
+      "set one of SYCL_USE_COMPUTECPP or  SYCL_USE_HIPSYCL or SYCL_USE_TRISYCL to ON.")
 endif()
 
 # Common setup
@@ -88,8 +86,12 @@ if(SYCL_USE_DPCPP)
     set(options)
     set(one_value_keywords TARGET)
     set(multi_value_keywords SOURCES)
-    cmake_parse_arguments(ADD_SYCL "${options}" "${one_value_keywords}"
-                          "${multi_value_keywords}" ${ARGN})
+    cmake_parse_arguments(
+      ADD_SYCL
+      "${options}"
+      "${one_value_keywords}"
+      "${multi_value_keywords}"
+      ${ARGN})
 
     if(NOT OpenCL_FOUND)
       find_package(OpenCL REQUIRED)
@@ -105,12 +107,22 @@ endif()
 # hipSYCL setup
 
 if(SYCL_USE_HIPSYCL)
-  find_package(hipSYCL CONFIG REQUIRED PATHS ${SYCL_INSTALL_ROOT}/lib/cmake
-               /opt/hipSYCL/ROCm/lib/cmake)
+  find_package(
+    hipSYCL
+    CONFIG
+    REQUIRED
+    PATHS
+    ${SYCL_INSTALL_ROOT}/lib/cmake
+    /opt/hipSYCL/ROCm/lib/cmake)
 endif()
 
 # TriSYCL setup
 
 if(SYCL_USE_TRISYCL)
-  find_package(TriSYCL CONFIG REQUIRED PATHS ${SYCL_INSTALL_ROOT}/lib/cmake)
+  find_package(
+    TriSYCL
+    CONFIG
+    REQUIRED
+    PATHS
+    ${SYCL_INSTALL_ROOT}/lib/cmake)
 endif()
