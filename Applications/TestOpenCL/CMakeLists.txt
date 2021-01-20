@@ -1,4 +1,4 @@
-function(add_cbctrecon_app)
+macro(add_cbctrecon_app)
   cmake_parse_arguments(
     ARGS
     ""
@@ -31,11 +31,11 @@ function(add_cbctrecon_app)
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     )
 
-endfunction()
+  install(TARGETS ${ARGS_TARGET}
+    RUNTIME DESTINATION bin
+    )
+endmacro()
 
 add_cbctrecon_app(
   TARGET opencl_tester
-  )
-install(TARGETS opencl_tester
-  RUNTIME DESTINATION bin
   )
