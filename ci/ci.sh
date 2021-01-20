@@ -34,7 +34,10 @@ else
 fi
 
 # TBB
-if [ -d /usr/include/tbb ]; then # Use system ITK and RTK
+if [[ "$CC" = "icc" ]]; then
+    export CXXFLAGS="$CXXFLAGS -fopenmp"
+    export LDFLAGS="$LDFLAGS -ltbb"
+elif [ -d /usr/include/tbb ]; then # Use system ITK and RTK
     export CXXFLAGS="$CXXFLAGS -I/usr/include -I/usr/include/tbb -fopenmp-simd"
     export LDFLAGS="$LDFLAGS -L/usr/lib/x86_64-linux-gnu -ltbb"
 fi
