@@ -1373,6 +1373,11 @@ bool SaveDoseGrayImage(
   {
     // FILE *fd = nullptr;
     std::ofstream fd(filePath, std::ios::binary);
+    if (!fd.is_open()) {
+      std::cerr << "Couldn't open file: " << filePath.string()
+                << " for writing!\n";
+      return false;
+    }
 
     long MarkerUpper;
     long MarkerLower;
@@ -1399,7 +1404,7 @@ bool SaveDoseGrayImage(
     const auto data_cnt = 1;
 
     size_t i = 0;
-    if (m_iSubFileType >= 0) {
+    /* if (m_iSubFileType >= 0) */ { // Always true
       const auto tififd_tmp = TIFIFD{254, data_type, data_cnt, m_iSubFileType};
       IFDarr.at(i) = tififd_tmp;
       ++i;
@@ -1426,7 +1431,7 @@ bool SaveDoseGrayImage(
       IFDarr.at(i) = tififd_tmp;
       ++i;
     }
-    if (m_iPhotometric >= 0) {
+    /* if (m_iPhotometric >= 0) */ { // Always true
       const auto tififd_tmp = TIFIFD{262, data_type, data_cnt, m_iPhotometric};
       IFDarr.at(i) = tififd_tmp;
       ++i;
@@ -1506,7 +1511,7 @@ bool SaveDoseGrayImage(
       IFDarr.at(i) = tififd_tmp;
       ++i;
     }
-    if (m_iPgNum >= 0) {
+    /*if (m_iPgNum >= 0) */ { // Always true
       const auto tififd_tmp = TIFIFD{297, data_type, 2, m_iPgNum};
       IFDarr.at(i) = tififd_tmp;
       ++i;

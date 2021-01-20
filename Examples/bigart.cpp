@@ -242,8 +242,14 @@ auto sv_to_dvec(std::string_view sv) {
 template <typename T>
 auto write_vector_to_file(const std::vector<T> &vec, const fs::path &filename) {
   std::ofstream fp(filename);
+  if (!fp.is_open()) {
+    std::cerr << "Couldn't open file: " << filename.string()
+              << " for writing!\n";
+    return false;
+  }
   std::for_each(vec.begin(), vec.end(),
                 [&fp](const T val) { fp << crl::stringify(val) << "\n"; });
+  return true;
 }
 
 int main(const int argc, char **argv) {
@@ -485,12 +491,13 @@ int main(const int argc, char **argv) {
   success =
       success && write_hd_min("pct_vs_wepl", hd_orig_to_wepl, hd_wepl_to_orig);
   success = success && write_hd_directed("pct_vs_wepl", hd_orig_to_wepl);
-  write_vector_to_file(hd_orig_to_wepl.h_all,
-                       out_filebase + "_pct_vs_wepl_all_"s +
-                           std::string(voi_str) + "_"s +
-                           recalc_dcm_dir.filename().string() + ".txt");
+  success = success &&
+            write_vector_to_file(
+                hd_orig_to_wepl.h_all,
+                out_filebase + "_pct_vs_wepl_all_"s + std::string(voi_str) +
+                    "_"s + recalc_dcm_dir.filename().string() + ".txt");
   success = success && write_hd_directed("wepl_vs_pct", hd_wepl_to_orig);
-  // write_vector_to_file(hd_wepl_to_orig.h_all,
+  // success = success && write_vector_to_file(hd_wepl_to_orig.h_all,
   //                      out_filebase + "_wepl_vs_pct_all_"s +
   //                          std::string(voi_str) + "_"s +
   //                          recalc_dcm_dir.filename().string() + ".txt");
@@ -500,10 +507,11 @@ int main(const int argc, char **argv) {
   success =
       success && write_hd_min("rct_vs_wepl", hd_rct_to_wepl, hd_wepl_to_rct);
   success = success && write_hd_directed("rct_vs_wepl", hd_rct_to_wepl);
-  write_vector_to_file(hd_rct_to_wepl.h_all,
-                       out_filebase + "_rct_vs_wepl_all_"s +
-                           std::string(voi_str) + "_"s +
-                           recalc_dcm_dir.filename().string() + ".txt");
+  success = success &&
+            write_vector_to_file(
+                hd_rct_to_wepl.h_all,
+                out_filebase + "_rct_vs_wepl_all_"s + std::string(voi_str) +
+                    "_"s + recalc_dcm_dir.filename().string() + ".txt");
   success = success && write_hd_directed("wepl_vs_rct", hd_wepl_to_rct);
 
   success =
@@ -511,10 +519,11 @@ int main(const int argc, char **argv) {
   success =
       success && write_hd_min("pct_vs_rct", hd_orig_to_rct, hd_rct_to_orig);
   success = success && write_hd_directed("pct_vs_rct", hd_orig_to_rct);
-  write_vector_to_file(hd_orig_to_rct.h_all,
-                       out_filebase + "_pct_vs_rct_all_"s +
-                           std::string(voi_str) + "_"s +
-                           recalc_dcm_dir.filename().string() + ".txt");
+  success =
+      success && write_vector_to_file(
+                     hd_orig_to_rct.h_all,
+                     out_filebase + "_pct_vs_rct_all_"s + std::string(voi_str) +
+                         "_"s + recalc_dcm_dir.filename().string() + ".txt");
   success = success && write_hd_directed("rct_vs_pct", hd_rct_to_orig);
 
   if (!success) {

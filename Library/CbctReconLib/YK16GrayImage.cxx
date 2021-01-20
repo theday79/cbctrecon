@@ -488,6 +488,11 @@ bool YK16GrayImage::SaveDataAsHis(const std::filesystem::path &filePath,
 
   {
     std::ofstream fd(filePath, std::ios::binary);
+    if (!fd.is_open()) {
+      std::cerr << "Couldn't open file: " << filePath.string()
+                << " for writing!\n";
+      return false;
+    }
     fd.write(m_pElektaHisHeader, 100);
     // fwrite(m_pElektaHisHeader, 100, 1, fd);
 

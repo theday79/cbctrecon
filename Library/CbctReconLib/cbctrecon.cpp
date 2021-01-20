@@ -352,6 +352,9 @@ void CbctRecon::LoadSelectedProj(const std::vector<size_t> &exclude_ids,
 
   std::ofstream fout;
   fout.open("DebugFileNames.txt");
+  if (!fout.is_open()) {
+    std::cerr << "Couldn't open file: DebugFileNames.txt for writing!\n";
+  }
 
   for (auto &it_idx : exclude_ids) {
     const auto &cur_str = names.at(it_idx);
@@ -1367,7 +1370,8 @@ void CbctRecon::FindAllRelevantPaths(
       m_projFormat = enProjFormat::HND_FORMAT;
       return;
     }
-    if (fs::absolute(curHisDir).string().find("Acquisitions") != std::string::npos) {
+    if (fs::absolute(curHisDir).string().find("Acquisitions") !=
+        std::string::npos) {
       std::cout << "XML set by guessing: Acquisitions/../Scan.xml" << std::endl;
       m_strPathGeomXML =
           fs::absolute(curHisDir).parent_path().parent_path() / "Scan.xml";
@@ -1705,6 +1709,11 @@ void CbctRecon::SaveProjImageAsHIS(FloatImageType::Pointer &spProj3D,
 
     {
       std::ofstream fd(crntPath, std::ios::binary);
+      if (!fd.is_open()) {
+        std::cerr << "Couldn't open file: " << crntPath.string()
+                  << " for writing!\n";
+        continue;
+      }
       fd.write(it->m_pElektaHisHeader, sizeof(it->m_pElektaHisHeader));
       // fwrite(it->m_pElektaHisHeader, 100, 1, fd);
       // this buffer only include header info
@@ -1800,8 +1809,9 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
 
     // The OpenCL version: ~49ms CPU ~76ms
 #ifndef _WIN32
-    ImageType::Pointer spImg2DScat = crl::opencl::LogItoI_subtract_median_gaussian(
-        spImg2DRaw, spImg2DPrim, medianRadius, gaussianSigma);
+    ImageType::Pointer spImg2DScat =
+        crl::opencl::LogItoI_subtract_median_gaussian(
+            spImg2DRaw, spImg2DPrim, medianRadius, gaussianSigma);
 #else
 
     // CPU version if OpenCL is causing problems:
@@ -1890,8 +1900,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       crntDir = m_strPathPatientDir / "IMAGES"; // current Proj folder
     } else {
       // stolen from registration class: m_strPathPlastimatch definition
-      crntDir =
-          fs::current_path(); // folder where current exe file exists.
+      crntDir = fs::current_path(); // folder where current exe file exists.
       auto crntPathStr = fs::absolute(crntDir);
       auto dirName = crntPathStr / "plm_tmp";
 
@@ -1919,8 +1928,7 @@ void CbctRecon::GenScatterMap_PriorCT(FloatImageType::Pointer &spProjRaw3D,
       std::cout << "Scatter map directory seems to exist already. "
                    "Files will be overwritten."
                 << std::endl;
-    }
-     else {
+    } else {
       try {
         fs::create_directory(strSavingFolder);
       } catch (std::exception &e) {
@@ -2113,8 +2121,7 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
       std::cout << "Corrected projection directory seems to exist already. "
                    "Files will be overwritten."
                 << std::endl;
-    }
-     else {
+    } else {
       try {
         fs::create_directories(strSavingFolder);
       } catch (std::exception &e) {
@@ -2122,7 +2129,6 @@ void CbctRecon::ScatterCorr_PrioriCT(FloatImageType::Pointer &spProjRaw3D,
                   << e.what() << "\n";
       }
     }
-
 
     if (m_projFormat == enProjFormat::HIS_FORMAT) {
       if (!bHighResolMacro) {
@@ -2375,7 +2381,7 @@ void CbctRecon::AfterScatCorrectionMacro(const bool use_cuda,
     auto updated_text_ct = "PriorCT_ScatterCorr"s;
     auto saving_folder = crl::SaveUSHORTAsSHORT_DICOM(
         m_spScatCorrReconImg, m_strDCMUID, updated_text_ct, savingFolder);
-    if (savingFolder != saving_folder ) {
+    if (savingFolder != saving_folder) {
       std::cerr << "Different saving folder returned?\n";
     }
     // Export as DICOM (using plastimatch) folder?
@@ -2577,6 +2583,11 @@ void CbctRecon::ExportAngularWEPL_byFile(fs::path strPathOutput,
 
   std::ofstream fout;
   fout.open(strPathOutput);
+  if (!fout.is_open()) {
+    std::cerr << "Couldn't open file: " << strPathOutput.string()
+              << " for writing!\n";
+    return;
+  }
 
   const auto cntWEPL = vOutputWEPL_rawCBCT.size();
 
@@ -2743,7 +2754,7 @@ void CbctRecon::GetAngularWEPL_SinglePoint(
   const std::string stdout_file = "WEPL_stdout.txt";
 
   std::ofstream ofs(stdout_file); // Open stdout_file for writing
-  if (ofs.is_open()) {
+  if (!ofs.is_open()) {
     std::cerr
         << "couldn't open file: " << stdout_file << " for writing!\n"
         << "Are you running this app from a folder without write permissions?"
@@ -2996,6 +3007,11 @@ void CbctRecon::ExportProjGeometryTXT(const fs::path &strPath) const {
 
   std::ofstream fout;
   fout.open(strPath);
+  if (!fout.is_open()) {
+    std::cerr << "Couldn't open file: " << strPath.string()
+              << " for writing!\n";
+    return;
+  }
 
   fout << "MV_Gantry_Angle"
        << "	"
