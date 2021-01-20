@@ -6,8 +6,16 @@
 
 #include "cbctrecon.h"
 
+#if __has_include(<oneapi/dpl/execution>)
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+namespace execution = oneapi::dpl::execution;
+#else
 #include <algorithm>
 #include <execution>
+namespace execution = std::execution;
+#endif
+
 #include <filesystem>
 #include <iostream>
 #include <memory>

@@ -1,7 +1,16 @@
 #ifndef STRUCTURESET_H
 #define STRUCTURESET_H
 
+#if __has_include(<oneapi/dpl/execution>)
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+namespace execution = oneapi::dpl::execution;
+#else
+#include <algorithm>
 #include <execution>
+namespace execution = std::execution;
+#endif
+
 #include <filesystem>
 
 #undef TIMEOUT
@@ -167,8 +176,8 @@ T min_distance(const FloatVector from_point, const Rtss_roi_modern &to_roi) {
       continue;
     }
     auto to_contour_distances = std::vector<T>(to_coords.size());
-    std::transform(std::execution::par_unseq, to_coords.begin(),
-                   to_coords.end(), to_contour_distances.begin(),
+    std::transform(execution::par_unseq, to_coords.begin(), to_coords.end(),
+                   to_contour_distances.begin(),
                    [from_point](const auto to_point) {
                      return crl::ce_distance<T>(from_point, to_point);
                    });
@@ -186,7 +195,7 @@ auto calculate_hausdorff(const Rtss_roi_modern &from_roi,
       "Percent should be less than 100 as a higher value doesn't make sense.");
 
   const auto n_total_points = std::transform_reduce(
-      std::execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
+      execution::par_unseq, from_roi.pslist.begin(), from_roi.pslist.end(),
       static_cast<size_t>(0), std::plus<size_t>(),
       [](const Rtss_contour_modern &contour) {
         return contour.coordinates.size();
@@ -196,14 +205,14 @@ auto calculate_hausdorff(const Rtss_roi_modern &from_roi,
   auto dist_iterator = distances.begin();
   for (const auto &from_contour : from_roi.pslist) {
     auto &from_coords = from_contour.coordinates;
-    dist_iterator = std::transform(
-        std::execution::par_unseq, from_coords.begin(), from_coords.end(),
-        dist_iterator, [&to_roi](const auto from_point) {
-          return min_distance<T>(from_point, to_roi);
-        });
+    dist_iterator = std::transform(execution::par_unseq, from_coords.begin(),
+                                   from_coords.end(), dist_iterator,
+                                   [&to_roi](const auto from_point) {
+                                     return min_distance<T>(from_point, to_roi);
+                                   });
   }
 
-  std::sort(std::execution::par_unseq, distances.begin(), distances.end());
+  std::sort(execution::par_unseq, distances.begin(), distances.end());
 
   hausdorff_result<T> hausdorff_output;
   hausdorff_output.h_min = distances.front();

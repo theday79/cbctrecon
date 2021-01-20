@@ -2,9 +2,19 @@
 // it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
 // http://www.viva64.com
 
+#if __has_include(<oneapi/dpl/execution>)
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/numeric>
+namespace execution = oneapi::dpl::execution;
+#else
+#include <algorithm>
 #include <execution>
-#include <memory>
 #include <numeric>
+namespace execution = std::execution;
+#endif
+
+#include <memory>
 
 #include "PlmWrapper.h"
 #include <itkImageRegionIterator.h>
@@ -159,10 +169,9 @@ bool Rtss_contour_modern::is_inside(const FloatVector point) const {
 
 FloatVector Rtss_contour_modern::get_centre() const {
   FloatVector zero(0.0f, 0.0f, 0.0f);
-  const auto sum =
-      std::reduce(std::execution ::par_unseq, this->coordinates.begin(),
-                  this->coordinates.end(), zero,
-                  [](auto crnt_point, auto sum) { return sum + crnt_point; });
+  const auto sum = std::reduce(
+      execution::par_unseq, this->coordinates.begin(), this->coordinates.end(),
+      zero, [](auto crnt_point, auto sum) { return sum + crnt_point; });
   const auto n_points = static_cast<float>(this->coordinates.size());
   return FloatVector(sum[0] / n_points, sum[1] / n_points, sum[2] / n_points);
 }

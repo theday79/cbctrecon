@@ -1,9 +1,17 @@
 #ifndef FREE_FUNCTIONS_H
 #define FREE_FUNCTIONS_H
 
+#if __has_include(<oneapi/dpl/execution>)
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+namespace execution = oneapi::dpl::execution;
+#else
 #include <algorithm>
-#include <charconv>
 #include <execution>
+namespace execution = std::execution;
+#endif
+
+#include <charconv>
 #include <filesystem>
 #include <limits>
 #include <optional>
@@ -192,7 +200,7 @@ template <typename T> std::string stringify(T arg) {
   return "UNHANDLED_ERROR";
 }
 
-template <char SEP, typename... Args> std::string make_sep_str(Args &&... arg) {
+template <char SEP, typename... Args> std::string make_sep_str(Args &&...arg) {
   auto tmp_str = ((stringify(std::forward<Args>(arg)) + SEP) + ...);
   return tmp_str.substr(0, tmp_str.size() - 1);
 }
@@ -252,7 +260,7 @@ template <enProjFormat PF, typename T> T BeamHardening(T val) {
 
 template <enProjFormat PF, typename T>
 void BeamHardening(T *pBuffer, const size_t nPix) {
-  std::transform(std::execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
+  std::transform(execution::par_unseq, &pBuffer[0], &pBuffer[0] + nPix,
                  &pBuffer[0], [](auto val) { return BeamHardening<PF>(val); });
 }
 
