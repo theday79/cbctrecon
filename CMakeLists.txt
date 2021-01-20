@@ -234,7 +234,19 @@ if(NOT
    CMAKE_CXX_COMPILER_ID
    STREQUAL
    "MSVC")
-  set(ABSEIL_LIBS absl::base absl::strings)
+  include(CheckCXXSourceCompiles)
+  check_cxx_source_compiles("
+  #include <charconv>
+  int main() {
+    auto str = \"3.14\";
+    auto out = 0.f;
+    std::from_chars(str, str+4, out);
+    return 0;
+  }
+  " HAS_FROM_CHARS)
+  if(NOT HAS_FROM_CHARS)
+    set(ABSEIL_LIBS absl::base absl::strings)
+  endif()
   # Require TBB for parralel stl It should be a free choice for which implementation to
   # use, but TBB seems simplest for now
   find_package(TBB REQUIRED)
