@@ -218,8 +218,8 @@ void CbctReconWidget::SLT_MakeElektaXML() {
   // Define IMAGE.DBF path
   auto filePath_ImageDBF = QFileDialog::getOpenFileName(
       this, "SelectIMAGE.DBF file",
-      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "Elekta DB file (*.dbf)",
-      nullptr, nullptr);
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Elekta DB file (*.dbf)");
 
   if (filePath_ImageDBF.length() < 2) {
     return;
@@ -227,8 +227,8 @@ void CbctReconWidget::SLT_MakeElektaXML() {
 
   auto filePath_FrameDBF = QFileDialog::getOpenFileName(
       this, "Select FRAME.DBF file",
-      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "Elekta DB file (*.dbf)",
-      nullptr, nullptr);
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Elekta DB file (*.dbf)");
 
   if (filePath_FrameDBF.length() < 2) {
     return;
@@ -428,8 +428,8 @@ void CbctReconWidget::SLT_OpenElektaGeomFile() {
 
 void CbctReconWidget::SLT_SetOutputPath() {
   auto strPath = QFileDialog::getSaveFileName(
-      this, "File path to save", "D:\\", "meta 3D image data (*.mha)", nullptr,
-      nullptr); // Filename don't need to exist
+      this, "File path to save", "D:\\",
+      "meta 3D image data (*.mha)"); // Filename don't need to exist
 
   if (strPath.length() <= 1) {
     return;
@@ -691,7 +691,7 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
 QString getBowtiePath(QWidget *parent, const fs::path &calDir) {
   return QFileDialog::getOpenFileName(
       parent, "Find air(+bowtie) filter image for subtraction",
-      to_qstr(fs::absolute(calDir)), "Projection (*.xim)", nullptr, nullptr);
+      to_qstr(fs::absolute(calDir)), "Projection (*.xim)");
 }
 
 std::tuple<bool, bool> CbctReconWidget::probeUser(const fs::path &guessDir) {
@@ -1700,9 +1700,8 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 }
 
 void CbctReconWidget::SLT_ExportReconSHORT_HU() {
-  auto strPath = QFileDialog::getSaveFileName(this, "Save Image", "",
-                                              "signed short meta image (*.mha)",
-                                              nullptr, nullptr);
+  auto strPath = QFileDialog::getSaveFileName(
+      this, "Save Image", "", "signed short meta image (*.mha)");
   if (strPath.length() <= 1) {
     return;
   }
@@ -1988,7 +1987,7 @@ void CbctReconWidget::SLT_LoadPlanCT_USHORT() {
 
   auto fileName = QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "Projection file (*.mha)", nullptr, nullptr);
+      "Projection file (*.mha)");
 
   if (fileName.length() < 1) {
     return;
@@ -2025,8 +2024,8 @@ void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
 
   // export arrWEPL
   auto filePath = QFileDialog::getSaveFileName(
-      this, "Save data", "", "txt image file (*.txt)", nullptr,
-      nullptr); // Filename don't need to exist
+      this, "Save data", "",
+      "txt image file (*.txt)"); // Filename don't need to exist
 
   if (filePath.length() < 1) {
     return;
@@ -2259,8 +2258,7 @@ void CbctReconWidget::SLT_ExportAngularWEPL_byFile() {
   // export arrWEPL
   auto filePath = QFileDialog::getSaveFileName(
       this, "Save data", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "txt image file (*.txt)", nullptr,
-      nullptr); // Filename don't need to exist
+      "txt image file (*.txt)"); // Filename don't need to exist
 
   if (filePath.length() < 1) {
     return;
@@ -2290,7 +2288,7 @@ void CbctReconWidget::SLT_LoadPOIData() // it fills m_vPOI_DCM
 
   auto filePath = QFileDialog::getOpenFileName(
       this, "POI data file", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "POI data file (*.txt)", nullptr, nullptr);
+      "POI data file (*.txt)");
 
   if (filePath.length() < 1) {
     return;
@@ -2515,7 +2513,7 @@ void CbctReconWidget::SLTM_LoadDICOMdir() {
 void CbctReconWidget::SLTM_LoadRTKoutput() {
   auto filePath = to_path(QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "rtk output float image (*.mha)", nullptr, nullptr));
+      "rtk output float image (*.mha)"));
   this->m_cbctrecon->LoadExternalFloatImage(filePath, true);
   auto strCrntFileName = filePath.filename();
   UpdateReconImage(this->m_cbctrecon->m_spRawReconImg,
@@ -2579,9 +2577,8 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
     return;
   }
 
-  auto strPath = QFileDialog::getSaveFileName(this, "Save Image", "",
-                                              "signed short meta image (*.tif)",
-                                              nullptr, nullptr);
+  auto strPath = QFileDialog::getSaveFileName(
+      this, "Save Image", "", "signed short meta image (*.tif)");
   if (strPath.length() <= 1) {
     return;
   }
@@ -2609,16 +2606,15 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
 void CbctReconWidget::SLTM_Export2DDoseMapAsMHA() {
 
   auto strPath = to_path(QFileDialog::getSaveFileName(
-      this, "Save Image", "", "itk compatible meta image (*.mha)", nullptr,
-      nullptr));
+      this, "Save Image", "", "itk compatible meta image (*.mha)"));
 
   this->m_cbctrecon->Export2DDoseMapAsMHA(strPath);
 }
 
 void CbctReconWidget::SLTM_ExportProjGeometryTXT() {
 
-  auto strPath = to_path(QFileDialog::getSaveFileName(
-      this, "Save text file", "", "text (*.txt)", nullptr, nullptr));
+  auto strPath = to_path(
+      QFileDialog::getSaveFileName(this, "Save text file", "", "text (*.txt)"));
 
   this->m_cbctrecon->ExportProjGeometryTXT(strPath);
 }
@@ -2673,8 +2669,7 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     auto outputPath = to_path(QFileDialog::getSaveFileName(
         this, "File path to save",
         to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-        "Projection stack (*.mha)", nullptr,
-        nullptr)); // Filename don't need to exist
+        "Projection stack (*.mha)")); // Filename don't need to exist
     if (outputPath.empty()) {
       return;
     }
@@ -3163,7 +3158,7 @@ void CbctReconWidget::SLT_OpenPhaseData() {
   // Open file
   auto filePath = QFileDialog::getOpenFileName(
       this, "Open phase text", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "Phase text file (*.txt)", nullptr, nullptr);
+      "Phase text file (*.txt)");
 
   if (filePath.length() < 1) {
     return;
@@ -3300,7 +3295,7 @@ void CbctReconWidget::SLT_Export4DCBCT() const {
 template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
   auto fileName = to_path(QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "Short image file (*.mha)", nullptr, nullptr));
+      "Short image file (*.mha)"));
 
   if (fileName.empty()) {
     return;
@@ -3427,8 +3422,8 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
 
   auto strPathOutText = QFileDialog::getSaveFileName(
       this, "File path to save",
-      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "WEPL_value (*.txt)",
-      nullptr, nullptr); // Filename don't need to exist
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "WEPL_value (*.txt)"); // Filename don't need to exist
   if (strPathOutText.length() <= 1) {
     return;
   }
@@ -3510,7 +3505,7 @@ void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
 void CbctReconWidget::SLTM_LoadPerProjRefList() {
   auto filePath = QFileDialog::getOpenFileName(
       this, "PerProjVol list", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "File path list (*.txt)", nullptr, nullptr);
+      "File path list (*.txt)");
 
   if (filePath.length() < 1) {
     return;
@@ -3559,8 +3554,7 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
   // Specify mask file (USHORT)
   auto maskFilePath = to_path(QFileDialog::getOpenFileName(
       this, "Mask image (Ushort)",
-      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "3D mask file (*.mha)",
-      nullptr, nullptr));
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "3D mask file (*.mha)"));
 
   if (maskFilePath.empty()) {
     return;
@@ -3711,7 +3705,7 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
 
   auto fileName = QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "3D dose float file (*.mha)", nullptr, nullptr);
+      "3D dose float file (*.mha)");
 
   if (fileName.length() < 1) {
     return;
@@ -3781,7 +3775,7 @@ void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
 
   auto fileName = QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "Projection file (*.mha)", nullptr, nullptr);
+      "Projection file (*.mha)");
 
   if (fileName.length() < 1) {
     return;
@@ -3821,7 +3815,7 @@ void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
 void CbctReconWidget::SLT_Load3DImageShort() {
   auto fileName = to_path(QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "short mha file (*.mha)", nullptr, nullptr));
+      "short mha file (*.mha)"));
 
   if (fileName.empty()) {
     return;
@@ -3878,7 +3872,7 @@ void CbctReconWidget::SLT_Load3DImageShort() {
 void CbctReconWidget::SLT_LoadNKIImage() {
   auto filePath = to_path(QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "NKI file (*.SCAN)", nullptr, nullptr));
+      "NKI file (*.SCAN)"));
 
   if (filePath.empty()) {
     return;
@@ -4065,7 +4059,7 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
 
   auto fileName = to_path(QFileDialog::getOpenFileName(
       this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
-      "Plan CT file (*.mha)", nullptr, nullptr));
+      "Plan CT file (*.mha)"));
 
   if (fileName.empty()) {
     return;
@@ -4123,8 +4117,7 @@ void CbctReconWidget::SLT_ExportReconUSHORT() {
   }
 
   auto strPath = QFileDialog::getSaveFileName(
-      this, "Save Image", "", "unsigned short meta image (*.mha)", nullptr,
-      nullptr);
+      this, "Save Image", "", "unsigned short meta image (*.mha)");
   if (strPath.length() <= 1) {
     return;
   }

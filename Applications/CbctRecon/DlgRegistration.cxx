@@ -2147,7 +2147,7 @@ void DlgRegistration::SLT_ManualMoveByDCMPlanOpen() {
   const auto p_parent = m_cbctregistration->m_pParent;
   auto filePath = QFileDialog::getOpenFileName(
       this, "Open DCMRT Plan file", to_qstr(p_parent->m_strPathDirDefault),
-      "DCMRT Plan (*.dcm)", nullptr, nullptr);
+      "DCMRT Plan (*.dcm)");
 
   if (filePath.length() < 1) {
     return;
@@ -2327,19 +2327,19 @@ void DlgRegistration::SLT_gPMCrecalc() {
     plan_filepath = to_path(QFileDialog::getOpenFileName(
         this, "Open DCMRT Plan file",
         to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault),
-        "DCMRT Plan (*.dcm)", nullptr, nullptr));
+        "DCMRT Plan (*.dcm)"));
   } else {
     plan_filepath = to_path(QFileDialog::getOpenFileName(
         this, "Open DCMRT Plan file",
         to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault),
-        "DCMRT Plan (*.dcm)", nullptr, nullptr));
+        "DCMRT Plan (*.dcm)"));
     for (auto i = 1; i < this->ui.spinBox_NdcmPlans->value(); i++) {
       plan_filepath = crl::make_sep_str<','>(
           plan_filepath,
           to_path(QFileDialog::getOpenFileName(
               this, "Open DCMRT Plan file",
               to_qstr(m_cbctregistration->m_pParent->m_strPathDirDefault),
-              "DCMRT Plan (*.dcm)", nullptr, nullptr)));
+              "DCMRT Plan (*.dcm)")));
     }
   }
 

@@ -26,9 +26,10 @@ class CbctReconWidget : public QMainWindow {
 
 public:
   explicit CbctReconWidget(QWidget *parent = nullptr,
-                           Qt::WindowFlags flags = nullptr);
+                           Qt::WindowFlags flags = Qt::WindowFlags());
   //~CbctReconWidget() = default;
-  void UpdateReconImage(UShortImageType::Pointer &spNewImg, const QString& fileName);
+  void UpdateReconImage(UShortImageType::Pointer &spNewImg,
+                        const QString &fileName);
   FDK_options getFDKoptions() const;
 
 private:
