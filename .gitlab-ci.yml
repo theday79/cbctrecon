@@ -30,7 +30,7 @@ Ubuntu-gcc10-CUDA:
     script:
       - export CC=/usr/bin/gcc-10
       - export CXX=/usr/bin/g++-10
-      - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-passing-red.svg
+      - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-failing-red.svg
       - ./ci/ci.sh
       - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-passing-green.svg
     allow_failure: true
@@ -83,7 +83,7 @@ Ubuntu-clang11-ROCm:
       - export CUSTOM_CMAKE_FLAGS="-DOpenMP_CXX_FLAGS='-fopenmp=libomp' -DOpenMP_CXX_LIB_NAMES=omp"
       - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_SYCLCC_EXTRA_ARGS='--rocm-device-lib-path=/opt/rocm/amdgcn/bitcode/'"
       - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_ROCM_PATH=/opt/rocm/"
-      - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-passing-red.svg
+      - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-failing-red.svg
       - ./ci/ci.sh
       - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-passing-green.svg
     allow_failure: true
@@ -105,7 +105,7 @@ Ubuntu-icc21-oneAPI:
       - export PATH=$PATH:$pre_setvars_path
       - export CC=icc
       - export CXX=icpc
-      - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-red.svg
+      - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-failing-red.svg
       - ./ci/ci.sh
       - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-green.svg
     allow_failure: true
