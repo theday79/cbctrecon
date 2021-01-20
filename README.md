@@ -59,6 +59,7 @@ cd build
 
 cmake -GNinja ../cbctrecon \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DCMAKE_INSTALL_PREFIX=/home/user/cbctrecon_install \
   -DHUNTER_ENABLED=ON \
   -DUSE_CUDA=ON \
   -DEXACT_GCC=/ust/bin/gcc-8 \
@@ -73,6 +74,8 @@ ninja INSTALL
 ```
 
 `EXACT_GCC` is needed for CUDA to work with newer versions of gcc or clang, it's an internal variable used in plastimatch and RTK, which may soon be deprecated.
+
+`CMAKE_INSTALL_PREFIX` must be a path the user has write permissions in, otherwise temporary files can't be created at runtime.
 
 (using ninja because it's much faster than Make and msbuild)
 
@@ -89,6 +92,7 @@ cd build
 cmake -G"Visual Studio 16 2019" -A"x64" ../cbctrecon ^
   -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
   -DCMAKE_PREFIX_PATH="C:/Qt/5.14.1/msvc2017_64/" ^
+  -DCMAKE_INSTALL_PREFIX="C:/Users/user/cbctrecon_install/" ^
   -DHUNTER_ENABLED=ON ^
   -DRTK_USE_OPENCL=ON ^
   -DCBCTRECON_OPENCL_VERSION=210 ^

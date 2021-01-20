@@ -188,7 +188,7 @@ install(
 
 get_target_property(RUNTIME_DIR CbctReconLib RUNTIME_OUTPUT_DIRECTORY)
 if(${RUNTIME_DIR} STREQUAL RUNTIME_DIR-NOTFOUND)
-  set(RUNTIME_DIR ${CMAKE_BINARY_DIR}/bin)
+  set(RUNTIME_DIR ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
 add_custom_command(
   TARGET CbctReconLib

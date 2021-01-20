@@ -124,55 +124,55 @@ add_cbctrecon_test(
 add_test(
   NAME ${test_target}_add_2d
   COMMAND $<TARGET_FILE:${test_target}> add_const_2d_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 add_test(
   NAME ${test_target}_add_mul
   COMMAND $<TARGET_FILE:${test_target}> add_mul_const_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 add_test(
   NAME ${test_target}_min_max
   COMMAND $<TARGET_FILE:${test_target}> min_max_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 add_test(
   NAME ${test_target}_min_max_2d
   COMMAND $<TARGET_FILE:${test_target}> min_max_2d_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 add_test(
   NAME ${test_target}_divide_3d_by_3d_loginv
   COMMAND $<TARGET_FILE:${test_target}> divide_3Dby3D_loginv_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 #add_test(
 #    NAME ${test_target}_ItoLogI_subtract_median
 #    COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_filter
-#  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+#  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
 #  )
 
 add_test(
     NAME ${test_target}_ItoLogI_subtract_median_small
     COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_filter_small
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 add_test(
     NAME ${test_target}_ItoLogI_subtract_median_gaussian
     COMMAND $<TARGET_FILE:${test_target}> ItoLogI_subtract_median_gaussian_filter
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 ExternalData_Add_test(CbctData
   NAME ${test_target}_crop_by_struct
   COMMAND $<TARGET_FILE:${test_target}> crop_by_struct_filter DATA{Input/Alderson/CT.tar.gz}
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
   )
 
 # Test: Forward projection, for OpenCL if available
