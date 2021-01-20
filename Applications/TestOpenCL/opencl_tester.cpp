@@ -7,6 +7,13 @@
 #include "OpenCL/device_picker.hpp"
 #include "OpenCL/err_code.hpp"
 
+#ifndef CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD
+#define CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD 0x4040
+#endif
+#ifndef CL_DEVICE_WAVEFRONT_WIDTH_AMD
+#define CL_DEVICE_WAVEFRONT_WIDTH_AMD 0x4043
+#endif
+
 int main(int argc, char **argv) {
 
   // Get list of platforms
