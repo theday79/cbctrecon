@@ -86,7 +86,7 @@ function(add_cbctrecon_test)
   ExternalData_Add_test(CbctData
     NAME ${ARGS_TARGET}
     COMMAND ${VG_COMM} $<TARGET_FILE:${ARGS_TARGET}> ${ARGS_DATA_ARGS}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
 	)
 
   set_tests_properties(${ARGS_TARGET} PROPERTIES TIMEOUT 12000)
