@@ -23,4 +23,8 @@ set(syclext_sources syclext_utils.hpp syclext_functions.hpp)
 
 add_library(sycl_ext ${syclext_sources})
 
-add_sycl_to_target(TARGET sycl_ext SOURCES ${syclext_sources})
+add_sycl_to_target(
+  TARGET
+  sycl_ext
+  SOURCES
+  ${syclext_sources})

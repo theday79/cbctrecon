@@ -1,68 +1,60 @@
-### The main application ###
+# ### The main application ###
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-# set(CMAKE_AUTOMOC ON)
-# set(CMAKE_AUTOUIC ON)
-# set(CMAKE_AUTORCC ON)
-
 if(APPLE)
-  SET(CMAKE_INSTALL_RPATH bin)
+  set(CMAKE_INSTALL_RPATH bin)
 endif(APPLE)
 
 # Packaging
-option(CbctRecon_PACKAGE_32BIT "Set this when building 32-bit packages on a 64-bit machine" OFF)
+option(CbctRecon_PACKAGE_32BIT
+       "Set this when building 32-bit packages on a 64-bit machine" OFF)
 option(CbctRecon_PACKAGE_NSIS "Set to ON when packaging binaries with NSIS" OFF)
 option(CbctRecon_PACKAGE_WIX "Set to ON when packaging binaries with WIX" ON)
 
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
-############## Qt start wrapping ##############
+# ############# Qt start wrapping ##############
 set(CbctReconExe_SOURCES
-  cbctrecon_mainwidget.cxx
-  DlgRegistration.cxx
-  DlgExternalCommand.cxx
-  DlgHistogram.cxx
-  qt-utils/qyklabel.cpp
-  qt-utils/qcustomplot.cpp
-  CMakeSetup.rc
-)
+    cbctrecon_mainwidget.cxx
+    DlgRegistration.cxx
+    DlgExternalCommand.cxx
+    DlgHistogram.cxx
+    qt-utils/qyklabel.cpp
+    qt-utils/qcustomplot.cpp
+    CMakeSetup.rc)
 
-SET(CbctRecon_HEADERS
-  cbctrecon_mainwidget.h
-  DlgRegistration.h
-  qt-utils/qyklabel.h
-  qt-utils/qcustomplot.h
-  qt-utils/qtwrap.h
-  DlgExternalCommand.h
-  DlgHistogram.h
-)
-SET(CbctRecon_FORMS
-  ui/cbctrecon.ui
-  ui/DlgRegistration.ui
-  ui/DlgHistogram.ui # Kept for example, no longer used
-  ui/DlgExternalCommand.ui
-)
+set(CbctRecon_HEADERS
+    cbctrecon_mainwidget.h
+    DlgRegistration.h
+    qt-utils/qyklabel.h
+    qt-utils/qcustomplot.h
+    qt-utils/qtwrap.h
+    DlgExternalCommand.h
+    DlgHistogram.h)
+set(CbctRecon_FORMS
+    ui/cbctrecon.ui
+    ui/DlgRegistration.ui
+    ui/DlgHistogram.ui # Kept for example, no longer used
+    ui/DlgExternalCommand.ui)
 
-Qt5_wrap_cpp(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
-Qt5_wrap_ui(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
-Qt5_add_resources(CbctRecon_RCC ui/style.qrc)
+qt5_wrap_cpp(CbctRecon_HEADERS_MOC ${CbctRecon_HEADERS})
+qt5_wrap_ui(CbctRecon_FORMS_HEADERS ${CbctRecon_FORMS})
+qt5_add_resources(CbctRecon_RCC ui/style.qrc)
 
 set(CBCTRECON_INCLUDE_DIRS
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/ui
-  ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils
-  )
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/qt-utils)
 
 # Executable
-add_executable(CbctRecon
+add_executable(
+  CbctRecon
   main.cpp
   ${CbctReconExe_SOURCES}
   ${CbctRecon_HEADERS}
   ${CbctRecon_HEADERS_MOC}
   ${CbctRecon_FORMS_HEADERS}
-  ${CbctRecon_RCC}
-)
+  ${CbctRecon_RCC})
 
 # Sets instruction set optimization flags SSE/AVX/AVX2/AVX512:
 set_target_cpu_flags(CbctRecon)
@@ -73,17 +65,16 @@ if(CBCTRECON_SANITIZE)
   sanitize_build(CbctRecon)
 endif()
 
-set_target_properties(CbctRecon
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY bin
-  LIBRARY_OUTPUT_DIRECTORY lib
-  ARCHIVE_OUTPUT_DIRECTORY lib
-)
+set_target_properties(
+  CbctRecon
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY bin
+             LIBRARY_OUTPUT_DIRECTORY lib
+             ARCHIVE_OUTPUT_DIRECTORY lib)
 
-SET(QT_USE_QTCORE TRUE)
-SET(QT_USE_QTGUI TRUE)
-SET(QT_USE_QTOPENGL TRUE)
-############## Qt end wrapping ##############
+set(QT_USE_QTCORE TRUE)
+set(QT_USE_QTGUI TRUE)
+set(QT_USE_QTOPENGL TRUE)
+# ############# Qt end wrapping ##############
 
 set(Plastimatch_SRC ${CMAKE_BINARY_DIR}/Plastimatch-src/)
 set(Plastimatch_BUILD_DIR ${CMAKE_BINARY_DIR}/Plastimatch-build/)
@@ -102,75 +93,85 @@ set(PLASTIMATCH_INCLUDE_DIRS
     "${Plastimatch_SRC}/src/plastimatch/segment"
     "${Plastimatch_BUILD_DIR}/")
 
-#this is for "C++ General-> Add below to Additional Include Directories"
+# this is for "C++ General-> Add below to Additional Include Directories"
 set(CBCTRECON_DEP_INCLUDES
-  ${CBCTRECON_INCLUDE_DIRS}
-  ${ITK_INCLUDE_DIRS}
-  ${RTK_INCLUDE_DIRS}
-  ${PLASTIMATCH_INCLUDE_DIRS}
-  ${DCMTK_INCLUDE_DIR}
-  ${CLFFT_INCLUDE_DIRS}
-)
+    ${CBCTRECON_INCLUDE_DIRS}
+    ${ITK_INCLUDE_DIRS}
+    ${RTK_INCLUDE_DIRS}
+    ${PLASTIMATCH_INCLUDE_DIRS}
+    ${DCMTK_INCLUDE_DIR}
+    ${CLFFT_INCLUDE_DIRS})
 
-target_include_directories(CbctRecon
+target_include_directories(
+  CbctRecon
   PUBLIC ${CBCTRECON_DEP_INCLUDES}
-  PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-)
+  PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-#this is for "Linker->Additional dependencies"
-target_link_libraries(CbctRecon
-  PRIVATE CbctReconLib
-)
+# this is for "Linker->Additional dependencies"
+target_link_libraries(CbctRecon PRIVATE CbctReconLib)
 
-############## INSTALL ##############
-## Using install/bin as storage for all dependencies before copy to INSTALL_PREFIX/bin ##
+# ############# INSTALL ##############
+# Using install/bin as storage for all dependencies before copy to
+# INSTALL_PREFIX/bin ##
 
 file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin)
 file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/lut)
 
 if(WIN32)
   set(QT_DLLS
-    $<TARGET_FILE:Qt5::Widgets>
-    $<TARGET_FILE:Qt5::Gui>
-    $<TARGET_FILE:Qt5::OpenGL>
-    $<TARGET_FILE:Qt5::Core>
-    $<TARGET_FILE:Qt5::PrintSupport>
-  )
+      $<TARGET_FILE:Qt5::Widgets>
+      $<TARGET_FILE:Qt5::Gui>
+      $<TARGET_FILE:Qt5::OpenGL>
+      $<TARGET_FILE:Qt5::Core>
+      $<TARGET_FILE:Qt5::PrintSupport>)
   install(FILES ${QT_DLLS} DESTINATION bin)
 elseif(APPLE)
   foreach(target ${QT_LIBRARIES})
     get_target_property(type ${target} TYPE)
-    if(NOT type STREQUAL "SHARED_LIBRARY")
+    if(NOT
+       type
+       STREQUAL
+       "SHARED_LIBRARY")
       continue()
     endif()
-    get_property(location TARGET ${target} PROPERTY LOCATION_RELEASE)
+    get_property(
+      location
+      TARGET ${target}
+      PROPERTY LOCATION_RELEASE)
     # Install .so and versioned .so.x.y
     get_filename_component(QT_LIB_DIR_tmp ${location} PATH)
     get_filename_component(QT_LIB_NAME_tmp ${location} NAME)
-    string(REPLACE ".${_qt_version}" "" QT_LIB_NAME_tmp ${QT_LIB_NAME_tmp})
-    message(STATUS "Attmpting installing ${QT_LIB_NAME_tmp} from dir: ${QT_LIB_DIR_tmp}")
-    install(DIRECTORY ${QT_LIB_DIR_tmp}/
-      DESTINATION bin/${QT_LIB_NAME_tmp}.framework/ COMPONENT Runtime # ${CMAKE_CURRENT_BINARY_DIR}/../
-      FILES_MATCHING PATTERN "${QT_LIB_NAME_tmp}*"
+    string(
+      REPLACE ".${_qt_version}"
+              ""
+              QT_LIB_NAME_tmp
+              ${QT_LIB_NAME_tmp})
+    message(
+      STATUS
+        "Attmpting installing ${QT_LIB_NAME_tmp} from dir: ${QT_LIB_DIR_tmp}")
+    install(
+      DIRECTORY ${QT_LIB_DIR_tmp}/
+      DESTINATION bin/${QT_LIB_NAME_tmp}.framework/
+      COMPONENT Runtime # ${CMAKE_CURRENT_BINARY_DIR}/../
+      FILES_MATCHING
+      PATTERN "${QT_LIB_NAME_tmp}*"
       PATTERN "${QT_LIB_NAME_tmp}*.debug" EXCLUDE)
   endforeach()
 endif()
 
-
-
-install( TARGETS CbctRecon
+install(
+  TARGETS CbctRecon
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   PUBLIC_HEADER DESTINATION include
-  RESOURCE DESTINATION bin/ui
-  )
+  RESOURCE DESTINATION bin/ui)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/ui/style.qss DESTINATION bin/ui)
 
-##-----------------------------------------------------------------------------
-##  Additional install files
-##-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Additional install files
+# -----------------------------------------------------------------------------
 if(WIN32)
   if(NOT USE_SYSTEM_QT)
     hunter_add_package(Qt COMPONENTS qttools)
@@ -182,9 +183,14 @@ if(WIN32)
     windeployqt(CbctRecon "release" "${CMAKE_CURRENT_BINARY_DIR}/QtLibs")
   endif()
 
-  file (GLOB DLLFILES "${CMAKE_CURRENT_BINARY_DIR}/QtLibs/*.dll")
-  install (FILES ${DLLFILES} DESTINATION bin)
-  set (QT_SUBDIRS "iconengines" "imageformats" "platforms" "styles" "translations")
+  file(GLOB DLLFILES "${CMAKE_CURRENT_BINARY_DIR}/QtLibs/*.dll")
+  install(FILES ${DLLFILES} DESTINATION bin)
+  set(QT_SUBDIRS
+      "iconengines"
+      "imageformats"
+      "platforms"
+      "styles"
+      "translations")
   foreach(subdir ${QT_SUBDIRS})
     install(DIRECTORY "$<TARGET_FILE_DIR:CbctRecon>/${subdir}" DESTINATION bin)
   endforeach()
@@ -196,105 +202,109 @@ if(WIN32)
 
 endif()
 
-##-----------------------------------------------------------------------------
-##  Packaging - Copied with modification from Plastimatch
-##-----------------------------------------------------------------------------
-##  Simple version: "make package_source" to create tarball
-##
-##  Advanced version: to generate...
-##   * zip    : cpack -G ZIP <source tree>
-##   * tar.bz2: cpack -G TBZ2 <source tree>
-##
-##    ...from within your build directory
-##-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Packaging - Copied with modification from Plastimatch
+# -----------------------------------------------------------------------------
+# Simple version: "make package_source" to create tarball
+#
+# Advanced version: to generate... * zip    : cpack -G ZIP <source tree> *
+# tar.bz2: cpack -G TBZ2 <source tree>
+#
+# ...from within your build directory
+# -----------------------------------------------------------------------------
 # Choose generator
 if(CbctRecon_PACKAGE_WIX)
-  set (CPACK_GENERATOR "WIX")
+  set(CPACK_GENERATOR "WIX")
 elseif(CbctRecon_PACKAGE_NSIS)
-  set (CPACK_GENERATOR "NSIS")
-else ()
-  set (CPACK_GENERATOR "ZIP")
+  set(CPACK_GENERATOR "NSIS")
+else()
+  set(CPACK_GENERATOR "ZIP")
 endif()
-set (CPACK_SOURCE_GENERATOR "TBZ2")
+set(CPACK_SOURCE_GENERATOR "TBZ2")
 
-# For WiX install, and possibly for debian -dev targets,
-# we should properly set up the install components.
-# Until then, let's just kill it
-set (CPACK_MONOLITHIC_INSTALL 1)
+# For WiX install, and possibly for debian -dev targets, we should properly set
+# up the install components. Until then, let's just kill it
+set(CPACK_MONOLITHIC_INSTALL 1)
 
 # General stuff
-set (CPACK_INSTALL_PREFIX "")
-set (CPACK_PACKAGE_CONTACT "agravgaard@protonmail.com")
-set (CPACK_PACKAGE_NAME "cbctrecon")
-set (CPACK_PACKAGE_INSTALL_DIRECTORY "CbctRecon")
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "CbctRecon - A Medical Imaging Application")
-set (CPACK_PACKAGE_VENDOR "CbctRecon Dev Team")
-set (CPACK_PACKAGE_VERSION_MAJOR "${CbctRecon_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${CbctRecon_VERSION_MINOR}")
-set (CPACK_PACKAGE_VERSION_PATCH "${CbctRecon_VERSION_PATCH}")
-set (CPACK_PACKAGE_VERSION_TWEAK "${CbctRecon_VERSION_TWEAK}")
-set (CPACK_SOURCE_IGNORE_FILES
-  "/\\\\.git"
-  "/\\\\.svn"
-  "~$"
-)
+set(CPACK_INSTALL_PREFIX "")
+set(CPACK_PACKAGE_CONTACT "agravgaard@protonmail.com")
+set(CPACK_PACKAGE_NAME "cbctrecon")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "CbctRecon")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "CbctRecon - A Medical Imaging Application")
+set(CPACK_PACKAGE_VENDOR "CbctRecon Dev Team")
+set(CPACK_PACKAGE_VERSION_MAJOR "${CbctRecon_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${CbctRecon_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${CbctRecon_VERSION_PATCH}")
+set(CPACK_PACKAGE_VERSION_TWEAK "${CbctRecon_VERSION_TWEAK}")
+set(CPACK_SOURCE_IGNORE_FILES "/\\\\.git" "/\\\\.svn" "~$")
 
 # NSIS stuff
 set(CPACK_NSIS_INSTALLED_ICON_NAME "Icon1.ico")
-set (CPACK_NSIS_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
-set (CPACK_NSIS_URL_INFO_ABOUT "https://gitlab.com/agravgaard/cbctrecon")
-set (CPACK_NSIS_CONTACT "andreasga22@gmail.com")
-set (CbctRecon_NSIS_VERSION_STRING "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}")
+set(CPACK_NSIS_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
+set(CPACK_NSIS_URL_INFO_ABOUT "https://gitlab.com/agravgaard/cbctrecon")
+set(CPACK_NSIS_CONTACT "andreasga22@gmail.com")
+set(CbctRecon_NSIS_VERSION_STRING
+    "${CbctRecon_VERSION_MAJOR}.${CbctRecon_VERSION_MINOR}.${CbctRecon_VERSION_PATCH}"
+)
 
 # WIX stuff
-set (CbctRecon_WINDOWS_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows-install")
-set (CPACK_WIX_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
-set (CPACK_WIX_UPGRADE_GUID "43DF18E5-D982-413F-834C-2865B977C145")
-set (CPACK_WIX_LICENSE_RTF  "${CbctRecon_WINDOWS_INSTALL_DIR}/License.rtf")
-set (CPACK_WIX_UI_BANNER  "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo.jpg")
-set (CPACK_WIX_UI_DIALOG  "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo_GUI.jpg")
+set(CbctRecon_WINDOWS_INSTALL_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows-install")
+set(CPACK_WIX_HELP_LINK "https://gitlab.com/agravgaard/cbctrecon")
+set(CPACK_WIX_UPGRADE_GUID "43DF18E5-D982-413F-834C-2865B977C145")
+set(CPACK_WIX_LICENSE_RTF "${CbctRecon_WINDOWS_INSTALL_DIR}/License.rtf")
+set(CPACK_WIX_UI_BANNER "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo.jpg")
+set(CPACK_WIX_UI_DIALOG
+    "${CbctRecon_WINDOWS_INSTALL_DIR}/cbctrecon_logo_GUI.jpg")
 
-set (CPACK_WIX_EXTRA_SOURCES
+set(CPACK_WIX_EXTRA_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/cmake_extra_dialog.wxs"
     "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/install_dir.wxs"
-    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/start_menu.wxs"
-    )
-set (CPACK_WIX_PATCH_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/start_menu.wxs")
+set(CPACK_WIX_PATCH_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_path_env.xml"
-#    "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_start_menu.xml"
-    )
-set (CPACK_WIX_UI_REF "CMakeUI_InstallDir")
+    # "${CMAKE_CURRENT_SOURCE_DIR}/extra/wix/patch_start_menu.xml"
+)
+set(CPACK_WIX_UI_REF "CMakeUI_InstallDir")
 if(CPACK_GENERATOR STREQUAL "WIX")
-  set (CPACK_PACKAGE_NAME "CbctRecon")
+  set(CPACK_PACKAGE_NAME "CbctRecon")
   if(CPACK_PACKAGE_VERSION_TWEAK AND CPACK_PACKAGE_VERSION_TWEAK GREATER "0")
-    set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}.${CPACK_PACKAGE_VERSION_TWEAK}")
+    set(CPACK_PACKAGE_VERSION
+        "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}.${CPACK_PACKAGE_VERSION_TWEAK}"
+    )
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set (CPACK_SYSTEM_NAME "win64")
-    else ()
-      set (CPACK_SYSTEM_NAME "win32")
+      set(CPACK_SYSTEM_NAME "win64")
+    else()
+      set(CPACK_SYSTEM_NAME "win32")
     endif()
-    set (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
+    set(CPACK_PACKAGE_FILE_NAME
+        "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
   endif()
-  set_property (INSTALL "bin/CbctRecon.exe"
-    PROPERTY CPACK_START_MENU_SHORTCUTS "CbctRecon Application")
+  set_property(INSTALL "bin/CbctRecon.exe" PROPERTY CPACK_START_MENU_SHORTCUTS
+                                                    "CbctRecon Application")
 endif()
 
 # ZIP stuff
 if(CPACK_GENERATOR STREQUAL "ZIP")
-  set (CPACK_SET_DESTDIR ON)
+  set(CPACK_SET_DESTDIR ON)
 endif()
 
-include (CPack)
+include(CPack)
 
-##-----------------------------------------------------------------------------
-## Option to generate .clang_complete for hip Vim users using clang_complete
-##-----------------------------------------------------------------------------
-if (CBCTRECON_CLANG_COMPLETE)
-  get_property(inc_dirs DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
-  set (file_clang_complete "${CMAKE_CURRENT_SOURCE_DIR}/.clang_complete")
-  foreach (arg ${inc_dirs})
-    set (inc_args "${inc_args} -I${arg}\n")
-  endforeach ()
-  file (WRITE "${file_clang_complete}" "${inc_args}")
-  message (STATUS "Generated ${file_clang_complete}")
-endif ()
+# -----------------------------------------------------------------------------
+# Option to generate .clang_complete for hip Vim users using clang_complete
+# -----------------------------------------------------------------------------
+if(CBCTRECON_CLANG_COMPLETE)
+  get_property(
+    inc_dirs
+    DIRECTORY
+    PROPERTY INCLUDE_DIRECTORIES)
+  set(file_clang_complete "${CMAKE_CURRENT_SOURCE_DIR}/.clang_complete")
+  foreach(arg ${inc_dirs})
+    set(inc_args "${inc_args} -I${arg}\n")
+  endforeach()
+  file(WRITE "${file_clang_complete}" "${inc_args}")
+  message(STATUS "Generated ${file_clang_complete}")
+endif()

@@ -41,8 +41,11 @@ if(USE_OPENCL)
         OpenCL/ForwardProjectionImageFilter.cpp)
   endif()
 
-  set(OPENCLEXT_SOURCES ${RTK_OPENCL_SRC} OpenCL/ImageFilters.cxx
-                        OpenCL/device_picker.cpp OpenCL/err_code.cpp)
+  set(OPENCLEXT_SOURCES
+      ${RTK_OPENCL_SRC}
+      OpenCL/ImageFilters.cxx
+      OpenCL/device_picker.cpp
+      OpenCL/err_code.cpp)
 
   set(OPENCLEXT_HEADERS
       rtkExtension/rtkOpenCLFDKConeBeamReconstructionFilter.h
@@ -146,8 +149,12 @@ endif()
 
 # this is for "C++ General-> Add below to Additional Include Directories"
 set(CBCTRECON_DEP_INCLUDES
-    ${CBCTRECON_INCLUDE_DIRS} ${ITK_INCLUDE_DIRS} ${RTK_INCLUDE_DIRS}
-    ${PLASTIMATCH_INCLUDE_DIRS} ${DCMTK_INCLUDE_DIR} ${CLFFT_INCLUDE_DIRS})
+    ${CBCTRECON_INCLUDE_DIRS}
+    ${ITK_INCLUDE_DIRS}
+    ${RTK_INCLUDE_DIRS}
+    ${PLASTIMATCH_INCLUDE_DIRS}
+    ${DCMTK_INCLUDE_DIR}
+    ${CLFFT_INCLUDE_DIRS})
 
 target_include_directories(
   CbctReconLib SYSTEM
@@ -176,7 +183,13 @@ endif()
 
 if(USE_TINYREFL)
   include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)
-  tinyrefl_tool(TARGET CbctReconLib HEADERS cbctrecon.h COMPILE_OPTIONS -fPIC)
+  tinyrefl_tool(
+    TARGET
+    CbctReconLib
+    HEADERS
+    cbctrecon.h
+    COMPILE_OPTIONS
+    -fPIC)
 endif()
 
 install(
