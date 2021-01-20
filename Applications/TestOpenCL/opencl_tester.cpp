@@ -86,6 +86,12 @@ int main(int argc, char **argv) {
       FLOPs = 2;
       // This may not be a robust way to find # of shaders!!!
       compute_units *= dev.getInfo<CL_DEVICE_WARP_SIZE_NV>(&cl_err) * 4;
+    } else if (plat_name.compare(0, 3, "AMD") == 0) {
+      FLOPs = 1;
+      auto float_vec_width =
+          dev.getInfo<CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD>(&cl_err) / 2;
+      compute_units *=
+          dev.getInfo<CL_DEVICE_WAVEFRONT_WIDTH_AMD>(&cl_err) * float_vec_width;
     } else { // Intel CPUs seem to scale with vector width:
              // https://en.wikipedia.org/wiki/FLOPS#FLOPs_per_cycle_for_various_processors
              // I'll have to test on AMD CPU and GPU and Intel GPU hardware to
