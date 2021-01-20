@@ -31,11 +31,11 @@ function(add_cbctrecon_app)
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     )
 
-  install(TARGETS ${ARGS_TARGET}
-    RUNTIME DESTINATION bin
-    )
 endfunction()
 
 add_cbctrecon_app(
   TARGET opencl_tester
+  )
+install(TARGETS opencl_tester
+  RUNTIME DESTINATION bin
   )
