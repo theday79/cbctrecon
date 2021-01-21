@@ -4,12 +4,11 @@
 #include "cbctrecon_config.h"
 
 #include <algorithm> // for std::max
+#include <charconv>
 #include <iostream>
+#include <optional>
+#include <string>
 #include <type_traits>
-
-#include <qdir.h>
-#include <qfileinfo.h>
-#include <qstring.h>
 
 #include "itkImage.h"
 #include "itkImageSliceIteratorWithIndex.h"
@@ -18,8 +17,11 @@
 #include "rtkThreeDCircularProjectionGeometry.h"
 
 #include "cbctrecon_types.h"
+#include "free_functions.h"
 
-class QXmlStreamReader;
+namespace fs = std::filesystem;
+
+namespace crl {
 
 CBCTRECON_API void ApplyBowtie(FloatImageType::Pointer &projections,
                                const FloatImage2DType::Pointer &bowtie_proj);
@@ -35,18 +37,12 @@ CBCTRECON_API void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
 CBCTRECON_API double
 CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
                                        UShortImageType::Pointer &spProjCT3D);
-CBCTRECON_API double GetRawIntensityScaleFactor(QString &strRef_mAs,
-                                                QString &strCur_mAs);
+CBCTRECON_API double GetRawIntensityScaleFactor(std::string &strRef_mAs,
+                                                std::string &strCur_mAs);
 CBCTRECON_API void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg);
-CBCTRECON_API QString XML_GetSingleItemString(QXmlStreamReader &xml);
 
-CBCTRECON_API bool GetXrayParamFromINI(QString &strPathINI, float &kVp,
-                                       float &mA, float &ms);
 CBCTRECON_API void AddConstHU(UShortImageType::Pointer &spImg, int HUval);
-// Read long INIXVI text file and read couch shift values. apply cm -> mm
-// conversion (multiply 10). NO sign changes.
-CBCTRECON_API bool GetCouchShiftFromINIXVI(QString &strPathINIXVI,
-                                           VEC3D *pTrans, VEC3D *pRot);
+
 // This function came from the tracking project. trans values are all in mm,
 // DICOM x, y, z
 CBCTRECON_API void
@@ -61,6 +57,28 @@ CBCTRECON_API void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
 CBCTRECON_API void
 ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
                        FloatImageType::Pointer &spAttImgFloat);
+
+CBCTRECON_API
+void CropFOV3D(UShortImageType::Pointer &sp_Img, const float physPosX,
+               const float physPosY, const float physRadius,
+               const float physTablePosY);
+
+CBCTRECON_API
+UShortImageType::Pointer
+ConvertLineInt2Intensity_ushort(FloatImageType::Pointer &spProjLineInt3D);
+
+CBCTRECON_API
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(UShortImageType::Pointer &spProjIntensity3D);
+
+CBCTRECON_API
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D);
+
+CBCTRECON_API
+void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList);
+
+/// Templates:
 
 template <typename RefImageType, typename TargetImageType>
 void AllocateByRef(typename RefImageType::Pointer &spRefImg3D,
@@ -134,12 +152,9 @@ bool GetOutputResolutionFromFOV(
     typename T::SizeType &sizeOutput, typename T::SpacingType &spacing,
     const rtk::ThreeDCircularProjectionGeometry::Pointer &geometry,
     const typename ImageType::Pointer &ProjStack,
-    const QString &outputFilePath) {
+    const fs::path &outputFilePath) {
 
-  QFileInfo outFileInfo(outputFilePath);
-  auto outFileDir = outFileInfo.absoluteDir();
-
-  if (outputFilePath.length() < 2 || !outFileDir.exists()) {
+  if (outputFilePath.empty() || !fs::exists(outputFilePath)) {
     const double radius = GetFOVRadius<ImageType>(geometry, ProjStack);
     if (radius > 0.0) {
       sizeOutput[0] = 512; // AP
@@ -156,20 +171,20 @@ bool GetOutputResolutionFromFOV(
 }
 
 template <class T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
-auto float_to_(const float input) {
-  const auto max_ushort = std::numeric_limits<unsigned short>::max();
-  if (input < 0.0f) {
+constexpr auto float_to_(const float input) {
+  const auto max_ushort = std::numeric_limits<T>::max();
+  if (input < 0.0F) {
     return static_cast<T>(0);
   }
   if (input > static_cast<float>(max_ushort)) {
     return static_cast<T>(max_ushort -
                           1); // - 1 to avoid implicit cast overflow
   }
-  return static_cast<T>(qRound(input));
+  return static_cast<T>(crl::ce_round(input));
 }
 
 template <class T, std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-auto float_to_(const float input) {
+constexpr auto float_to_(const float input) {
   return static_cast<T>(input);
 }
 
@@ -185,17 +200,17 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
   auto idxHor = 0, idxVer = 0, idxZ = 0;
 
   switch (iDirection) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     idxHor = 0;
     idxVer = 1;
     idxZ = 2;
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     idxHor = 0;
     idxVer = 2;
     idxZ = 1;
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     idxHor = 1;
     idxVer = 2;
     idxZ = 0;
@@ -248,5 +263,7 @@ void Set2DTo3D(FloatImage2DType::Pointer &spSrcImg2D,
     it_3D.NextSlice();
   } // end of for
 }
+
+} // namespace crl
 
 #endif // CBCTRECON_COMPUTE_H

@@ -1,3 +1,7 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check
+// it. PVS-Studio Static Code Analyzer for C, C++, C#, and Java:
+// http://www.viva64.com
+
 /*
  * Completely rewritten from RTK Cuda forward projection filter to OpenCL
  * version by A. Gravgaard
@@ -69,8 +73,7 @@ private:
       return;
     }
 
-    std::vector<cl::Device> devices;
-    OpenCL_getDeviceList(devices);
+    auto devices = crl::opencl::getDeviceList();
 
     // Attempt first device if none with image_support
     auto device = devices.at(0);

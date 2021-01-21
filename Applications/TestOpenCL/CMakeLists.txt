@@ -1,18 +1,12 @@
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-function(add_cbctrecon_app)
+macro(add_cbctrecon_app)
   cmake_parse_arguments(
     ARGS
     ""
     "TARGET"
     ""
-    ${ARGN}
-    )
+    ${ARGN})
 
-  set(SRC_FILES
-    ${ARGS_TARGET}.cpp
-    )
+  set(SRC_FILES ${ARGS_TARGET}.cpp)
 
   if(CBCTRECON_BUILD_SHARED_LIBS)
     add_executable(${ARGS_TARGET} $<TARGET_OBJECTS:cbctrecon_test> ${SRC_FILES})
@@ -28,17 +22,13 @@ function(add_cbctrecon_app)
   # Only sets report flags if Intel Compiler:
   set_target_vectorizer_report_flags(${ARGS_TARGET})
 
-  target_include_directories(${ARGS_TARGET}
+  target_include_directories(
+    ${ARGS_TARGET}
     PUBLIC ${CBCTRECON_INCLUDE_DIRS}
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../Testing/"
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-    )
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-  install(TARGETS ${ARGS_TARGET}
-    RUNTIME DESTINATION bin
-    )
-endfunction()
+  install(TARGETS ${ARGS_TARGET} RUNTIME DESTINATION bin)
+endmacro()
 
-add_cbctrecon_app(
-  TARGET opencl_tester
-  )
+add_cbctrecon_app(TARGET opencl_tester)

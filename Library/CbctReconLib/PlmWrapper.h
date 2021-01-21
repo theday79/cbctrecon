@@ -2,6 +2,7 @@
 #define PLMWRAPPER_H
 
 #include <memory>
+#include <optional>
 #include <thread>
 
 #undef TIMEOUT
@@ -21,7 +22,11 @@ struct CBCTRECON_API Rtss_contour_modern { // : public Rtss_contour {
   /* Plastimatch specific */
   int slice_no = -1;
   std::string ct_slice_uid = "";
-  size_t num_vertices = 0U;
+  FloatVector centre;
+  FloatVector get_centre() const;
+  bool is_inside(FloatVector point) const;
+  bool is_distal(FloatVector point, FloatVector point_in_plane,
+                 FloatVector direction) const;
 };
 
 struct CBCTRECON_API Rtss_roi_modern { // : public Rtss_roi {
@@ -31,7 +36,6 @@ struct CBCTRECON_API Rtss_roi_modern { // : public Rtss_roi {
   /* Plastimatch specific */
   size_t id = 1; /* Used for import/export (must be >= 1) */
   int bit = -1;  /* Used for ss-img (-1 for no bit) */
-  size_t num_contours = 0;
 };
 
 struct CBCTRECON_API Rtss_modern { // : public Rtss {
@@ -45,7 +49,6 @@ struct CBCTRECON_API Rtss_modern { // : public Rtss {
   std::vector<Rtss_roi_modern> slist;
   /* Plastimatch specific */
   bool have_geometry = false;
-  size_t num_structures = 0;
 
   bool ready = false;
   std::thread thread_obj;

@@ -5,7 +5,7 @@
 #ifndef CBCTRECON_TYPES_H
 #define CBCTRECON_TYPES_H
 
-#include <QString>
+#include <filesystem>
 
 #include "itkImage.h"
 #ifdef USE_CUDA
@@ -66,12 +66,12 @@ struct BADPIXELMAP {
   int ReplPixY;
 };
 
-enum enProfileDirection {
+enum class enProfileDirection {
   DIRECTION_HOR = 0,
   DIRECTION_VER,
 };
 
-enum enSplitOption {
+enum class enSplitOption {
   PRI_LEFT_TOP = 0, // Primary Left Top
   PRI_RIGHT_TOP,    // Primary Left Top
   PRI_LEFT,
@@ -80,19 +80,19 @@ enum enSplitOption {
   PRI_BOTTOM,
 };
 
-enum enPLANE {
+enum class enPLANE {
   PLANE_AXIAL = 0,
   PLANE_FRONTAL,
   PLANE_SAGITTAL,
 };
 
-enum ctType {
+enum class ctType {
   PLAN_CT = 0,
   RIGID_CT = 1,
   DEFORM_CT = 2,
 };
 
-enum enREGI_IMAGES {
+enum class enREGI_IMAGES {
   REGISTER_RAW_CBCT = 0,
   REGISTER_REF_CT,       // manual moving image
   REGISTER_MANUAL_RIGID, // manual moving image
@@ -105,24 +105,24 @@ enum enREGI_IMAGES {
   REGISTER_DEFORM_SKIP_AUTORIGID,
 };
 
-enum enMachineType {
+enum class enMachineType {
   MACHINE_ELEKTA = 0,
   MACHINE_VARIAN,
 };
 
-enum enProjFormat {
+enum class enProjFormat {
   HIS_FORMAT,
   HND_FORMAT,
   XIM_FORMAT,
 };
 
-enum enCalibType {
+enum class enCalibType {
   GAIN_CALIB,
   OFFSET_CALIB,
   BADPIXEL_CALIB,
 };
 
-enum FWD_METHOD {
+enum class FWD_METHOD {
   en_Joseph = 0,
   en_CudaRayCast,
   // en_RayCastInterpolator, Deprecated in rtk 1.4
@@ -139,13 +139,13 @@ struct VEC3D {
   double z;
 };
 
-enum enDeviceType {
+enum class enDeviceType {
   CUDA_DEVT,
   CPU_DEVT,
   OPENCL_DEVT,
 };
 
-enum DCM_MODALITY {
+enum class DCM_MODALITY {
   RTIMAGE,
   RTDOSE,
   RTSTRUCT,
@@ -176,7 +176,7 @@ struct RATIONAL {
 };
 
 struct FDK_options {
-  QString outputFilePath = QString(); // ui.lineEdit_OutputFilePath->text();
+  std::filesystem::path outputFilePath{}; // ui.lineEdit_OutputFilePath->text();
   double ct_spacing[3] = {
       0.0, 0.0, 0.0}; // ui.lineEdit_outImgSp_[AP, SI, LR]->text().toDouble();
   int ct_size[3] = {0, 0,
@@ -200,13 +200,36 @@ using VnlVectorType = vnl_vector_fixed<double, 3U>;
 using VectorFieldType = itk::Image<ItkVectorType, 3U>;
 using PointType = itk::Point<double, 3U>;
 // Sorry, I can't control myself, I just love std::function
-using TransformType = std::function<VnlVectorType(const VnlVectorType &)>;
 
-struct FloatVector {
+using FloatVector = vnl_vector_fixed<float, 3U>;
+
+template <typename T, typename U, size_t N>
+constexpr vnl_vector_fixed<T, N>
+static_vec_cast(const vnl_vector_fixed<U, N> &vec) {
+  static_assert(std::is_convertible_v<T, U>, "T is not convertible to U");
+  vnl_vector_fixed<T, N> out;
+  for (auto i = 0ul; i < N; ++i) {
+    out[i] = static_cast<T>(vec[i]);
+  }
+  return out;
+}
+
+template <typename T, typename U, size_t N>
+constexpr vnl_vector_fixed<T, N> static_vec_cast(const vnl_vector<U> &vec) {
+  static_assert(std::is_convertible_v<T, U>, "T is not convertible to U");
+  vnl_vector_fixed<T, N> out;
+  for (auto i = 0ul; i < N; ++i) {
+    out[i] = static_cast<T>(vec[i]);
+  }
+  return out;
+}
+
+using TransformType = std::function<FloatVector(const FloatVector &)>;
+/*struct FloatVector {
   float x;
   float y;
   float z;
-};
+};*/
 
 struct WEPLVector {
   double WEPL;

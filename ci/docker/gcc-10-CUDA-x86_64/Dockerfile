@@ -1,5 +1,4 @@
-# Latest = 10.0 devel ubuntu 18.04, devel is FROM runtime which is FROM base (30/11/2018)
-FROM nvidia/cuda:latest
+FROM nvidia/cuda:11.1-devel-ubuntu20.04
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
@@ -23,26 +22,44 @@ ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ## end OpenCL driver
 
-# Useful for debugging docker: bash sudo vim \
-RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
+# noninteractive to install tzdata
+RUN export DEBIAN_FRONTEND="noninteractive" \
+    && echo "deb http://us.archive.ubuntu.com/ubuntu/ groovy main universe" >> /etc/apt/sources.list \
     && apt update \
-    && apt install -y ninja-build gcc g++ git qt5-default \
+    && apt install -y ninja-build gcc-10 g++-10 git \
         libfftw3-dev libtinfo-dev libeigen3-dev \
-        libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov \
+        libdcmtk-dev valgrind zlib1g-dev wget clinfo lcov libopenblas-dev liblapack-dev \
         sudo libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev openssl libgdbm-dev \
         libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libffi-dev uuid-dev \
+        software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 # From libsqlite3-dev and forward is just explicit pip dependencies
+
 
 # Note: we specify an exact cmake version to work around a cmake 3.10 CUDA 10 issue.
 # Reference: https://github.com/clab/dynet/issues/1457
 RUN mkdir /opt/cmake && cd /opt/cmake \
-    && wget -nv https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.sh \
-    && sh cmake-3.14.5-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && wget -nv https://cmake.org/files/v3.19/cmake-3.19.3-Linux-x86_64.sh \
+    && sh cmake-3.19.3-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
     && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
     && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
-    && rm cmake-3.14.5-Linux-x86_64.sh \
+    && rm cmake-3.19.3-Linux-x86_64.sh \
     && cmake --version
+
+# Get a newer version of TBB, Qt and dlib
+# We need at least GCC 9 for proper C++17 support
+# noninteractive to install tzdata (maybe a dependency of qt or dlib?)
+RUN export DEBIAN_FRONTEND="noninteractive" \
+    && echo "deb http://archive.ubuntu.com/ubuntu/ groovy main universe" >> /etc/apt/sources.list \
+    && apt update \
+    && apt install -y gcc-10 g++-10 libtbb-dev qt5-default libdlib-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && cd /usr/share/cmake/Modules/ \
+    && cmake -DINSTALL_DIR=/usr/lib/cmake/TBB \
+        -DSYSTEM_NAME=Linux \
+        -DLIB_PATH=/usr/lib/x86_64-linux-gnu \
+        -DINC_PATH=/usr/include \
+        -P tbb_config_installer.cmake
 
 RUN groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
@@ -86,17 +103,37 @@ RUN git config --global user.email "andreasga22@gmail.com" \
     && git config --global user.name "Andreas Gravgaard Andersen"
 
 # Build ITK and RTK by themselves with CUDA support
+# "master" because 5.1rc01 are missing some set/get functions required for cuda part of RTK
+# Also, we'll have to use my patched fork of RTK to forward the correct std=c++ flag to CUDA
 RUN cd /home/user/ \
-    && git clone --depth 1 --branch "v5.0.0" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    && git clone --depth 1 --branch "master" https://github.com/InsightSoftwareConsortium/ITK.git ITK \
+    #&& sed -i 's/SimonRit/agravgaard/g' ./ITK/Modules/Remote/RTK.remote.cmake \
+    && sed -i 's/GIT_TAG .*/GIT_TAG master/g' ./ITK/Modules/Remote/RTK.remote.cmake \
     && mkdir -p /home/user/ITK-build \
     && cd ITK-build \
-    && cmake -GNinja ../ITK -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
-      -DModule_ITKReview=ON -DITK_USE_GPU=ON -DITK_BUILD_DEFAULT_MODULES=OFF \
+    && export CC=gcc-10 && export CXX=g++-10 \
+    && export CXXFLAGS="-fopenmp-simd" \
+    && cmake -GNinja ../ITK -DCMAKE_CXX_STANDARD=17 \
+      -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF \
+      -DModule_ITKReview=ON \
+      -DITK_USE_GPU=ON \
+      -DITK_BUILD_DEFAULT_MODULES=OFF \
       -DITK_USE_SYSTEM_FFTW=ON -DITK_USE_FFTWF=ON -DITK_USE_FFTWD=ON \
-      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON -DModule_ITKDeprecated=ON \
-      -DITK_USE_SYSTEM_ZLIB=ON -DModule_RTK=ON -DModule_ITKCudaCommon=ON \
-      -DRTK_USE_CUDA=ON -DRTK_TIME_EACH_FILTER=ON -DRTK_BUILD_APPLICATIONS=OFF \
-      -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
-    && cmake --build .
+      -DModule_ITKDCMTK=ON -DITK_USE_SYSTEM_DCMTK=ON \
+      -DModule_ITKDeprecated=ON \
+      -DITK_USE_SYSTEM_ZLIB=ON \
+      -DModule_RTK=ON \
+      -DModule_ITKCudaCommon=ON \
+      -DModule_ITKTBB=ON \
+      -DRTK_USE_CUDA=ON \
+      -DRTK_BUILD_APPLICATIONS=OFF \
+      -DITK_MINIMUM_COMPLIANCE_LEVEL=3 \
+      -DCUDA_NVCC_FLAGS="--compiler-bindir /usr/bin/gcc-10" \
+      -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
+      -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/ \
+    && ninja \
+    && sudo ninja install \
+    && cd .. \
+    && rm -Rf ITK*
 
 WORKDIR /home/user/

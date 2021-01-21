@@ -1,6 +1,7 @@
 #ifndef CBCTRECON_MAINWIDGET_H
 #define CBCTRECON_MAINWIDGET_H
 
+#include <filesystem>
 #include <memory>
 #include <tuple>
 
@@ -18,31 +19,34 @@
 
 #include "ui_cbctrecon.h"
 
+namespace fs = std::filesystem;
+
 class CbctReconWidget : public QMainWindow {
   Q_OBJECT
 
 public:
   explicit CbctReconWidget(QWidget *parent = nullptr,
-                           Qt::WindowFlags flags = nullptr);
+                           Qt::WindowFlags flags = Qt::WindowFlags());
   //~CbctReconWidget() = default;
-  void UpdateReconImage(UShortImageType::Pointer &spNewImg, QString &fileName);
+  void UpdateReconImage(UShortImageType::Pointer &spNewImg,
+                        const QString &fileName);
   FDK_options getFDKoptions() const;
 
 private:
-  std::tuple<bool, bool> probeUser(const QString &guessDir);
+  std::tuple<bool, bool> probeUser(const fs::path &guessDir);
   FilterReaderType::Pointer
-  ReadBowtieFileWhileProbing(const QString &proj_path,
+  ReadBowtieFileWhileProbing(const fs::path &proj_path,
                              std::tuple<bool, bool> &answers);
-  bool FullScatterCorrectionMacroSingle(QString &outputDirPath,
+  bool FullScatterCorrectionMacroSingle(const fs::path &outputDirPath,
                                         enREGI_IMAGES enFwdRefImg,
                                         bool bFullResolRecon,
                                         bool bExportImages,
                                         bool bCBCT_IntensityShift);
 
   template <enREGI_IMAGES imagetype> void LoadMHAfileAs();
-  bool SaveCurrentSetting(QString &strPathConfigFile) const;
-  bool LoadCurrentSetting(QString &strPathConfigFile) const;
-  void init_DlgRegistration(QString &str_dcm_uid) const;
+  bool SaveCurrentSetting(const fs::path &strPathConfigFile) const;
+  bool LoadCurrentSetting(const fs::path &strPathConfigFile) const;
+  void init_DlgRegistration(std::string &str_dcm_uid) const;
 
 public:
   std::unique_ptr<CbctRecon> m_cbctrecon;

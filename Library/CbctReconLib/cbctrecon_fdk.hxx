@@ -48,6 +48,8 @@
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
 
+using namespace std::literals;
+
 #ifdef RTK_USE_OPENCL
 template <typename ImageType>
 typename ImageType::Pointer RTKOpenCLFDK(
@@ -110,7 +112,7 @@ typename ImageType::Pointer RTKOpenCLFDK(
 template <enDeviceType Tdev>
 void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
                                     const FDK_options &fdk_options) {
-  if (Tdev == CUDA_DEVT) {
+  if (Tdev == enDeviceType::CUDA_DEVT) {
 #if USE_CUDA
     using CUDAFloatImageType = itk::CudaImage<float, 3U>;
     using DDFType = rtk::CudaDisplacedDetectorImageFilter;
@@ -223,7 +225,7 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   spacing[1] = fdk_options.ct_spacing[1];
   spacing[2] = fdk_options.ct_spacing[2];
 
-  if (GetOutputResolutionFromFOV<ConstantImageSourceType, FloatImageType>(
+  if (crl::GetOutputResolutionFromFOV<ConstantImageSourceType, FloatImageType>(
           sizeOutput, spacing, m_spCustomGeometry, m_spProjImg3DFloat,
           fdk_options.outputFilePath)) {
     std::cout << "Reconstruction resolution and image size were set "
@@ -232,7 +234,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   }
 
   auto trunc_factor = fdk_options.TruncCorFactor;
-  if (fdk_options.TruncCorFactor > 0.0 && target == REGISTER_COR_CBCT) {
+  if (fdk_options.TruncCorFactor > 0.0 &&
+      target == enREGI_IMAGES::REGISTER_COR_CBCT) {
     std::cout << "Warning! Truncation factor is " << fdk_options.TruncCorFactor
               << ". Regardless of previous setting, this factor should not be "
                  "0 for scatter corrected CBCT. Now zero value is applied."
@@ -242,9 +245,9 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
   typename ImageType::Pointer targetImg;
 
-  if (Tdev == OPENCL_DEVT) {
+  if constexpr (Tdev == enDeviceType::OPENCL_DEVT) {
 #ifdef RTK_USE_OPENCL
-    std::cout << "Starting RTK fdk" << std::endl;
+    std::cout << "OpenCL will be used for FDK reconstruction" << std::endl;
     targetImg = RTKOpenCLFDK<ImageType>(spCurImg, m_spCustomGeometry, spacing,
                                         sizeOutput, fdk_options);
 #else
@@ -270,7 +273,11 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
     typename FDKType::Pointer feldkamp = FDKType::New();
 
-    std::cout << "CUDA will be used for FDK reconstruction" << std::endl;
+    if constexpr (Tdev == enDeviceType::CUDA_DEVT) {
+      std::cout << "CUDA will be used for FDK reconstruction" << std::endl;
+    } else {
+      std::cout << "CPU will be used for FDK reconstruction" << std::endl;
+    }
     feldkamp->SetInput(0, constantImageSource->GetOutput());
     feldkamp->SetInput(1, spCurImg);
     feldkamp->SetGeometry(m_spCustomGeometry);
@@ -378,8 +385,8 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
 
   const itk::Vector<double, 3U> offset(0.0);
 
-  using TransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
-  auto transform = TransformType::New();
+  using MatOffTransformType = itk::MatrixOffsetTransformBase<double, 3U, 3U>;
+  auto transform = MatOffTransformType::New();
   transform->SetMatrix(CoordChangeMatrix);
   transform->SetOffset(offset);
 
@@ -483,11 +490,11 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
   // By default CanRunInPlace checks whether the input and output image type
   // match.
   switch (target) {
-  case REGISTER_RAW_CBCT:
+  case enREGI_IMAGES::REGISTER_RAW_CBCT:
     m_spRawReconImg = std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spRawReconImg;
     break;
-  case REGISTER_COR_CBCT:
+  case enREGI_IMAGES::REGISTER_COR_CBCT:
     m_spScatCorrReconImg =
         std::move(tmpReconImg); // Checked.. successfully alive.
     m_spCrntReconImg = m_spScatCorrReconImg;
@@ -497,24 +504,21 @@ void CbctRecon::DoReconstructionFDK(const enREGI_IMAGES target,
     return;
   }
 
-  QFileInfo outFileInfo(fdk_options.outputFilePath);
-  auto outFileDir = outFileInfo.absoluteDir();
-
-  if (fdk_options.outputFilePath.length() < 2 || !outFileDir.exists()) {
+  if (fdk_options.outputFilePath.empty() ||
+      !fs::exists(fdk_options.outputFilePath)) {
     std::cout << "No available output path. Should be exported later"
               << std::endl;
   } else {
     using WriterType = itk::ImageFileWriter<UShortImageType>;
     auto writer = WriterType::New();
-    writer->SetFileName(fdk_options.outputFilePath.toLocal8Bit().constData());
+    writer->SetFileName(fdk_options.outputFilePath.string());
     writer->SetUseCompression(true); // not exist in original code (rtkfdk)
     writer->SetInput(m_spCrntReconImg);
 
-    std::cout << "Writing the image to: "
-              << fdk_options.outputFilePath.toLocal8Bit().constData()
+    std::cout << "Writing the image to: " << fdk_options.outputFilePath
               << std::endl;
 
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(writer->Update());
+    writer->Update();
     std::cout << std::endl;
     std::cout << "Output generation was succeeded" << std::endl;
   }
@@ -571,48 +575,47 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
   if (bSave) {
     // Saving part: save as his file in sub-folder of raw image
     std::cout << "Files are being saved" << std::endl;
-    std::cout << " Patient DIR Path: "
-              << this->m_strPathPatientDir.toStdString()
+    std::cout << " Patient DIR Path: " << this->m_strPathPatientDir
               << std::endl;
 
     auto manuallySelectedDir = true; // <- just to make sure I don't break
-                                      // usecases of the older version.
+                                     // usecases of the older version.
 
-    if (this->m_strPathPatientDir.length() <= 1) {
+    if (this->m_strPathPatientDir.empty()) {
       std::cerr << "No patient DIR name, using plm_tmp\n";
       manuallySelectedDir = false;
     }
 
-	if (!manuallySelectedDir) {
+    if (!manuallySelectedDir) {
       this->m_strPathPatientDir = "plm_tmp";
     }
 
     // Get current folder
-    const QString subdir_images("IMAGES");
+    const auto subdir_images = "IMAGES"s;
     const auto strCrntDir =
-        this->m_strPathPatientDir + "/" + subdir_images; // current Proj folder
+        this->m_strPathPatientDir / subdir_images; // current Proj folder
 
     // Make a sub directory
-    QDir crntDir(strCrntDir);
+    auto crntDir = strCrntDir;
 
-    if (!crntDir.exists() && m_projFormat == HIS_FORMAT) {
+    if (!fs::exists(crntDir) && m_projFormat == enProjFormat::HIS_FORMAT) {
       if (manuallySelectedDir) {
-        QDir current_dir(this->m_strPathPatientDir);
-        const auto success = current_dir.mkdir(subdir_images);
+        auto current_dir = this->m_strPathPatientDir;
+        const auto success = fs::create_directory(current_dir / subdir_images);
         if (!success) {
           std::cerr << "Could not create subfolder IMAGES in given directory"
                     << std::endl;
           return spProj3D;
         }
-      } else if (m_projFormat == HIS_FORMAT) {
+      } else {
         std::cout << "File save error: The specified folder does not exist."
                   << std::endl;
         return spProj3D;
       }
     } else {
       // Odds are that just the IMAGES subdirectory didn't exists
-      crntDir = QDir(this->m_strPathPatientDir);
-      if (!crntDir.exists()) {
+      crntDir = this->m_strPathPatientDir;
+      if (!fs::exists(crntDir)) {
         std::cerr << "Non-existent path provided, not saving fwd projs\n";
         return spProj3D;
       }
@@ -620,8 +623,8 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
 
     const auto fwdDirName = "fwd_" + this->m_strDCMUID;
 
-    const auto tmpResult =
-        crntDir.mkdir(fwdDirName); // what if the directory exists?
+    const auto tmpResult = fs::create_directory(
+        crntDir / fwdDirName); // what if the directory exists?
 
     if (!tmpResult) {
       std::cout << "FwdProj directory seems to exist already. Files will be "
@@ -629,17 +632,18 @@ CbctRecon::ForwardProjection_master(typename CTImageType::Pointer &spVolImg3D,
                 << std::endl;
     }
 
-    auto strSavingFolder = crntDir.absolutePath() + "/" + fwdDirName;
-    if (m_projFormat == HIS_FORMAT) {
+    auto strSavingFolder = fs::absolute(crntDir) / fwdDirName;
+    if (m_projFormat == enProjFormat::HIS_FORMAT) {
       this->SaveProjImageAsHIS(spProj3D, this->m_arrYKBufProj, strSavingFolder,
                                this->m_fResampleF);
     } else {
       auto fn_fwd_prj = "fwd_proj.mha";
-      if (m_spRawReconImg->GetBufferPointer() == spVolImg3D->GetBufferPointer()) {
+      if (m_spRawReconImg->GetBufferPointer() ==
+          spVolImg3D->GetBufferPointer()) {
         fn_fwd_prj = "fwd_proj_rawrec.mha";
       }
-      saveImageAsMHA<FloatImageType>(spProj3D, strSavingFolder.toStdString() +
-                                                   "/" + fn_fwd_prj);
+      crl::saveImageAsMHA<FloatImageType>(
+          spProj3D, fs::absolute(strSavingFolder / fn_fwd_prj).string());
     }
   }
   return spProj3D;
@@ -797,10 +801,12 @@ CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
 
     // a) size
     // std::cout << "chk1" << std::endl;
-    size[0] = m_spProjImg3DFloat->GetBufferedRegion()
-                  .GetSize()[0]; // qRound((double)DEFAULT_W*m_fResampleF);
-    size[1] = m_spProjImg3DFloat->GetBufferedRegion()
-                  .GetSize()[1]; // qRound((double)DEFAULT_H*m_fResampleF);
+    size[0] =
+        m_spProjImg3DFloat->GetBufferedRegion()
+            .GetSize()[0]; // crl::ce_round((double)DEFAULT_W*m_fResampleF);
+    size[1] =
+        m_spProjImg3DFloat->GetBufferedRegion()
+            .GetSize()[1]; // crl::ce_round((double)DEFAULT_H*m_fResampleF);
     size[2] = spGeometry->GetGantryAngles().size();
     // iNumOfProjections = size[2];
 
@@ -841,7 +847,7 @@ CbctRecon::ForwardProjection(UShortImageType::Pointer &spVolImg3D,
     ForwardProjection->SetInput(1, spCTImg_mu); // reference plan CT image
     ForwardProjection->SetGeometry(spGeometry);
     projProbe.Start();
-    TRY_AND_EXIT_ON_ITK_EXCEPTION(ForwardProjection->Update());
+    ForwardProjection->Update();
     projProbe.Stop();
     spResultProjImageFloat = ForwardProjection->GetOutput();
     std::cout << "Forward projection done in:	" << projProbe.GetMean() << ' '
@@ -1043,7 +1049,7 @@ void CbctRecon::SingleForwardProjection(FloatImageType::Pointer &spVolImgFloat,
   forward_projection->SetGeometry(spGeometry);
 
   projProbe.Start();
-  TRY_AND_EXIT_ON_ITK_EXCEPTION(forward_projection->Update())
+  forward_projection->Update();
   projProbe.Stop();
 
   const FloatImageType::Pointer resultFwdImg = forward_projection->GetOutput();

@@ -39,13 +39,15 @@
 #define CL_DEVICE_BOARD_NAME_AMD 0x4038
 #endif
 
-#define MAX_INFO_STRING 256
+namespace crl {
+namespace opencl {
 
-CBCTRECON_API unsigned OpenCL_getDeviceList(std::vector<cl::Device> &devices);
+CBCTRECON_API std::vector<cl::Device> getDeviceList();
 
-CBCTRECON_API std::string OpenCL_getDeviceName(const cl::Device &device);
+CBCTRECON_API std::string getDeviceName(const cl::Device &device);
 
-CBCTRECON_API void OpenCL_parseArguments(int argc, char *argv[],
-                                         cl_uint *deviceIndex);
+} // namespace opencl
+} // namespace crl
+
 
 #endif

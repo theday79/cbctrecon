@@ -5,34 +5,55 @@
 #undef OF
 #endif // OF
 #include "gdcmAttribute.h"
+#include <itkDOMNode.h>
 
 #include "cbctrecon_config.h"
 #include "cbctrecon_types.h"
 
-class QXmlStreamReader;
-class QDir;
+#include <filesystem>
+#include <string>
+
 struct Rtss_modern;
+class CbctRecon;
 
-CBCTRECON_API QString MakeElektaXML(const QString &filePath_ImageDBF,
-                                    const QString &filePath_FrameDBF,
-                                    const QString &DICOM_UID);
+namespace fs = std::filesystem;
 
-CBCTRECON_API FLEXDATA XML_parseFrameForXVI5(QXmlStreamReader &xml);
+namespace crl {
+
+CBCTRECON_API fs::path MakeElektaXML(const fs::path &filePath_ImageDBF,
+                                     const fs::path &filePath_FrameDBF,
+                                     const std::string &DICOM_UID);
+
+CBCTRECON_API
+bool ReadDicomDir(CbctRecon *p_cr, const fs::path &dir);
+
+CBCTRECON_API FLEXDATA XML_parseFrameForXVI5(itk::DOMNode::Pointer xml);
+
+// Read long INIXVI text file and read couch shift values. apply cm -> mm
+// conversion (multiply 10). NO sign changes.
+CBCTRECON_API bool GetCouchShiftFromINIXVI(const fs::path &strPathINIXVI,
+                                           VEC3D *pTrans, VEC3D *pRot);
+
+CBCTRECON_API [[nodiscard]] rtk::ThreeDCircularProjectionGeometry::Pointer
+LoadRTKGeometryFile(const fs::path &filePath);
 
 CBCTRECON_API bool
-LoadShortImageToUshort(QString &strPath,
+LoadShortImageToUshort(fs::path &strPath,
                        UShortImageType::Pointer &pUshortImage);
 
 CBCTRECON_API void ExportReconSHORT_HU(UShortImageType::Pointer &spUsImage,
-                                       QString &outputFilePath);
+                                       const fs::path &outputFilePath);
 CBCTRECON_API bool
-LoadShortImageDirOrFile(QString &strPathDir,
+LoadShortImageDirOrFile(fs::path &strPathDir,
                         ShortImageType::Pointer &spOutputShortImg);
-bool CBCTRECON_API SaveDoseGrayImage(const char *filePath, int width,
+bool CBCTRECON_API SaveDoseGrayImage(const fs::path &filePath, int width,
                                      int height, double spacingX,
                                      double spacingY, double originLeft_mm,
                                      double originTop_mm,
                                      unsigned short *pData);
+
+CBCTRECON_API bool GetXrayParamFromINI(const fs::path &strPathINI, float &kVp,
+                                       float &mA, float &ms);
 
 template <typename ImageType>
 void saveImageAsMHA(typename ImageType::Pointer const &image,
@@ -56,7 +77,9 @@ template <typename ImageType> auto loadMHAImageAs(const std::string &filename) {
   return reader->GetOutput();
 }
 
-std::vector<std::string> CBCTRECON_API get_dcm_image_files(QDir &dir);
+DCM_MODALITY get_dcm_modality(const fs::path &filename);
+
+std::vector<std::string> CBCTRECON_API get_dcm_image_files(const fs::path &dir);
 
 template <int group, int element, typename T>
 auto gdcm_attribute_from(T &parent) {
@@ -69,11 +92,11 @@ auto gdcm_attribute_from(T &parent) {
 }
 
 std::unique_ptr<Rtss_modern>
-    CBCTRECON_API load_rtstruct(const QString &filename);
+    CBCTRECON_API load_rtstruct(const fs::path &filename);
 
 bool CBCTRECON_API AlterData_RTStructureSetStorage(
-    const QFile &input_file, const Rtss_modern *input_rt_struct,
-    const QFile &output_file);
+    const fs::path &input_file, const Rtss_modern *input_rt_struct,
+    const fs::path &output_file);
 
 void CBCTRECON_API
 ConvertUshort2Short(const UShortImageType::Pointer &spImgUshort,
@@ -83,15 +106,17 @@ void CBCTRECON_API
 ConvertShort2Ushort(ShortImageType::Pointer &spInputImgShort,
                     UShortImageType::Pointer &spOutputImgUshort);
 
-QString CBCTRECON_API SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
-                                              QString &strPatientID,
-                                              QString &strPatientName,
-                                              QString &strPathTargetDir);
-QString CBCTRECON_API SaveUSHORTAsSHORT_DICOM_gdcmITK(
-    UShortImageType::Pointer &spImg, QString &strPatientID,
-    QString &strPatientName, QString &strPathTargetDir);
+fs::path CBCTRECON_API SaveUSHORTAsSHORT_DICOM(UShortImageType::Pointer &spImg,
+                                               std::string &strPatientID,
+                                               std::string &strPatientName,
+                                               fs::path &strPathTargetDir);
+fs::path CBCTRECON_API SaveUSHORTAsSHORT_DICOM_gdcmITK(
+    UShortImageType::Pointer &spImg, std::string &strPatientID,
+    std::string &strPatientName, fs::path &strPathTargetDir);
 
-QString CBCTRECON_API
+std::string CBCTRECON_API
 get_output_options(const UShortImageType::Pointer &m_spFixed);
+
+} // namespace crl
 
 #endif // CBCTRECON_IO_H

@@ -5,6 +5,7 @@
 #include "cbctrecon_mainwidget.h"
 
 // Std
+#include <filesystem>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -17,7 +18,6 @@
 #include <qmessagebox.h>
 #include <qstandarditemmodel.h>
 #include <qstring.h>
-#include <qtimer.h>
 
 // ITK
 // #include "itkCastImageFilter.h"
@@ -43,9 +43,12 @@
 #include "cbctrecon_compute.h"
 #include "cbctrecon_io.h"
 #include "cbctregistration.h"
+#include "free_functions.h"
 #include "qcustomplot.h"
+#include "qtwrap.h"
 
-#pragma GCC poison new
+namespace fs = std::filesystem;
+using namespace std::literals;
 
 CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
     : QMainWindow(parent, flags) {
@@ -94,7 +97,7 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
   m_dlgRegistration = std::make_unique<DlgRegistration>(this);
   m_cbctregistration = m_dlgRegistration->m_cbctregistration.get();
 
-  QString tmp_folder("tmp");
+  auto tmp_folder = "tmp"s;
   init_DlgRegistration(tmp_folder); // to Setup plastimatch folder. this is
                                     // useful if registration will be only done
   // m_pDlgHistogram = new DlgHistogram(this);
@@ -109,11 +112,10 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
   this->m_cbctrecon->m_strPathDirDefault =
       R"(D:\Program_data\01_20140827_CBCT_All\04_patient_phan_pelvis_M\IMAGES\img_1.3.46.423632.135786.1409186054.9_M20mAs6440)";
 
-  auto strPathCurAppDir = QDir::currentPath(); // should be same as .exe file
-  std::cout << "Current app path= "
-            << strPathCurAppDir.toLocal8Bit().constData() << std::endl;
+  auto strPathCurAppDir = fs::current_path(); // should be same as .exe file
+  std::cout << "Current app path= " << strPathCurAppDir << std::endl;
   this->m_cbctrecon->m_strPathDefaultConfigFile =
-      strPathCurAppDir + "/" + "DefaultConfig.cfg";
+      strPathCurAppDir / "DefaultConfig.cfg";
 
   if (!LoadCurrentSetting(
           this->m_cbctrecon->m_strPathDefaultConfigFile)) // Update GUI
@@ -127,7 +129,7 @@ CbctReconWidget::CbctReconWidget(QWidget *parent, const Qt::WindowFlags flags)
   }
 }
 
-void CbctReconWidget::init_DlgRegistration(QString &str_dcm_uid) const
+void CbctReconWidget::init_DlgRegistration(std::string &str_dcm_uid) const
 // init dlgRegistrations
 {
   this->m_dlgRegistration->initDlgRegistration(
@@ -135,7 +137,7 @@ void CbctReconWidget::init_DlgRegistration(QString &str_dcm_uid) const
 }
 
 void CbctReconWidget::SLT_DrawRawImages() const {
-  const auto crntIdx = this->ui.spinBoxImgIdx->value();
+  const auto crntIdx = static_cast<size_t>(this->ui.spinBoxImgIdx->value());
 
   if (crntIdx >= this->m_cbctrecon->m_iImgCnt) {
     return;
@@ -144,9 +146,8 @@ void CbctReconWidget::SLT_DrawRawImages() const {
   const auto windowMin = this->ui.sliderRawMin->value();
   const auto windowMax = this->ui.sliderRawMax->value();
 
-  auto tmpInfo =
-      QFileInfo(this->m_cbctrecon->m_arrYKImage[crntIdx].m_strFilePath);
-  this->ui.lineEditFileName->setText(tmpInfo.fileName());
+  auto tmpInfo = this->m_cbctrecon->m_arrYKImage[crntIdx].m_strFilePath;
+  this->ui.lineEditFileName->setText(to_qstr(tmpInfo.filename()));
 
   const auto width = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iWidth;
   const auto height = this->m_cbctrecon->m_arrYKImage[crntIdx].m_iHeight;
@@ -190,9 +191,11 @@ void CbctReconWidget::SLT_DrawProjImages() {
 void CbctReconWidget::SLT_FileNameHex2Dec() {
   auto files = QFileDialog::getOpenFileNames(
       this, "Select one or more files to open",
-      this->m_cbctrecon->m_strPathDirDefault, "projection images (*.his)");
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "projection images (*.his)");
 
-  const auto cnt = files.size();
+  const auto filepaths = qstr_list_to_t_vec<fs::path>(files);
+  const auto cnt = filepaths.size();
   if (cnt <= 0) {
     return;
   }
@@ -207,47 +210,47 @@ void CbctReconWidget::SLT_FileNameHex2Dec() {
   const auto res = msgBox.exec();
 
   if (res == QMessageBox::Yes) {
-    this->m_cbctrecon->RenameFromHexToDecimal(files);
+    crl::RenameFromHexToDecimal(filepaths);
   }
 }
 
 void CbctReconWidget::SLT_MakeElektaXML() {
   // Define IMAGE.DBF path
   auto filePath_ImageDBF = QFileDialog::getOpenFileName(
-      this, "SelectIMAGE.DBF file", this->m_cbctrecon->m_strPathDirDefault,
-      "Elekta DB file (*.dbf)", nullptr, nullptr);
+      this, "SelectIMAGE.DBF file",
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Elekta DB file (*.dbf)");
 
   if (filePath_ImageDBF.length() < 2) {
     return;
   }
 
   auto filePath_FrameDBF = QFileDialog::getOpenFileName(
-      this, "Select FRAME.DBF file", this->m_cbctrecon->m_strPathDirDefault,
-      "Elekta DB file (*.dbf)", nullptr, nullptr);
+      this, "Select FRAME.DBF file",
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Elekta DB file (*.dbf)");
 
   if (filePath_FrameDBF.length() < 2) {
     return;
   }
 
-  QString DICOM_UID;
-  QInputDialog inputDlg;
+  std::string DICOM_UID;
 
   bool ok;
   auto text = QInputDialog::getText(
       this, "Input Dialog", "DICOM_UID:", QLineEdit::Normal, "DICOM_UID", &ok);
 
   if (ok && !text.isEmpty()) {
-    DICOM_UID = text;
+    DICOM_UID = text.toStdString();
   }
 
   if (DICOM_UID.length() < 2) {
     return;
   }
 
-  auto genFilePath =
-      MakeElektaXML(filePath_ImageDBF, filePath_FrameDBF, DICOM_UID);
-  std::cout << "Generated ElektaXML path: "
-            << genFilePath.toLocal8Bit().constData() << std::endl;
+  auto genFilePath = crl::MakeElektaXML(to_path(filePath_ImageDBF),
+                                        to_path(filePath_FrameDBF), DICOM_UID);
+  std::cout << "Generated ElektaXML path: " << genFilePath << std::endl;
 }
 
 void CbctReconWidget::SLT_OpenOffsetFile() {
@@ -255,13 +258,13 @@ void CbctReconWidget::SLT_OpenOffsetFile() {
   // files to open","/home","Images (*.raw)");
   auto strPath = QFileDialog::getOpenFileName(
       this, "Select a single file to open",
-      this->m_cbctrecon->m_strPathDirDefault, "raw image (*.raw)");
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "raw image (*.raw)");
 
   if (strPath.length() <= 1) {
     return;
   }
   auto stdstr_path = strPath.toStdString();
-  this->m_cbctrecon->LoadCalibData(stdstr_path, OFFSET_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, enCalibType::OFFSET_CALIB);
 
   this->ui.lineEdit_offsetPath->setText(strPath);
 }
@@ -269,7 +272,7 @@ void CbctReconWidget::SLT_OpenOffsetFile() {
 void CbctReconWidget::SLT_OpenGainFile() {
   auto strPath = QFileDialog::getOpenFileName(
       this, "Select a single file to open",
-      this->m_cbctrecon->m_strPathDirDefault, "raw image (*.raw)");
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "raw image (*.raw)");
 
   if (strPath.length() <= 1) {
     return;
@@ -277,13 +280,14 @@ void CbctReconWidget::SLT_OpenGainFile() {
 
   this->ui.lineEdit_gainPath->setText(strPath);
   auto stdstr_path = strPath.toStdString();
-  this->m_cbctrecon->LoadCalibData(stdstr_path, GAIN_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, enCalibType::GAIN_CALIB);
 }
 
 void CbctReconWidget::SLT_OpenBadpixelFile() {
   auto strPath = QFileDialog::getOpenFileName(
       this, "Select a single file to open",
-      this->m_cbctrecon->m_strPathDirDefault, "bad pixel map file (*.pmf)");
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "bad pixel map file (*.pmf)");
 
   if (strPath.length() <= 1) {
     return;
@@ -291,7 +295,7 @@ void CbctReconWidget::SLT_OpenBadpixelFile() {
 
   this->ui.lineEdit_badpixelPath->setText(strPath);
   auto stdstr_path = strPath.toStdString();
-  this->m_cbctrecon->LoadCalibData(stdstr_path, BADPIXEL_CALIB);
+  this->m_cbctrecon->LoadCalibData(stdstr_path, enCalibType::BADPIXEL_CALIB);
   // m_pImgGain->LoadRawImage(strPath.toLocal8Bit(),IMG_WIDTH, IMG_HEIGHT);
 }
 
@@ -303,10 +307,12 @@ void CbctReconWidget::SLT_ApplyCalibration() const {
   const auto bDarkCorrApply = this->ui.checkBox_offsetOn->isChecked();
   const auto bGainCorrApply = this->ui.checkBox_gainOn->isChecked();
   const auto bDefectMapApply = this->ui.checkBox_badpixelOn->isChecked();
-  for (auto i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
-    this->m_cbctrecon->CorrectSingleFile(
-        &this->m_cbctrecon->m_arrYKImage[i], bDarkCorrApply, bGainCorrApply,
-        bDefectMapApply); // pixel value will be changed
+  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt);
+       i++) {
+    crl::CorrectSingleFile(this->m_cbctrecon.get(),
+                           &this->m_cbctrecon->m_arrYKImage[i], bDarkCorrApply,
+                           bGainCorrApply,
+                           bDefectMapApply); // pixel value will be changed
   }
   SLT_DrawRawImages();
 }
@@ -411,7 +417,7 @@ void CbctReconWidget::SLT_DrawReconImage() {
 void CbctReconWidget::SLT_OpenElektaGeomFile() {
   auto strPath = QFileDialog::getOpenFileName(
       this, "Select a single file to open",
-      this->m_cbctrecon->m_strPathDirDefault, "Geometry file (*.xml)");
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "Geometry file (*.xml)");
 
   if (strPath.length() <= 1) {
     return;
@@ -422,8 +428,8 @@ void CbctReconWidget::SLT_OpenElektaGeomFile() {
 
 void CbctReconWidget::SLT_SetOutputPath() {
   auto strPath = QFileDialog::getSaveFileName(
-      this, "File path to save", "D:\\", "meta 3D image data (*.mha)", nullptr,
-      nullptr); // Filename don't need to exist
+      this, "File path to save", "D:\\",
+      "meta 3D image data (*.mha)"); // Filename don't need to exist
 
   if (strPath.length() <= 1) {
     return;
@@ -463,7 +469,8 @@ FDK_options CbctReconWidget::getFDKoptions() const {
       this->ui.lineEdit_PostMedSizeZ->text().toInt(); // radius along z
   fdk_options.medianFilter = this->ui.checkBox_PostMedianOn->isChecked();
 
-  fdk_options.outputFilePath = this->ui.lineEdit_OutputFilePath->text();
+  fdk_options.outputFilePath =
+      to_path(this->ui.lineEdit_OutputFilePath->text());
 
   return fdk_options;
 }
@@ -475,14 +482,14 @@ void CbctReconWidget::SLT_DoReconstruction() {
   reconTimeProbe.Start();
 
   if (this->ui.radioButton_UseCUDA->isChecked()) {
-    this->m_cbctrecon->DoReconstructionFDK<CUDA_DEVT>(REGISTER_RAW_CBCT,
-                                                      fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CUDA_DEVT>(
+        enREGI_IMAGES::REGISTER_RAW_CBCT, fdk_options);
   } else if (this->ui.radioButton_UseOpenCL->isChecked()) {
-    this->m_cbctrecon->DoReconstructionFDK<OPENCL_DEVT>(REGISTER_RAW_CBCT,
-                                                        fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::OPENCL_DEVT>(
+        enREGI_IMAGES::REGISTER_RAW_CBCT, fdk_options);
   } else {
-    this->m_cbctrecon->DoReconstructionFDK<CPU_DEVT>(REGISTER_RAW_CBCT,
-                                                     fdk_options);
+    this->m_cbctrecon->DoReconstructionFDK<enDeviceType::CPU_DEVT>(
+        enREGI_IMAGES::REGISTER_RAW_CBCT, fdk_options);
   }
 
   reconTimeProbe.Stop();
@@ -620,7 +627,8 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
 
   // Set folder --> then use RTK HIS Reader
   auto dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Directory"),
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (dirPath.length() <= 1) {
@@ -628,17 +636,17 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   }
 
   this->ui.lineEdit_HisDirPath->setText(dirPath);
-
-  this->m_cbctrecon->SetProjDir(dirPath);
+  auto dir_path = to_path(dirPath);
+  this->m_cbctrecon->SetProjDir(dir_path);
   init_DlgRegistration(this->m_cbctrecon->m_strDCMUID);
 
   this->ui.lineEdit_ElektaGeomPath->setText(
-      this->m_cbctrecon->m_strPathGeomXML);
+      to_qstr(this->m_cbctrecon->m_strPathGeomXML));
 
   float kVp = 0.0;
   float mA = 0.0;
   float ms = 0.0;
-  GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
+  crl::GetXrayParamFromINI(this->m_cbctrecon->m_strPathElektaINI, kVp, mA, ms);
 
   if (fabs(kVp * mA * ms) > 0.001) {
     // update GUI
@@ -653,7 +661,7 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   VEC3D couch_rot = {-999, -999,
                      -999}; // mm. In the text file, these values are in cm.
 
-  const auto res = GetCouchShiftFromINIXVI(
+  const auto res = crl::GetCouchShiftFromINIXVI(
       this->m_cbctrecon->m_strPathElektaINIXVI2, &couch_trans, &couch_rot);
 
   if (res) {
@@ -680,28 +688,28 @@ void CbctReconWidget::SLT_SetHisDir() // Initialize all image buffer
   std::cout << "Push Load button to load projection images" << std::endl;
 }
 
-QString getBowtiePath(QWidget *parent, const QDir &calDir) {
+QString getBowtiePath(QWidget *parent, const fs::path &calDir) {
   return QFileDialog::getOpenFileName(
       parent, "Find air(+bowtie) filter image for subtraction",
-      calDir.absolutePath(), "Projection (*.xim)", nullptr, nullptr);
+      to_qstr(fs::absolute(calDir)), "Projection (*.xim)");
 }
 
-std::tuple<bool, bool> CbctReconWidget::probeUser(const QString &guessDir) {
+std::tuple<bool, bool> CbctReconWidget::probeUser(const fs::path &guessDir) {
 
-  auto dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open CT DICOM Directory"), guessDir,
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  auto dirPath = to_path(QFileDialog::getExistingDirectory(
+      this, tr("Open CT DICOM Directory"), to_qstr(fs::absolute(guessDir)),
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
   auto dcm_success = false;
-  if (!(dirPath.length() <= 1)) {
+  if (!(dirPath.empty())) {
 
-    if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
+    if (crl::ReadDicomDir(this->m_cbctrecon.get(), dirPath)) {
 
-      m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
+      m_dlgRegistration->UpdateVOICombobox(ctType::PLAN_CT);
       // UpdateReconImage(m_spRefCTImg, QString("DICOM reference image"));
 
-      this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                                REGISTER_MANUAL_RIGID);
+      this->m_cbctrecon->RegisterImgDuplication(
+          enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
       dcm_success = true;
     }
   }
@@ -719,39 +727,38 @@ std::tuple<bool, bool> CbctReconWidget::probeUser(const QString &guessDir) {
 }
 
 FilterReaderType::Pointer
-CbctReconWidget::ReadBowtieFileWhileProbing(const QString &proj_path,
+CbctReconWidget::ReadBowtieFileWhileProbing(const fs::path &proj_path,
                                             std::tuple<bool, bool> &answers) {
 
   auto bowtiereader =
       FilterReaderType::New(); // we use is because we need the projections to
                                // be in the same unit (order of magnitude)
 
-  QDir guessDir(proj_path + QString("/../"));
+  auto guessDir = proj_path.parent_path();
 
-  const auto calDir(proj_path + QString("/Calibrations/"));
+  const auto calDir = proj_path / "Calibrations";
 
   QString bowtiePath;
 
   switch (this->m_cbctrecon->m_projFormat) {
-  case XIM_FORMAT:
+  case enProjFormat::XIM_FORMAT:
     bowtiePath = getBowtiePath(this, calDir);
     if (bowtiePath.length() > 1) {
       std::cout << "loading bowtie-filter..." << std::endl;
-      std::vector<std::string> filepath;
-      filepath.push_back(bowtiePath.toStdString());
+      std::vector<std::string> filepath{bowtiePath.toStdString()};
       bowtiereader->SetFileNames(filepath);
       // std::thread calc_thread_bowtie(read_bowtie_projection, bowtiereader);
       std::thread calc_thread_bowtie(
           [&bowtiereader] { bowtiereader->Update(); });
-      answers = probeUser(guessDir.absolutePath());
+      answers = probeUser(fs::absolute(guessDir));
       calc_thread_bowtie.join();
     } else {
-      answers = probeUser(
-          guessDir.absolutePath()); // looks ugly, but allows threading
+      answers =
+          probeUser(fs::absolute(guessDir)); // looks ugly, but allows threading
     }
     break;
   default:
-    answers = probeUser(guessDir.absolutePath()); // ^^^
+    answers = probeUser(fs::absolute(guessDir)); // ^^^
     break;
   }
   if (bowtiePath.length() > 1) {
@@ -765,18 +772,18 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
 {
   this->ui.pushButton_DoRecon->setDisabled(true);
   // 1) Get all projection file names
-  auto dirPath = this->ui.lineEdit_HisDirPath->text();
+  auto dirPath = to_path(this->ui.lineEdit_HisDirPath->text());
   //.toLocal8Bit().constData();
 
-  if (!QFile::exists(dirPath)) {
+  if (!fs::exists(dirPath)) {
     std::cout << "Projection file directory was not found. Retry." << std::endl;
     return;
   }
 
-  auto names = this->m_cbctrecon->GetProjFileNames(dirPath);
+  auto names = crl::GetProjFileNames(this->m_cbctrecon.get(), dirPath);
 
-  if (this->m_cbctrecon->m_projFormat == HIS_FORMAT &&
-      !this->m_cbctrecon->IsFileNameOrderCorrect(names)) {
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HIS_FORMAT &&
+      !crl::IsFileNameOrderCorrect(names)) {
     std::cout << "Check the file name order" << std::endl;
     QMessageBox::warning(this, "warning", "Error on File Name Sorting!");
     return;
@@ -794,14 +801,14 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   std::cout << fullCnt << "  projection files were found." << std::endl;
 
   // 2) Elekta Geometry file
-  const auto geomPath = this->ui.lineEdit_ElektaGeomPath->text();
-  QFileInfo geomFileInfo(geomPath);
+  const auto geomPath = to_path(this->ui.lineEdit_ElektaGeomPath->text());
   //! QFile::exists(geomPath)
 
-  if (!this->m_cbctrecon->LoadGeometry(geomFileInfo, names)) {
-    if (!this->m_cbctrecon->m_strError.isEmpty()) {
+  if (!this->m_cbctrecon->LoadGeometry(geomPath, names)) {
+    if (!this->m_cbctrecon->m_strError.empty()) {
       QMessageBox::critical(this, "LoadXVIGeometryFile",
-                            this->m_cbctrecon->m_strError, QMessageBox::Ok);
+                            to_qstr(this->m_cbctrecon->m_strError),
+                            QMessageBox::Ok);
     }
   }
   const auto &p_geometry = this->m_cbctrecon->m_spFullGeometry;
@@ -812,7 +819,7 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   }
 
   if (iFullGeoDataSize != fullCnt) {
-    if (this->m_cbctrecon->m_projFormat != XIM_FORMAT) {
+    if (this->m_cbctrecon->m_projFormat != enProjFormat::XIM_FORMAT) {
       std::cout << "Size of geometry data and file numbers are not same! Check "
                    "and retry"
                 << std::endl;
@@ -858,10 +865,14 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
     }
   }
 
-  const auto exclude_ids = this->m_cbctrecon->GetExcludeProjFiles(
+  const auto exclude_ids = crl::GetExcludeProjFiles(
+      this->m_cbctrecon->m_spFullGeometry,
+      crl::is_scan_direction_CW(angle_gaps),
       this->ui.Radio_ManualProjAngleGap->isChecked(), gantryAngleInterval);
 
-  this->m_cbctrecon->LoadSelectedProj(exclude_ids, names);
+  if (!this->m_cbctrecon->LoadSelectedProj(exclude_ids, names)) {
+    return;
+  }
 
   // Reads the cone beam projections
   using ReaderType = rtk::ProjectionsReader<FloatImageType>;
@@ -879,9 +890,9 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   this->m_cbctrecon->saveHisHeader();
 
   //  Insta Recon, Dcm read
-  const auto geopath = geomFileInfo.absolutePath();
+  const auto geodir = fs::absolute(geomPath.parent_path());
   std::tuple<bool, bool> answers;
-  auto bowtie_reader = ReadBowtieFileWhileProbing(geopath, answers);
+  auto bowtie_reader = ReadBowtieFileWhileProbing(geodir, answers);
 
   calc_thread.join();
   std::cout << "Reader re-attached to main thread" << std::endl;
@@ -891,23 +902,22 @@ void CbctReconWidget::SLT_LoadSelectedProjFiles() // main loading fuction for
   auto &proj = this->m_cbctrecon->m_spProjImg3DFloat;
   const auto bowtie_proj = bowtie_reader->GetOutput();
   if (bowtie_reader != nullptr) {
-    ApplyBowtie(proj, bowtie_proj);
+    crl::ApplyBowtie(proj, bowtie_proj);
   }
-  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HND_FORMAT) {
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     SLT_DoBowtieCorrection();
   }
 
-  saveImageAsMHA<FloatImageType>(this->m_cbctrecon->m_spProjImg3DFloat);
+  crl::saveImageAsMHA<FloatImageType>(this->m_cbctrecon->m_spProjImg3DFloat);
   auto res_factor = this->ui.lineEdit_DownResolFactor->text().toDouble();
   if (!this->m_cbctrecon->ResampleProjections(res_factor)) { // 0.5
     // reset factor if image was not resampled
     this->ui.lineEdit_DownResolFactor->setText("1.0");
   }
 
-  this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(
-          this->m_cbctrecon->m_spProjImg3DFloat);
+  this->m_cbctrecon->m_spProjImgRaw3D = crl::ConvertLineInt2Intensity_ushort(
+      this->m_cbctrecon->m_spProjImg3DFloat);
   // if X not 1024 == input size: out_offset =
   // in_offset + (1024*res_f - X*res_f)*out_spacing     <- will still
   // break down at fw_projection
@@ -988,7 +998,9 @@ void CbctReconWidget::SLT_DataProbeProj() const {
     // fProbeValue = m_dspYKImgProj->m_pData[dataWidth*dataY +
     // dataX]/m_multiplyFactor;
     const auto fProbeValue =
-        static_cast<double>(p_ykproj->m_pData[dataWidth * dataY + dataX]) /
+        static_cast<double>(p_ykproj->m_pData[static_cast<size_t>(dataWidth) *
+                                                  static_cast<size_t>(dataY) +
+                                              static_cast<size_t>(dataX)]) /
             this->m_cbctrecon->m_multiplyFactor +
         this->m_cbctrecon->m_fProjImgValueMin;
     const auto dspText = QString("(%1, %2, %3): %4")
@@ -1213,9 +1225,9 @@ void CbctReconWidget::SLT_UpdateTable() {
 
   QVector<qreal> vProfile;
   if (this->ui.radioButton_Profile_Hor->isChecked()) {
-    pYKImg->GetProfileData(vProfile, DIRECTION_HOR);
+    pYKImg->GetProfileData(vProfile, enProfileDirection::DIRECTION_HOR);
   } else {
-    pYKImg->GetProfileData(vProfile, DIRECTION_VER);
+    pYKImg->GetProfileData(vProfile, enProfileDirection::DIRECTION_VER);
   }
 
   // int i = fixedY;
@@ -1528,8 +1540,8 @@ void CbctReconWidget::SLT_DoPostProcessing() {
   std::cout << "YKDEBUG " << physPosX << "," << physPosY << "," << physRadius
             << "," << physTablePosY << std::endl;
 
-  this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spCrntReconImg, physPosX,
-                               physPosY, physRadius, physTablePosY);
+  crl::CropFOV3D(this->m_cbctrecon->m_spCrntReconImg, physPosX, physPosY,
+                 physRadius, physTablePosY);
 
   SLT_DrawReconImage();
 }
@@ -1612,16 +1624,17 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     return;
   }
 
-  auto dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  auto dirPath = to_path(QFileDialog::getExistingDirectory(
+      this, tr("Open Directory"),
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
-  if (dirPath.isEmpty()) {
+  if (dirPath.empty()) {
     return;
   }
 
   // Get current folder
-  const QDir crntDir(dirPath);
+  const auto crntDir = dirPath;
 
   QInputDialog inputDlg;
 
@@ -1631,22 +1644,23 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
       "PatientID_LastName_FirstName", &ok);
 
   // QString strEndFix = "YKP";
-  QString strPatientID;
-  QString strLastName;
-  QString strFirstName;
+  std::string strPatientID;
+  std::string strLastName;
+  std::string strFirstName;
 
   if (ok && !textInput.isEmpty()) {
     auto strListPtInfo = textInput.split("_");
+    const auto v_pt_info = qstr_list_to_t_vec<std::string>(strListPtInfo);
 
-    if (strListPtInfo.count() >= 3) {
-      strPatientID = strListPtInfo.at(0);
-      strLastName = strListPtInfo.at(1);
-      strFirstName = strListPtInfo.at(2);
-    } else if (strListPtInfo.count() == 2) {
-      strPatientID = strListPtInfo.at(0);
-      strLastName = strListPtInfo.at(1);
-    } else if (strListPtInfo.count() == 1) {
-      strPatientID = strListPtInfo.at(0);
+    if (v_pt_info.size() >= 3) {
+      strPatientID = v_pt_info.at(0);
+      strLastName = v_pt_info.at(1);
+      strFirstName = v_pt_info.at(2);
+    } else if (v_pt_info.size() == 2) {
+      strPatientID = v_pt_info.at(0);
+      strLastName = v_pt_info.at(1);
+    } else if (v_pt_info.size() == 1) {
+      strPatientID = v_pt_info.at(0);
     } else {
       strPatientID = this->m_cbctrecon->m_strDCMUID;
     }
@@ -1655,29 +1669,29 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
     strPatientID = this->m_cbctrecon->m_strDCMUID;
   }
 
-  if (strPatientID.isEmpty()) {
+  if (strPatientID.empty()) {
     return;
   }
   auto p_combobox = this->m_dlgRegistration->ui.comboBoxImgFixed;
   for (auto i = 0; i < p_combobox->count(); i++) {
     p_combobox->setCurrentIndex(i);
-    auto strDirName = p_combobox->currentText();
-    const auto tmpResult =
-        crntDir.mkdir(strDirName); // what if the directory exists?
+    auto strDirName = p_combobox->currentText().toStdString();
+    const auto tmpResult = fs::create_directory(
+        crntDir / strDirName); // what if the directory exists?
     if (!tmpResult) {
       std::cout
           << "DICOM dir seems to exist already. Files will be overwritten."
           << std::endl;
     }
 
-    auto strSavingFolder = dirPath + "/" + strDirName;
+    auto strSavingFolder = dirPath / strDirName;
     auto strFullName = strLastName + ", " + strFirstName;
-    m_dlgRegistration->LoadImgFromComboBox(0, strDirName);
+    m_dlgRegistration->LoadImgFromComboBox(0, to_qstr(strDirName));
 
-    SaveUSHORTAsSHORT_DICOM(m_dlgRegistration->m_spFixed, strPatientID,
-                            strFullName, strSavingFolder);
-    auto mhaFileName = strSavingFolder + "/" + strDirName + ".mha";
-    ExportReconSHORT_HU(m_dlgRegistration->m_spFixed, mhaFileName);
+    crl::SaveUSHORTAsSHORT_DICOM(m_dlgRegistration->m_spFixed, strPatientID,
+                                 strFullName, strSavingFolder);
+    auto mhaFileName = strSavingFolder / (strDirName + ".mha");
+    crl::ExportReconSHORT_HU(m_dlgRegistration->m_spFixed, mhaFileName);
   }
   SLT_GeneratePOIData();
   const auto angle_end_one = QString("1");
@@ -1686,13 +1700,13 @@ void CbctReconWidget::SLT_ExportALL_DCM_and_SHORT_HU_and_calc_WEPL() {
 }
 
 void CbctReconWidget::SLT_ExportReconSHORT_HU() {
-  auto strPath = QFileDialog::getSaveFileName(this, "Save Image", "",
-                                              "signed short meta image (*.mha)",
-                                              nullptr, nullptr);
+  auto strPath = QFileDialog::getSaveFileName(
+      this, "Save Image", "", "signed short meta image (*.mha)");
   if (strPath.length() <= 1) {
     return;
   }
-  ExportReconSHORT_HU(this->m_cbctrecon->m_spCrntReconImg, strPath);
+  crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spCrntReconImg,
+                           strPath.toStdString());
 }
 
 void CbctReconWidget::SLT_DoBHC() {
@@ -1709,14 +1723,15 @@ void CbctReconWidget::SLT_DoBowtieCorrection() {
     return;
   }
 
-  if (this->m_cbctrecon->m_projFormat != HND_FORMAT) {
+  if (this->m_cbctrecon->m_projFormat != enProjFormat::HND_FORMAT) {
     std::cout
         << "Bow tie filtering should not be used for His data or Xim data!!"
         << std::endl;
     return;
   }
 
-  const auto strList = this->ui.comboBox_fBTcor->currentText().split(';');
+  const auto strList = qstr_list_to_t_vec<std::string>(
+      this->ui.comboBox_fBTcor->currentText().split(';'));
 
   this->m_cbctrecon->BowtieByFit(this->ui.checkBox_Fullfan->isChecked(),
                                  strList);
@@ -1785,9 +1800,10 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
   // ForwardProjection(m_spRefCTImg, m_spCustomGeometry, m_spProjImgCT3D,
   // false); //final moving image
   if (bExportProj_Fwd) {
-    this->m_cbctrecon->m_strPathPatientDir = QFileDialog::getExistingDirectory(
-        this, tr("Open Directory"), ".",
-        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    this->m_cbctrecon->m_strPathPatientDir =
+        to_path(QFileDialog::getExistingDirectory(
+            this, tr("Open Directory"), ".",
+            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
   }
 
   // Overwrite the raw projections by re-projecting them from the potentially
@@ -1906,8 +1922,8 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
                                               // called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 
   // m_dlgRegistration->SLT_DoLowerMaskIntensity(); // it will check the check
   // button.
@@ -1925,7 +1941,7 @@ void CbctReconWidget::SLT_DoScatterCorrection_APRIORI() {
 
 // called whenver recon 3D image for display changes.
 void CbctReconWidget::UpdateReconImage(UShortImageType::Pointer &spNewImg,
-                                       QString &fileName) {
+                                       const QString &fileName) {
   this->m_cbctrecon->m_spCrntReconImg = spNewImg;
 
   const auto &p_curimg = this->m_cbctrecon->m_spCrntReconImg;
@@ -1970,8 +1986,8 @@ void CbctReconWidget::SLT_LoadPlanCT_USHORT() {
   auto reader = ReaderType::New();
 
   auto fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "Projection file (*.mha)", nullptr, nullptr);
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Projection file (*.mha)");
 
   if (fileName.length() < 1) {
     return;
@@ -1984,8 +2000,8 @@ void CbctReconWidget::SLT_LoadPlanCT_USHORT() {
   auto ref_ct = QString("RefCT");
   UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, ref_ct);
 
-  this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                            REGISTER_MANUAL_RIGID);
+  this->m_cbctrecon->RegisterImgDuplication(
+      enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
 }
 
 void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
@@ -2008,8 +2024,8 @@ void CbctReconWidget::SLT_CalcAndSaveAngularWEPL() // single point
 
   // export arrWEPL
   auto filePath = QFileDialog::getSaveFileName(
-      this, "Save data", "", "txt image file (*.txt)", nullptr,
-      nullptr); // Filename don't need to exist
+      this, "Save data", "",
+      "txt image file (*.txt)"); // Filename don't need to exist
 
   if (filePath.length() < 1) {
     return;
@@ -2038,9 +2054,8 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
     return;
   }
 
-  const auto spIntensityRaw =
-      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(
-          this->m_cbctrecon->m_spProjImg3DFloat);
+  const auto spIntensityRaw = crl::ConvertLineInt2Intensity_ushort(
+      this->m_cbctrecon->m_spProjImg3DFloat);
 
   using ScatterFilterType =
       rtk::BoellaardScatterCorrectionImageFilter<UShortImageType,
@@ -2071,8 +2086,7 @@ void CbctReconWidget::SLT_DoScatterCorrectionUniform() {
   UShortImageType::Pointer spIntensityUniformCorr = spScatFilter->GetOutput();
 
   this->m_cbctrecon->m_spProjImg3DFloat =
-      this->m_cbctrecon->ConvertIntensity2LineInt_ushort(
-          spIntensityUniformCorr);
+      crl::ConvertIntensity2LineInt_ushort(spIntensityUniformCorr);
 
   // ConvertLineInt2Intensity(m_spProjImg3DFloat, m_spProjImgRaw3D, 65535);
 
@@ -2098,7 +2112,8 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
   }
 
   auto dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
+      this, tr("Open Directory"),
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   if (dirPath.isEmpty()) {
@@ -2106,7 +2121,7 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
   }
 
   // Get current folder
-  QDir crntDir(dirPath);
+  const auto crntDir = to_path(dirPath);
 
   QInputDialog inputDlg;
 
@@ -2116,21 +2131,21 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
       "PatientID_LastName_FirstName", &ok);
 
   // QString strEndFix = "YKP";
-  QString strPatientID;
-  QString strLastName;
-  QString strFirstName;
+  std::string strPatientID;
+  std::string strLastName;
+  std::string strFirstName;
 
   if (ok && !textInput.isEmpty()) {
-    auto strListPtInfo = textInput.split("_");
+    auto strListPtInfo = qstr_list_to_t_vec<std::string>(textInput.split("_"));
 
-    if (strListPtInfo.count() >= 3) {
+    if (strListPtInfo.size() >= 3) {
       strPatientID = strListPtInfo.at(0);
       strLastName = strListPtInfo.at(1);
       strFirstName = strListPtInfo.at(2);
-    } else if (strListPtInfo.count() == 2) {
+    } else if (strListPtInfo.size() == 2) {
       strPatientID = strListPtInfo.at(0);
       strLastName = strListPtInfo.at(1);
-    } else if (strListPtInfo.count() == 1) {
+    } else if (strListPtInfo.size() == 1) {
       strPatientID = strListPtInfo.at(0);
     } else {
       strPatientID = this->m_cbctrecon->m_strDCMUID;
@@ -2140,22 +2155,22 @@ void CbctReconWidget::SLT_FileExportShortDICOM_CurrentImg() {
     strPatientID = this->m_cbctrecon->m_strDCMUID;
   }
 
-  if (strPatientID.isEmpty()) {
+  if (strPatientID.empty()) {
     return;
   }
 
   const auto strDirName = strPatientID + "_DCM";
-  const auto tmpResult =
-      crntDir.mkdir(strDirName); // what if the directory exists?
+  const auto tmpResult = fs::create_directory(
+      crntDir / strDirName); // what if the directory exists?
   if (!tmpResult) {
     std::cout << "DICOM dir seems to exist already. Files will be overwritten."
               << std::endl;
   }
 
-  auto strSavingFolder = dirPath + "/" + strDirName;
+  auto strSavingFolder = crntDir / strDirName;
   auto strFullName = strLastName + ", " + strFirstName;
-  SaveUSHORTAsSHORT_DICOM(this->m_cbctrecon->m_spCrntReconImg, strPatientID,
-                          strFullName, strSavingFolder);
+  crl::SaveUSHORTAsSHORT_DICOM(this->m_cbctrecon->m_spCrntReconImg,
+                               strPatientID, strFullName, strSavingFolder);
 }
 
 void CbctReconWidget::SLT_AddConstHUToCurImg() {
@@ -2163,7 +2178,7 @@ void CbctReconWidget::SLT_AddConstHUToCurImg() {
     return;
   }
   const auto addingVal = this->ui.lineEdit_AddConstHU->text().toInt();
-  AddConstHU(this->m_cbctrecon->m_spCrntReconImg, addingVal);
+  crl::AddConstHU(this->m_cbctrecon->m_spCrntReconImg, addingVal);
   auto updated_text = QString("Added%1").arg(addingVal);
   UpdateReconImage(this->m_cbctrecon->m_spCrntReconImg, updated_text);
 }
@@ -2203,32 +2218,38 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
   auto update_text = QString("RS-based skin cropped image");
   if (this->m_cbctrecon->m_spCrntReconImg ==
       this->m_cbctrecon->m_spRawReconImg) {
-    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+    auto latest_structures =
+        this->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
     if (!latest_structures) {
-      latest_structures = this->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+      latest_structures =
+          this->m_cbctrecon->m_structures->get_ss(ctType::RIGID_CT);
     }
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
 
-    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spRawReconImg,
+                                        voi);
     UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spRefCTImg) {
-    auto structures = this->m_cbctrecon->m_structures->get_ss(PLAN_CT);
+    auto structures = this->m_cbctrecon->m_structures->get_ss(ctType::PLAN_CT);
     const auto voi =
         structures->get_roi_ref_by_name(struct_to_crop.toStdString());
-    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spRefCTImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spRefCTImg, voi);
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
   } else if (this->m_cbctrecon->m_spCrntReconImg ==
              this->m_cbctrecon->m_spScatCorrReconImg) {
-    auto latest_structures = this->m_cbctrecon->m_structures->get_ss(DEFORM_CT);
+    auto latest_structures =
+        this->m_cbctrecon->m_structures->get_ss(ctType::DEFORM_CT);
     if (!latest_structures) {
-      latest_structures = this->m_cbctrecon->m_structures->get_ss(RIGID_CT);
+      latest_structures =
+          this->m_cbctrecon->m_structures->get_ss(ctType::RIGID_CT);
     }
     const auto voi =
         latest_structures->get_roi_ref_by_name(struct_to_crop.toStdString());
 
-    OpenCL_crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg, voi);
+    crl::opencl::crop_by_struct_InPlace(this->m_cbctrecon->m_spScatCorrReconImg,
+                                        voi);
     UpdateReconImage(this->m_cbctrecon->m_spScatCorrReconImg, update_text);
   }
 }
@@ -2236,9 +2257,8 @@ void CbctReconWidget::SLT_CropSkinUsingRS() {
 void CbctReconWidget::SLT_ExportAngularWEPL_byFile() {
   // export arrWEPL
   auto filePath = QFileDialog::getSaveFileName(
-      this, "Save data", this->m_cbctrecon->m_strPathDirDefault,
-      "txt image file (*.txt)", nullptr,
-      nullptr); // Filename don't need to exist
+      this, "Save data", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "txt image file (*.txt)"); // Filename don't need to exist
 
   if (filePath.length() < 1) {
     return;
@@ -2248,8 +2268,8 @@ void CbctReconWidget::SLT_ExportAngularWEPL_byFile() {
   const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
   const auto fAngleGap = this->ui.lineEdit_WEPL_AngRes->text().toDouble();
 
-  this->m_cbctrecon->ExportAngularWEPL_byFile(filePath, fAngleStart, fAngleEnd,
-                                              fAngleGap);
+  this->m_cbctrecon->ExportAngularWEPL_byFile(to_path(filePath), fAngleStart,
+                                              fAngleEnd, fAngleGap);
 }
 
 void CbctReconWidget::SLT_GeneratePOIData() const
@@ -2267,8 +2287,8 @@ void CbctReconWidget::SLT_LoadPOIData() // it fills m_vPOI_DCM
   }
 
   auto filePath = QFileDialog::getOpenFileName(
-      this, "POI data file", this->m_cbctrecon->m_strPathDirDefault,
-      "POI data file (*.txt)", nullptr, nullptr);
+      this, "POI data file", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "POI data file (*.txt)");
 
   if (filePath.length() < 1) {
     return;
@@ -2430,7 +2450,7 @@ void CbctReconWidget::SLT_TimerEvent() {
   }
 
   const auto size = 1024 * 1024 * 2;
-  const auto pix_size = static_cast<int>(size / 2.0);
+  const auto pix_size = static_cast<size_t>(size / 2.0);
   const auto char_buf = static_cast<unsigned char *>(
       MapViewOfFile(handle, FILE_MAP_READ, 0, 0, size));
 
@@ -2448,7 +2468,7 @@ void CbctReconWidget::SLT_TimerEvent() {
 
   // unsigned short* imgBuf = new unsigned short [pix_size];
 
-  for (auto i = 0; i < pix_size; i++) {
+  for (size_t i = 0; i < pix_size; i++) {
     const auto idxA = i * 2 + 1;
     const auto idxB = i * 2;
     // 0: 1,0  1: 3,2 ...
@@ -2470,33 +2490,34 @@ void CbctReconWidget::SLTM_ViewExternalCommand() const {
 }
 
 void CbctReconWidget::SLTM_LoadDICOMdir() {
-  auto dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), this->m_cbctrecon->m_strPathDirDefault,
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  auto dirPath = to_path(QFileDialog::getExistingDirectory(
+      this, tr("Open Directory"),
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
-  if (dirPath.length() <= 1) {
+  if (dirPath.empty()) {
     return;
   }
 
-  if (this->m_cbctrecon->ReadDicomDir(dirPath)) {
+  if (crl::ReadDicomDir(this->m_cbctrecon.get(), dirPath)) {
 
-    m_dlgRegistration->UpdateVOICombobox(PLAN_CT);
+    m_dlgRegistration->UpdateVOICombobox(ctType::PLAN_CT);
     auto update_text = QString("DICOM reference image");
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, update_text);
 
-    this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                              REGISTER_MANUAL_RIGID);
+    this->m_cbctrecon->RegisterImgDuplication(
+        enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   }
 }
 
 void CbctReconWidget::SLTM_LoadRTKoutput() {
-  auto filePath = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "rtk output float image (*.mha)", nullptr, nullptr);
+  auto filePath = to_path(QFileDialog::getOpenFileName(
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "rtk output float image (*.mha)"));
   this->m_cbctrecon->LoadExternalFloatImage(filePath, true);
-  QFileInfo outFileInfo(filePath);
-  auto strCrntFileName = outFileInfo.fileName();
-  UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, strCrntFileName);
+  auto strCrntFileName = filePath.filename();
+  UpdateReconImage(this->m_cbctrecon->m_spRawReconImg,
+                   to_qstr(strCrntFileName));
 }
 
 void CbctReconWidget::SLT_OutPathEdited() const {
@@ -2556,9 +2577,8 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
     return;
   }
 
-  auto strPath = QFileDialog::getSaveFileName(this, "Save Image", "",
-                                              "signed short meta image (*.tif)",
-                                              nullptr, nullptr);
+  auto strPath = QFileDialog::getSaveFileName(
+      this, "Save Image", "", "signed short meta image (*.tif)");
   if (strPath.length() <= 1) {
     return;
   }
@@ -2574,10 +2594,10 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
       static_cast<double>(p_curimg->GetSpacing()[1]); // not sure...
 
   const auto p_dspykimg = this->m_cbctrecon->m_dspYKReconImage.get();
-  if (!SaveDoseGrayImage(strPath.toLocal8Bit().constData(),
-                         p_dspykimg->m_iWidth, p_dspykimg->m_iHeight, spacingX,
-                         spacingY, originLeft, originTop,
-                         p_dspykimg->m_pData)) {
+  if (!crl::SaveDoseGrayImage(strPath.toLocal8Bit().constData(),
+                              p_dspykimg->m_iWidth, p_dspykimg->m_iHeight,
+                              spacingX, spacingY, originLeft, originTop,
+                              p_dspykimg->m_pData)) {
     std::cout << "Failed in save gray dose file" << std::endl;
   } else {
     std::cout << "image exported successfully." << std::endl;
@@ -2585,17 +2605,16 @@ void CbctReconWidget::SLT_Export2DDose_TIF() // 2D dose from current displayed
 }
 void CbctReconWidget::SLTM_Export2DDoseMapAsMHA() {
 
-  auto strPath = QFileDialog::getSaveFileName(
-      this, "Save Image", "", "itk compatible meta image (*.mha)", nullptr,
-      nullptr);
+  auto strPath = to_path(QFileDialog::getSaveFileName(
+      this, "Save Image", "", "itk compatible meta image (*.mha)"));
 
   this->m_cbctrecon->Export2DDoseMapAsMHA(strPath);
 }
 
 void CbctReconWidget::SLTM_ExportProjGeometryTXT() {
 
-  auto strPath = QFileDialog::getSaveFileName(this, "Save text file", "",
-                                              "text (*.txt)", nullptr, nullptr);
+  auto strPath = to_path(
+      QFileDialog::getSaveFileName(this, "Save text file", "", "text (*.txt)"));
 
   this->m_cbctrecon->ExportProjGeometryTXT(strPath);
 }
@@ -2647,17 +2666,17 @@ void CbctReconWidget::SLTM_ForwardProjection() {
 
     // QString outputPath = "D:/ProjTemplate.mha";
     // QString outputPath = "D:/2D3DRegi/FwdProj_0.mha";
-    auto outputPath = QFileDialog::getSaveFileName(
-        this, "File path to save", this->m_cbctrecon->m_strPathDirDefault,
-        "Projection stack (*.mha)", nullptr,
-        nullptr); // Filename don't need to exist
-    if (outputPath.length() <= 1) {
+    auto outputPath = to_path(QFileDialog::getSaveFileName(
+        this, "File path to save",
+        to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+        "Projection stack (*.mha)")); // Filename don't need to exist
+    if (outputPath.empty()) {
       return;
     }
 
     using WriterType = itk::ImageFileWriter<FloatImageType>;
     auto writer = WriterType::New();
-    writer->SetFileName(outputPath.toLocal8Bit().constData());
+    writer->SetFileName(outputPath.string());
     // writer->SetUseCompression(true);
     writer->SetUseCompression(true); // for plastimatch
     writer->SetInput(spProjImgRaw3D);
@@ -2692,7 +2711,9 @@ void CbctReconWidget::SLTM_ForwardProjection() {
     auto curGantryAngle = p_geometry->GetGantryAngles().at(i);
     const auto kVAng = curGantryAngle * 360. / (2. * itk::Math::pi);
     auto MVAng =
-        kVAng - (this->m_cbctrecon->m_projFormat == HIS_FORMAT ? 0.0 : 90.0);
+        kVAng - (this->m_cbctrecon->m_projFormat == enProjFormat::HIS_FORMAT
+                     ? 0.0
+                     : 90.0);
     if (MVAng < 0.0) {
       MVAng = MVAng + 360.0;
     }
@@ -2723,9 +2744,10 @@ void CbctReconWidget::SLTM_ForwardProjection() {
   }
 
   // if (bExportProj_Fwd) {
-  this->m_cbctrecon->m_strPathPatientDir = QFileDialog::getExistingDirectory(
-      this, tr("Open Directory"), ".",
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  this->m_cbctrecon->m_strPathPatientDir =
+      to_path(QFileDialog::getExistingDirectory(
+          this, tr("Open Directory"), ".",
+          QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
   //}
   const auto spProjImgRaw3D =
       this->m_cbctrecon->ForwardProjection_master<UShortImageType>(
@@ -2803,11 +2825,11 @@ void CbctReconWidget::SLTM_FullScatterCorrectionMacroAP() // single. should be
                                                           // called after HIS
                                                           // folder is defined
 {
-  if (this->m_cbctrecon->m_strPathPatientDir.length() < 2) {
+  if (this->m_cbctrecon->m_strPathPatientDir.empty()) {
     return;
   }
 
-  const auto enRegImg = REGISTER_DEFORM_FINAL;
+  const auto enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
   const auto bFullResolForFinalRecon = false;
 
   const auto bIntensityShift = true;
@@ -2819,37 +2841,27 @@ void CbctReconWidget::SLTM_FullScatterCorrectionMacroAP() // single. should be
 
 void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   // Scatter parameters
-  auto batchmodeTime = QTime::currentTime();
+  auto batchmodeTime = std::chrono::high_resolution_clock::now();
+  // QTime::currentTime();
 
   // 1) Get img_ file lists
-  const auto dirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open IMAGES Directory"), this->m_cbctrecon->m_strPathDirDefault,
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  const auto dirIMAGES = to_path(QFileDialog::getExistingDirectory(
+      this, tr("Open IMAGES Directory"),
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
-  auto dirIMAGES = QDir(dirPath);
-
-  if (!dirIMAGES.exists()) {
+  if (!fs::exists(dirIMAGES)) {
     return;
   }
 
-  const auto listDir = dirIMAGES.entryInfoList(QDir::Dirs, QDir::Name);
-
-  const auto iCntProjDir = listDir.size();
-
-  std::cout << "Found directory number= " << iCntProjDir - 2 << std::endl;
-
-  if (iCntProjDir <= 2) // only /. and /.. exist
-  {
-    std::cout << "Error! No projection directory exists." << std::endl;
-    return;
-  }
   // Several questions to set params
   // 1) Output Dir
-  auto strOutDirPath = QFileDialog::getExistingDirectory(
-      this, tr("Open Output Directory"), this->m_cbctrecon->m_strPathDirDefault,
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+  auto strOutDirPath = to_path(QFileDialog::getExistingDirectory(
+      this, tr("Open Output Directory"),
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
-  if (strOutDirPath.length() < 1) {
+  if (strOutDirPath.empty()) {
     return;
   }
 
@@ -2862,19 +2874,19 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
       "[2] manual-aligned CT(dcm_plan), [3] DeformedCT_skipAutoRigid",
       QLineEdit::Normal, "0", &ok);
 
-  auto enRegImg = REGISTER_DEFORM_FINAL;
+  auto enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
 
   if (ok && !text.isEmpty()) {
     const auto iRefImgVal = text.toInt();
 
-    if (iRefImgVal == 0) {
-      enRegImg = REGISTER_DEFORM_FINAL;
-    } else if (iRefImgVal == 1) {
-      enRegImg = REGISTER_AUTO_RIGID;
+    // if (iRefImgVal == 0) {
+    //  enRegImg = enREGI_IMAGES::REGISTER_DEFORM_FINAL;
+    if (iRefImgVal == 1) {
+      enRegImg = enREGI_IMAGES::REGISTER_AUTO_RIGID;
     } else if (iRefImgVal == 2) {
-      enRegImg = REGISTER_MANUAL_RIGID;
+      enRegImg = enREGI_IMAGES::REGISTER_MANUAL_RIGID;
     } else if (iRefImgVal == 3) {
-      enRegImg = REGISTER_DEFORM_SKIP_AUTORIGID;
+      enRegImg = enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID;
       //} else {
       //  enRegImg = REGISTER_DEFORM_FINAL; <- initialized value
     }
@@ -2925,15 +2937,15 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
   }
 
   auto cntHisDir = 0;
-  for (auto i = 2; i < iCntProjDir; i++) // start from 2
-  {
-    auto curProjDirPath = listDir.at(i).absoluteFilePath();
+  for (const auto &cdir_entry : fs::directory_iterator(dirIMAGES)) {
+    if (!cdir_entry.is_directory()) {
+      continue;
+    }
 
-    if (curProjDirPath.contains("img_")) {
+    if (cdir_entry.path().string().find("img_") != std::string::npos) {
       std::cout << "Found projection dir number: " << cntHisDir
-                << ", Current Proj Path: "
-                << curProjDirPath.toLocal8Bit().constData() << std::endl;
-      this->m_cbctrecon->SetProjDir(curProjDirPath);
+                << ", Current Proj Path: " << cdir_entry.path() << std::endl;
+      this->m_cbctrecon->SetProjDir(cdir_entry);
       FullScatterCorrectionMacroSingle(strOutDirPath, enRegImg,
                                        bFullResolForFinalRecon,
                                        bExportShortImages, bIntensityShift);
@@ -2941,16 +2953,18 @@ void CbctReconWidget::SLTM_BatchScatterCorrectionMacroAP() {
     }
   }
 
-  const auto elapsedSec = batchmodeTime.elapsed() / 1000.0f;
+  auto batchmodeTime_end = std::chrono::high_resolution_clock::now();
+  const auto elapsedSec = batchmodeTime_end - batchmodeTime;
 
-  std::cout << "Batch mode calculation is done! "
-            << QString::number(elapsedSec, 'f', 2).toLocal8Bit().constData()
-            << " seconds was spent for " << cntHisDir << " cases" << std::endl;
+  std::cout
+      << "Batch mode calculation is done! "
+      << std::chrono::duration_cast<std::chrono::seconds>(elapsedSec).count()
+      << " seconds was spent for " << cntHisDir << " cases" << std::endl;
 }
 
 // Uses SLT functions heavily:
 bool CbctReconWidget::FullScatterCorrectionMacroSingle(
-    QString &outputDirPath, const enREGI_IMAGES enFwdRefImg,
+    const fs::path &outputDirPath, const enREGI_IMAGES enFwdRefImg,
     const bool bFullResolRecon, const bool bExportImages,
     const bool bCBCT_IntensityShift) {
   if (this->m_cbctrecon->m_strDCMUID.length() < 1) {
@@ -2987,8 +3001,8 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   if (bFOVCropping) {
     // Crop CBCT with predetermined FOV/ Table
     std::cout << "FOV cropping is under way..." << std::endl;
-    this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spRawReconImg, physPosX,
-                                 physPosY, physRadius, physTablePosY);
+    crl::CropFOV3D(this->m_cbctrecon->m_spRawReconImg, physPosX, physPosY,
+                   physRadius, physTablePosY);
   }
 
   SLT_ViewRegistration();
@@ -3000,9 +3014,9 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     return false;
   }
 
-  QString strSuffix;
+  std::string strSuffix;
   switch (enFwdRefImg) {
-  case REGISTER_MANUAL_RIGID:
+  case enREGI_IMAGES::REGISTER_MANUAL_RIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping for
                                                         // CBCT. only works when
@@ -3014,7 +3028,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     }
 
     break;
-  case REGISTER_AUTO_RIGID:
+  case enREGI_IMAGES::REGISTER_AUTO_RIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
 
@@ -3024,15 +3038,14 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
 
     // OPtional
     if (bFOVCropping) {
-      this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spManualRigidCT,
-                                   physPosX, physPosY, physRadius,
-                                   physTablePosY);
+      crl::CropFOV3D(this->m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
+                     physRadius, physTablePosY);
     }
 
     m_dlgRegistration->SLT_DoRegistrationRigid();
     strSuffix = strSuffix + "_rigid";
     break;
-  case REGISTER_DEFORM_FINAL:
+  case enREGI_IMAGES::REGISTER_DEFORM_FINAL:
     std::cout << "REGISTER_DEFORM_FINAL was chosen." << std::endl;
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
@@ -3043,9 +3056,8 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     }
 
     if (bFOVCropping) {
-      this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spManualRigidCT,
-                                   physPosX, physPosY, physRadius,
-                                   physTablePosY);
+      crl::CropFOV3D(this->m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
+                     physRadius, physTablePosY);
     }
 
     m_dlgRegistration->SLT_DoRegistrationRigid();
@@ -3053,7 +3065,7 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     strSuffix = strSuffix + "_defrm";
     break;
 
-  case REGISTER_DEFORM_SKIP_AUTORIGID:
+  case enREGI_IMAGES::REGISTER_DEFORM_SKIP_AUTORIGID:
     m_dlgRegistration->SLT_ManualMoveByDCMPlan();
     m_dlgRegistration->SLT_ConfirmManualRegistration(); // skin cropping
     // m_pDlgRegistration->SLT_DoRegistrationRigid();
@@ -3063,9 +3075,8 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
     }
 
     if (bFOVCropping) {
-      this->m_cbctrecon->CropFOV3D(this->m_cbctrecon->m_spManualRigidCT,
-                                   physPosX, physPosY, physRadius,
-                                   physTablePosY);
+      crl::CropFOV3D(this->m_cbctrecon->m_spManualRigidCT, physPosX, physPosY,
+                     physRadius, physTablePosY);
     }
 
     m_dlgRegistration->SLT_DoRegistrationDeform();
@@ -3100,35 +3111,34 @@ bool CbctReconWidget::FullScatterCorrectionMacroSingle(
   }
 
   // 1) Save the corrCBCT image as signed short
-  auto outputPath_rawCBCT = outputDirPath + "/" +
-                            this->m_cbctrecon->m_strDCMUID + strSuffix +
-                            "_rawCBCT.mha";
-  auto outputPath_corrCBCT = outputDirPath + "/" +
-                             this->m_cbctrecon->m_strDCMUID + strSuffix +
-                             "_corrCBCT.mha";
-  auto outputPath_manCT = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
-                          strSuffix + "_manCT.mha";
-  auto outputPath_rigidCT = outputDirPath + "/" +
-                            this->m_cbctrecon->m_strDCMUID + strSuffix +
-                            "_rigidCT.mha";
-  auto outputPath_deformCT = outputDirPath + "/" +
-                             this->m_cbctrecon->m_strDCMUID + strSuffix +
-                             "_deformCT.mha";
+  auto outputPath_rawCBCT = outputDirPath / (this->m_cbctrecon->m_strDCMUID +
+                                             strSuffix + "_rawCBCT.mha");
+  auto outputPath_corrCBCT = outputDirPath / (this->m_cbctrecon->m_strDCMUID +
+                                              strSuffix + "_corrCBCT.mha");
+  auto outputPath_manCT = outputDirPath / (this->m_cbctrecon->m_strDCMUID +
+                                           strSuffix + "_manCT.mha");
+  auto outputPath_rigidCT = outputDirPath / (this->m_cbctrecon->m_strDCMUID +
+                                             strSuffix + "_rigidCT.mha");
+  auto outputPath_deformCT = outputDirPath / (this->m_cbctrecon->m_strDCMUID +
+                                              strSuffix + "_deformCT.mha");
 
   if (bExportImages) {
-    ExportReconSHORT_HU(this->m_cbctrecon->m_spRawReconImg, outputPath_rawCBCT);
-    ExportReconSHORT_HU(this->m_cbctrecon->m_spScatCorrReconImg,
-                        outputPath_corrCBCT);
-    ExportReconSHORT_HU(this->m_cbctrecon->m_spManualRigidCT, outputPath_manCT);
-    ExportReconSHORT_HU(this->m_cbctrecon->m_spAutoRigidCT, outputPath_rigidCT);
-    ExportReconSHORT_HU(this->m_cbctrecon->m_spDeformedCT_Final,
-                        outputPath_deformCT);
+    crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spRawReconImg,
+                             outputPath_rawCBCT);
+    crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spScatCorrReconImg,
+                             outputPath_corrCBCT);
+    crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spManualRigidCT,
+                             outputPath_manCT);
+    crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spAutoRigidCT,
+                             outputPath_rigidCT);
+    crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spDeformedCT_Final,
+                             outputPath_deformCT);
   }
 
   // 2) Calculate batched WEPL points
   if (!this->m_cbctrecon->m_vPOI_DCM.empty()) {
-    auto outputTxtPath = outputDirPath + "/" + this->m_cbctrecon->m_strDCMUID +
-                         strSuffix + "_WEPL.txt";
+    auto outputTxtPath = outputDirPath / (this->m_cbctrecon->m_strDCMUID +
+                                          strSuffix + "_WEPL.txt");
 
     const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
     const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
@@ -3147,8 +3157,8 @@ void CbctReconWidget::SLT_OpenPhaseData() {
 
   // Open file
   auto filePath = QFileDialog::getOpenFileName(
-      this, "Open phase text", this->m_cbctrecon->m_strPathDirDefault,
-      "Phase text file (*.txt)", nullptr, nullptr);
+      this, "Open phase text", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Phase text file (*.txt)");
 
   if (filePath.length() < 1) {
     return;
@@ -3283,11 +3293,11 @@ void CbctReconWidget::SLT_Export4DCBCT() const {
 }
 
 template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
-  auto fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "Short image file (*.mha)", nullptr, nullptr);
+  auto fileName = to_path(QFileDialog::getOpenFileName(
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Short image file (*.mha)"));
 
-  if (fileName.length() < 1) {
+  if (fileName.empty()) {
     return;
   }
 
@@ -3295,7 +3305,7 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
   auto imgDim =
       this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
 
-  this->ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(to_qstr(fileName));
 
   this->ui.spinBoxReconImgSliceNo->setMinimum(0);
   this->ui.spinBoxReconImgSliceNo->setMaximum(imgDim[2] - 1);
@@ -3310,7 +3320,7 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
                                               // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
   m_dlgRegistration->SelectComboExternal(1, imagetype);
   // std::cout << m_spScatCorrReconImg->GetBufferedRegion().GetSize() <<
   // std::endl;
@@ -3319,15 +3329,15 @@ template <enREGI_IMAGES imagetype> void CbctReconWidget::LoadMHAfileAs() {
 }
 
 void CbctReconWidget::SLT_LoadCBCTcorrMHA() {
-  LoadMHAfileAs<REGISTER_COR_CBCT>();
+  LoadMHAfileAs<enREGI_IMAGES::REGISTER_COR_CBCT>();
 }
 
 void CbctReconWidget::SLT_LoadCTrigidMHA() {
-  LoadMHAfileAs<REGISTER_AUTO_RIGID>();
+  LoadMHAfileAs<enREGI_IMAGES::REGISTER_AUTO_RIGID>();
 }
 
 void CbctReconWidget::SLT_LoadCTdeformMHA() {
-  LoadMHAfileAs<REGISTER_DEFORM_FINAL>();
+  LoadMHAfileAs<enREGI_IMAGES::REGISTER_DEFORM_FINAL>();
 }
 
 void CbctReconWidget::SLT_DoCouchCorrection() {
@@ -3357,25 +3367,25 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
 
   // not manual CT!!!
 
-  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spRawReconImg,
-                                     this->m_cbctrecon->m_spRawReconImg,
-                                     couchShiftTrans, couchShiftRot);
-  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spScatCorrReconImg,
-                                     this->m_cbctrecon->m_spScatCorrReconImg,
-                                     couchShiftTrans, couchShiftRot);
-  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spDeformedCT_Final,
-                                     this->m_cbctrecon->m_spDeformedCT_Final,
-                                     couchShiftTrans, couchShiftRot);
-  ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spAutoRigidCT,
-                                     this->m_cbctrecon->m_spAutoRigidCT,
-                                     couchShiftTrans, couchShiftRot);
+  crl::ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spRawReconImg,
+                                          this->m_cbctrecon->m_spRawReconImg,
+                                          couchShiftTrans, couchShiftRot);
+  crl::ImageTransformUsingCouchCorrection(
+      this->m_cbctrecon->m_spScatCorrReconImg,
+      this->m_cbctrecon->m_spScatCorrReconImg, couchShiftTrans, couchShiftRot);
+  crl::ImageTransformUsingCouchCorrection(
+      this->m_cbctrecon->m_spDeformedCT_Final,
+      this->m_cbctrecon->m_spDeformedCT_Final, couchShiftTrans, couchShiftRot);
+  crl::ImageTransformUsingCouchCorrection(this->m_cbctrecon->m_spAutoRigidCT,
+                                          this->m_cbctrecon->m_spAutoRigidCT,
+                                          couchShiftTrans, couchShiftRot);
 
   m_dlgRegistration->UpdateListOfComboBox(0); // combo selection
                                               // signalis called
   m_dlgRegistration->UpdateListOfComboBox(1);
   m_dlgRegistration->SelectComboExternal(
-      0, REGISTER_RAW_CBCT); // will call fixedImageSelected
-  m_dlgRegistration->SelectComboExternal(1, REGISTER_COR_CBCT);
+      0, enREGI_IMAGES::REGISTER_RAW_CBCT); // will call fixedImageSelected
+  m_dlgRegistration->SelectComboExternal(1, enREGI_IMAGES::REGISTER_COR_CBCT);
 
   this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spScatCorrReconImg;
   SLT_DrawReconImage();
@@ -3387,11 +3397,13 @@ void CbctReconWidget::SLT_DoCouchCorrection() {
 // Multiple mha files
 void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   // Singed short
-  auto listFilePath = QFileDialog::getOpenFileNames(
-      this, "Select one or more files to open",
-      this->m_cbctrecon->m_strPathDirDefault, "signed short 3D images (*.mha)");
+  auto listFilePath =
+      qstr_list_to_t_vec<fs::path>(QFileDialog::getOpenFileNames(
+          this, "Select one or more files to open",
+          to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+          "signed short 3D images (*.mha)"));
 
-  const auto iCntFiles = listFilePath.count();
+  const auto iCntFiles = listFilePath.size();
   if (iCntFiles < 1) {
     return;
   }
@@ -3409,8 +3421,9 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
   }
 
   auto strPathOutText = QFileDialog::getSaveFileName(
-      this, "File path to save", this->m_cbctrecon->m_strPathDirDefault,
-      "WEPL_value (*.txt)", nullptr, nullptr); // Filename don't need to exist
+      this, "File path to save",
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "WEPL_value (*.txt)"); // Filename don't need to exist
   if (strPathOutText.length() <= 1) {
     return;
   }
@@ -3420,7 +3433,7 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
 
   const auto fAngleStart = this->ui.lineEdit_AngStart->text().toDouble();
   const auto fAngleEnd = this->ui.lineEdit_AngEnd->text().toDouble();
-  for (auto i = 0; i < iCntFiles; i++) {
+  for (size_t i = 0; i < iCntFiles; i++) {
     this->m_cbctrecon->GetWEPLDataFromSingleFile(
         listFilePath.at(i), this->m_cbctrecon->m_vPOI_DCM, vArrOutputWEPL.at(i),
         fAngleStart, fAngleEnd);
@@ -3435,17 +3448,17 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
        << "\t"
        << "Sample Number";
 
-  for (auto i = 0; i < iCntFiles; i++) {
-    QFileInfo fInfo(listFilePath.at(i));
-    auto strFileName = fInfo.fileName();
+  for (size_t i = 0; i < iCntFiles; i++) {
+    const auto fInfo = listFilePath.at(i);
+    auto strFileName = fInfo.filename().string();
 
-    fout << "\t" << strFileName.toLocal8Bit().constData();
+    fout << "\t" << strFileName;
   }
   fout << std::endl;
 
   const auto first_wepl = vArrOutputWEPL.at(0);
   const auto cnt_wepl = first_wepl.size();
-  for (auto i = 0; i < iCntFiles; i++) {
+  for (size_t i = 0; i < iCntFiles; i++) {
     const auto cur_count = vArrOutputWEPL.at(i).size();
     if (cnt_wepl != cur_count) {
       std::cout << "Error! some of the WEPL count doesn't match!" << std::endl;
@@ -3453,11 +3466,11 @@ void CbctReconWidget::SLTM_WELPCalcMultipleFiles() {
     }
   }
 
-  for (auto i = 0U; i < cnt_wepl; i++) {
+  for (size_t i = 0; i < cnt_wepl; i++) {
     fout << first_wepl.at(i).ptIndex << "\t" << first_wepl.at(i).fGanAngle
          << "\t" << i;
 
-    for (auto j = 0; j < iCntFiles; j++) {
+    for (size_t j = 0; j < iCntFiles; j++) {
       fout << "\t" << vArrOutputWEPL.at(j).at(i).fWEPL;
     }
     fout << std::endl;
@@ -3491,8 +3504,8 @@ void CbctReconWidget::SLTM_ScatterCorPerProjRef() // load text file
 
 void CbctReconWidget::SLTM_LoadPerProjRefList() {
   auto filePath = QFileDialog::getOpenFileName(
-      this, "PerProjVol list", this->m_cbctrecon->m_strPathDirDefault,
-      "File path list (*.txt)", nullptr, nullptr);
+      this, "PerProjVol list", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "File path list (*.txt)");
 
   if (filePath.length() < 1) {
     return;
@@ -3519,31 +3532,31 @@ void CbctReconWidget::SLTM_LoadPerProjRefList() {
   while (!fin.eof()) {
     memset(&str[0], 0, MAX_LINE_LENGTH);
     fin.getline(&str[0], MAX_LINE_LENGTH);
-    QString strLine(&str[0]);
+    std::string_view strLine(&str[0], MAX_LINE_LENGTH);
 
-    auto strList = strLine.split('\t'); // tab
+    auto strList = crl::split_string(strLine, "\t"); // tab
 
-    if (strList.count() > 0 && strList.count() < 4) {
-      std::cout << "Str = " << strLine.toLocal8Bit().constData() << std::endl;
+    if (strList.size() > 0 && strList.size() < 4) {
+      std::cout << "Str = " << strLine << std::endl;
       std::cout << "abnormal file expression." << std::endl;
       break;
     }
 
-    p_proj_strlist.push_back(strList.at(3));
+    p_proj_strlist.emplace_back(strList.at(3));
   }
 
-  std::cout << p_proj_strlist.count() << " image paths were found" << std::endl;
+  std::cout << p_proj_strlist.size() << " image paths were found" << std::endl;
 
   fin.close();
 }
 
 void CbctReconWidget::SLTM_CropMaskBatch() {
   // Specify mask file (USHORT)
-  auto maskFilePath = QFileDialog::getOpenFileName(
-      this, "Mask image (Ushort)", this->m_cbctrecon->m_strPathDirDefault,
-      "3D mask file (*.mha)", nullptr, nullptr);
+  auto maskFilePath = to_path(QFileDialog::getOpenFileName(
+      this, "Mask image (Ushort)",
+      to_qstr(this->m_cbctrecon->m_strPathDirDefault), "3D mask file (*.mha)"));
 
-  if (maskFilePath.length() < 1) {
+  if (maskFilePath.empty()) {
     return;
   }
 
@@ -3578,9 +3591,11 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
   //}
 
   // Get File names (SHORT) where to apply Mask cropping
-  auto targetFilePaths = QFileDialog::getOpenFileNames(
-      this, "Select one or more files to open",
-      this->m_cbctrecon->m_strPathDirDefault, "target files (*.mha)");
+  auto targetFilePaths =
+      qstr_list_to_t_vec<fs::path>(QFileDialog::getOpenFileNames(
+          this, "Select one or more files to open",
+          to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+          "target files (*.mha)"));
 
   const auto iCnt = targetFilePaths.size();
 
@@ -3588,15 +3603,16 @@ void CbctReconWidget::SLTM_CropMaskBatch() {
     return;
   }
 
-  for (auto i = 0; i < iCnt; i++) {
+  for (size_t i = 0; i < iCnt; i++) {
     const auto &curPath = targetFilePaths.at(i);
 
     // Overritting
     const auto mask_option = MASK_OPERATION_MASK;
-    QString input_fn = curPath.toLocal8Bit().constData();
-    // QString mask_fn = strPath_mskSkinCT_final.toLocal8Bit().constData();
-    QString mask_fn = maskFilePath.toLocal8Bit().constData();
-    QString output_fn = curPath.toLocal8Bit().constData();
+    const fs::path input_fn = curPath;
+    // const fs::path mask_fn =
+    // strPath_mskSkinCT_final.toLocal8Bit().constData();
+    const fs::path mask_fn = maskFilePath;
+    const fs::path output_fn = curPath;
     const auto mask_value = -1024.0; // unsigned short
     m_cbctregistration->plm_mask_main(mask_option, input_fn, mask_fn, output_fn,
                                       mask_value);
@@ -3656,17 +3672,18 @@ void CbctReconWidget::SLT_CropSupInf() {
   // QString strTmpFile = "C:/TmpSI_Cropped.mha";
 
   auto strPath =
-      m_cbctregistration->m_strPathPlastimatch + "/" + "tmp_SI_cropped.mha";
-  ExportReconSHORT_HU(this->m_cbctrecon->m_spCrntReconImg, strPath);
+      m_cbctregistration->m_strPathPlastimatch / "tmp_SI_cropped.mha";
+  crl::ExportReconSHORT_HU(this->m_cbctrecon->m_spCrntReconImg, strPath);
 
   QString strName = "SI_Cropped";
   if (bRaw != 0) {
-    if (!LoadShortImageToUshort(strPath, this->m_cbctrecon->m_spRawReconImg)) {
+    if (!crl::LoadShortImageToUshort(strPath,
+                                     this->m_cbctrecon->m_spRawReconImg)) {
       std::cout << "error! in LoadShortImageToUshort" << std::endl;
     }
     UpdateReconImage(this->m_cbctrecon->m_spRawReconImg, strName);
   } else {
-    if (LoadShortImageToUshort(strPath, this->m_cbctrecon->m_spRefCTImg)) {
+    if (crl::LoadShortImageToUshort(strPath, this->m_cbctrecon->m_spRefCTImg)) {
       std::cout << "error! in LoadShortImageToUshort" << std::endl;
     }
     UpdateReconImage(this->m_cbctrecon->m_spRefCTImg, strName);
@@ -3687,8 +3704,8 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
   auto reader = ReaderType::New();
 
   auto fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "3D dose float file (*.mha)", nullptr, nullptr);
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "3D dose float file (*.mha)");
 
   if (fileName.length() < 1) {
     return;
@@ -3697,11 +3714,21 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
   reader->SetFileName(fileName.toLocal8Bit().constData());
   reader->Update();
 
+  using FlipFilterType = itk::FlipImageFilter<FloatImageType>;
+  typename FlipFilterType::Pointer flipFilter = FlipFilterType::New();
+  using FlipAxesArrayType = typename FlipFilterType::FlipAxesArrayType;
+  FlipAxesArrayType arrFlipAxes;
+  arrFlipAxes[0] = false;
+  arrFlipAxes[1] = false;
+  arrFlipAxes[2] = true;
+  flipFilter->SetFlipAxes(arrFlipAxes);
+  flipFilter->SetInput(reader->GetOutput());
+
   // Multiply: Gy to mGy
   using MultiplyImageFilterType =
       itk::MultiplyImageFilter<FloatImageType, FloatImageType, FloatImageType>;
   auto multiplyImageFilter = MultiplyImageFilterType::New();
-  multiplyImageFilter->SetInput(reader->GetOutput());
+  multiplyImageFilter->SetInput(flipFilter->GetOutput());
   multiplyImageFilter->SetConstant(100.0); // calculated already //Gy to cGy
 
   using CastFilterType = itk::CastImageFilter<FloatImageType, UShortImageType>;
@@ -3710,13 +3737,14 @@ void CbctReconWidget::SLT_LoadImageFloat3D() // Dose image for JPhillips
 
   castFilter->Update();
 
-  this->m_cbctrecon->m_spRawReconImg = castFilter->GetOutput();
-  this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRawReconImg;
+  this->m_dlgRegistration->SetMovingDose(castFilter->GetOutput());
+  this->m_dlgRegistration->SetFixedDose(castFilter->GetOutput());
+  this->m_cbctrecon->m_spCrntReconImg = castFilter->GetOutput();
 
   // Update UI
   auto imgDim =
-      this->m_cbctrecon->m_spRawReconImg->GetBufferedRegion().GetSize();
-  auto spacing = this->m_cbctrecon->m_spRawReconImg->GetSpacing();
+      this->m_cbctrecon->m_spCrntReconImg->GetBufferedRegion().GetSize();
+  auto spacing = this->m_cbctrecon->m_spCrntReconImg->GetSpacing();
 
   std::cout << "Image Dimension:	" << imgDim[0] << "	" << imgDim[1]
             << "	" << imgDim[2] << std::endl;
@@ -3746,8 +3774,8 @@ void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
   auto reader = ReaderType::New();
 
   auto fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "Projection file (*.mha)", nullptr, nullptr);
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Projection file (*.mha)");
 
   if (fileName.length() < 1) {
     return;
@@ -3785,15 +3813,16 @@ void CbctReconWidget::SLT_Load3DImage() // mha reconstructed file, from external
 }
 
 void CbctReconWidget::SLT_Load3DImageShort() {
-  auto fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "short mha file (*.mha)", nullptr, nullptr);
+  auto fileName = to_path(QFileDialog::getOpenFileName(
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "short mha file (*.mha)"));
 
-  if (fileName.length() < 1) {
+  if (fileName.empty()) {
     return;
   }
 
-  if (!LoadShortImageToUshort(fileName, this->m_cbctrecon->m_spRawReconImg)) {
+  if (!crl::LoadShortImageToUshort(fileName,
+                                   this->m_cbctrecon->m_spRawReconImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -3824,7 +3853,7 @@ void CbctReconWidget::SLT_Load3DImageShort() {
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  this->ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(to_qstr(fileName));
 
   this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
@@ -3841,37 +3870,37 @@ void CbctReconWidget::SLT_Load3DImageShort() {
 }
 
 void CbctReconWidget::SLT_LoadNKIImage() {
-  auto filePath = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "NKI file (*.SCAN)", nullptr, nullptr);
+  auto filePath = to_path(QFileDialog::getOpenFileName(
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "NKI file (*.SCAN)"));
 
-  if (filePath.length() < 1) {
+  if (filePath.empty()) {
     return;
   }
 
   const auto v =
-      nki_load(filePath.toLocal8Bit().constData()); // NKI is unsigned short!!!
+      nki_load(filePath.string().c_str()); // NKI is unsigned short!!!
   if (v == nullptr) {
     std::cerr << "file reading error" << std::endl;
     return;
   }
 
-  const auto endFix = QString("_conv");
-  auto srcFileInfo = QFileInfo(filePath);
-  auto dir = srcFileInfo.absoluteDir();
-  auto baseName = srcFileInfo.completeBaseName();
-  const auto extName = QString("mha");
+  const auto endFix = "_conv"s;
+  auto dir = fs::absolute(filePath);
+  auto baseName = fs::absolute(filePath.parent_path());
+  const auto extName = "mha"s;
 
   const auto newFileName = baseName.append(endFix).append(".").append(extName);
-  auto newPath = dir.absolutePath() + "/" + newFileName;
+  auto newPath = fs::absolute(dir) / newFileName;
 
-  write_mha(newPath.toLocal8Bit().constData(), v);
+  write_mha(newPath.string().c_str(), v);
   std::cout << "File conversion is done. Trying to read mha file.."
             << std::endl;
   // corrImg.ReleaseBuffer();
   // NKI to mha
 
-  if (!LoadShortImageToUshort(newPath, this->m_cbctrecon->m_spRawReconImg)) {
+  if (!crl::LoadShortImageToUshort(newPath,
+                                   this->m_cbctrecon->m_spRawReconImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -3902,7 +3931,7 @@ void CbctReconWidget::SLT_LoadNKIImage() {
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  this->ui.lineEdit_Cur3DFileName->setText(newFileName);
+  this->ui.lineEdit_Cur3DFileName->setText(to_qstr(newFileName));
 
   this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
@@ -3927,19 +3956,19 @@ void CbctReconWidget::SLT_ExportHis() {
   // Get Folder Name!
 
   // For displaying Dir only..
-  const auto dir = QFileDialog::getExistingDirectory(
+  const auto dir = to_path(QFileDialog::getExistingDirectory(
       this, "Open Directory", "/home",
-      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks));
 
   // FileName should be same, only selected folder
 
-  for (auto i = 0; i < this->m_cbctrecon->m_iImgCnt; i++) {
-    auto tmpInfo = QFileInfo(this->m_cbctrecon->m_arrYKImage[i].m_strFilePath);
-    auto newPath = dir + "/" + tmpInfo.fileName();
-    if (!this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(
-            newPath.toLocal8Bit().constData(), false)) {
-      std::cerr << "Could not read image #" << i << ": "
-                << newPath.toStdString() << std::endl;
+  for (size_t i = 0; i < static_cast<size_t>(this->m_cbctrecon->m_iImgCnt);
+       i++) {
+    auto tmpInfo = this->m_cbctrecon->m_arrYKImage[i].m_strFilePath;
+    auto newPath = dir / tmpInfo.filename();
+    if (!this->m_cbctrecon->m_arrYKImage[i].SaveDataAsHis(newPath, false)) {
+      std::cerr << "Could not read image #" << i << ": " << newPath
+                << std::endl;
     }
   }
 
@@ -3973,13 +4002,13 @@ void CbctReconWidget::SLT_ReloadProjections() {
                              // pixels too few in x and y
   }
 
-  if (this->m_cbctrecon->m_projFormat == HND_FORMAT) { // -> hnd
+  if (this->m_cbctrecon->m_projFormat == enProjFormat::HND_FORMAT) { // -> hnd
     std::cout << "Fitted bowtie-filter correction ongoing..." << std::endl;
     SLT_DoBowtieCorrection();
   }
 
   this->m_cbctrecon->m_spProjImgRaw3D =
-      this->m_cbctrecon->ConvertLineInt2Intensity_ushort(p_projimg);
+      crl::ConvertLineInt2Intensity_ushort(p_projimg);
   // if X not 1024 == input size: out_offset =
   // in_offset + (1024*res_f -
   // X*res_f)*out_spacing     <- will still
@@ -4028,15 +4057,15 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
   // typedef itk::ImageFileReader<ShortImageType> ReaderType;
   // ReaderType::Pointer reader = ReaderType::New();
 
-  auto fileName = QFileDialog::getOpenFileName(
-      this, "Open Image", this->m_cbctrecon->m_strPathDirDefault,
-      "Plan CT file (*.mha)", nullptr, nullptr);
+  auto fileName = to_path(QFileDialog::getOpenFileName(
+      this, "Open Image", to_qstr(this->m_cbctrecon->m_strPathDirDefault),
+      "Plan CT file (*.mha)"));
 
-  if (fileName.length() < 1) {
+  if (fileName.empty()) {
     return;
   }
 
-  if (!LoadShortImageToUshort(fileName, this->m_cbctrecon->m_spRefCTImg)) {
+  if (!crl::LoadShortImageToUshort(fileName, this->m_cbctrecon->m_spRefCTImg)) {
     std::cout << "error! in LoadShortImageToUshort" << std::endl;
   }
 
@@ -4064,11 +4093,11 @@ void CbctReconWidget::SLT_LoadPlanCT_mha() // m_spRecon -->m_spRefCT
   std::cout << "Image Spacing (mm):	" << spacing[0] << "	" << spacing[1]
             << "	" << spacing[2] << std::endl;
 
-  this->m_cbctrecon->RegisterImgDuplication(REGISTER_REF_CT,
-                                            REGISTER_MANUAL_RIGID);
+  this->m_cbctrecon->RegisterImgDuplication(
+      enREGI_IMAGES::REGISTER_REF_CT, enREGI_IMAGES::REGISTER_MANUAL_RIGID);
   this->m_cbctrecon->m_spCrntReconImg = this->m_cbctrecon->m_spRefCTImg;
 
-  this->ui.lineEdit_Cur3DFileName->setText(fileName);
+  this->ui.lineEdit_Cur3DFileName->setText(to_qstr(fileName));
   this->m_cbctrecon->m_dspYKReconImage->CreateImage(imgDim[0], imgDim[1], 0);
 
   this->ui.spinBoxReconImgSliceNo->setMinimum(0);
@@ -4088,8 +4117,7 @@ void CbctReconWidget::SLT_ExportReconUSHORT() {
   }
 
   auto strPath = QFileDialog::getSaveFileName(
-      this, "Save Image", "", "unsigned short meta image (*.mha)", nullptr,
-      nullptr);
+      this, "Save Image", "", "unsigned short meta image (*.mha)");
   if (strPath.length() <= 1) {
     return;
   }
@@ -4112,10 +4140,10 @@ void CbctReconWidget::SLT_ExportReconUSHORT() {
 // Function for independent projection his images
 void CbctReconWidget::SLT_LoadRawImages() {
 
-  auto files =
-      QFileDialog::getOpenFileNames(this, "Select one or more files to open",
-                                    this->m_cbctrecon->m_strPathDirDefault,
-                                    "projection images (*.his,*.hnd,*.xim)");
+  auto files = QFileDialog::getOpenFileNames(
+      this, "Select one or more files to open",
+      QString(this->m_cbctrecon->m_strPathDirDefault.string().c_str()),
+      "projection images (*.his,*.hnd,*.xim)");
 
   this->m_cbctrecon->m_iImgCnt = files.size();
   std::vector<std::string> fileVector;
@@ -4128,7 +4156,6 @@ void CbctReconWidget::SLT_LoadRawImages() {
     return;
   }
   m_pTableModel.reset();
-  m_pTableModel = nullptr;
   this->m_cbctrecon->ReleaseMemory();
 
   this->m_cbctrecon->m_arrYKImage.resize(this->m_cbctrecon->m_iImgCnt);
@@ -4150,7 +4177,7 @@ void CbctReconWidget::SLT_LoadRawImages() {
 
   size_t index = 0;
   for (auto &it : this->m_cbctrecon->m_arrYKImage) {
-    const auto &strFile = files.at(index);
+    const auto &strFile = files.at(index).toStdString();
 
     if (bytesPerPix != 2) {
       break;
@@ -4163,7 +4190,7 @@ void CbctReconWidget::SLT_LoadRawImages() {
 
     it.m_strFilePath = strFile;
     // Copy his header - 100 bytes
-    it.CopyHisHeader(strFile.toLocal8Bit().constData());
+    it.CopyHisHeader(strFile);
 
     index++;
   }
@@ -4188,9 +4215,10 @@ void CbctReconWidget::SLT_SaveCurrentSetting() const {
   }
 }
 
-bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
-  QFileInfo fInfo(strPathConfigFile);
-  if (!fInfo.exists()) {
+bool CbctReconWidget::SaveCurrentSetting(
+    const fs::path &strPathConfigFile) const {
+  auto fInfo = strPathConfigFile;
+  if (!fs::exists(fInfo)) {
     std::cout << "Config file not exist. will be created now" << std::endl;
   } else {
     std::cout << "Config file is found. it will be overwritten now"
@@ -4199,7 +4227,7 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
   auto &p_dlgreg_ui = m_dlgRegistration->ui;
 
   std::ofstream fout;
-  fout.open(strPathConfigFile.toLocal8Bit().constData());
+  fout.open(strPathConfigFile);
 
   auto strRefmAs = this->ui.lineEdit_RefmAs->text();
   auto PostFOV_R = this->ui.lineEdit_PostFOV_R->text();
@@ -4287,10 +4315,11 @@ bool CbctReconWidget::SaveCurrentSetting(QString &strPathConfigFile) const {
   return true;
 }
 
-bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) const {
-  auto fInfo = QFileInfo(strPathConfigFile);
+bool CbctReconWidget::LoadCurrentSetting(
+    const fs::path &strPathConfigFile) const {
+  auto fInfo = strPathConfigFile;
 
-  if (!fInfo.exists()) {
+  if (!fs::exists(fInfo)) {
     //  std::cout << "Config file doesn't exist" << std::endl;
     return false;
   }
@@ -4298,7 +4327,7 @@ bool CbctReconWidget::LoadCurrentSetting(QString &strPathConfigFile) const {
   std::ifstream fin;
   char str[MAX_LINE_LENGTH];
 
-  fin.open(strPathConfigFile.toLocal8Bit().constData());
+  fin.open(strPathConfigFile);
 
   if (fin.fail()) {
     return false;

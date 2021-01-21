@@ -60,10 +60,10 @@ public:
   using BackProjectionFilterType = OpenCLFDKBackProjectionImageFilter;
 
   /** Standard New method. */
-  itkNewMacro(Self);
+  itkNewMacro(Self)
 
-  /** Runtime information support. */
-  itkTypeMacro(OpenCLFDKConeBeamReconstructionFilter, ImageToImageFilter);
+      /** Runtime information support. */
+      itkTypeMacro(OpenCLFDKConeBeamReconstructionFilter, ImageToImageFilter);
 
 protected:
   OpenCLFDKConeBeamReconstructionFilter();

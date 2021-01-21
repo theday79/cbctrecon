@@ -1,69 +1,171 @@
 variables:
     GIT_STRATEGY: clone
-    BUILD_TESTING: "NO"
     CUDA_AVAILABLE: "NO"
+    COVERAGE: "NO"
 
 
-Ubuntu-gcc7-superbuild:
+Ubuntu-gcc10-superbuild:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:gcc-7-x86_64
+    image: andreasga/cbctrecon:gcc-10-x86_64
     script:
+      - export CC=/usr/bin/gcc-10
+      - export CXX=/usr/bin/g++-10
       - ./ci/ci.sh
 
-#Ubuntu-gcc7-CUDA:
-#    stage: test
-#    tags:
-#      - linux
-#      - docker
-#      - cuda
-#      - gpu
-#    image: andreasga/cbctrecon:gcc-7-CUDA-x86_64
-#    variables:
-#      CUDA_AVAILABLE: "YES"
-#      COVERAGE: "YES"
-#    script:
-#      - ./ci/ci.sh
+Ubuntu-gcc10-CUDA:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - cuda
+      - gpu
+    image: andreasga/cbctrecon:gcc-10-CUDA-x86_64
+    variables:
+      CUDA_AVAILABLE: "YES"
+      COVERAGE: "YES"
+    script:
+      - export CC=/usr/bin/gcc-10
+      - export CXX=/usr/bin/g++-10
+      - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-failing-red.svg
+      - ./ci/ci.sh
+      - wget -O cuda_pass.svg https://img.shields.io/badge/CUDA-passing-green.svg
+    allow_failure: true
+    artifacts:
+      when: always
+      paths:
+        - cuda_pass.svg
 
-Ubuntu-gcc9-coverage-prebuild-deps:
+Ubuntu-gcc10-coverage-prebuild-deps:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:gcc-9-x86_64-libDCMTK-ITKv5-RTK
+    image: andreasga/cbctrecon:gcc-10-x86_64-libDCMTK-ITK-RTK
     variables:
       COVERAGE: "YES"
     script:
-      - export CC=/usr/bin/gcc-9
-      - export CXX=/usr/bin/g++-9
+      - export CC=/usr/bin/gcc-10
+      - export CXX=/usr/bin/g++-10
       - ./ci/ci.sh
 
 
-#Ubuntu-clang6:
-#    stage: test
-#    tags:
-#      - linux
-#      - docker
-#      - gpu
-#    image: andreasga/cbctrecon:clang-6-x86_64
-#    script:
-#      - export CC=clang
-#      - export CXX=clang++
-#      - ./ci/ci.sh
-
-Ubuntu-clang6-prebuild-deps:
+Ubuntu-clang11-prebuild-deps:
     stage: test
     tags:
       - linux
       - docker
       - gpu
-    image: andreasga/cbctrecon:clang-6-x86_64-libDCMTK-ITKv5-RTK
+    image: andreasga/cbctrecon:clang-11-x86_64-libDCMTK-ITK-RTK
     script:
-      - export CC=clang
-      - export CXX=clang++
+      - export CC=/usr/bin/clang
+      - export CXX=/usr/bin/clang++
       - ./ci/ci.sh
+
+Ubuntu-clang11-ROCm:
+    stage: test
+    tags:
+      - linux
+      - docker
+      - rocm
+# Our ROCm docker exported gfx900 as the target arch, so:
+      - vega
+      - gpu
+    image: andreasga/cbctrecon:clang-11-ROCm-x86_64
+    script:
+      - export CC=/opt/rocm/hip/bin/hipcc
+      - export CXX=/opt/rocm/hip/bin/hipcc
+      # - export CXXFLAGS="-stdlib=libc++"
+      - export CUSTOM_CMAKE_FLAGS="-DOpenMP_CXX_FLAGS='-fopenmp=libomp' -DOpenMP_CXX_LIB_NAMES=omp"
+      - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_SYCLCC_EXTRA_ARGS='--rocm-device-lib-path=/opt/rocm/amdgcn/bitcode/'"
+      - export CUSTOM_CMAKE_FLAGS="$CUSTOM_CMAKE_FLAGS -DHIPSYCL_ROCM_PATH=/opt/rocm/"
+      - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-failing-red.svg
+      - ./ci/ci.sh
+      - wget -O rocm_pass.svg https://img.shields.io/badge/ROCm-passing-green.svg
+    allow_failure: true
+    artifacts:
+      when: always
+      paths:
+        - rocm_pass.svg
+
+
+Ubuntu-icc21-oneAPI:
+    stage: test
+    tags:
+      - linux
+      - docker
+    image: andreasga/cbctrecon:icc-21-oneAPI-x86_64
+    script:
+      - export pre_setvars_path=$PATH
+      - source /opt/intel/oneapi/setvars.sh
+      - export PATH=$PATH:$pre_setvars_path
+      - export CC=icc
+      - export CXX=icpc
+      - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-failing-red.svg
+      - ./ci/ci.sh
+      - wget -O oneapi_pass.svg https://img.shields.io/badge/oneAPI-passing-green.svg
+    allow_failure: true
+    artifacts:
+      when: always
+      paths:
+        - oneapi_pass.svg
+
+Windows10-msvc2019-CUDA:
+    stage: test
+    tags:
+      - windows
+      - gpu
+      - shell
+    script:
+      - Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+      - Enter-VsDevShell 512426f1
+      - $env:CUDA_PATH = "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.1"
+      - mkdir build
+      - cd build
+      - cmake -G"Visual Studio 16 2019" -A"x64" .. `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_INSTALL_PREFIX="../install" `
+          -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG /Zc:__cplusplus" `
+          -DCMAKE_C_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG" `
+          -DCMAKE_PREFIX_PATH="C:/Qt/5.15.2/msvc2019_64/" `
+          -DHUNTER_ENABLED=OFF `
+          -DRTK_USE_OPENCL=ON `
+          -DUSE_CUDA=ON `
+          -DITK_DIR="C:/Program Files (x86)/ITK/lib/cmake/ITK-5.2" `
+          -DUSE_SYSTEM_DCMTK=ON `
+          -DDCMTK_DIR="C:/Program Files (x86)/DCMTK/cmake/" `
+          -DUSE_SYSTEM_Plastimatch=OFF `
+          -DUSE_SYSTEM_ZLIB=ON `
+          -DUSE_SYSTEM_dlib=ON `
+          -Ddlib_DIR="C:/Program Files (x86)/dlib_project/lib/cmake/dlib/"
+      - cmake --build . --config Release -j 12
+      - cmake --build . --config Release --target INSTALL
+      - ctest -VV -C Release
+      - cmake --build . --config Release --target PACKAGE
+    artifacts:
+      name: "$env:CI_JOB_STAGE-$env:CI_COMMIT_REF_NAME"
+      paths:
+        - build/*.msi
+
+pages:
+  stage: deploy
+  needs:
+    - Ubuntu-gcc10-CUDA
+    - Ubuntu-clang11-ROCm
+    - Ubuntu-icc21-oneAPI
+  image: alpine:3.13
+  script:
+    - mkdir public
+    - cp *.svg ./public/
+  artifacts:
+    paths:
+      - public
+  only:
+    refs:
+      - master
+
 

@@ -19,6 +19,8 @@
 #ifndef rtkOpenCLFFTConvolutionImageFilter_hxx
 #define rtkOpenCLFFTConvolutionImageFilter_hxx
 
+#include "rtkOpenCLUtilities.h"
+
 #include "rtkOpenCLFFTConvolutionImageFilter.h"
 
 // Use local RTK FFTW files taken from Gaëtan Lehmann's code for

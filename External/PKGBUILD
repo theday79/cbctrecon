@@ -1,0 +1,57 @@
+# Maintainer: Andreas G. Andersen <andreasga22 at gmail dot com>
+
+_pkgname=itk
+pkgname=$_pkgname-git
+pkgver=48a2de5
+pkgrel=1
+pkgdesc='Open-source, cross-platform C++ toolkit for segmentation and registration'
+arch=('x86_64')
+url='http://www.itk.org'
+license=('Apache')
+depends=('hdf5-cpp-fortran' 'gdcm' 'libjpeg-turbo' 'libpng' 'libtiff')
+makedepends=('git' 'cmake')
+provides=("$_pkgname" "insight-toolkit"{,-git})
+conflicts=("$_pkgname" "insight-toolkit"{,-git})
+source=("git://github.com/InsightSoftwareConsortium/itk.git")
+sha256sums=("SKIP")
+
+pkgver() {
+  cd $srcdir
+  git describe --always | sed 's:^v::;s:-:.:g'
+}
+
+build() {
+  sed -i 's/SimonRit/agravgaard/g' \
+      $srcdir/$_pkgname/Modules/Remote/RTK.remote.cmake
+  sed -i 's/GIT_TAG .*/GIT_TAG master/g' \
+      $srcdir/$_pkgname/Modules/Remote/RTK.remote.cmake
+  rm -Rf build && mkdir build
+  cd build
+  cmake $srcdir/$_pkgname \
+      -DCMAKE_CXX_STANDARD=17 \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DBUILD_TESTING=OFF \
+      -DITK_USE_SYSTEM_LIBRARIES=ON \
+      -DITK_USE_SYSTEM_GDCM=ON \
+      -DITK_WRAP_JAVA=OFF \
+      -DITK_WRAP_PERL=OFF \
+      -DITK_WRAP_PYTHON=OFF \
+      -DITK_WRAP_RUBY=OFF \
+      -DITK_WRAP_TCL=OFF \
+      -DModule_RTK=ON \
+      -DModule_ITKDeprecated=ON \
+      -DModule_ITKReview=ON \
+      -DITK_USE_GPU=ON \
+      -DModule_RTK_GIT_TAG=master \
+      -DRTK_BUILD_APPLICATIONS=ON \
+      -DEXACT_GCC=/usr/bin/gcc-8 \
+      -DRTK_USE_CUDA=ON \
+      -DITK_MINIMUM_COMPLIANCE_LEVEL=3
+
+  make $MAKEFLAGS
+}
+
+package() {
+  cd build
+  make DESTDIR="$pkgdir" install
+}

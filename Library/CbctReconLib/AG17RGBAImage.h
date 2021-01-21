@@ -18,8 +18,8 @@ public:
   AG17RGBAImage(AG17RGBAImage &&) = delete;
   void operator=(AG17RGBAImage &&) = delete;
 
-  int m_iWidth;
-  int m_iHeight;
+  size_t m_iWidth;
+  size_t m_iHeight;
   // added: 20140206
   double m_fSpacingX; //[mm/px]
   double m_fSpacingY;
@@ -30,8 +30,8 @@ public:
   QImage m_QImage;
   // QPainter* m_pPainter;
 
-  bool CopyFromBuffer(const std::valarray<unsigned short> &pImageBuf, int width,
-                      int height);
+  bool CopyFromBuffer(const std::valarray<unsigned short> &pImageBuf,
+                      size_t width, size_t height);
   bool CloneImage(AG17RGBAImage &other);
 
   bool CreateImage(int width, int height, unsigned short usVal);
@@ -116,7 +116,7 @@ public:
   QPoint m_ptSplitCenter; // Fixed image with Moving image. center is based on
                           // dataPt.//Fixed Image: Left Top + Right Bottom,
                           // Moving: Right Top + Left Bottom
-  int m_enSplitOption{};
+  enSplitOption m_enSplitOption{};
   // This cetner is moved while Left Dragging //All split and crosshair are data
   // point based!
   void SetSplitOption(const enSplitOption option) { m_enSplitOption = option; }

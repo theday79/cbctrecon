@@ -1,13 +1,18 @@
-FROM ubuntu:18.04
+FROM ubuntu:groovy
+# focal = 20.04
+# groovy = 20.10
+
 MAINTAINER Andreas Gravgaard Andersen <andreasga22@gmail.com>
 
 USER root
 
-RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/apt/sources.list \
+RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ groovy multiverse" >> /etc/apt/sources.list \
     && apt update \
     && echo "Install dependencies for conan" \
     && apt install -y wget sudo git gcc make \
         zlib1g-dev libffi-dev libbz2-dev libssl-dev libsqlite3-dev libreadline-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
     && echo "Add user with group sudo" \
     && groupadd 1001 -g 1001 \
     && groupadd 1000 -g 1000 \
@@ -17,6 +22,14 @@ RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ bionic multiverse" >> /etc/ap
     && printf "user:user" | chpasswd \
     && adduser user sudo \
     && printf "user ALL= NOPASSWD: ALL\\n" >> /etc/sudoers
+
+RUN mkdir /opt/cmake && cd /opt/cmake \
+    && wget -nv https://cmake.org/files/v3.19/cmake-3.19.3-Linux-x86_64.sh \
+    && sh cmake-3.19.3-Linux-x86_64.sh --prefix=/opt/cmake --skip-license \
+    && ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake \
+    && ln -s /opt/cmake/bin/ctest /usr/local/bin/ctest \
+    && rm cmake-3.19.3-Linux-x86_64.sh \
+    && cmake --version
 
 ENV PYENV_ROOT=/opt/pyenv \
     PATH=/opt/pyenv/shims:${PATH}

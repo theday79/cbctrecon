@@ -1,18 +1,14 @@
-# the module will build and run cpuid utility, which store detected
-# host processor features into cpuid.txt file in form:
-# FEATURE [not] supported
-# variable HAVE_CPUID_INFO set in case of success
-# if variable HAVE_CPUID_INFO is set then it is possible
-# to test HAVE_SSE42/HAVE_AVX2 variables
+# the module will build and run cpuid utility, which store detected host processor
+# features into cpuid.txt file in form: FEATURE [not] supported variable HAVE_CPUID_INFO
+# set in case of success if variable HAVE_CPUID_INFO is set then it is possible to test
+# HAVE_SSE42/HAVE_AVX2 variables
 
-include (CheckCXXSourceRuns)
+include(CheckCXXSourceRuns)
 
-#if(NOT WIN32)
-#    set(CMAKE_REQUIRED_FLAGS "-std=c++11")
-#endif()
+# if(NOT WIN32) set(CMAKE_REQUIRED_FLAGS "-std=c++11") endif()
 
 check_cxx_source_runs(
-"
+  "
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp
 // processor: x86, x64
@@ -312,50 +308,71 @@ int main()
     return 0;
 }
 "
-HAVE_CPUID_INFO_
-)
+  HAVE_CPUID_INFO_)
 if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/cpuid.txt")
   message(STATUS "cpuid.txt were not created in ${CMAKE_CURRENT_BINARY_DIR} !!")
   set(HAVE_CPUID_INFO_ FALSE)
 endif()
 
 if(HAVE_CPUID_INFO_)
-    set(_CPUID_INFO "${CMAKE_CURRENT_BINARY_DIR}/cpuid.txt")
-    set(HAVE_AVX512F FALSE)
-    set(HAVE_AVX2    FALSE)
-    set(HAVE_SSE42   FALSE)
+  set(_CPUID_INFO "${CMAKE_CURRENT_BINARY_DIR}/cpuid.txt")
+  set(HAVE_AVX512F FALSE)
+  set(HAVE_AVX2 FALSE)
+  set(HAVE_SSE42 FALSE)
 
-    file(STRINGS ${_CPUID_INFO} _FEATURES)
+  file(STRINGS ${_CPUID_INFO} _FEATURES)
 
-    message(STATUS "Host CPU features:")
+  message(STATUS "Host CPU features:")
 
-    foreach(FEATURE IN ITEMS ${_FEATURES})
+  foreach(FEATURE IN ITEMS ${_FEATURES})
 
-        message(STATUS "  ${FEATURE}")
+    message(STATUS "  ${FEATURE}")
 
-        string(COMPARE EQUAL "${FEATURE}" "AVX512F supported" _FEATURE_FOUND)
-        if(${_FEATURE_FOUND})
-            if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
-                set(HAVE_AVX512F ${_FEATURE_FOUND})
-            else()
-                message(WARNING "Compiler doesn't support AVX512 instruction set")
-            endif()
-        endif()
-        string(COMPARE EQUAL "${FEATURE}" "AVX2 supported" _FEATURE_FOUND)
-        if(${_FEATURE_FOUND})
-            set(HAVE_AVX2 ${_FEATURE_FOUND})
-        endif()
-        string(COMPARE EQUAL "${FEATURE}" "SSE4.2 supported" _FEATURE_FOUND)
-        if(${_FEATURE_FOUND})
-            set(HAVE_SSE42 ${_FEATURE_FOUND})
-        endif()
-    endforeach(FEATURE)
+    string(
+      COMPARE EQUAL
+              "${FEATURE}"
+              "AVX512F supported"
+              _FEATURE_FOUND)
+    if(${_FEATURE_FOUND})
+      if(NOT
+         CMAKE_CXX_COMPILER_ID
+         STREQUAL
+         "GNU"
+         OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+        set(HAVE_AVX512F ${_FEATURE_FOUND})
+      else()
+        message(WARNING "Compiler doesn't support AVX512 instruction set")
+      endif()
+    endif()
+    string(
+      COMPARE EQUAL
+              "${FEATURE}"
+              "AVX2 supported"
+              _FEATURE_FOUND)
+    if(${_FEATURE_FOUND})
+      set(HAVE_AVX2 ${_FEATURE_FOUND})
+    endif()
+    string(
+      COMPARE EQUAL
+              "${FEATURE}"
+              "SSE4.2 supported"
+              _FEATURE_FOUND)
+    if(${_FEATURE_FOUND})
+      set(HAVE_SSE42 ${_FEATURE_FOUND})
+    endif()
+  endforeach(FEATURE)
 
-	set(ENABLE_AVX512F ${HAVE_AVX512F} CACHE BOOL "Compile with AVX-512 optimization")
-	set(ENABLE_AVX2 ${HAVE_AVX2} CACHE BOOL "Compile with AVX-2 optimization")
-	set(ENABLE_SSE42 ${HAVE_SSE42} CACHE BOOL "Compile with SSE-4.2 optimization")
+  set(ENABLE_AVX512F
+      ${HAVE_AVX512F}
+      CACHE BOOL "Compile with AVX-512 optimization")
+  set(ENABLE_AVX2
+      ${HAVE_AVX2}
+      CACHE BOOL "Compile with AVX-2 optimization")
+  set(ENABLE_SSE42
+      ${HAVE_SSE42}
+      CACHE BOOL "Compile with SSE-4.2 optimization")
 
-    unset(_FEATURE_FOUND)
-    unset(_CPUID_INFO)
-    unset(_FEATURES)
+  unset(_FEATURE_FOUND)
+  unset(_CPUID_INFO)
+  unset(_FEATURES)
 endif()

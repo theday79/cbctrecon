@@ -6,9 +6,8 @@
 
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <iostream>
-
-#include <QDir>
 
 #include "itkGDCMImageIO.h"
 #include "itkImageSeriesReader.h"
@@ -23,6 +22,7 @@
 
 #include "StructureSet.h"
 #include "cbctrecon_io.h"
+#include "free_functions.h"
 
 #include "OpenCL/err_code.hpp"
 
@@ -97,7 +97,8 @@ template <typename T, size_t DIM> auto GenerateImage(const T init_val = 1) {
   return image;
 }
 
-template <typename T, size_t DIM> auto GenerateImage_small(const T init_val = 1) {
+template <typename T, size_t DIM>
+auto GenerateImage_small(const T init_val = 1) {
   using ImageType = itk::Image<T, DIM>;
   auto image = ImageType::New();
   typename ImageType::IndexType origin;
@@ -167,7 +168,7 @@ auto GenerateRandImage(const int seed = 69, const T min_val = 0,
 
 template <typename T, size_t DIM>
 auto GenerateRandImage_small(const int seed = 69, const T min_val = 0,
-                       const T max_val = std::numeric_limits<T>::max()) {
+                             const T max_val = std::numeric_limits<T>::max()) {
   using ImageType = itk::Image<T, DIM>;
   auto image = ImageType::New();
   typename ImageType::IndexType origin;
@@ -202,10 +203,9 @@ auto GenerateRandImage_small(const int seed = 69, const T min_val = 0,
   return image;
 }
 
-UShortImageType::Pointer read_dicom_image(const QString &dcm_dir) {
+UShortImageType::Pointer read_dicom_image(const fs::path &dcm_dir) {
 
-  auto dir = QDir(dcm_dir);
-  const auto filenamelist = get_dcm_image_files(dir);
+  const auto filenamelist = crl::get_dcm_image_files(dcm_dir);
 
   ShortImageType::Pointer spShortImg;
 
@@ -314,15 +314,15 @@ int main(const int argc, char **argv) {
 
   // Cuts off about 150 ms per filter:
   auto defines = std::string("");
-  OpenCL_initialize(0, defines);
+  crl::opencl::initialize(0, defines);
 
   if (filter_str == "add_const_filter") {
 
     auto image_ocl = GenerateImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_AddConst_InPlace(image_ocl->GetBufferPointer(),
-                            image_ocl->GetLargestPossibleRegion().GetSize(),
-                            17.0f);
+    crl::opencl::AddConst_InPlace(
+        image_ocl->GetBufferPointer(),
+        image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -357,9 +357,9 @@ int main(const int argc, char **argv) {
 
     auto image_ocl = GenerateImage<float, 2U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_AddConst_InPlace_2D(image_ocl->GetBufferPointer(),
-                               image_ocl->GetLargestPossibleRegion().GetSize(),
-                               17.0f);
+    crl::opencl::AddConst_InPlace_2D(
+        image_ocl->GetBufferPointer(),
+        image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -393,7 +393,7 @@ int main(const int argc, char **argv) {
 
     auto image_ocl = GenerateImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_AddConst_MulConst_InPlace(
+    crl::opencl::AddConst_MulConst_InPlace(
         image_ocl->GetBufferPointer(),
         image_ocl->GetLargestPossibleRegion().GetSize(), 17.0f, 2.0f);
     const auto end_ocl_time = std::chrono::steady_clock::now();
@@ -435,8 +435,8 @@ int main(const int argc, char **argv) {
     auto image_in = GenerateRandImage<float, 3U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto minmax_ocl =
-        OpenCL_min_max_3D(image_in->GetBufferPointer(),
-                          image_in->GetLargestPossibleRegion().GetSize());
+        crl::opencl::min_max_3D(image_in->GetBufferPointer(),
+                                image_in->GetLargestPossibleRegion().GetSize());
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -475,8 +475,8 @@ int main(const int argc, char **argv) {
     auto image_in = GenerateRandImage<float, 2U>();
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto minmax_ocl =
-        OpenCL_min_max_2D(image_in->GetBufferPointer(),
-                          image_in->GetLargestPossibleRegion().GetSize());
+        crl::opencl::min_max_2D(image_in->GetBufferPointer(),
+                                image_in->GetLargestPossibleRegion().GetSize());
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -519,7 +519,7 @@ int main(const int argc, char **argv) {
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
     const auto image_ocl =
-        OpenCL_divide3Dby3D_loginv_OutOfPlace(image_in1, image_in2);
+        crl::opencl::divide3Dby3D_loginv_OutOfPlace(image_in1, image_in2);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -561,17 +561,15 @@ int main(const int argc, char **argv) {
       std::cerr << "Crop filter requires a dicom directory as the 3rd input\n";
       return -1;
     }
-    const auto dcmdir_str =
-        QString(argv[2]).split(".", QString::SkipEmptyParts).at(0);
-    const auto structures = load_rtstruct(
-        dcmdir_str +
-        "/RS.1.2.246.352.71.4.453824782.282736.20120706180259.dcm");
+    const auto dcmdir_str = fs::path(crl::split_string(argv[2], ".").at(0));
+    const auto structures = crl::load_rtstruct(
+        dcmdir_str / "RS.1.2.246.352.71.4.453824782.282736.20120706180259.dcm");
 
     const auto body_struct = structures->get_roi_ref_by_name("BODY");
     auto image = read_dicom_image(dcmdir_str);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    OpenCL_crop_by_struct_InPlace(image, body_struct);
+    crl::opencl::crop_by_struct_InPlace(image, body_struct);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
     std::cerr << "OpenCL: "
@@ -600,16 +598,20 @@ int main(const int argc, char **argv) {
     }
 
   } else if (filter_str == "ItoLogI_subtract_median_filter") {
+    std::cout << "This test seems to mess with some GPU drivers!\n"
+              << "Only difference from *_small is the size of the generated "
+                 "input images\n";
     using ImageType = itk::Image<float, 2U>;
     const auto median_radius = 3U;
 
     const auto proj_raw = GenerateRandImage<float, 2U>(69, 1.0f, 5.0f);
 
     // -1 may be a bit extreme for negative scatter intensity, but a good test
-    const auto proj_scatter_intensity = GenerateRandImage<float, 2U>(6969, -1.0f, 1.0f);
+    const auto proj_scatter_intensity =
+        GenerateRandImage<float, 2U>(6969, -1.0f, 1.0f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
+    const auto proj_corr = crl::opencl::LogItoI_subtract_median_ItoLogI(
         proj_raw, proj_scatter_intensity, median_radius);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -667,12 +669,13 @@ int main(const int argc, char **argv) {
     const auto median_radius = 3U;
 
     const auto proj_raw = GenerateRandImage_small<float, 2U>(69, 1.0f, 5.0f);
-	
-	// -1 may be a bit extreme for negative scatter intensity, but a good test
-    const auto proj_scatter_intensity = GenerateRandImage_small<float, 2U>(6969, -1.0f, 1.0f);
+
+    // -1 may be a bit extreme for negative scatter intensity, but a good test
+    const auto proj_scatter_intensity =
+        GenerateRandImage_small<float, 2U>(6969, -1.0f, 1.0f);
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_corr = OpenCL_LogItoI_subtract_median_ItoLogI(
+    const auto proj_corr = crl::opencl::LogItoI_subtract_median_ItoLogI(
         proj_raw, proj_scatter_intensity, median_radius);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -738,7 +741,7 @@ int main(const int argc, char **argv) {
     const auto proj_raw = add_filter->GetOutput();
 
     const auto start_ocl_time = std::chrono::steady_clock::now();
-    const auto proj_scatter = OpenCL_LogItoI_subtract_median_gaussian(
+    const auto proj_scatter = crl::opencl::LogItoI_subtract_median_gaussian(
         proj_raw, proj_prim, median_radius, gaussian_sigma);
     const auto end_ocl_time = std::chrono::steady_clock::now();
 
@@ -789,8 +792,8 @@ int main(const int argc, char **argv) {
     gauss_sigma[1] = gauss_sigma[0] * 0.75;
     gaussian_filter->SetSigmaArray(gauss_sigma);
 
-    /* back conversition was removed as considered redundant, see GenScatterMap_PriorCT
-    auto convert_back_filter =
+    /* back conversition was removed as considered redundant, see
+    GenScatterMap_PriorCT auto convert_back_filter =
         itk::UnaryFunctorImageFilter<ImageType, ImageType,
                                      Intensity2LineInt>::New();
     convert_back_filter->SetInput(gaussian_filter->GetOutput());

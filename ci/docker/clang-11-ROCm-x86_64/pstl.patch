@@ -1,0 +1,127 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index dfdba1b..4abc8fd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -27,8 +27,8 @@ if (USE_COMPUTECPP)
+ 
+ 
+ else()
+-  message(STATUS " Using triSYCL CMake")
+-  include(FindTriSYCL)
++  message(STATUS " Using hipSYCL CMake")
++  find_package(hipsycl REQUIRED)
+ endif()
+ 
+ 
+diff --git a/examples/CMakeLists.txt b/examples/CMakeLists.txt
+index 9e73aa2..62b6bae 100644
+--- a/examples/CMakeLists.txt
++++ b/examples/CMakeLists.txt
+@@ -13,7 +13,7 @@ foreach(file ${BENCHMARK_FILES})
+   target_compile_options(${SOURCE_NAME} PUBLIC ${HOST_COMPILER_OPTIONS})
+   target_link_libraries(${SOURCE_NAME} PUBLIC ${CMAKE_THREAD_LIBS_INIT})
+ 
+-  add_sycl_to_target(${SOURCE_NAME} ${CMAKE_CURRENT_BINARY_DIR}
++  add_sycl_to_target(TARGET ${SOURCE_NAME} ${CMAKE_CURRENT_BINARY_DIR}
+     ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_NAME}.cpp )
+ 
+ endforeach()
+diff --git a/tests/pstl-tests/CMakeLists.txt b/tests/pstl-tests/CMakeLists.txt
+index a02392f..73a8571 100644
+--- a/tests/pstl-tests/CMakeLists.txt
++++ b/tests/pstl-tests/CMakeLists.txt
+@@ -9,7 +9,7 @@ function(compile_test source)
+                                        PUBLIC "${CMAKE_THREAD_LIBS_INIT}")
+     add_dependencies(${test_name} gtest_main)
+     add_dependencies(${test_name} gtest)
+-    add_sycl_to_target(${test_name} ${CMAKE_CURRENT_BINARY_DIR}
++    add_sycl_to_target(TARGET ${test_name} ${CMAKE_CURRENT_BINARY_DIR}
+                                     ${CMAKE_CURRENT_SOURCE_DIR}/${source})
+     add_test(test.${test_name} ${test_name})
+ endfunction()
+diff --git a/tests/pstl-tests/for_each_n.cpp b/tests/pstl-tests/for_each_n.cpp
+index 490162c..76834c3 100644
+--- a/tests/pstl-tests/for_each_n.cpp
++++ b/tests/pstl-tests/for_each_n.cpp
+@@ -26,24 +26,24 @@
+ */
+ #include "gmock/gmock.h"
+ 
+-#include <vector>
+ #include <algorithm>
++#include <vector>
+ 
+-#include <sycl/execution_policy>
+ #include <experimental/algorithm>
++#include <sycl/execution_policy>
+ 
+ struct ForEachNAlgorithm : public testing::Test {};
+ 
+-using namespace std::experimental::parallel;
++namespace stdpar = std::experimental::parallel;
+ 
+ TEST_F(ForEachNAlgorithm, TestStdForEachN) {
+   std::vector<int> v = {2, 1, 3, 4, 8};
+   std::vector<int> result = {3, 2, 4, 5, 9};
+ 
+-  for_each_n(v.begin(), v.size(), [=](int &val) { val--; });
++  stdpar::for_each_n(v.begin(), v.size(), [=](int &val) { val--; });
+ 
+   int adder = 2;
+-  for_each_n(v.begin(), v.size(), [=](int &val) { val += adder; });
++  stdpar::for_each_n(v.begin(), v.size(), [=](int &val) { val += adder; });
+ 
+ #if PRINT_OUTPUT
+   std::cout << " Elements " << std::endl;
+@@ -58,9 +58,10 @@ TEST_F(ForEachNAlgorithm, TestStd2ForEachN) {
+   std::vector<int> v = {2, 1, 3, 4, 8};
+   std::vector<int> result = {3, 2, 4, 5, 9};
+ 
+-  auto iterator1 = for_each_n(v.begin(), v.size(), [=](int &val) { val--; });
++  auto iterator1 =
++      stdpar::for_each_n(v.begin(), v.size(), [=](int &val) { val--; });
+ 
+-  for_each_n(v.begin(), v.size(), [=](int &val) { val += 2; });
++  stdpar::for_each_n(v.begin(), v.size(), [=](int &val) { val += 2; });
+ 
+   EXPECT_TRUE(v.end() == iterator1);
+ }
+@@ -70,7 +71,8 @@ TEST_F(ForEachNAlgorithm, TestStd3ForEachN) {
+   std::vector<int> result = {3, 2, 4, 5, 9};
+ 
+   int minus_size = -v.size();
+-  auto iterator1 = for_each_n(v.begin(), minus_size, [=](int &val) { val++; });
++  auto iterator1 =
++      stdpar::for_each_n(v.begin(), minus_size, [=](int &val) { val++; });
+ 
+   EXPECT_TRUE(v.begin() == iterator1);
+ }
+@@ -83,7 +85,7 @@ TEST_F(ForEachNAlgorithm, TestSyclForEachN) {
+   sycl::sycl_execution_policy<class ForEachNAlgorithm> snp(q);
+   int threshold = 5;
+   int adder = 1;
+-  for_each_n(snp, v.begin(), v.size(), [=](int &val) {
++  stdpar::for_each_n(snp, v.begin(), v.size(), [=](int &val) {
+     if (val > threshold) {
+       val -= adder;
+     } else {
+@@ -105,8 +107,8 @@ TEST_F(ForEachNAlgorithm, TestSycl2ForEachN) {
+   cl::sycl::queue q;
+   sycl::sycl_execution_policy<class ForEachN2Algorithm> snp(q);
+   int adder = 1;
+-  auto iterator1 =
+-      for_each_n(snp, v.begin(), v.size(), [=](int &val) { val = adder; });
++  auto iterator1 = stdpar::for_each_n(snp, v.begin(), v.size(),
++                                      [=](int &val) { val = adder; });
+ #if PRINT_OUTPUT
+   std::cout << " Elements " << std::endl;
+   std::for_each(v.begin(), v.end(),
+@@ -124,7 +126,7 @@ TEST_F(ForEachNAlgorithm, TestSycl3ForEachN) {
+   sycl::sycl_execution_policy<class ForEachN3Algorithm> snp(q);
+   int minus_size = -v.size();
+   auto iterator1 =
+-      for_each_n(snp, v.begin(), minus_size, [=](int &val) { val++; });
++      stdpar::for_each_n(snp, v.begin(), minus_size, [=](int &val) { val++; });
+ #if PRINT_OUTPUT
+   std::cout << " Elements " << std::endl;
+   std::for_each(v.begin(), v.end(),

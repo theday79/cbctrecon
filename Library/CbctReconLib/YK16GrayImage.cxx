@@ -3,6 +3,7 @@
 // http://www.viva64.com
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 
 #include <QPixmap>
@@ -14,15 +15,7 @@
 
 #include "YK16GrayImage.h"
 
-#ifndef _WIN32
-int fopen_s(FILE **fp, const char *filename, const char *mode) {
-  *fp = fopen(filename, mode);
-  if (*fp == nullptr) {
-    return 0;
-  }
-  return 1;
-}
-#endif
+#include "free_functions.h"
 
 YK16GrayImage::YK16GrayImage() {
   m_iWidth = 0;
@@ -71,7 +64,7 @@ YK16GrayImage::YK16GrayImage() {
   m_iOffsetX = 0;
   m_iOffsetY = 0;
 
-  m_enSplitOption = PRI_LEFT_TOP;
+  m_enSplitOption = enSplitOption::PRI_LEFT_TOP;
   m_fResampleFactor = 1.0;
 }
 
@@ -119,7 +112,7 @@ YK16GrayImage::YK16GrayImage(const int width, const int height) {
   m_iOffsetY = 0;
 
   // m_pQImage = nullptr;
-  m_enSplitOption = PRI_LEFT_TOP;
+  m_enSplitOption = enSplitOption::PRI_LEFT_TOP;
   m_fResampleFactor = 1.0;
 
   CreateImage(width, height, 0);
@@ -176,8 +169,8 @@ bool YK16GrayImage::CreateImage(const int width, const int height,
   return true;
 }
 
-bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
-                                 const int height) {
+bool YK16GrayImage::LoadRawImage(const std::filesystem::path &filePath,
+                                 const int width, const int height) {
   if (width < 1 || height < 1) {
     return false;
   }
@@ -197,24 +190,10 @@ bool YK16GrayImage::LoadRawImage(const char *filePath, const int width,
 
   // aqprintf("ImageInfo in LoadRawImage, w: %d  h: %d   %d  %d \n",width,
   // height, m_iWidth, m_iHeight);
-  FILE *fd = nullptr;
-  if (fopen_s(&fd, filePath, "rb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
-  }
-
-  if (fd == nullptr) {
-    return false;
-  }
+  std::ifstream fd(filePath, std::ios::binary);
 
   auto buf = std::valarray<unsigned short>(img_size);
-  if (fread(&buf[0], 2, img_size, fd) != img_size) {
-    std::cerr << "Could not read Raw Image" << std::endl;
-    return false;
-  }
-
-  fclose(fd);
+  fd.read(reinterpret_cast<char *>(&buf[0]), sizeof(buf[0]) * img_size);
 
   std::copy_n(std::begin(buf), img_size, &m_pData[0]);
 
@@ -354,14 +333,14 @@ bool YK16GrayImage::FillPixMap(const int winMid,
   // m_QImage = tmpQImage.copy(0,0,m_iWidth, m_iHeight); //memory allocated
   // here!!!
 
-  const auto newWidth = qRound(m_iWidth / m_fZoom);
-  const auto newHeight = qRound(m_iHeight / m_fZoom);
+  const auto newWidth = crl::ce_round(m_iWidth / m_fZoom);
+  const auto newHeight = crl::ce_round(m_iHeight / m_fZoom);
 
-  const auto centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
-  const auto centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
+  const auto centerX = m_iOffsetX + crl::ce_round(m_iWidth / 2.0);
+  const auto centerY = m_iOffsetY + crl::ce_round(m_iHeight / 2.0);
 
-  const auto newLeftTopX = centerX - qRound(newWidth / 2.0);
-  const auto newLeftTopY = centerY - qRound(newHeight / 2.0);
+  const auto newLeftTopX = centerX - crl::ce_round(newWidth / 2.0);
+  const auto newLeftTopY = centerY - crl::ce_round(newHeight / 2.0);
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
 
@@ -389,7 +368,7 @@ bool YK16GrayImage::FillPixMapMinMax(int winMin,
   return FillPixMap(midVal, widthVal);
 }
 
-bool YK16GrayImage::SaveDataAsRaw(const char *filePath) const
+bool YK16GrayImage::SaveDataAsRaw(const std::filesystem::path &filePath) const
 // save 16 bit gray raw file
 {
   if (m_pData == nullptr) {
@@ -398,18 +377,11 @@ bool YK16GrayImage::SaveDataAsRaw(const char *filePath) const
 
   const auto imgSize = m_iWidth * m_iHeight;
 
-  FILE *fd = nullptr;
-  if (fopen_s(&fd, filePath, "wb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
+  {
+    std::ofstream fd(filePath, std::ios::binary);
+    fd.write(reinterpret_cast<char *>(&m_pData[0]),
+             sizeof(m_pData[0]) * imgSize);
   }
-
-  for (auto i = 0; i < imgSize; i++) {
-    fwrite(&m_pData[i], 2, 1, fd);
-  }
-
-  fclose(fd);
   return true;
 }
 
@@ -502,7 +474,7 @@ void YK16GrayImage::Swap(YK16GrayImage *pImgA, YK16GrayImage *pImgB) {
   pImgB->m_strFilePath = tmpImg.m_strFilePath;
 }
 
-bool YK16GrayImage::SaveDataAsHis(const char *filePath,
+bool YK16GrayImage::SaveDataAsHis(const std::filesystem::path &filePath,
                                   const bool bInverse) const {
   if (m_pData == nullptr) {
     return false;
@@ -512,35 +484,36 @@ bool YK16GrayImage::SaveDataAsHis(const char *filePath,
     return false;
   }
 
-  FILE *fd = nullptr;
-  if (fopen_s(&fd, filePath, "wb") == 0) {
-    std::cerr << "Could not open file: " << filePath << " for writing!"
-              << std::endl;
-    return false;
-  }
-
-  fwrite(m_pElektaHisHeader, 100, 1, fd);
-
   const auto imgSize = m_iWidth * m_iHeight;
 
-  for (auto i = 0; i < imgSize; i++) {
-    unsigned short tmpVal = 0;
-
-    if (bInverse) {
-      tmpVal = 65535 - m_pData[i];
-    } else {
-      tmpVal = m_pData[i];
+  {
+    std::ofstream fd(filePath, std::ios::binary);
+    if (!fd.is_open()) {
+      std::cerr << "Couldn't open file: " << filePath.string()
+                << " for writing!\n";
+      return false;
     }
+    fd.write(m_pElektaHisHeader, 100);
+    // fwrite(m_pElektaHisHeader, 100, 1, fd);
 
-    fwrite(&tmpVal, 2, 1, fd);
+    for (auto i = 0; i < imgSize; i++) {
+      unsigned short tmpVal = 0;
+
+      if (bInverse) {
+        tmpVal = 65535 - m_pData[i];
+      } else {
+        tmpVal = m_pData[i];
+      }
+
+      fd << tmpVal;
+      // fwrite(&tmpVal, 2, 1, fd);
+    }
   }
-
-  fclose(fd);
 
   return true;
 }
 
-void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
+void YK16GrayImage::CopyHisHeader(const std::filesystem::path &hisFilePath) {
   // open file
   std::ifstream file(hisFilePath, std::ios::in | std::ios::binary);
 
@@ -558,26 +531,6 @@ void YK16GrayImage::CopyHisHeader(const char *hisFilePath) {
                                         // = 100
   file.read(m_pElektaHisHeader, DEFAULT_ELEKTA_HIS_HEADER_SIZE);
 }
-//
-// void YK16GrayImage::Swap(YK16GrayImage* pImgA, YK16GrayImage* pImgB)
-//{
-//	if (pImgA == NULL || pImgB == NULL )
-//		return;
-//
-//	if (pImgA->IsEmpty() || pImgB->IsEmpty() )
-//		return;
-//
-//	YK16GrayImage tmpImg(pImgA->m_iWidth, pImgB->m_iHeight);
-//	tmpImg.CopyFromBuffer(pImgA->m_pData,pImgA->m_iWidth, pImgA->m_iHeight);
-//	tmpImg.m_strFilePath = pImgA->m_strFilePath;
-//
-//	pImgA->CopyFromBuffer(pImgB->m_pData,pImgB->m_iWidth, pImgB->m_iHeight);
-//	pImgA->m_strFilePath = pImgB->m_strFilePath;
-//
-//
-//	pImgB->CopyFromBuffer(tmpImg.m_pData,tmpImg.m_iWidth, tmpImg.m_iHeight);
-//	pImgB->m_strFilePath = tmpImg.m_strFilePath;
-//}
 
 void YK16GrayImage::CopyYKImage2ItkImage(
     YK16GrayImage *pYKImage, UShortImage2DType::Pointer &spTarImage) {
@@ -874,12 +827,12 @@ void YK16GrayImage::GetProfileData(const int dataX, const int dataY,
 
   vTarget.clear();
 
-  if (direction == DIRECTION_HOR) {
+  if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
     for (auto j = 0; j < m_iWidth; j++) {
       vTarget.push_back(m_pData[m_iWidth * fixedY + j]);
     }
-  } else if (direction == DIRECTION_VER) {
+  } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
@@ -903,12 +856,12 @@ void YK16GrayImage::GetProfileData(QVector<double> &vTarget,
 
   vTarget.clear();
 
-  if (direction == DIRECTION_HOR) {
+  if (direction == enProfileDirection::DIRECTION_HOR) {
     const auto fixedY = dataY;
     for (auto j = 0; j < m_iWidth; j++) {
       vTarget.push_back(static_cast<double>(m_pData[m_iWidth * fixedY + j]));
     }
-  } else if (direction == DIRECTION_VER) {
+  } else if (direction == enProfileDirection::DIRECTION_VER) {
     // Upper to Lower profile
 
     const auto fixedX = dataX;
@@ -937,7 +890,7 @@ bool YK16GrayImage::ConstituteFromTwo(YK16GrayImage &YKImg1,
   const auto centerY = m_ptSplitCenter.y();
 
   switch (m_enSplitOption) {
-  case PRI_LEFT_TOP:
+  case enSplitOption::PRI_LEFT_TOP:
     for (auto i = 0; i < centerY; i++) {
       for (auto j = 0; j < centerX; j++) {
         m_pData[width * i + j] = YKImg1.m_pData[width * i + j];
@@ -1077,7 +1030,7 @@ bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,
 
   // It takes 0.4 s in Release mode
 
-  if (m_enSplitOption != PRI_LEFT_TOP) {
+  if (m_enSplitOption != enSplitOption::PRI_LEFT_TOP) {
     return false;
   }
 
@@ -1130,18 +1083,20 @@ bool YK16GrayImage::FillPixMapDual(const int winMid1, const int winMid2,
   // function
 
   //
-  const auto newWidth = qRound(m_iWidth / m_fZoom);
-  const auto newHeight = qRound(m_iHeight / m_fZoom);
+  const auto newWidth = crl::ce_round(m_iWidth / m_fZoom);
+  const auto newHeight = crl::ce_round(m_iHeight / m_fZoom);
 
-  const auto centerX = m_iOffsetX + qRound(m_iWidth / 2.0);
-  const auto centerY = m_iOffsetY + qRound(m_iHeight / 2.0);
+  const auto centerX = m_iOffsetX + crl::ce_round(m_iWidth / 2.0);
+  const auto centerY = m_iOffsetY + crl::ce_round(m_iHeight / 2.0);
 
-  const auto newLeftTopX = centerX - qRound(newWidth / 2.0);  // data position
-  const auto newLeftTopY = centerY - qRound(newHeight / 2.0); // data position
+  const auto newLeftTopX =
+      centerX - crl::ce_round(newWidth / 2.0); // data position
+  const auto newLeftTopY =
+      centerY - crl::ce_round(newHeight / 2.0); // data position
   m_QImage = tmpQImage.copy(newLeftTopX, newLeftTopY, newWidth,
                             newHeight); // memory allocated here!!!
   //                        ^~~~~~~~ and ^~~~~~~~~~~ is already initialized as
-  //                        int, no need to qRound
+  //                        int, no need to crl::ce_round
 
   // m_QImage = tmpQImage.copy(0,0,m_iWidth, m_iHeight); //memory allocated
   // here!!!  YKTEMP: is it needed? no it worked without below: *m_pPixmap =
@@ -1180,7 +1135,7 @@ bool YK16GrayImage::isPtInFirstImage(const int dataX, const int dataY) const {
     return false;
   }
 
-  if (m_enSplitOption == PRI_LEFT_TOP && !IsEmpty()) {
+  if (m_enSplitOption == enSplitOption::PRI_LEFT_TOP && !IsEmpty()) {
     return (dataX < m_ptSplitCenter.x() && dataY < m_ptSplitCenter.y()) ||
            (dataX >= m_ptSplitCenter.x() && dataX < m_iWidth &&
             dataY >= m_ptSplitCenter.y() && dataY < m_iHeight);
@@ -1254,8 +1209,8 @@ void YK16GrayImage::MedianFilter(const int iMedianSizeX,
   // medianFilter->SetInput(spTmpItkImg);
 
   MedianFilterType::InputSizeType radius;
-  radius[0] = qRound(iMedianSizeX / 2.0);
-  radius[1] = qRound(iMedianSizeY / 2.0);
+  radius[0] = crl::ce_round(iMedianSizeX / 2.0);
+  radius[1] = crl::ce_round(iMedianSizeY / 2.0);
 
   medianFilter->SetRadius(radius);
   medianFilter->SetInput(spTmpItkImg);
@@ -1341,8 +1296,8 @@ void YK16GrayImage::ResampleImage(const double fResampleFactor) {
   inputSize[1] = m_iHeight;
 
   UShortImage2DType::SizeType outputSize;
-  outputSize[0] = qRound(m_iWidth * fResampleFactor);
-  outputSize[1] = qRound(m_iHeight * fResampleFactor);
+  outputSize[0] = crl::ce_round(m_iWidth * fResampleFactor);
+  outputSize[1] = crl::ce_round(m_iHeight * fResampleFactor);
   // m_iWidth = outputSize[0];
   // m_iHeight = outputSize[1];
 
@@ -1367,8 +1322,8 @@ void YK16GrayImage::ResampleImage(const double fResampleFactor) {
       itk::ResampleImageFilter<UShortImage2DType, UShortImage2DType, float>;
   auto resample = ResampleImageFilterType::New();
 
-  using TransformType = itk::AffineTransform<float, 2>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<float, 2>;
+  auto transform = AffTransformType::New();
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImage2DType, float>;
   const auto interpolator = InterpolatorType::New();
@@ -1457,7 +1412,7 @@ void YK16GrayImage::UpdateFromItkImageFloat(
     } else if (curVal > 65535.0) {
       outVal = 65535;
     } else {
-      outVal = static_cast<unsigned short>(qRound(curVal));
+      outVal = static_cast<unsigned short>(crl::ce_round(curVal));
     }
 
     m_pData[i] = outVal;

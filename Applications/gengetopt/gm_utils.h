@@ -107,7 +107,7 @@ int not_newlines(const string &buf, int &num_of_newlines);
  * Function object to print something into a stream (to be used with for_each)
  */
 template<class T>
-struct print_f : public std::unary_function<T, void>
+struct print_f //: public std::unary_function<T, void>
 {
     print_f(std::ostream& out, const string &s = ", ") : os(out), sep(s) {}
     void operator() (T x) { os << x << sep; }
@@ -119,7 +119,7 @@ struct print_f : public std::unary_function<T, void>
  * Function object to print a pair into two streams (to be used with for_each)
  */
 template<class T>
-struct pair_print_f : public std::unary_function<T, void>
+struct pair_print_f //: public std::unary_function<T, void>
 {
     pair_print_f(std::ostream& out1, std::ostream& out2, const string &s = ", ") :
         os1(out1), os2(out2), sep(s) {}

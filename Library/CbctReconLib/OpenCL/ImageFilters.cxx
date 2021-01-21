@@ -3,6 +3,7 @@
 // http://www.viva64.com
 
 #include <cassert>
+#include <unordered_map>
 
 #include "OpenCL/ImageFilters.hpp"
 
@@ -30,7 +31,16 @@
 #include "itkSmoothingRecursiveGaussianImageFilter.h"
 #endif // LOWPASS_FFT
 
-enum enKernel {
+// We want to use the opencl types as template args, but don't care that the
+// attributes (alignment) is ignored
+#ifndef _WIN32
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
+namespace crl {
+namespace opencl {
+
+enum class enKernel {
   en_padding_kernel,
   en_multiply_kernel,
   en_multiply_kernel2D,
@@ -47,6 +57,69 @@ enum enKernel {
   en_LogItoI_subtract_median_y_x,
   en_ItoLogI
 };
+
+template <typename E, typename T, size_t N>
+using enum_map = std::array<std::pair<E, T>, N>;
+
+using kernel_map = enum_map<enKernel, const char *, 15>;
+constexpr kernel_map kernel_names = {
+    {{enKernel::en_padding_kernel, "padding_kernel"},
+     {enKernel::en_multiply_kernel, "multiply_kernel"},
+     {enKernel::en_multiply_kernel2D, "multiply_kernel2D"},
+     {enKernel::en_subtract_kernel2D, "subtract_kernel2D"},
+     {enKernel::en_divide_kernel3D_loginv_ushort,
+      "divide_kernel3D_loginv_Ushort"},
+     {enKernel::en_add_const_kernel, "add_const_kernel"},
+     {enKernel::en_add_const_with_thresh_kernel,
+      "add_const_with_thresh_kernel"},
+     {enKernel::en_add_mul_const_kernel, "add_mul_const_kernel"},
+     {enKernel::en_add_mul_const_with_thresh_kernel,
+      "add_mul_const_with_thresh_kernel"},
+     {enKernel::en_min_max_kernel, "min_max_kernel"},
+     {enKernel::en_min_max_kernel2, "min_max_kernel2"},
+     {enKernel::en_crop_by_struct_kernel, "crop_by_struct_kernel"},
+     {enKernel::en_LogItoI_subtract_median_ItoLogI,
+      "log_i_to_i_subtract_median_i_to_log_i"},
+     {enKernel::en_LogItoI_subtract_median_y_x,
+      "log_i_to_i_subtract_median_y_x"},
+     {enKernel::en_ItoLogI, "i_to_log_i_kernel"}}};
+
+template <auto key, typename EM>
+constexpr auto ce_find_key(const EM &input_arr) {
+  constexpr auto N = std::tuple_size_v<EM>;
+  static_assert(N > 0, "Array has 0 elements!");
+
+  // Pair type (a special case of tuple):
+  using PT = typename std::tuple_element_t<0, EM>;
+  static_assert(std::tuple_size_v<PT> == 2, "Array doesn't contain pair type");
+
+  using E = typename std::tuple_element_t<0, PT>;
+  static_assert(std::is_enum_v<E>, "Key must be enum type");
+  static_assert(std::is_same_v<decltype(key), E>,
+                "Key didn't match enum type of array");
+
+  for (auto key_val : input_arr) {
+    if (key_val.first == key) {
+      return key_val.second;
+    }
+  }
+  return std::tuple_element_t<1, PT>();
+}
+
+void print_prof_info(cl::Event &evt) {
+  auto status = evt.getInfo<CL_EVENT_COMMAND_EXECUTION_STATUS>();
+  if (status != CL_COMPLETE) {
+    evt.wait();
+  }
+#ifdef DEBUG_OPENCL
+  std::cerr << "Kernel took: "
+            << static_cast<double>(
+                   evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
+                   evt.getProfilingInfo<CL_PROFILING_COMMAND_START>()) *
+                   1e6 // ns to ms
+            << " ms\n";
+#endif
+}
 
 class KernelMan {
 
@@ -95,8 +168,7 @@ private:
       }
     }
 
-    std::vector<cl::Device> devices;
-    OpenCL_getDeviceList(devices);
+    std::vector<cl::Device> devices = getDeviceList();
 
     // Attempt first device if none with image_support
     auto device = devices.at(0);
@@ -113,7 +185,8 @@ private:
       const auto device_type = dev.getInfo<CL_DEVICE_TYPE>(err);
       checkError(*err, "Get device type");
 
-      if (device_type == CL_DEVICE_TYPE_GPU && // Xeon Phi is much too slow compared with a GPU
+      if (device_type == CL_DEVICE_TYPE_GPU && // Xeon Phi is much too slow
+                                               // compared with a GPU
           avail_dev_alloc > req_dev_alloc) {
         device = dev;
         good_device_found = true;
@@ -133,9 +206,14 @@ private:
     auto deviceQueue =
         cl::DeviceCommandQueue::makeDefault(default_ctx, device, err);
 #else
-    cl::Device::setDefault(device);
-    cl::Context::setDefault(default_ctx);
-    cl::CommandQueue::setDefault(cl::CommandQueue(default_ctx, device, 0, err));
+    if (device != cl::Device::setDefault(device)) {
+      std::cerr << "Another default device was already set!\n";
+    }
+    if (default_ctx != cl::Context::setDefault(default_ctx)) {
+      std::cerr << "Another default context was already set!\n";
+    }
+    auto deviceQueue = cl::CommandQueue::setDefault(
+        cl::CommandQueue(default_ctx, device, 0, err));
 #endif
     checkError(*err, "Set default queue");
 
@@ -156,67 +234,23 @@ public:
     m_initialized = true;
   }
 
-  cl::Kernel getKernel(const enKernel kernel) const {
+  template <enKernel kernel> cl::Kernel getKernel() const {
     assert(m_initialized);
 
-#ifdef _WIN32
-    // Maybe only necessary for xeon phi
-    const auto get_kernel_name = [](enKernel en_kernel) {
-      switch (en_kernel) {
-      case en_padding_kernel:
-        return "padding_kernel";
-      case en_multiply_kernel:
-        return "multiply_kernel";
-      case en_multiply_kernel2D:
-        return "multiply_kernel2D";
-      case en_subtract_kernel2D:
-        return "subtract_kernel2D";
-      case en_divide_kernel3D_loginv_ushort:
-        return "divide_kernel3D_loginv_Ushort";
-      case en_add_const_kernel:
-        return "add_const_kernel";
-      case en_add_const_with_thresh_kernel:
-        return "add_const_with_thresh_kernel";
-      case en_add_mul_const_kernel:
-        return "add_mul_const_kernel";
-      case en_add_mul_const_with_thresh_kernel:
-        return "add_mul_const_with_thresh_kernel";
-      case en_min_max_kernel:
-        return "min_max_kernel";
-      case en_min_max_kernel2:
-        return "min_max_kernel2";
-      case en_crop_by_struct_kernel:
-        return "crop_by_struct_kernel";
-      case en_LogItoI_subtract_median_ItoLogI:
-        return "log_i_to_i_subtract_median_i_to_log_i";
-      case en_LogItoI_subtract_median_y_x:
-        return "log_i_to_i_subtract_median_y_x";
-      case en_ItoLogI:
-        return "i_to_log_i_kernel";
-      };
-    };
+    constexpr auto kernel_name = ce_find_key<kernel>(kernel_names);
+    static_assert(kernel_name != nullptr && kernel_name[0] != '\0',
+                  "Kernel name not found in array!");
 
-    const auto get_kernel_by_name =
-        [](const std::string &kernel_name,
-           const std::vector<cl::Kernel> &kernel_list) {
-          for (auto &cur_kernel : kernel_list) {
-            const auto cur_kernel_name =
-                cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
-            if (cur_kernel_name == kernel_name) {
-              return cur_kernel;
-            }
-          }
-          std::cerr << "OH NO, SOMETHING BAD WILL HAPPEN SOON!\n";
-          return kernel_list.at(0);
-        };
-
-    const auto &kernel_name = get_kernel_name(kernel);
-    auto out_kernel = get_kernel_by_name(kernel_name, m_kernel_list);
-#else
-    // It seems linux always has the kernels in order, probably it's just
-    // windows which doesn't
-    auto &out_kernel = m_kernel_list.at(kernel);
-#endif
+    /*kernel_name i is captured for free in clang but not in gcc, so we'll use
+     * auto-capturing, [=] */
+    const auto it_kernel = std::find_if(
+        m_kernel_list.begin(), m_kernel_list.end(), [=](cl::Kernel cur_kernel) {
+          return (cur_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>()) == kernel_name;
+        });
+    if (it_kernel == m_kernel_list.end()) {
+      std::cerr << "OH NO, SOMETHING BAD WILL HAPPEN SOON!\n";
+    }
+    const auto out_kernel = *it_kernel;
 
 #ifdef DEBUG_OPENCL
     const auto &kernel_name = out_kernel.getInfo<CL_KERNEL_FUNCTION_NAME>();
@@ -228,12 +262,11 @@ public:
 
 static KernelMan kernel_man;
 
-void OpenCL_initialize(const size_t required_mem_alloc_size,
-                       std::string &defines) {
+void initialize(const size_t required_mem_alloc_size, std::string &defines) {
   kernel_man.initialize(defines, required_mem_alloc_size);
 }
 
-void OpenCL_initialize(std::string &defines) { kernel_man.initialize(defines); }
+void initialize(std::string &defines) { kernel_man.initialize(defines); }
 
 cl::NDRange get_local_work_size_small(const cl::Device &device) {
   const auto device_name = device.getInfo<CL_DEVICE_NAME>();
@@ -254,11 +287,21 @@ cl::NDRange get_local_work_size_large(const cl::Device &device) {
   return {128};
 }
 
-void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
-                    const cl_uint4 &inputSize,
-                    const float *hostVolume, // input
-                    float *hostPaddedVolume, // output
-                    std::vector<float> &mirrorWeights) {
+auto initialize_opencl(std::string &defines, size_t buffer_size) {
+  auto err = CL_SUCCESS;
+  kernel_man.initialize(defines, buffer_size);
+  const auto ctx = cl::Context::getDefault(&err);
+  checkError(err, "Get default context");
+  auto queue = cl::CommandQueue::getDefault(&err);
+  checkError(err, "Get default queue");
+  return std::make_pair(ctx, queue);
+}
+
+void padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
+             const cl_uint4 &inputSize,
+             const float *hostVolume, // input
+             float *hostPaddedVolume, // output
+             std::vector<float> &mirrorWeights) {
   auto err = CL_SUCCESS;
 
   const auto pv_size =
@@ -266,11 +309,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   const auto pv_buffer_size = pv_size * sizeof(float);
 
   auto defines = std::string("");
-  kernel_man.initialize(defines, pv_buffer_size);
-  const auto ctx = cl::Context::getDefault(&err);
-  checkError(err, "Get default context");
-  auto queue = cl::CommandQueue::getDefault(&err);
-  checkError(err, "Get default queue");
+  auto [ctx, queue] = initialize_opencl(defines, pv_buffer_size);
 
   /* Prepare OpenCL memory objects and place data inside them. */
 
@@ -296,7 +335,7 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   auto padding_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_int4, cl_uint4, cl_uint4,
                         cl::Buffer, cl_uint>(
-          kernel_man.getKernel(en_padding_kernel));
+          kernel_man.getKernel<enKernel::en_padding_kernel>());
   // padding_kernel(program, "padding_kernel");
 
   const auto local_work_size =
@@ -305,12 +344,14 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   const cl::NDRange global_work_size(pv_size);
 
   // Call to kernel
-  padding_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                 deviceVolume, devicePaddedVolume, paddingIndex, paddingSize,
-                 inputSize, weights_d, w_buf_sizeof);
+  auto evt =
+      padding_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
+                     deviceVolume, devicePaddedVolume, paddingIndex,
+                     paddingSize, inputSize, weights_d, w_buf_sizeof);
 
   // Execute kernel
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Padding finish queue");
 
   /* Fetch results of calculations. */
@@ -319,9 +360,8 @@ void OpenCL_padding(const cl_int4 &paddingIndex, const cl_uint4 &paddingSize,
   checkError(err, "Padding copy back from device");
 }
 
-void OpenCL_subtract2Dfrom3DbySlice_InPlace(
-    FloatImageType::Pointer &projections,
-    const FloatImage2DType::Pointer &filter) {
+void subtract2Dfrom3DbySlice_InPlace(FloatImageType::Pointer &projections,
+                                     const FloatImage2DType::Pointer &filter) {
 
   const auto inputSize = projections->GetBufferedRegion().GetSize();
   const auto subSize = filter->GetBufferedRegion().GetSize();
@@ -332,11 +372,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
 
   auto err = CL_SUCCESS;
   auto defines = std::string("");
-  kernel_man.initialize(defines, memoryByteSizeInput);
-  const auto ctx = cl::Context::getDefault(&err);
-  checkError(err, "Get default context");
-  auto queue = cl::CommandQueue::getDefault(&err);
-  checkError(err, "Get default queue");
+  auto [ctx, queue] = initialize_opencl(defines, memoryByteSizeInput);
 
   auto *buffer = projections->GetBufferPointer();
   auto *sub_buffer = filter->GetBufferPointer();
@@ -350,7 +386,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
 
   // Create program
   auto subtract_kernel2D = cl::KernelFunctor<cl::Buffer, cl_uint4, cl::Buffer>(
-      kernel_man.getKernel(en_subtract_kernel2D));
+      kernel_man.getKernel<enKernel::en_subtract_kernel2D>());
 
   const auto local_work_size =
       get_local_work_size_large(cl::Device::getDefault());
@@ -361,10 +397,12 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
                               static_cast<cl_uint>(inputSize[1]),
                               static_cast<cl_uint>(inputSize[2]), 0}};
 
-  subtract_kernel2D(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                    deviceBuffer, inputDim, deviceSubBuffer);
+  auto evt = subtract_kernel2D(
+      cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
+      inputDim, deviceSubBuffer);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish subtract2d queue");
 
   /* Fetch results of calculations. */
@@ -373,7 +411,7 @@ void OpenCL_subtract2Dfrom3DbySlice_InPlace(
   checkError(err, "Sub, copy back from device");
 }
 
-itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
+itk::Image<float, 3U>::Pointer divide3Dby3D_loginv_OutOfPlace(
     const itk::Image<unsigned short, 3U>::Pointer &Num3D,
     const itk::Image<unsigned short, 3U>::Pointer &Denum3D) {
 
@@ -397,11 +435,7 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
 
   auto err = CL_SUCCESS;
   auto defines = std::string("");
-  kernel_man.initialize(defines, memoryByteSizeInput);
-  const auto ctx = cl::Context::getDefault(&err);
-  checkError(err, "Get default context");
-  auto queue = cl::CommandQueue::getDefault(&err);
-  checkError(err, "Get default queue");
+  auto [ctx, queue] = initialize_opencl(defines, memoryByteSizeInput);
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -416,17 +450,18 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
   // Create program
   auto divide_kernel3D_loginv_Ushort =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer>(
-          kernel_man.getKernel(en_divide_kernel3D_loginv_ushort));
+          kernel_man.getKernel<enKernel::en_divide_kernel3D_loginv_ushort>());
 
   const auto local_work_size =
       get_local_work_size_small(cl::Device::getDefault());
   const cl::NDRange global_work_size(memorySizeInput);
 
-  divide_kernel3D_loginv_Ushort(
+  auto evt = divide_kernel3D_loginv_Ushort(
       cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
       deviceSubBuffer, deviceOutBuffer);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish divide3d queue");
 
   /* Fetch results of calculations. */
@@ -442,26 +477,22 @@ itk::Image<float, 3U>::Pointer OpenCL_divide3Dby3D_loginv_OutOfPlace(
 #ifdef USE_XEON_PHI
 #include "C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2017.8.275\windows\mkl\include\mkl.h"
 
-void OpenCL_AddConst_InPlace(cl_float *buffer,
-                             const itk::Image<float, 3U>::SizeType &inputSize,
-                             const cl_float constant) {}
+void AddConst_InPlace(cl_float *buffer,
+                      const itk::Image<float, 3U>::SizeType &inputSize,
+                      const cl_float constant) {}
 
 #else
 
-void OpenCL_AddConst_InPlace(cl_float *buffer,
-                             const itk::Image<float, 3U>::SizeType &inputSize,
-                             const cl_float constant) {
+void AddConst_InPlace(cl_float *buffer,
+                      const itk::Image<float, 3U>::SizeType &inputSize,
+                      const cl_float constant) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
   auto err = CL_SUCCESS;
   auto defines = std::string("");
-  kernel_man.initialize(defines, memoryByteSizeInput);
-  const auto ctx = cl::Context::getDefault(&err);
-  checkError(err, "Get default context");
-  auto queue = cl::CommandQueue::getDefault(&err);
-  checkError(err, "Get default queue");
+  auto [ctx, queue] = initialize_opencl(defines, memoryByteSizeInput);
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -469,17 +500,19 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
 
   // Create program
   auto add_const_kernel = cl::KernelFunctor<cl::Buffer, cl_float>(
-      kernel_man.getKernel(en_add_const_kernel));
+      kernel_man.getKernel<enKernel::en_add_const_kernel>());
 
   const auto local_work_size =
       get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
-  add_const_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                   deviceBuffer, constant);
+  auto evt = add_const_kernel(
+      cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
+      constant);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish subtract2d queue");
 
   /* Fetch results of calculations. */
@@ -489,20 +522,17 @@ void OpenCL_AddConst_InPlace(cl_float *buffer,
 }
 #endif
 
-void OpenCL_AddConst_MulConst_InPlace(
-    cl_float *buffer, const itk::Image<float, 3U>::SizeType &inputSize,
-    const cl_float add_constant, const cl_float mul_constant) {
+void AddConst_MulConst_InPlace(cl_float *buffer,
+                               const itk::Image<float, 3U>::SizeType &inputSize,
+                               const cl_float add_constant,
+                               const cl_float mul_constant) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
   auto err = CL_SUCCESS;
   auto defines = std::string("");
-  kernel_man.initialize(defines, memoryByteSizeInput);
-  const auto ctx = cl::Context::getDefault(&err);
-  checkError(err, "Get default context");
-  auto queue = cl::CommandQueue::getDefault(&err);
-  checkError(err, "Get default queue");
+  auto [ctx, queue] = initialize_opencl(defines, memoryByteSizeInput);
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -510,18 +540,19 @@ void OpenCL_AddConst_MulConst_InPlace(
 
   // Create program
   auto add_mul_const_kernel = cl::KernelFunctor<cl::Buffer, cl_float, cl_float>(
-      kernel_man.getKernel(en_add_mul_const_kernel));
+      kernel_man.getKernel<enKernel::en_add_mul_const_kernel>());
 
   const auto local_work_size =
       get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
-  add_mul_const_kernel(
+  auto evt = add_mul_const_kernel(
       cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
       add_constant, mul_constant);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish add_mul_const queue");
 
   /* Fetch results of calculations. */
@@ -530,20 +561,16 @@ void OpenCL_AddConst_MulConst_InPlace(
   checkError(err, "addMul, copy data back from device");
 }
 
-void OpenCL_AddConst_InPlace_2D(
-    cl_float *buffer, const itk::Image<float, 2U>::SizeType &inputSize,
-    const cl_float constant) {
+void AddConst_InPlace_2D(cl_float *buffer,
+                         const itk::Image<float, 2U>::SizeType &inputSize,
+                         const cl_float constant) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1];
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
 
   auto err = CL_SUCCESS;
   auto defines = std::string("");
-  kernel_man.initialize(defines, memoryByteSizeInput);
-  const auto ctx = cl::Context::getDefault(&err);
-  checkError(err, "Get default context");
-  auto queue = cl::CommandQueue::getDefault(&err);
-  checkError(err, "Get default queue");
+  auto [ctx, queue] = initialize_opencl(defines, memoryByteSizeInput);
 
   /* Prepare OpenCL memory objects and place data inside them. */
   const auto deviceBuffer =
@@ -551,17 +578,19 @@ void OpenCL_AddConst_InPlace_2D(
 
   // Create program
   auto add_const_kernel = cl::KernelFunctor<cl::Buffer, cl_float>(
-      kernel_man.getKernel(en_add_const_kernel));
+      kernel_man.getKernel<enKernel::en_add_const_kernel>());
 
   const auto local_work_size =
       get_local_work_size_large(cl::Device::getDefault());
 
   const cl::NDRange global_work_size(memorySizeInput);
 
-  add_const_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                   deviceBuffer, constant);
+  auto evt = add_const_kernel(
+      cl::EnqueueArgs(queue, global_work_size, local_work_size), deviceBuffer,
+      constant);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish add_const queue");
 
   /* Fetch results of calculations. */
@@ -570,24 +599,24 @@ void OpenCL_AddConst_InPlace_2D(
   checkError(err, "add2d could not copy back from device");
 }
 
-cl_float2 OpenCL_min_max_3D(cl_float *buffer,
-                            const itk::Image<float, 3U>::SizeType &inputSize) {
+cl_float2 min_max_3D(cl_float *buffer,
+                     const itk::Image<float, 3U>::SizeType &inputSize) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1] * inputSize[2];
 
-  return OpenCL_min_max_1D(buffer, memorySizeInput);
+  return min_max_1D(buffer, memorySizeInput);
 }
 
-cl_float2 OpenCL_min_max_2D(cl_float *buffer,
-                            const itk::Image<float, 2U>::SizeType &inputSize) {
+cl_float2 min_max_2D(cl_float *buffer,
+                     const itk::Image<float, 2U>::SizeType &inputSize) {
 
   const auto memorySizeInput = inputSize[0] * inputSize[1];
 
-  return OpenCL_min_max_1D(buffer, memorySizeInput);
+  return min_max_1D(buffer, memorySizeInput);
 }
 
-cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
-                                         cl::Buffer &deviceBuffer) {
+cl_float2 min_max_recurse_unified(const size_t inputSize,
+                                  cl::Buffer &deviceBuffer) {
   auto err = CL_SUCCESS;
   auto queue = cl::CommandQueue::getDefault(&err);
   checkError(err, "Get default queue");
@@ -615,7 +644,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
     }
 
     err = queue.enqueueUnmapMemObject(deviceBuffer, buffer);
-    checkError(err, "OpenCL_min_max_recurse_unified unmap");
+    checkError(err, "min_max_recurse_unified unmap");
 
     return out;
   }
@@ -623,7 +652,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
   // Create program
   auto min_max_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint, cl_uint>(
-          kernel_man.getKernel(en_min_max_kernel2));
+          kernel_man.getKernel<enKernel::en_min_max_kernel2>());
 
   /* Prepare OpenCL memory objects and place data inside them. */
 
@@ -646,7 +675,7 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
         (outputDim + outputDim % local_work_size) / local_work_size;
     if (n_work_groups % 2 !=
             0 // global must be evenly divisable with local work group
-        || n_work_groups * local_work_size < local_work_size) {
+        || n_work_groups < 1) {
       local_work_size /= 2;
     } else {
       break;
@@ -666,16 +695,17 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
                              nullptr, &err);
   checkError(err, "Allocate device sub buffer in unified memory");
 
-  min_max_kernel(cl::EnqueueArgs(queue, cl::NDRange(global_work_size),
-                                 cl::NDRange(local_work_size)),
-                 deviceBuffer, deviceSubBuffer, divider, inputSize, err);
+  auto evt =
+      min_max_kernel(cl::EnqueueArgs(queue, cl::NDRange(global_work_size),
+                                     cl::NDRange(local_work_size)),
+                     deviceBuffer, deviceSubBuffer, divider, inputSize, err);
   checkError(err, "min_max_kernel call recurse unified");
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish min_max_recurse queue");
 
-  const auto result =
-      OpenCL_min_max_recurse_unified(outputDim, deviceSubBuffer);
+  const auto result = min_max_recurse_unified(outputDim, deviceSubBuffer);
 
   err = queue.finish();
   checkError(err, "Finish unmap min_max_recurse queue");
@@ -683,10 +713,10 @@ cl_float2 OpenCL_min_max_recurse_unified(const size_t inputSize,
   return result;
 }
 
-cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
-                                 const size_t memorySizeSub,
-                                 const cl::NDRange local_work_size,
-                                 const size_t divider) {
+cl_float2 min_max_unified(cl_float *buffer, const size_t memorySizeInput,
+                          const size_t memorySizeSub,
+                          const cl::NDRange local_work_size,
+                          const size_t divider) {
   auto err = CL_SUCCESS;
   const auto ctx = cl::Context::getDefault(&err);
   checkError(err, "Get default context");
@@ -699,7 +729,7 @@ cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
 
   // Create program
   auto min_max_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint>(
-      kernel_man.getKernel(en_min_max_kernel));
+      kernel_man.getKernel<enKernel::en_min_max_kernel>());
 
   const auto memoryByteSizeSub = memorySizeSub * sizeof(cl_float2);
 
@@ -707,14 +737,15 @@ cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
 
   const cl::NDRange global_work_size(memorySizeSub);
 
-  min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                 deviceBuffer, deviceSubBuffer, divider);
+  auto evt =
+      min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
+                     deviceBuffer, deviceSubBuffer, divider);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish add_const queue");
 
-  const auto result =
-      OpenCL_min_max_recurse_unified(memorySizeSub, deviceSubBuffer);
+  const auto result = min_max_recurse_unified(memorySizeSub, deviceSubBuffer);
 
   err = queue.finish();
   checkError(err, "add_const finish");
@@ -722,10 +753,10 @@ cl_float2 OpenCL_min_max_unified(cl_float *buffer, const size_t memorySizeInput,
   return result;
 }
 
-cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
-                                const size_t memorySizeSub,
-                                const cl::NDRange local_work_size,
-                                const size_t divider) {
+cl_float2 min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
+                         const size_t memorySizeSub,
+                         const cl::NDRange local_work_size,
+                         const size_t divider) {
 
   auto err = CL_SUCCESS;
   const auto ctx = cl::Context::getDefault(&err);
@@ -739,7 +770,7 @@ cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
 
   // Create program
   auto min_max_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint>(
-      kernel_man.getKernel(en_min_max_kernel));
+      kernel_man.getKernel<enKernel::en_min_max_kernel>());
 
   const auto memoryByteSizeSub = memorySizeSub * sizeof(cl_float2);
 
@@ -751,14 +782,16 @@ cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
 
   const cl::NDRange global_work_size(memorySizeSub);
 
-  min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                 deviceBuffer, deviceSubBuffer, divider);
+  auto evt =
+      min_max_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
+                     deviceBuffer, deviceSubBuffer, divider);
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish add_const queue");
 
   const auto result =
-      OpenCL_min_max_recurse(sub_buffer, memorySizeSub, deviceSubBuffer);
+      min_max_recurse(sub_buffer, memorySizeSub, deviceSubBuffer);
 
   err = queue.enqueueUnmapMemObject(devicePinnedSubBuffer, sub_buffer);
   checkError(err, "add_const unmap");
@@ -768,8 +801,8 @@ cl_float2 OpenCL_min_max_pinned(cl_float *buffer, const size_t memorySizeInput,
   return result;
 }
 
-cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
-                                 cl::Buffer &deviceBuffer) {
+cl_float2 min_max_recurse(cl_float2 *buffer, const size_t inputSize,
+                          cl::Buffer &deviceBuffer) {
 
   const auto recurse_local_work_size =
       get_local_work_size_large(cl::Device::getDefault());
@@ -799,7 +832,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   // Create program
   auto min_max_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_uint, cl_uint>(
-          kernel_man.getKernel(en_min_max_kernel2));
+          kernel_man.getKernel<enKernel::en_min_max_kernel2>());
 
   /* Prepare OpenCL memory objects and place data inside them. */
 
@@ -822,7 +855,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
         (outputDim + outputDim % local_work_size) / local_work_size;
     if (n_work_groups % 2 !=
             0 // global must be evenly divisable with local work group
-        || n_work_groups * local_work_size < local_work_size) {
+        || n_work_groups < 1) {
       local_work_size /= 2;
     } else {
       break;
@@ -843,23 +876,23 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
       devicePinnedSubBuffer, CL_TRUE, CL_MAP_READ, 0, memoryByteSizeSub);
 
   auto err = CL_SUCCESS;
-  min_max_kernel(cl::EnqueueArgs(queue, cl::NDRange(global_work_size),
-                                 cl::NDRange(local_work_size)),
-                 deviceBuffer, deviceSubBuffer, divider, inputSize, err);
+  auto evt =
+      min_max_kernel(cl::EnqueueArgs(queue, cl::NDRange(global_work_size),
+                                     cl::NDRange(local_work_size)),
+                     deviceBuffer, deviceSubBuffer, divider, inputSize, err);
   checkError(err, "min_max_kernel call recurse pinned");
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish min_max_recurse queue");
 
   /* Fetch results of calculations. */
   err = queue.enqueueReadBuffer(deviceSubBuffer, CL_TRUE, 0, memoryByteSizeSub,
                                 sub_buffer);
   checkError(err, "read sub buffer min_max_recurse queue");
-  err = queue.finish();
   checkError(err, "Finish read sub buffer min_max_recurse queue");
 
-  const auto result =
-      OpenCL_min_max_recurse(sub_buffer, outputDim, deviceSubBuffer);
+  const auto result = min_max_recurse(sub_buffer, outputDim, deviceSubBuffer);
 
   err = queue.enqueueUnmapMemObject(devicePinnedSubBuffer, sub_buffer);
   checkError(err, "Unmap sub pinned min_max_recurse queue");
@@ -869,7 +902,7 @@ cl_float2 OpenCL_min_max_recurse(cl_float2 *buffer, const size_t inputSize,
   return result;
 }
 
-cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
+cl_float2 min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
 
   const auto memoryByteSizeInput = memorySizeInput * sizeof(cl_float);
   auto defines = std::string("");
@@ -895,16 +928,16 @@ cl_float2 OpenCL_min_max_1D(cl_float *buffer, const size_t memorySizeInput) {
   auto dev = cl::Device::getDefault();
   const auto unified_memory = dev.getInfo<CL_DEVICE_HOST_UNIFIED_MEMORY>();
   if (unified_memory) {
-    return OpenCL_min_max_unified(buffer, memorySizeInput, memorySizeSub,
-                                  local_work_size, divider);
+    return min_max_unified(buffer, memorySizeInput, memorySizeSub,
+                           local_work_size, divider);
   }
 #endif
-  return OpenCL_min_max_pinned(buffer, memorySizeInput, memorySizeSub,
-                               local_work_size, divider);
+  return min_max_pinned(buffer, memorySizeInput, memorySizeSub, local_work_size,
+                        divider);
 }
 
-void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
-                                   const Rtss_roi_modern &voi) {
+void crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
+                            const Rtss_roi_modern &voi) {
 
   const auto inputSize = ct_image->GetBufferedRegion().GetSize();
   const cl_ulong4 in_size = {{inputSize[0], inputSize[1], inputSize[2], 0}};
@@ -937,13 +970,14 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
   // Create program
   auto crop_kernel = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl_ulong,
                                        cl_ulong4, cl_float2, cl_float2>(
-      kernel_man.getKernel(en_crop_by_struct_kernel));
+      kernel_man.getKernel<enKernel::en_crop_by_struct_kernel>());
 
   const auto local_work_size =
       get_local_work_size_large(cl::Device::getDefault());
   const cl::NDRange global_work_size(memorySizeInput);
 
   std::vector<cl::Buffer> deviceBuffer(inputSize[2]);
+  std::vector<cl::Event> events(inputSize[2]);
   for (size_t slice = 0; slice < inputSize[2]; ++slice) {
     auto *buffer = ct_image->GetBufferPointer() + slice * memorySizeInput;
 
@@ -953,13 +987,13 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
     checkError(err, "Create device buffer ushort image");
 
     std::vector<cl_float2> struct_buffer;
-    auto prev_z_pos = voi.pslist.at(1).coordinates.at(0).z;
+    auto prev_z_pos = voi.pslist.at(1).coordinates.at(0)[2];
     for (auto &contour : voi.pslist) {
       const auto slice_pos = inputOrigin[2] + inputSpacing[2] * slice;
-      const auto z_pos = contour.coordinates.at(0).z;
+      const auto z_pos = contour.coordinates.at(0)[2];
       if (fabs(z_pos - slice_pos) < fabs(z_pos - prev_z_pos)) {
         for (const auto coord : contour.coordinates) {
-          struct_buffer.push_back({coord.x, coord.y});
+          struct_buffer.push_back({coord[0], coord[1]});
         }
         break;
       }
@@ -975,12 +1009,14 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
 
     const cl_ulong n_coords = struct_buffer.size();
 
-    crop_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
-                deviceBuffer.at(slice), d_struct_buffer, n_coords, in_size,
-                in_orig, in_spacing);
+    events.push_back(
+        crop_kernel(cl::EnqueueArgs(queue, global_work_size, local_work_size),
+                    deviceBuffer.at(slice), d_struct_buffer, n_coords, in_size,
+                    in_orig, in_spacing));
   }
 
   err = queue.finish();
+  std::for_each(events.begin(), events.end(), print_prof_info);
   checkError(err, "Finish crop by struct queue");
 
   for (auto slice = 0ul; slice < inputSize[2]; ++slice) {
@@ -993,7 +1029,7 @@ void OpenCL_crop_by_struct_InPlace(UShortImageType::Pointer &ct_image,
   }
 }
 
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
+FloatImage2DType::Pointer LogItoI_subtract_median_ItoLogI(
     const FloatImage2DType::Pointer &proj_raw,
     const FloatImage2DType::Pointer &proj_scatter_intensity,
     const unsigned int median_radius) {
@@ -1045,13 +1081,13 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
 
   auto log_i_to_i_subtract_median_i_to_log_i_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_int>(
-          kernel_man.getKernel(en_LogItoI_subtract_median_ItoLogI));
+          kernel_man.getKernel<enKernel::en_LogItoI_subtract_median_ItoLogI>());
 
   const auto local_work_size =
       get_local_work_size_small(cl::Device::getDefault());
   const auto global_work_size = cl::NDRange(memorySizeInput);
 
-  log_i_to_i_subtract_median_i_to_log_i_kernel(
+  auto evt = log_i_to_i_subtract_median_i_to_log_i_kernel(
       cl::EnqueueArgs(queue, global_work_size, local_work_size),
       deviceBuffer_raw, deviceBuffer_sca, deviceOutBuffer, in_size,
       static_cast<cl_int>(median_radius), err);
@@ -1059,6 +1095,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_ItoLogI(
              "Enqueue kernel and args, log_i_to_i_subtract_median_i_to_log_i");
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish log_i_to_i_subtract_median_i_to_log_i queue");
 
   /* Fetch results of calculations. */
@@ -1209,10 +1246,11 @@ FloatImage2DType::Pointer gaussian_filter(FloatImage2DType::Pointer input,
 }
 #endif
 
-FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
-    const FloatImage2DType::Pointer &proj_raw,
-    const FloatImage2DType::Pointer &proj_prim,
-    const unsigned int median_radius, const float gaussian_sigma) {
+FloatImage2DType::Pointer
+LogItoI_subtract_median_gaussian(const FloatImage2DType::Pointer &proj_raw,
+                                 const FloatImage2DType::Pointer &proj_prim,
+                                 const unsigned int median_radius,
+                                 const float gaussian_sigma) {
 
   const auto inputSize = proj_raw->GetBufferedRegion().GetSize();
   const cl_ulong2 in_size = {{inputSize[0], inputSize[1]}};
@@ -1258,7 +1296,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
 
   auto log_i_to_i_subtract_median_y_x_kernel =
       cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_ulong2, cl_int>(
-          kernel_man.getKernel(en_LogItoI_subtract_median_y_x));
+          kernel_man.getKernel<enKernel::en_LogItoI_subtract_median_y_x>());
 
   auto local_work_size = 128U; // bench test what is optimal
   while (memorySizeInput % local_work_size != 0) {
@@ -1268,15 +1306,15 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
   const auto n_work_groups = memorySizeInput / actual_work_size;
   const auto super_global_work_size =
       cl::NDRange(local_work_size * n_work_groups);
-  const auto super_local_work_size =
-      cl::NDRange(local_work_size);
+  const auto super_local_work_size = cl::NDRange(local_work_size);
 
-  log_i_to_i_subtract_median_y_x_kernel(
+  auto evt = log_i_to_i_subtract_median_y_x_kernel(
       cl::EnqueueArgs(queue, super_global_work_size, super_local_work_size),
       deviceBuffer_raw, deviceBuffer_pri, deviceBuffer_sca, in_size,
       static_cast<cl_int>(median_radius));
 
   err = queue.finish();
+  print_prof_info(evt);
   checkError(err, "Finish log_i_to_i_subtract_median_y_x queue");
 
   // Gaussian filter
@@ -1296,7 +1334,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
 
   // And finally transform i back to log i
   auto i_to_log_i_kernel = cl::KernelFunctor<cl::Buffer, cl_ulong2>(
-      kernel_man.getKernel(en_ItoLogI));
+      kernel_man.getKernel<enKernel::en_ItoLogI>());
 
   const auto local_work_size_small =
       get_local_work_size_small(cl::Device::getDefault());
@@ -1306,6 +1344,7 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
       deviceBuffer_out, in_size);
 
   err = queue.finish();
+print_prof_info(evt);
   checkError(err, "Finish i_to_log_i queue");
 
   // Fetch results of calculations.
@@ -1316,3 +1355,5 @@ FloatImage2DType::Pointer OpenCL_LogItoI_subtract_median_gaussian(
   return proj_sca;
 }
 
+} // namespace opencl
+} // namespace crl

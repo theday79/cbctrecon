@@ -7,6 +7,13 @@
 #include "OpenCL/device_picker.hpp"
 #include "OpenCL/err_code.hpp"
 
+#ifndef CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD
+#define CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD 0x4040
+#endif
+#ifndef CL_DEVICE_WAVEFRONT_WIDTH_AMD
+#define CL_DEVICE_WAVEFRONT_WIDTH_AMD 0x4043
+#endif
+
 int main(int argc, char **argv) {
 
   // Get list of platforms
@@ -24,8 +31,7 @@ int main(int argc, char **argv) {
 
   std::cerr << "\n";
 
-  auto devices = std::vector<cl::Device>();
-  OpenCL_getDeviceList(devices);
+  auto devices = crl::opencl::getDeviceList();
 
   i = 0U;
   for (auto &dev : devices) {
@@ -87,6 +93,12 @@ int main(int argc, char **argv) {
       FLOPs = 2;
       // This may not be a robust way to find # of shaders!!!
       compute_units *= dev.getInfo<CL_DEVICE_WARP_SIZE_NV>(&cl_err) * 4;
+    } else if (plat_name.compare(0, 3, "AMD") == 0) {
+      FLOPs = 1;
+      auto float_vec_width =
+          dev.getInfo<CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD>(&cl_err) / 2;
+      compute_units *=
+          dev.getInfo<CL_DEVICE_WAVEFRONT_WIDTH_AMD>(&cl_err) * float_vec_width;
     } else { // Intel CPUs seem to scale with vector width:
              // https://en.wikipedia.org/wiki/FLOPS#FLOPs_per_cycle_for_various_processors
              // I'll have to test on AMD CPU and GPU and Intel GPU hardware to

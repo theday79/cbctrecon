@@ -6,6 +6,11 @@
 #include "cbctrecon_compute.h"
 #include "cbctrecon.h"
 
+// std
+#include <algorithm>
+#include <optional>
+#include <string>
+
 // Qt
 #include <qxmlstream.h>
 
@@ -22,11 +27,14 @@
 #include "itkStatisticsImageFilter.h"
 
 #include "OpenCL/ImageFilters.hpp"
+#include "free_functions.h"
+
+namespace crl {
 
 void ApplyBowtie(FloatImageType::Pointer &projections,
                  const FloatImage2DType::Pointer &bowtie_proj) {
 
-  OpenCL_subtract2Dfrom3DbySlice_InPlace(projections, bowtie_proj);
+  crl::opencl::subtract2Dfrom3DbySlice_InPlace(projections, bowtie_proj);
 }
 
 double GetMaxAndMinValueOfProjectionImage(
@@ -53,8 +61,8 @@ double GetMaxAndMinValueOfProjectionImage(
 }
 
 /*
-ui.lineEdit_CurmAs->setText(QString("%1,20").arg((64 * 40 / 20) / ScaleFactor));
-ui.lineEdit_RefmAs->setText(QString("64,40"));
+ui.lineEdit_CurmAs->setText(std::string("%1,20").arg((64 * 40 / 20) /
+ScaleFactor)); ui.lineEdit_RefmAs->setText(std::string("64,40"));
 */
 double
 CalculateIntensityScaleFactorFromMeans(UShortImageType::Pointer &spProjRaw3D,
@@ -102,17 +110,17 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
   auto idxZ = 0;
 
   switch (iDirection) {
-  case PLANE_AXIAL:
+  case enPLANE::PLANE_AXIAL:
     idx_hor = 0;
     idxVer = 1;
     idxZ = 2;
     break;
-  case PLANE_FRONTAL:
+  case enPLANE::PLANE_FRONTAL:
     idx_hor = 0;
     idxVer = 2;
     idxZ = 1;
     break;
-  case PLANE_SAGITTAL:
+  case enPLANE::PLANE_SAGITTAL:
     idx_hor = 1;
     idxVer = 2;
     idxZ = 0;
@@ -190,8 +198,8 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
 
   for (auto i = 0; i < z_size && !it_3D.IsAtEnd(); i++) {
     /*QFileInfo crntFileInfo(arrYKImage[i].m_strFilePath);
-    QString crntFileName = crntFileInfo.fileName();
-    QString crntPath = strSavingFolder + "/" + crntFileName;*/
+    std::string crntFileName = crntFileInfo.fileName();
+    std::string crntPath = strSavingFolder + "/" + crntFileName;*/
     // Search matching slice using slice iterator for m_spProjCTImg
     // std::cout << "Get2DFrom3D: Slide= " << i  << " ";
 
@@ -213,28 +221,33 @@ void Get2DFrom3D(FloatImageType::Pointer &spSrcImg3D,
   // std::cout << "cnt = " << cnt << " TotCnt " << cntTot << std::endl;
   /*YK16GrayImage tmpYK;
   tmpYK.UpdateFromItkImageFloat(spTargetImg2D);
-  QString str = QString("D:\\testYK\\InsideFunc_%1.raw").arg(idx);
+  std::string str = std::string("D:\\testYK\\InsideFunc_%1.raw").arg(idx);
   tmpYK.SaveDataAsRaw(str.toLocal8Bit().constData());*/
 }
 
-double GetRawIntensityScaleFactor(QString &strRef_mAs, QString &strCur_mAs) {
+template <typename T>
+std::optional<T> mAs_string_to_value(std::string &mas_string) {
+  const auto listmAs_sv = crl::split_string(mas_string, ",");
+  const auto listmAs = crl::from_sv_v<double>(listmAs_sv);
+
+  if (listmAs.size() == 2) {
+    const auto mA = listmAs.at(0);
+    const auto sec = listmAs.at(1);
+    return mA * sec;
+  }
+  return std::nullopt;
+}
+
+double GetRawIntensityScaleFactor(std::string &strRef_mAs,
+                                  std::string &strCur_mAs) {
   // GetRawIntensity Scale Factor
   auto rawIntensityScaleF = 1.0;
 
-  auto fRef_mAs = 0.0;
-  auto fCur_mAs = 0.0;
-  // QString strRef_mAs = ui.lineEdit_RefmAs->text();
-  auto listmAsRef = strRef_mAs.split(",");
-  if (listmAsRef.length() == 2) {
-    fRef_mAs = listmAsRef.at(0).toDouble() * listmAsRef.at(1).toDouble();
-  }
-  // QString strCur_mAs = ui.lineEdit_CurmAs->text();
-  auto listmAsCur = strCur_mAs.split(",");
-  if (listmAsCur.length() == 2) {
-    fCur_mAs = listmAsCur.at(0).toDouble() * listmAsCur.at(1).toDouble();
-  }
-  if (fabs(fRef_mAs * fCur_mAs) > 0.0001) {
-    rawIntensityScaleF = fRef_mAs / fCur_mAs;
+  auto fRef_mAs = mAs_string_to_value<double>(strRef_mAs);
+  auto fCur_mAs = mAs_string_to_value<double>(strCur_mAs);
+
+  if (fCur_mAs.has_value() && fRef_mAs.has_value()) {
+    rawIntensityScaleF = fRef_mAs.value() / fCur_mAs.value();
   }
 
   return rawIntensityScaleF;
@@ -280,10 +293,10 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   const auto &targetImg = spSrcTarg;
 
   /* 3) Configure transform */
-  using TransformType = itk::Euler3DTransform<double>;
-  auto transform = TransformType::New();
+  using EulerTransformType = itk::Euler3DTransform<double>;
+  auto transform = EulerTransformType::New();
 
-  TransformType::ParametersType param;
+  EulerTransformType::ParametersType param;
   param.SetSize(6);
   // MAXIMUM PARAM NUMBER: 6!!!
   param.put(0, 0.0);                  // rot X // 0.5 = PI/2
@@ -293,7 +306,7 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   param.put(4, 0.0);                  // Trans Y mm
   param.put(5, 0.0);                  // Trans Z mm
 
-  TransformType::ParametersType fixedParam(3); // rotation center
+  EulerTransformType::ParametersType fixedParam(3); // rotation center
   fixedParam.put(0, 0);
   fixedParam.put(1, 0);
   fixedParam.put(2, 0);
@@ -340,28 +353,6 @@ void TransformationRTK2IEC(FloatImageType::Pointer &spSrcTarg) {
   spSrcTarg = flipFilter->GetOutput();
 }
 
-QString XML_GetSingleItemString(QXmlStreamReader &xml) {
-  QString strResult = "";
-  /* We need a start element, like <foo> */
-  if (xml.tokenType() != QXmlStreamReader::StartElement) {
-    return strResult;
-  }
-
-  /* Let's read the name... */
-  // auto elementName = xml.name().toString();
-  /* ...go to the next. */
-  xml.readNext();
-  /*
-   * This elements needs to contain Characters so we know it's
-   * actually data, if it's not we'll leave.
-   */
-  if (xml.tokenType() != QXmlStreamReader::Characters) {
-    return strResult;
-  }
-  strResult = xml.text().toString();
-  return strResult;
-}
-
 void AddConstHU(UShortImageType::Pointer &spImg, const int HUval) {
 
   using iteratorType = itk::ImageRegionIteratorWithIndex<UShortImageType>;
@@ -403,8 +394,8 @@ void ImageTransformUsingCouchCorrection(
   using FilterType = itk::ResampleImageFilter<UShortImageType, UShortImageType>;
   auto filter = FilterType::New();
 
-  using TransformType = itk::AffineTransform<double, 3>;
-  auto transform = TransformType::New();
+  using AffTransformType = itk::AffineTransform<double, 3>;
+  auto transform = AffTransformType::New();
   filter->SetTransform(transform);
   using InterpolatorType =
       itk::NearestNeighborInterpolateImageFunction<UShortImageType, double>;
@@ -438,14 +429,14 @@ void ImageTransformUsingCouchCorrection(
   // should be checked  pRot->x = couch_Pitch;  pRot->y = couch_Yaw;  pRot->z =
   // couch_Roll;
 
-  TransformType::OutputVectorType translation;
+  AffTransformType::OutputVectorType translation;
   translation[0] = -couch_trans.x; // X translation in millimeters
   // translation[1] = +couch_trans.y; //so far so good// This is because when
   // IEC->DICOM, sign was not changed during reading the text file
   translation[1] = -couch_trans.y; // Consistent with Tracking software
   translation[2] = -couch_trans.z; // empirically found
 
-  TransformType::OutputVectorType rotation;
+  AffTransformType::OutputVectorType rotation;
   rotation[0] = -couch_rot.x; // X translation in millimeters
   rotation[1] = -couch_rot.y;
   rotation[2] = -couch_rot.z;
@@ -506,10 +497,10 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
   flipFilter->SetFlipAxes(arrFlipAxes);
   flipFilter->SetInput(spInputImgUS); // plan CT, USHORT image
 
-  using TransformType = itk::Euler3DTransform<double>;
-  auto transform = TransformType::New();
+  using EulerTransformType = itk::Euler3DTransform<double>;
+  auto transform = EulerTransformType::New();
 
-  TransformType::ParametersType param;
+  EulerTransformType::ParametersType param;
   param.SetSize(6);
   param.put(0, itk::Math::pi / -2.0); // rot X // 0.5 = PI/2
   param.put(1, 0);                    // rot Y
@@ -518,7 +509,7 @@ void RotateImgBeforeFwd(UShortImageType::Pointer &spInputImgUS,
   param.put(4, 0.0);                  // Trans Y mm
   param.put(5, 0.0);                  // Trans Z mm
 
-  TransformType::ParametersType fixedParam(3); // rotation center
+  EulerTransformType::ParametersType fixedParam(3); // rotation center
   fixedParam.put(0, 0);
   fixedParam.put(1, 0);
   fixedParam.put(2, 0);
@@ -574,3 +565,118 @@ void ConvertUshort2AttFloat(UShortImageType::Pointer &spImgUshort,
   // FloatImageType::Pointer spCTImg_mu;
   spAttImgFloat = multiplyImageFilter->GetOutput();
 }
+
+void CropFOV3D(UShortImageType::Pointer &sp_Img, const float physPosX,
+               const float physPosY, const float physRadius,
+               const float physTablePosY) {
+  if (sp_Img == nullptr) {
+    return;
+  }
+  // 1) region iterator, set 0 for all pixels outside the circle and below the
+  // table top, based on physical position
+  auto origin = sp_Img->GetOrigin();
+  auto spacing = sp_Img->GetSpacing();
+
+  itk::ImageSliceIteratorWithIndex<UShortImageType> it(
+      sp_Img, sp_Img->GetBufferedRegion());
+
+  it.SetFirstDirection(0);  // x?
+  it.SetSecondDirection(1); // y?
+  it.GoToBegin();
+
+  auto iNumSlice = 0;
+  while (!it.IsAtEnd()) {
+    auto iPosY = 0;
+    while (!it.IsAtEndOfSlice()) {
+      auto iPosX = 0;
+      while (!it.IsAtEndOfLine()) {
+        // Calculate physical position
+
+        const auto crntPhysX = iPosX * static_cast<double>(spacing[0]) +
+                               static_cast<double>(origin[0]);
+        const auto crntPhysY = iPosY * static_cast<double>(spacing[1]) +
+                               static_cast<double>(origin[1]);
+
+        if (pow(crntPhysX - physPosX, 2.0) + pow(crntPhysY - physPosY, 2.0) >=
+            pow(physRadius, 2.0)) {
+          //(*it) = (unsigned short)0; //air value
+          it.Set(0);
+        }
+
+        if (crntPhysY >= physTablePosY) {
+          it.Set(0);
+        }
+        ++it;
+        iPosX++;
+      }
+      it.NextLine();
+      iPosY++;
+    }
+    it.NextSlice();
+    iNumSlice++;
+  }
+}
+
+// From line integral to raw intensity
+// bkIntensity is usually 65535
+UShortImageType::Pointer
+ConvertLineInt2Intensity_ushort(FloatImageType::Pointer &spProjLineInt3D) {
+  if (spProjLineInt3D == nullptr) {
+    return nullptr;
+  }
+  // FloatImageType::IMageRegionIteratorWithIndex
+
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<FloatImageType, UShortImageType,
+                                   LineInt2Intensity_ushort>::New();
+  convert_filter->SetInput(spProjLineInt3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
+
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(UShortImageType::Pointer &spProjIntensity3D) {
+  if (spProjIntensity3D == nullptr) {
+    return nullptr;
+  }
+  auto convert_filter = itk::UnaryFunctorImageFilter<
+      UShortImageType, FloatImageType,
+      Intensity2LineInt_ushort<unsigned short>>::New();
+  convert_filter->SetInput(spProjIntensity3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
+
+FloatImageType::Pointer
+ConvertIntensity2LineInt_ushort(FloatImageType::Pointer &spProjIntensity3D) {
+  if (spProjIntensity3D == nullptr) {
+    return nullptr;
+  }
+  auto convert_filter =
+      itk::UnaryFunctorImageFilter<FloatImageType, FloatImageType,
+                                   Intensity2LineInt_ushort<float>>::New();
+  convert_filter->SetInput(spProjIntensity3D);
+  convert_filter->Update();
+  return convert_filter->GetOutput();
+}
+
+void RenameFromHexToDecimal(const std::vector<fs::path> &filenameList) {
+  const auto size = filenameList.size();
+
+  for (size_t i = 0; i < size; i++) {
+    const auto &crntFilePath = filenameList.at(i);
+    auto dir = fs::absolute(crntFilePath);
+    auto fileBase = crntFilePath.stem();
+    auto newBaseName = crl::HexStr2IntStr(fileBase.string());
+    auto extStr = crntFilePath.extension();
+
+    auto newFileName = newBaseName.append(".").append(extStr.string());
+    auto newPath = fs::absolute(dir) / newFileName;
+
+    // extract former part
+    fs::rename(crntFilePath, newPath);
+  }
+  // Extract
+}
+
+} // namespace crl

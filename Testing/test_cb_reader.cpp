@@ -14,16 +14,18 @@
 #endif
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <memory>
-
-#include <QDir>
 
 #include "itkImageFileReader.h"
 
 #include "cbctrecon_io.h"
 
 #include "cbctrecon_test.hpp"
+#include "free_functions.h"
+
+namespace fs = std::filesystem;
 
 int main(const int argc, char *argv[]) {
 
@@ -37,31 +39,31 @@ int main(const int argc, char *argv[]) {
   auto cbctrecon_test = std::make_unique<CbctReconTest>();
 
   /* Load projections */
-  const auto cbct_dir_str =
-      QString(argv[1]).split(".", QString::SkipEmptyParts).at(0);
-  auto cbct_dir = QDir(cbct_dir_str);
-  auto cbct_path = cbct_dir.absolutePath();
-  if (!cbct_dir.exists()) {
-    std::cerr << "Directory didn't exist: " << cbct_path.toStdString() << "\n";
+  const auto cbct_dir_str = crl::split_string(argv[1], ".").at(0);
+  auto cbct_dir = fs::path(cbct_dir_str);
+  auto cbct_path = fs::absolute(cbct_dir);
+  if (!fs::exists(cbct_dir)) {
+    std::cerr << "Directory didn't exist: " << cbct_path << "\n";
     return -2;
   }
-  if (cbct_dir.isEmpty(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-    std::cerr << "Directory was empty: " << cbct_path.toStdString() << "\n";
+  if (fs::is_empty(cbct_dir)) {
+    std::cerr << "Directory was empty: " << cbct_path << "\n";
     return -3;
   }
 
   // Set and guess some member variables from projection directory:
-  auto proj_dir = QDir(cbct_path + "/Acquisitions/746879825/");
-  if (!proj_dir.exists()) {
+  auto proj_dir = cbct_path / "Acquisitions" / "746879825";
+  if (!fs::exists(proj_dir)) {
     std::cerr << "Projection directory: "
-              << proj_dir.absolutePath().toStdString() << " doesn't exists!\n";
+              << proj_dir << " doesn't exists!\n";
     return -2;
   }
-  auto proj_path = proj_dir.absolutePath();
-  cbctrecon_test->test_SetHisDir(proj_path);
+  auto proj_path = fs::absolute( proj_dir );
+  auto qstr_proj_path = QString(proj_path.string().c_str());
+  cbctrecon_test->test_SetHisDir(qstr_proj_path);
 
   const auto start_time = std::chrono::steady_clock::now();
-  if (!cbctrecon_test->test_LoadSelectedProjFiles(proj_path, false)) {
+  if (!cbctrecon_test->test_LoadSelectedProjFiles(qstr_proj_path, false)) {
     std::cerr << "Could not load or reconstruct CB projections!"
               << "\n";
     return -4;

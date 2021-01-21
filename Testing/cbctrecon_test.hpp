@@ -24,7 +24,7 @@ public:
 
 private:
   FilterReaderType::Pointer
-  ReadBowtieFileWhileProbing(const QString &proj_path,
+  ReadBowtieFileWhileProbing(const fs::path &proj_path,
                              std::tuple<bool, bool> &answers) const;
 
 public:
@@ -155,7 +155,7 @@ void CheckImageQuality(typename TImage::Pointer recon,
     typename TImage::PixelType TestVal = itTest.Get();
     typename TImage::PixelType RefVal = itRef.Get();
     TestError += itk::Math::abs(RefVal - TestVal);
-    EnerError += std::pow(ErrorType(RefVal - TestVal), 2.);
+    EnerError += std::pow(static_cast<ErrorType>(RefVal - TestVal), 2.);
     ++itTest;
     ++itRef;
   }
@@ -168,7 +168,7 @@ void CheckImageQuality(typename TImage::Pointer recon,
       EnerError / ref->GetBufferedRegion().GetNumberOfPixels();
   std::cout << "MSE = " << MSE << std::endl;
   // PSNR
-  const ErrorType PSNR = 20 * log10(RefValueForPSNR) - 10 * log10(MSE);
+  const ErrorType PSNR = 20. * log10(RefValueForPSNR) - 10. * log10(MSE);
   std::cout << "PSNR = " << PSNR << "dB" << std::endl;
   // QI
   const ErrorType QI = (RefValueForPSNR - ErrorPerPixel) / RefValueForPSNR;
